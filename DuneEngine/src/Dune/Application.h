@@ -10,6 +10,8 @@ namespace Dune
 		Application();
 		~Application();
 
+		virtual void OnUpdate() = 0;
+
 		void Start();
 	};
 

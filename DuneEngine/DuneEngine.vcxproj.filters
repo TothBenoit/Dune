@@ -2,10 +2,14 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="src\Dune.h" />
-    <ClInclude Include="src\Application.h" />
-    <ClInclude Include="src\Core.h" />
+    <ClInclude Include="src\Dune\Application.h" />
+    <ClInclude Include="src\Dune\Core.h" />
+    <ClInclude Include="src\Dune\Input.h" />
+    <ClInclude Include="src\Dune\Logger.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Dune\Application.cpp" />
+    <ClCompile Include="src\Dune\Input.cpp" />
+    <ClCompile Include="src\Dune\Logger.cpp" />
   </ItemGroup>
 </Project>

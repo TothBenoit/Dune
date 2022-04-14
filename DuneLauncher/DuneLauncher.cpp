@@ -12,6 +12,11 @@ public:
 	{
 
 	}
+
+	void OnUpdate() override
+	{
+		Dune::LOG_ERROR("WAAAAAAAH")
+	}
 };
 
 int main(int argc, char** argv)

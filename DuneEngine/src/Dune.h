@@ -1,3 +1,5 @@
 #pragma once
 
-#include "Application.h"
+#include "Dune/Application.h"
+#include "Dune/Logger.h"
+#include "Dune/Input.h"

@@ -1,4 +1,6 @@
 #include "Application.h"
+#include "Logger.h"
+#include <string>
 
 namespace Dune
 {
@@ -14,7 +16,10 @@ namespace Dune
 
 	void Application::Start()
 	{
-		while (true);
+		while (true)
+		{
+			
+		};
 	}
 }
 
