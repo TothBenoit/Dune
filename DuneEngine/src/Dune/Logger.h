@@ -1,17 +1,16 @@
 #pragma once
 
 #include "Core.h"
-#include <string>
 
 namespace Dune
 {
 	class DUNE_API Logger
 	{
 	public:
-		static void Info(const std::string& msg);
-		static void Warning(const std::string& msg);
-		static void Error(const std::string& msg);
-		static void Critical(const std::string& msg);
+		static void Info(const char* msg);
+		static void Warning(const char* msg);
+		static void Error(const char* msg);
+		static void Critical(const char* msg);
 	private:
 		enum class LogLevel
 		{
@@ -21,7 +20,7 @@ namespace Dune
 			Critical,
 		};
 
-		static void Log(LogLevel level, const std::string& msg);
+		static void Log(LogLevel level, const char* msg);
 	};
 
 

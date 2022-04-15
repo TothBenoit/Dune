@@ -1,6 +1,7 @@
+#include "pch.h"
+
 #include "Application.h"
 #include "Logger.h"
-#include <string>
 
 namespace Dune
 {
