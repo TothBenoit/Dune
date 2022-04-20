@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "WindowsWindow.h"
 #include "Dune/Core/Logger.h"
-#include <atlbase.h>
-#include <atlconv.h>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -10,10 +8,9 @@ Dune::WindowsWindow::WindowsWindow(WindowData data)
 {
 	m_data = data;
 	const std::string& title = m_data.m_title;
-	const int MAX_SIZE = 1024;
-	DWORD size = MAX_SIZE;
-	wchar_t wTitle[MAX_SIZE];
-	MultiByteToWideChar(CP_UTF8, 0, title.c_str(), title.size(), wTitle, size);
+	const int wTitleSize = MultiByteToWideChar(CP_UTF8, 0, title.c_str(), -1, NULL, 0);
+	std::wstring wTitle(wTitleSize, 0);
+	MultiByteToWideChar(CP_UTF8, 0, title.c_str(), title.size(), &wTitle[0], wTitleSize);
 
 	const wchar_t CLASS_NAME[] = L"Main Window class";
 
@@ -32,11 +29,11 @@ Dune::WindowsWindow::WindowsWindow(WindowData data)
 	HWND hwnd = CreateWindowEx(
 		0,                              // Optional window styles.
 		CLASS_NAME,                     // Window class
-		wTitle,    // Window text
+		wTitle.c_str(),					// Window text
 		WS_OVERLAPPEDWINDOW,            // Window style
 
 		// Size and position
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT, m_data.m_width, m_data.m_height,
 
 		NULL,       // Parent window    
 		NULL,       // Menu
@@ -44,12 +41,19 @@ Dune::WindowsWindow::WindowsWindow(WindowData data)
 		NULL        // Additional application data
 	);
 
-	if (hwnd == NULL)
-	{
-		Dune::LOG_CRITICAL("Failed to create window");
-	}
+	assert(hwnd != NULL);
 
 	ShowWindow(hwnd, 1);
+}
+
+void Dune::WindowsWindow::Update()
+{
+	MSG msg = { };
+	while (GetMessage(&msg, NULL, 0, 0) > 0)
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
 }
 
 

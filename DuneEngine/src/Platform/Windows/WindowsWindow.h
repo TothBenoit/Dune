@@ -9,6 +9,8 @@ namespace Dune
 
 		WindowsWindow(WindowData data);
 
+		void Update();
+
 		uint32_t GetWidth() const;
 		uint32_t GetHeight() const;
 	};
