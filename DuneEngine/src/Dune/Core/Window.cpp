@@ -8,7 +8,7 @@
 
 namespace Dune
 {
-	std::unique_ptr<Window> Dune::Window::Create(WindowData data)
+	std::unique_ptr<Window> Window::Create(WindowData data)
 	{
 #ifdef DUNE_PLATFORM_WINDOWS
 		return std::make_unique<WindowsWindow>(data);

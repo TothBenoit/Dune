@@ -9,6 +9,10 @@
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Dune\Core\Window.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\Dune\Graphics\GraphicsCore.h" />
+    <ClInclude Include="src\Dune\Graphics\GraphicsDevice.h" />
+    <ClInclude Include="src\Platform\DirectX12\DX12GraphicsDevice.h" />
+    <ClInclude Include="src\Dune\Utilities\NonCopyable.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />
@@ -17,5 +21,8 @@
     <ClCompile Include="src\pch.cpp" />
     <ClCompile Include="src\Dune\Core\Window.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
+    <ClCompile Include="src\Dune\Graphics\GraphicsCore.cpp" />
+    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsDevice.cpp" />
+    <ClCompile Include="src\Dune\Graphics\GraphicsDevice.cpp" />
   </ItemGroup>
 </Project>

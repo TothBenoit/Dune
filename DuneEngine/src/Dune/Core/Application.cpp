@@ -1,8 +1,9 @@
 #include "pch.h"
 
-#include "Application.h"
-#include "Logger.h"
-#include "Window.h"
+#include "Dune/Core/Application.h"
+#include "Dune/Graphics/GraphicsCore.h"
+#include "Dune/Core/Logger.h"
+#include "Dune/Core/Window.h"
 
 namespace Dune
 {
@@ -19,11 +20,17 @@ namespace Dune
 	void Application::Start()
 	{
 		std::unique_ptr<Window> window = Window::Create();
+		GraphicsCore::Init();
 
-		while (true)
+		m_Running = true;
+
+		while (m_Running)
 		{
 			window->Update();
+			GraphicsCore::Render();
 		};
+
+		GraphicsCore::Shutdown();
 	}
 }
 

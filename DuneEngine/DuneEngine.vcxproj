@@ -11,6 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Dune\Utilities\NonCopyable.h" />
+    <ClInclude Include="src\Platform\DirectX12\DX12GraphicsDevice.h" />
+    <ClInclude Include="src\Dune\Graphics\GraphicsDevice.h" />
+    <ClInclude Include="src\Dune\Graphics\GraphicsCore.h" />
     <ClInclude Include="src\Dune.h" />
     <ClInclude Include="src\Dune\Core\Application.h" />
     <ClInclude Include="src\Dune\Core\Core.h" />
@@ -21,6 +25,9 @@
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Graphics\GraphicsDevice.cpp" />
+    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsDevice.cpp" />
+    <ClCompile Include="src\Dune\Graphics\GraphicsCore.cpp" />
     <ClCompile Include="src\Dune\Core\Application.cpp" />
     <ClCompile Include="src\Dune\Core\Input.cpp" />
     <ClCompile Include="src\Dune\Core\Logger.cpp" />
@@ -90,6 +97,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <OutputFile>$(Outdir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -116,6 +124,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <OutputFile>$(Outdir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>

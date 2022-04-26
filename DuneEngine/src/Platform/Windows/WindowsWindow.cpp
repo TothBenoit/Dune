@@ -10,7 +10,7 @@ Dune::WindowsWindow::WindowsWindow(WindowData data)
 	const std::string& title = m_data.m_title;
 	const int wTitleSize = MultiByteToWideChar(CP_UTF8, 0, title.c_str(), -1, NULL, 0);
 	std::wstring wTitle(wTitleSize, 0);
-	MultiByteToWideChar(CP_UTF8, 0, title.c_str(), title.size(), &wTitle[0], wTitleSize);
+	MultiByteToWideChar(CP_UTF8, 0, title.c_str(), (int)title.size(), &wTitle[0], wTitleSize);
 
 	const wchar_t CLASS_NAME[] = L"Main Window class";
 
