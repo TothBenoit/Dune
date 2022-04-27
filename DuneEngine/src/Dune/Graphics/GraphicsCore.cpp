@@ -4,18 +4,22 @@
 namespace Dune
 {
 
-	std::unique_ptr<GraphicsDevice> GraphicsCore::m_GraphicsDevice;
+	std::unique_ptr<GraphicsRenderer> GraphicsCore::m_graphicsRenderer;
 
-	void GraphicsCore::Init()
+	void GraphicsCore::Init(const void* window)
 	{
-		m_GraphicsDevice = GraphicsDevice::Create();
+		m_graphicsRenderer = GraphicsRenderer::Create(window);
 	}
 
 	void GraphicsCore::Shutdown()
 	{
+		m_graphicsRenderer->OnShutdown();
 	}
 
-	void GraphicsCore::Render()
+	void GraphicsCore::Update()
 	{
+		m_graphicsRenderer->WaitForPreviousFrame();
+		m_graphicsRenderer->Render();
+		m_graphicsRenderer->Present();
 	}
 }

@@ -26,7 +26,7 @@ Dune::WindowsWindow::WindowsWindow(WindowData data)
 
 	// Create the window.
 
-	HWND hwnd = CreateWindowEx(
+	m_handle = CreateWindowEx(
 		0,                              // Optional window styles.
 		CLASS_NAME,                     // Window class
 		wTitle.c_str(),					// Window text
@@ -41,19 +41,23 @@ Dune::WindowsWindow::WindowsWindow(WindowData data)
 		NULL        // Additional application data
 	);
 
-	assert(hwnd != NULL);
+	assert(m_handle != NULL);
 
-	ShowWindow(hwnd, 1);
+	ShowWindow(m_handle, 1);
 }
 
-void Dune::WindowsWindow::Update()
+bool Dune::WindowsWindow::Update()
 {
 	MSG msg = { };
-	while (GetMessage(&msg, NULL, 0, 0) > 0)
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) > 0)
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+
+		if (msg.message == WM_QUIT)
+			return false;
 	}
+	return true;
 }
 
 
@@ -65,6 +69,11 @@ uint32_t Dune::WindowsWindow::GetWidth() const
 uint32_t Dune::WindowsWindow::GetHeight() const
 {
 	return m_data.m_height;
+}
+
+HWND Dune::WindowsWindow::GetHandle() const
+{
+	return m_handle;
 }
 
 

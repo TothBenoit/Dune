@@ -9,10 +9,14 @@ namespace Dune
 
 		WindowsWindow(WindowData data);
 
-		void Update();
+		bool Update();
 
-		uint32_t GetWidth() const;
-		uint32_t GetHeight() const;
+		uint32_t	GetWidth()	const;
+		uint32_t	GetHeight() const;
+		HWND		GetHandle()	const;
+	private:
+
+		HWND m_handle = NULL;
 	};
 }
 

@@ -9,13 +9,6 @@
 #ifdef DUNE_PLATFORM_WINDOWS
 	#include <Windows.h>
 
-	inline void ThrowIfFailed(HRESULT hr)
-	{
-		if (FAILED(hr))
-		{
-			__debugbreak();
-			assert(false);
-		}
-	}
+#define ThrowIfFailed(hr) if(FAILED(hr)) { __debugbreak(); assert(false);}
 
 #endif

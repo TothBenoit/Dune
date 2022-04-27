@@ -20,17 +20,15 @@ namespace Dune
 	void Application::Start()
 	{
 		std::unique_ptr<Window> window = Window::Create();
-		GraphicsCore::Init();
+		GraphicsCore::Init(window.get());
 
-		m_Running = true;
-
-		while (m_Running)
+		while (window->Update())
 		{
-			window->Update();
-			GraphicsCore::Render();
+			GraphicsCore::Update();
 		};
 
 		GraphicsCore::Shutdown();
+
 	}
 }
 

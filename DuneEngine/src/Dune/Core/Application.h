@@ -12,9 +12,6 @@ namespace Dune
 		virtual void OnUpdate() = 0;
 
 		void Start();
-
-	protected:
-		bool m_Running;
 	};
 
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GraphicsDevice.h"
+#include "Dune/Graphics/GraphicsRenderer.h"
 
 namespace Dune
 {
@@ -10,12 +10,12 @@ namespace Dune
 		GraphicsCore() = delete;
 		~GraphicsCore() = delete;
 
-		static void Init();
+		static void Init(const void* window);
 		static void Shutdown();
-		static void Render();
+		static void Update();
 
 	private:
-		static std::unique_ptr<GraphicsDevice> m_GraphicsDevice;
+		static std::unique_ptr<GraphicsRenderer> m_graphicsRenderer;
 	};
 }
 
