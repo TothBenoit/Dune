@@ -13,7 +13,6 @@
     <ClInclude Include="src\Dune\Utilities\NonCopyable.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsRenderer.h" />
     <ClInclude Include="src\Platform\DirectX12\DX12GraphicsRenderer.h" />
-    <ClInclude Include="src\Platform\DirectX12\Includes\d3dx12.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />

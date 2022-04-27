@@ -22,7 +22,6 @@
     <ClInclude Include="src\Dune\Core\Logger.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Dune\Core\Window.h" />
-    <ClInclude Include="src\Platform\DirectX12\Includes\d3dx12.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
   </ItemGroup>
   <ItemGroup>
