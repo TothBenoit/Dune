@@ -85,9 +85,9 @@ namespace Dune
 			ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
 			m_fenceValue = 1;
 
-			// Create an event handle to use for frame synchronization.
-			m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-			if (m_fenceEvent == nullptr)
+
+			m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+			if (!m_fenceEvent.IsValid())
 			{
 				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 			}
@@ -95,7 +95,7 @@ namespace Dune
 			// Wait for the command list to execute; we are reusing the same command 
 			// list in our main loop but for now, we just want to wait for setup to 
 			// complete before continuing.
-			WaitForPreviousFrame();
+			WaitForGPU();
 		}
 
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -113,25 +113,30 @@ namespace Dune
 	{
 	}
 
-	void DX12GraphicsRenderer::WaitForPreviousFrame()
+	void DX12GraphicsRenderer::WaitForGPU()
 	{
-		// Signal and increment the fence value.
-		const UINT64 fence = m_fenceValue;
-		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), fence));
-		m_fenceValue++;
-
-		// Wait until the previous frame is finished.
-		if (m_fence->GetCompletedValue() < fence)
+		if (m_commandQueue && m_fence && m_fenceEvent.IsValid())
 		{
-			ThrowIfFailed(m_fence->SetEventOnCompletion(fence, m_fenceEvent));
-			WaitForSingleObject(m_fenceEvent, INFINITE);
-		}
+			// Schedule a Signal command in the GPU queue.
+			const UINT64 fenceValue = m_fenceValue;
+			if (SUCCEEDED(m_commandQueue->Signal(m_fence.Get(), fenceValue)))
+			{
+				// Wait until the Signal has been processed.
+				if (SUCCEEDED(m_fence->SetEventOnCompletion(fenceValue, m_fenceEvent.Get())))
+				{
+					std::ignore = WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
 
-		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+					// Increment the fence value for the current frame.
+					m_fenceValue++;
+				}
+			}
+		}
 	}
 
 	void DX12GraphicsRenderer::Render()
 	{
+		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
 		ImGui::Render();
 		PopulateCommandList();
 
@@ -148,8 +153,39 @@ namespace Dune
 
 	void DX12GraphicsRenderer::OnShutdown()
 	{
-		WaitForPreviousFrame();
+		WaitForGPU();
 		ImGui_ImplDX12_Shutdown();
+	}
+
+	void DX12GraphicsRenderer::OnResize(int x, int y)
+	{
+		// Wait until all previous GPU work is complete.
+		WaitForGPU();
+
+		// Release resources that are tied to the swap chain.
+		for (UINT n = 0; n < FrameCount; n++)
+		{
+			m_renderTargets[n].Reset();
+		}
+
+		ThrowIfFailed(m_swapChain->ResizeBuffers(
+			FrameCount,
+			x,
+			y,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			0
+		));
+
+		CreateRenderTargets();
+
+		// Reset the index to the current back buffer.
+		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+		m_viewport.Width = static_cast<float>(x);
+		m_viewport.Height = static_cast<float>(y);
+
+		m_scissorRect.right = static_cast<LONG>(x);
+		m_scissorRect.bottom = static_cast<LONG>(y);
 	}
 
 	void DX12GraphicsRenderer::CreateFactory()

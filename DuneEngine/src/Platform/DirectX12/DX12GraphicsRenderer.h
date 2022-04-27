@@ -15,10 +15,11 @@ namespace Dune
 		DX12GraphicsRenderer(const WindowsWindow * window);
 		~DX12GraphicsRenderer() override;
 
-		void WaitForPreviousFrame() override;
+		void WaitForGPU() override;
 		void Render() override;
 		void Present() override;
 		void OnShutdown() override;
+		void OnResize(int width, int height) override;
 
 	private:
 		static const UINT FrameCount = 2;
@@ -61,7 +62,7 @@ namespace Dune
 		D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
 		UINT m_frameIndex;
-		HANDLE m_fenceEvent;
+		Microsoft::WRL::Wrappers::Event m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 		UINT64 m_fenceValue;
 	};
