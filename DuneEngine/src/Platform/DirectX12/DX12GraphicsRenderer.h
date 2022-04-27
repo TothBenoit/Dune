@@ -18,7 +18,6 @@ namespace Dune
 		void WaitForPreviousFrame() override;
 		void Render() override;
 		void Present() override;
-		void Clear() override;
 		void OnShutdown() override;
 
 	private:
@@ -37,6 +36,8 @@ namespace Dune
 		void CreateRenderTargets();
 		void CreateCommandAllocator();
 		void CreateRootSignature();
+		void CreatePipeline();
+		void CreateCommandList();
 		void PopulateCommandList();
 
 	private:
@@ -47,6 +48,7 @@ namespace Dune
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_renderTargets[FrameCount];
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_rtvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;

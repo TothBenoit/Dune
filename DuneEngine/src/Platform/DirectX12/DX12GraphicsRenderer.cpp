@@ -16,86 +16,8 @@ namespace Dune
 		CreateRenderTargets();
 		CreateCommandAllocator();
 		CreateRootSignature();
-
-		// Create the pipeline state, which includes compiling and loading shaders.
-		{
-			Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
-			Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
-#if defined(_DEBUG)
-			// Enable better shader debugging with the graphics debugging tools.
-			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-			UINT compileFlags = 0;
-#endif
-			std::wstring vertexPath = SHADER_DIR;
-			vertexPath.append(L"VertexShader.cso");
-			std::wstring pixelPath = SHADER_DIR;
-			pixelPath.append(L"PixelShader.cso");
-
-			ThrowIfFailed(D3DReadFileToBlob(vertexPath.c_str(), &vertexShader));
-			ThrowIfFailed(D3DReadFileToBlob(pixelPath.c_str(), &pixelShader));
-			// Define the vertex input layout.
-			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-			{
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-			};
-
-			// Describe and create the graphics pipeline state object (PSO).
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-			psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-			psoDesc.pRootSignature = m_rootSignature.Get();
-			psoDesc.VS = { reinterpret_cast<UINT8*>(vertexShader->GetBufferPointer()), vertexShader->GetBufferSize() };
-			psoDesc.PS = { reinterpret_cast<UINT8*>(pixelShader->GetBufferPointer()), pixelShader->GetBufferSize() };
-			D3D12_RASTERIZER_DESC rasterDesc;
-			rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
-			rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
-			rasterDesc.FrontCounterClockwise = TRUE;
-			rasterDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-			rasterDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-			rasterDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-			rasterDesc.DepthClipEnable = FALSE;
-			rasterDesc.MultisampleEnable = FALSE;
-			rasterDesc.AntialiasedLineEnable = FALSE;
-			rasterDesc.ForcedSampleCount = 0;
-			rasterDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-			psoDesc.RasterizerState = rasterDesc;
-			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			D3D12_BLEND_DESC blendDesc;
-			blendDesc.AlphaToCoverageEnable = FALSE;
-			blendDesc.IndependentBlendEnable = FALSE;
-			const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc = {
-				FALSE,
-				FALSE,
-				D3D12_BLEND_ONE,
-				D3D12_BLEND_ZERO,
-				D3D12_BLEND_OP_ADD,
-				D3D12_BLEND_ONE,
-				D3D12_BLEND_ZERO,
-				D3D12_BLEND_OP_ADD,
-				D3D12_LOGIC_OP_NOOP,
-				D3D12_COLOR_WRITE_ENABLE_ALL,
-			};
-			for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-				blendDesc.RenderTarget[i] = defaultRenderTargetBlendDesc;
-			psoDesc.BlendState = blendDesc;
-
-			psoDesc.DepthStencilState.DepthEnable = FALSE;
-			psoDesc.DepthStencilState.StencilEnable = FALSE;
-			psoDesc.SampleMask = UINT_MAX;
-			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			psoDesc.NumRenderTargets = 1;
-			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-			psoDesc.SampleDesc.Count = 1;
-			ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
-		}
-
-		// Create the command list.
-		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
-
-		// Command lists are created in the recording state, but there is nothing
-		// to record yet. The main loop expects it to be closed, so close it now.
-		ThrowIfFailed(m_commandList->Close());
+		CreatePipeline();
+		CreateCommandList();
 
 		// Create the vertex buffer.
 		{
@@ -175,6 +97,16 @@ namespace Dune
 			// complete before continuing.
 			WaitForPreviousFrame();
 		}
+
+		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		desc.NumDescriptors = 1;
+		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiHeap)));
+		ImGui_ImplDX12_Init(m_device.Get(), FrameCount,
+			DXGI_FORMAT_R8G8B8A8_UNORM, m_imguiHeap.Get(),
+			m_imguiHeap->GetCPUDescriptorHandleForHeapStart(),
+			m_imguiHeap->GetGPUDescriptorHandleForHeapStart());
 	}
 
 	DX12GraphicsRenderer::~DX12GraphicsRenderer()
@@ -200,6 +132,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::Render()
 	{
+		ImGui::Render();
 		PopulateCommandList();
 
 		// Execute the command list.
@@ -213,13 +146,10 @@ namespace Dune
 		ThrowIfFailed(m_swapChain->Present(1, 0));
 	}
 
-	void DX12GraphicsRenderer::Clear()
-	{
-	}
-
 	void DX12GraphicsRenderer::OnShutdown()
 	{
 		WaitForPreviousFrame();
+		ImGui_ImplDX12_Shutdown();
 	}
 
 	void DX12GraphicsRenderer::CreateFactory()
@@ -289,25 +219,25 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateSwapChain(HWND handle)
 	{
+		RECT clientRect;
+		GetClientRect(handle, &clientRect);
+
 		m_scissorRect.left = 0;
 		m_scissorRect.top = 0;
-		m_scissorRect.right = static_cast<LONG>(1600);
-		m_scissorRect.bottom = static_cast<LONG>(900);
+		m_scissorRect.right = static_cast<LONG>(clientRect.right);
+		m_scissorRect.bottom = static_cast<LONG>(clientRect.bottom);
 
 		m_viewport.TopLeftX = 0.0f;
 		m_viewport.TopLeftY = 0.0f;
-		m_viewport.Width = static_cast<float>(1600);
-		m_viewport.Height = static_cast<float>(900);
+		m_viewport.Width = static_cast<float>(clientRect.right);
+		m_viewport.Height = static_cast<float>(clientRect.bottom);
 		m_viewport.MinDepth = .1f;
 		m_viewport.MaxDepth = 1000.f;
 
-
-		ThrowIfFailed(m_factory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER));
-
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
 		swapChainDesc.BufferCount = FrameCount;
-		swapChainDesc.BufferDesc.Width = 1600;
-		swapChainDesc.BufferDesc.Height = 900;
+		swapChainDesc.BufferDesc.Width = clientRect.right;
+		swapChainDesc.BufferDesc.Height = clientRect.bottom;
 		swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -321,7 +251,7 @@ namespace Dune
 			&swapChainDesc,
 			&swapChain
 		));
-
+		ThrowIfFailed(m_factory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER));
 		ThrowIfFailed(swapChain.As(&m_swapChain));
 
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
@@ -394,6 +324,89 @@ namespace Dune
 		ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
 	}
 
+	void DX12GraphicsRenderer::CreatePipeline()
+	{
+		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
+		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
+#if defined(_DEBUG)
+		// Enable better shader debugging with the graphics debugging tools.
+		UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+		UINT compileFlags = 0;
+#endif
+		std::wstring vertexPath = SHADER_DIR;
+		vertexPath.append(L"VertexShader.cso");
+		std::wstring pixelPath = SHADER_DIR;
+		pixelPath.append(L"PixelShader.cso");
+
+		ThrowIfFailed(D3DReadFileToBlob(vertexPath.c_str(), &vertexShader));
+		ThrowIfFailed(D3DReadFileToBlob(pixelPath.c_str(), &pixelShader));
+		// Define the vertex input layout.
+		D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+		{
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		};
+
+		// Describe and create the graphics pipeline state object (PSO).
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+		psoDesc.pRootSignature = m_rootSignature.Get();
+		psoDesc.VS = { reinterpret_cast<UINT8*>(vertexShader->GetBufferPointer()), vertexShader->GetBufferSize() };
+		psoDesc.PS = { reinterpret_cast<UINT8*>(pixelShader->GetBufferPointer()), pixelShader->GetBufferSize() };
+		D3D12_RASTERIZER_DESC rasterDesc;
+		rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
+		rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
+		rasterDesc.FrontCounterClockwise = TRUE;
+		rasterDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+		rasterDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+		rasterDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+		rasterDesc.DepthClipEnable = FALSE;
+		rasterDesc.MultisampleEnable = FALSE;
+		rasterDesc.AntialiasedLineEnable = FALSE;
+		rasterDesc.ForcedSampleCount = 0;
+		rasterDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+		psoDesc.RasterizerState = rasterDesc;
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		D3D12_BLEND_DESC blendDesc;
+		blendDesc.AlphaToCoverageEnable = FALSE;
+		blendDesc.IndependentBlendEnable = FALSE;
+		const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc = {
+			FALSE,
+			FALSE,
+			D3D12_BLEND_ONE,
+			D3D12_BLEND_ZERO,
+			D3D12_BLEND_OP_ADD,
+			D3D12_BLEND_ONE,
+			D3D12_BLEND_ZERO,
+			D3D12_BLEND_OP_ADD,
+			D3D12_LOGIC_OP_NOOP,
+			D3D12_COLOR_WRITE_ENABLE_ALL,
+		};
+		for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+			blendDesc.RenderTarget[i] = defaultRenderTargetBlendDesc;
+		psoDesc.BlendState = blendDesc;
+
+		psoDesc.DepthStencilState.DepthEnable = FALSE;
+		psoDesc.DepthStencilState.StencilEnable = FALSE;
+		psoDesc.SampleMask = UINT_MAX;
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		psoDesc.NumRenderTargets = 1;
+		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		psoDesc.SampleDesc.Count = 1;
+		ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	}
+
+	void DX12GraphicsRenderer::CreateCommandList()
+	{
+		// Create the command list.
+		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
+
+		// Command lists are created in the recording state, but there is nothing
+		// to record yet. The main loop expects it to be closed, so close it now.
+		ThrowIfFailed(m_commandList->Close());
+	}
+
 	void DX12GraphicsRenderer::PopulateCommandList()
 	{
 		// Command list allocators can only be reset when the associated 
@@ -418,8 +431,7 @@ namespace Dune
 		renderTargetBarrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
 		renderTargetBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 		renderTargetBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		renderTargetBarrier.Transition.Subresource =
-			D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		renderTargetBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
@@ -432,6 +444,9 @@ namespace Dune
 		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 		m_commandList->DrawInstanced(3, 1, 0, 0);
+
+		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 
 		// Indicate that the back buffer will now be used to present.
 		D3D12_RESOURCE_BARRIER presentBarrier;

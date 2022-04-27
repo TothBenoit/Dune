@@ -16,7 +16,6 @@ namespace Dune
 		virtual void WaitForPreviousFrame() = 0;
 		virtual void Render() = 0;
 		virtual void Present() = 0;
-		virtual void Clear() = 0;
 		virtual void OnShutdown() = 0;
 
 	protected:

@@ -8,7 +8,7 @@ namespace Dune
 	public:
 
 		WindowsWindow(WindowData data);
-
+		~WindowsWindow() override;
 		bool Update();
 
 		uint32_t	GetWidth()	const;
