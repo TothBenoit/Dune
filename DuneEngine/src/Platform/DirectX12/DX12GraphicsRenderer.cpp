@@ -1,5 +1,7 @@
 #include "pch.h"
+
 #include "Platform/DirectX12/DX12GraphicsRenderer.h"
+
 #include "Dune/Core/Logger.h"
 
 #include <dxgidebug.h>
@@ -186,6 +188,62 @@ namespace Dune
 
 		m_scissorRect.right = static_cast<LONG>(x);
 		m_scissorRect.bottom = static_cast<LONG>(y);
+	}
+
+	void DX12GraphicsRenderer::CreateBuffer(GraphicsBuffer& buffer, const void* data, GraphicsBufferDesc& desc)
+	{
+		//// Create the vertex buffer.
+		//{
+		//	const UINT bufferSize = desc.size;
+
+		//	// Note: using upload heaps to transfer static data like vert buffers is not 
+		//	// recommended. Every time the GPU needs it, the upload heap will be marshalled 
+		//	// over. Please read up on Default Heap usage. An upload heap is used here for 
+		//	// code simplicity and because there are very few verts to actually transfer.
+		//	D3D12_HEAP_PROPERTIES heapProps;
+		//	heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+		//	heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		//	heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		//	heapProps.CreationNodeMask = 1;
+		//	heapProps.VisibleNodeMask = 1;
+
+		//	D3D12_RESOURCE_DESC resourceDesc;
+		//	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		//	resourceDesc.Alignment = 0;
+		//	resourceDesc.Width = bufferSize;
+		//	resourceDesc.Height = 1;
+		//	resourceDesc.DepthOrArraySize = 1;
+		//	resourceDesc.MipLevels = 1;
+		//	resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+		//	resourceDesc.SampleDesc.Count = 1;
+		//	resourceDesc.SampleDesc.Quality = 0;
+		//	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		//	resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		//	ThrowIfFailed(m_device->CreateCommittedResource(
+		//		&heapProps,
+		//		D3D12_HEAP_FLAG_NONE,
+		//		&resourceDesc,
+		//		D3D12_RESOURCE_STATE_GENERIC_READ,
+		//		nullptr,
+		//		IID_PPV_ARGS(&m_vertexBuffer)));
+
+		//	// Copy the triangle data to the vertex buffer.
+		//	UINT8* pVertexDataBegin;
+
+		//	// We do not intend to read from this resource on the CPU.
+		//	D3D12_RANGE readRange;
+		//	readRange.Begin = 0;
+		//	readRange.End = 0;
+		//	ThrowIfFailed(m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
+		//	memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
+		//	m_vertexBuffer->Unmap(0, nullptr);
+
+		//	// Initialize the vertex buffer view.
+		//	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+		//	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
+		//	m_vertexBufferView.SizeInBytes = bufferSize;
+		//}
 	}
 
 	void DX12GraphicsRenderer::CreateFactory()

@@ -21,7 +21,7 @@ public:
 
 int main(int argc, char** argv)
 {
-	DuneLauncher* launcher = new DuneLauncher();
-	launcher->Start();
+	DuneLauncher launcher = DuneLauncher();
+	launcher.Start();
 	return 0;
 }

@@ -5,6 +5,5 @@ namespace Dune
 	class Input
 	{
 	};
-
 }
 

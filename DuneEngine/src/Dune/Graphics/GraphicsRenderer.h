@@ -1,9 +1,13 @@
 #pragma once
 
 #include <memory.h>
+#include "GraphicsElement.h"
 
 namespace Dune
 {
+	class GraphicsBuffer;
+	struct GraphicsBufferDesc;
+
 	class GraphicsRenderer
 	{
 	public:
@@ -19,8 +23,11 @@ namespace Dune
 		virtual void OnShutdown() = 0;
 		virtual void OnResize(int width, int height) = 0;
 
+		virtual void CreateBuffer(GraphicsBuffer& buffer, const void* data, GraphicsBufferDesc& desc) = 0;
+
 	protected:
 		GraphicsRenderer() = default;
+		std::vector<GraphicsElement> m_graphicsElements;
 	};
 }
 

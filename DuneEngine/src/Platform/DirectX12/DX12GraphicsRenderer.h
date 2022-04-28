@@ -21,6 +21,8 @@ namespace Dune
 		void OnShutdown() override;
 		void OnResize(int width, int height) override;
 
+		void CreateBuffer(GraphicsBuffer& buffer, const void* data, GraphicsBufferDesc& desc) override;
+
 	private:
 		static const UINT FrameCount = 2;
 
@@ -42,8 +44,8 @@ namespace Dune
 		void PopulateCommandList();
 
 	private:
-		D3D12_VIEWPORT m_viewport;
-		D3D12_RECT m_scissorRect;
+		D3D12_VIEWPORT										m_viewport;
+		D3D12_RECT											m_scissorRect;
 		Microsoft::WRL::ComPtr<IDXGIFactory4>				m_factory;
 		Microsoft::WRL::ComPtr<ID3D12Device>				m_device;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
@@ -53,18 +55,19 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 		UINT												m_rtvDescriptorSize;
 		
-		// App resources.
-		Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
-		D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
+		// Temp first triangle buffer
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_vertexBuffer;
+		D3D12_VERTEX_BUFFER_VIEW							m_vertexBufferView;
 
-		UINT m_frameIndex;
-		Microsoft::WRL::Wrappers::Event m_fenceEvent;
-		Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
-		UINT64 m_fenceValue;
+		// Synchronization
+		UINT												m_frameIndex;
+		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
+		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;
+		UINT64												m_fenceValue;
 	};
 }
 

@@ -11,6 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Platform\DirectX12\DX12GraphicsBufferDesc.h" />
+    <ClInclude Include="src\Platform\DirectX12\DX12GraphicsBuffer.h" />
+    <ClInclude Include="src\Dune\Graphics\GraphicsBuffer.h" />
+    <ClInclude Include="src\Dune\Graphics\GraphicsBufferDesc.h" />
+    <ClInclude Include="src\Platform\DirectX12\DX12GraphicsElement.h" />
+    <ClInclude Include="src\Dune\Common\Types.h" />
+    <ClInclude Include="src\Dune\Graphics\GraphicsElement.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
     <ClInclude Include="include\imgui\imgui.h" />
     <ClInclude Include="include\imgui\imgui_impl_dx12.h" />
@@ -33,6 +40,9 @@
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsBufferDesc.cpp" />
+    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsBuffer.cpp" />
+    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsElement.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -61,6 +71,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\GraphicsElement.cpp" />
     <ClCompile Include="src\Platform\DirectX12\DX12GraphicsRenderer.cpp" />
     <ClCompile Include="src\Dune\Graphics\GraphicsRenderer.cpp" />
     <ClCompile Include="src\Dune\Graphics\GraphicsCore.cpp" />
