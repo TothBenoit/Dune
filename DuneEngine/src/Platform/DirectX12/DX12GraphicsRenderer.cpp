@@ -23,6 +23,8 @@ namespace Dune
 
 		// Create the vertex buffer.
 		{
+			m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get());
+
 			// Define the geometry for a triangle.
 			Vertex triangleVertices[] =
 			{
@@ -38,11 +40,13 @@ namespace Dune
 			// over. Please read up on Default Heap usage. An upload heap is used here for 
 			// code simplicity and because there are very few verts to actually transfer.
 			D3D12_HEAP_PROPERTIES heapProps;
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
 			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 			heapProps.CreationNodeMask = 1;
 			heapProps.VisibleNodeMask = 1;
+
+			Microsoft::WRL::ComPtr<ID3D12Resource> intermediateVertexBuffer;
 
 			D3D12_RESOURCE_DESC vertexBufferResourceDesc;
 			vertexBufferResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -61,9 +65,20 @@ namespace Dune
 				&heapProps,
 				D3D12_HEAP_FLAG_NONE,
 				&vertexBufferResourceDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
+				D3D12_RESOURCE_STATE_COPY_DEST,
 				nullptr,
 				IID_PPV_ARGS(&m_vertexBuffer)));
+
+			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+			Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
+			ThrowIfFailed(m_device->CreateCommittedResource(
+				&heapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&vertexBufferResourceDesc,
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(&uploadBuffer)));
 
 			// Copy the triangle data to the vertex buffer.
 			UINT8* pVertexDataBegin;
@@ -72,9 +87,35 @@ namespace Dune
 			D3D12_RANGE readRange;  
 			readRange.Begin = 0;
 			readRange.End = 0;    
-			ThrowIfFailed(m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
+			ThrowIfFailed(uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
 			memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
-			m_vertexBuffer->Unmap(0, nullptr);
+			uploadBuffer->Unmap(0, nullptr);
+
+			m_commandList->CopyBufferRegion(m_vertexBuffer.Get(), 0, uploadBuffer.Get(), 0, vertexBufferSize);
+
+			D3D12_RESOURCE_BARRIER barrierDesc;
+			ZeroMemory(&barrierDesc, sizeof(barrierDesc));
+			barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			barrierDesc.Transition.pResource = m_vertexBuffer.Get();
+			barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+			barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+			barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+			m_commandList->ResourceBarrier(1, &barrierDesc);
+
+			// #11
+			m_commandList->Close();
+			std::vector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
+			m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+
+			UINT64 initialValue{ 0 };
+			Microsoft::WRL::ComPtr<ID3D12Fence> fence;
+			ThrowIfFailed(m_device->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
+			HANDLE fenceEventHandle{ CreateEvent(nullptr, FALSE, FALSE, nullptr) };
+			ThrowIfFailed(m_commandQueue->Signal(fence.Get(), 1))
+			ThrowIfFailed(fence->SetEventOnCompletion(1, fenceEventHandle))
+			DWORD wait{ WaitForSingleObject(fenceEventHandle, 10000) };
 
 			// Initialize the vertex buffer view.
 			m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
