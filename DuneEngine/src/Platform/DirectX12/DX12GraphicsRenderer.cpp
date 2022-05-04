@@ -22,6 +22,19 @@ namespace Dune
 		CreatePipeline();
 		CreateCommandList();
 
+		// Create synchronization objects and wait until assets have been uploaded to the GPU.
+		{
+			ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+			m_fenceValue = 1;
+
+
+			m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+			if (!m_fenceEvent.IsValid())
+			{
+				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+			}
+		}
+
 		// Create the vertex buffer.
 		{
 			m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get());
@@ -110,36 +123,13 @@ namespace Dune
 			std::vector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
 			m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 
-			UINT64 initialValue{ 0 };
-			Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-			ThrowIfFailed(m_device->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf())));
-			HANDLE fenceEventHandle{ CreateEvent(nullptr, FALSE, FALSE, nullptr) };
-			ThrowIfFailed(m_commandQueue->Signal(fence.Get(), 1))
-			ThrowIfFailed(fence->SetEventOnCompletion(1, fenceEventHandle))
-			DWORD wait{ WaitForSingleObject(fenceEventHandle, 10000) };
+			m_fenceValue++;
+			WaitForGPU();
 
 			// Initialize the vertex buffer view.
 			m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 			m_vertexBufferView.StrideInBytes = sizeof(Vertex);
 			m_vertexBufferView.SizeInBytes = vertexBufferSize;
-		}
-
-		// Create synchronization objects and wait until assets have been uploaded to the GPU.
-		{
-			ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-			m_fenceValue = 1;
-
-
-			m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-			if (!m_fenceEvent.IsValid())
-			{
-				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-			}
-
-			// Wait for the command list to execute; we are reusing the same command 
-			// list in our main loop but for now, we just want to wait for setup to 
-			// complete before continuing.
-			WaitForGPU();
 		}
 
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
