@@ -21,7 +21,7 @@ namespace Dune
 		void OnShutdown() override;
 		void OnResize(int width, int height) override;
 
-		void CreateBuffer(GraphicsBuffer& buffer, const void* data, GraphicsBufferDesc& desc) override;
+		void CreateBuffer(GraphicsBuffer& buffer, const void* data, const GraphicsBufferDesc& desc) override;
 
 	private:
 		static const UINT FrameCount = 2;

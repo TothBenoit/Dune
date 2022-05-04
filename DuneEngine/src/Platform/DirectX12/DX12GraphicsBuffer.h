@@ -11,8 +11,9 @@ namespace Dune
 		~DX12GraphicsBuffer() override;
 
 	private:
-		Microsoft::WRL::ComPtr<ID3D12Resource>				m_vertexBuffer;
-		D3D12_VERTEX_BUFFER_VIEW							m_vertexBufferView;
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_buffer;
+		
+		friend class DX12GraphicsRenderer;
 	};
 
 }

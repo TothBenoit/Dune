@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Platform/DirectX12/DX12GraphicsRenderer.h"
+#include "Platform/DirectX12/DX12GraphicsBuffer.h"
 
 #include "Dune/Core/Logger.h"
 
@@ -231,60 +232,78 @@ namespace Dune
 		m_scissorRect.bottom = static_cast<LONG>(y);
 	}
 
-	void DX12GraphicsRenderer::CreateBuffer(GraphicsBuffer& buffer, const void* data, GraphicsBufferDesc& desc)
+	void DX12GraphicsRenderer::CreateBuffer(GraphicsBuffer& buffer, const void* data, const GraphicsBufferDesc& desc)
 	{
-		//// Create the vertex buffer.
-		//{
-		//	const UINT bufferSize = desc.size;
+		DX12GraphicsBuffer& APIBuffer = static_cast<DX12GraphicsBuffer&>(buffer);
 
-		//	// Note: using upload heaps to transfer static data like vert buffers is not 
-		//	// recommended. Every time the GPU needs it, the upload heap will be marshalled 
-		//	// over. Please read up on Default Heap usage. An upload heap is used here for 
-		//	// code simplicity and because there are very few verts to actually transfer.
-		//	D3D12_HEAP_PROPERTIES heapProps;
-		//	heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-		//	heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		//	heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		//	heapProps.CreationNodeMask = 1;
-		//	heapProps.VisibleNodeMask = 1;
+		const UINT bufferSize = desc.size;
 
-		//	D3D12_RESOURCE_DESC resourceDesc;
-		//	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		//	resourceDesc.Alignment = 0;
-		//	resourceDesc.Width = bufferSize;
-		//	resourceDesc.Height = 1;
-		//	resourceDesc.DepthOrArraySize = 1;
-		//	resourceDesc.MipLevels = 1;
-		//	resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-		//	resourceDesc.SampleDesc.Count = 1;
-		//	resourceDesc.SampleDesc.Quality = 0;
-		//	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		//	resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		D3D12_HEAP_PROPERTIES heapProps;
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = 1;
+		heapProps.VisibleNodeMask = 1;
 
-		//	ThrowIfFailed(m_device->CreateCommittedResource(
-		//		&heapProps,
-		//		D3D12_HEAP_FLAG_NONE,
-		//		&resourceDesc,
-		//		D3D12_RESOURCE_STATE_GENERIC_READ,
-		//		nullptr,
-		//		IID_PPV_ARGS(&m_vertexBuffer)));
+		D3D12_RESOURCE_DESC resourceDesc;
+		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		resourceDesc.Alignment = 0;
+		resourceDesc.Width = bufferSize;
+		resourceDesc.Height = 1;
+		resourceDesc.DepthOrArraySize = 1;
+		resourceDesc.MipLevels = 1;
+		resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+		resourceDesc.SampleDesc.Count = 1;
+		resourceDesc.SampleDesc.Quality = 0;
+		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-		//	// Copy the triangle data to the vertex buffer.
-		//	UINT8* pVertexDataBegin;
+		ThrowIfFailed(m_device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&APIBuffer.m_buffer)));
 
-		//	// We do not intend to read from this resource on the CPU.
-		//	D3D12_RANGE readRange;
-		//	readRange.Begin = 0;
-		//	readRange.End = 0;
-		//	ThrowIfFailed(m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-		//	memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
-		//	m_vertexBuffer->Unmap(0, nullptr);
+		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
 
-		//	// Initialize the vertex buffer view.
-		//	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-		//	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-		//	m_vertexBufferView.SizeInBytes = bufferSize;
-		//}
+		Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
+		ThrowIfFailed(m_device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			nullptr,
+			IID_PPV_ARGS(&uploadBuffer)));
+
+		UINT8* pDataBegin;
+
+		D3D12_RANGE readRange;
+		readRange.Begin = 0;
+		readRange.End = 0;
+		ThrowIfFailed(uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
+		memcpy(pDataBegin, data, bufferSize);
+		uploadBuffer->Unmap(0, nullptr);
+
+		m_commandList->CopyBufferRegion(APIBuffer.m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
+
+		D3D12_RESOURCE_BARRIER barrierDesc;
+		ZeroMemory(&barrierDesc, sizeof(barrierDesc));
+		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierDesc.Transition.pResource = APIBuffer.m_buffer.Get();
+		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+		barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+		m_commandList->ResourceBarrier(1, &barrierDesc);
+
+		// #11
+		m_commandList->Close();
+		std::vector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
+		m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+		WaitForGPU();
 	}
 
 	void DX12GraphicsRenderer::CreateFactory()
