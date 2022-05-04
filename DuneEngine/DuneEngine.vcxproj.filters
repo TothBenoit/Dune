@@ -23,10 +23,10 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsElement.h" />
     <ClInclude Include="src\Dune\Common\Types.h" />
-    <ClInclude Include="src\Platform\DirectX12\DX12GraphicsElement.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsBufferDesc.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsBuffer.h" />
     <ClInclude Include="src\Platform\DirectX12\DX12GraphicsBuffer.h" />
+    <ClInclude Include="src\Dune\Graphics\Mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />
@@ -46,8 +46,8 @@
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\Dune\Graphics\GraphicsElement.cpp" />
-    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsElement.cpp" />
     <ClCompile Include="src\Platform\DirectX12\DX12GraphicsBuffer.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Dune\Graphics\Shaders\PixelShader.hlsl" />

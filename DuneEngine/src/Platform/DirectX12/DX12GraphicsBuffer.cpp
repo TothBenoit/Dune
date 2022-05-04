@@ -4,7 +4,4 @@
 
 namespace Dune
 {
-	DX12GraphicsBuffer::~DX12GraphicsBuffer()
-	{
-	}
 }

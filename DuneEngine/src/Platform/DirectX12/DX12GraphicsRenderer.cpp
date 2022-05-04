@@ -222,9 +222,9 @@ namespace Dune
 		m_scissorRect.bottom = static_cast<LONG>(y);
 	}
 
-	void DX12GraphicsRenderer::CreateBuffer(GraphicsBuffer& buffer, const void* data, const GraphicsBufferDesc& desc)
+	std::unique_ptr<GraphicsBuffer> DX12GraphicsRenderer::CreateBuffer(const void* data, const GraphicsBufferDesc& desc)
 	{
-		DX12GraphicsBuffer& APIBuffer = static_cast<DX12GraphicsBuffer&>(buffer);
+		std::unique_ptr<DX12GraphicsBuffer> buffer = std::make_unique<DX12GraphicsBuffer>();
 
 		const UINT bufferSize = desc.size;
 
@@ -254,7 +254,7 @@ namespace Dune
 			&resourceDesc,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&APIBuffer.m_buffer)));
+			IID_PPV_ARGS(&buffer->m_buffer)));
 
 		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
 
@@ -276,13 +276,13 @@ namespace Dune
 		memcpy(pDataBegin, data, bufferSize);
 		uploadBuffer->Unmap(0, nullptr);
 
-		m_commandList->CopyBufferRegion(APIBuffer.m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
+		m_commandList->CopyBufferRegion(buffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
 
 		D3D12_RESOURCE_BARRIER barrierDesc;
 		ZeroMemory(&barrierDesc, sizeof(barrierDesc));
 		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrierDesc.Transition.pResource = APIBuffer.m_buffer.Get();
+		barrierDesc.Transition.pResource = buffer->m_buffer.Get();
 		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
 		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 		barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -294,6 +294,8 @@ namespace Dune
 		std::vector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 		WaitForGPU();
+
+		return std::move(buffer);
 	}
 
 	void DX12GraphicsRenderer::CreateFactory()

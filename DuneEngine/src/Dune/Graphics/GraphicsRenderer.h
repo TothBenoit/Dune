@@ -22,7 +22,7 @@ namespace Dune
 		virtual void Present() = 0;
 		virtual void OnShutdown() = 0;
 		virtual void OnResize(int width, int height) = 0;
-		virtual void CreateBuffer(GraphicsBuffer& buffer, const void* data, const GraphicsBufferDesc& desc) = 0;
+		virtual std::unique_ptr<GraphicsBuffer> CreateBuffer(const void* data, const GraphicsBufferDesc& desc) = 0;
 
 	protected:
 		GraphicsRenderer() = default;

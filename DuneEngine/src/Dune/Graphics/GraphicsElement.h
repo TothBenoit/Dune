@@ -1,37 +1,20 @@
 #pragma once
 
-#include <cstdint>
+#include "Dune/Graphics/GraphicsBuffer.h"
 
 namespace Dune
 {
 
-	struct VertexData
-	{
-		dVector3 position;
-		dVector4 color;
-	};
-
-	struct GraphicsElementData
-	{
-		const void* vertices;
-		const void* indices;
-
-		uint32_t m_verticesCount;
-		uint32_t m_indexCount;
-	};
-
+	// Represent an element to draw
+	
 	class GraphicsElement
 	{
 	public:
-		GraphicsElement(const GraphicsElementData data);
-		virtual ~GraphicsElement() = default;
 
-	protected:
-		virtual void UploadVertexBuffer() = 0;
-		virtual void UploadIndexBuffer() = 0;
-
-	protected:
-		GraphicsElementData m_data;
+	private:
+	//VertexBuffer ID
+	//IndexBuffer ID
+	//Shader ID
 	};
 }
 
