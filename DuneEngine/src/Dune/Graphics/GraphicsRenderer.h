@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory.h>
 #include "GraphicsElement.h"
 
 namespace Dune

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Dune/Common/Types.h"
 #include "Dune/Graphics/GraphicsBuffer.h"
-#include <vector>
 
 namespace Dune
 {
