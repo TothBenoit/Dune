@@ -58,10 +58,6 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 		UINT												m_rtvDescriptorSize;
-		
-		// Temp first triangle buffer
-		Microsoft::WRL::ComPtr<ID3D12Resource>				m_vertexBuffer;
-		D3D12_VERTEX_BUFFER_VIEW							m_vertexBufferView;
 
 		// Synchronization
 		UINT												m_frameIndex;

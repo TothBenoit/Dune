@@ -1,18 +1,57 @@
 #include "pch.h"
 #include "Mesh.h"
+#include "Dune/Core/Logger.h"
+#include "Dune/Graphics/GraphicsCore.h"
 
-Dune::Mesh::Mesh(std::vector<uint32_t>& indices, std::vector<Vertex>& vertices)
-	: m_indices(indices), m_vertices(vertices)
-{}
-
-void Dune::Mesh::UploadBuffer()
+namespace Dune
 {
-	GraphicsBufferDesc desc = GraphicsBufferDesc();
-	desc.size = (uint32_t)m_indices.size() * sizeof(uint32_t);
-	m_indexBuffer = GraphicsCore::GetGraphicsRenderer().CreateBuffer(m_indices.data(), desc);
+	Mesh::Mesh(const std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices)
+		: m_indices(indices), m_vertices(vertices)
+	{}
 
-	desc.size = (uint32_t)m_vertices.size() * sizeof(Vertex);
-	m_vertexBuffer = GraphicsCore::GetGraphicsRenderer().CreateBuffer(m_vertices.data(), desc);
+	void Mesh::UploadBuffers()
+	{
+		//if (!UploadIndexBuffer())
+		//{
+		//	return;
+		//}
 
-	m_isUploaded = true;
+		if (!UploadVertexBuffer())
+		{
+			m_indexBuffer.release();
+			return;
+		}
+
+		m_isUploaded = true;
+	}
+
+	bool Mesh::UploadVertexBuffer()
+	{
+		GraphicsBufferDesc desc = GraphicsBufferDesc();
+		desc.size = (uint32_t)m_vertices.size() * sizeof(Vertex);
+		if (desc.size == 0)
+		{
+			LOG_ERROR("Vertex buffer is empty");
+			return false;
+		}
+
+		m_vertexBuffer = GraphicsCore::GetGraphicsRenderer().CreateBuffer(m_vertices.data(), desc);
+		return true;
+	}
+
+	bool Mesh::UploadIndexBuffer()
+	{
+		GraphicsBufferDesc desc = GraphicsBufferDesc();
+		desc.size = (uint32_t)m_indices.size() * sizeof(uint32_t);
+		if (desc.size == 0)
+		{
+			LOG_ERROR("Index buffer is empty");
+			return false;
+		}
+
+		m_indexBuffer = GraphicsCore::GetGraphicsRenderer().CreateBuffer(m_indices.data(), desc);
+		return true;
+	}
+
 }
+

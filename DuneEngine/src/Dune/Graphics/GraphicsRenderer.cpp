@@ -15,4 +15,8 @@ namespace Dune
 #error Platform not supported
 #endif
 	}
+	void GraphicsRenderer::AddGraphicsElement(const GraphicsElement& elem)
+	{
+		m_graphicsElements.push_back(elem);
+	}
 }

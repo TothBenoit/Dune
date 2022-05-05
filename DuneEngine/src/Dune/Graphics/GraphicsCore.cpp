@@ -18,6 +18,22 @@ namespace Dune
 
 		m_graphicsRenderer = GraphicsRenderer::Create(window);
 		isInitialized = true;
+
+		// Define the geometry for a triangle.
+		std::vector<Vertex> triangleVertices =
+		{
+			{ { 0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { 0.0f, 0.25f * 1.77f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { -0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+		};
+		std::vector<uint32_t> indices = {};
+		Mesh* mesh = new Mesh(indices, triangleVertices);
+		mesh->UploadBuffers();
+		std::string path = "bla";
+		Shader *shader = new Shader(path);
+		GraphicsElement * elem = new GraphicsElement(*mesh,*shader);
+
+		m_graphicsRenderer->AddGraphicsElement(*elem);
 	}
 
 	void GraphicsCore::Shutdown()

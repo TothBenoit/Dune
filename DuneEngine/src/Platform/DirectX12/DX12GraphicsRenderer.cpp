@@ -10,7 +10,7 @@
 
 namespace Dune
 {
-	DX12GraphicsRenderer::DX12GraphicsRenderer(const WindowsWindow * window)
+	DX12GraphicsRenderer::DX12GraphicsRenderer(const WindowsWindow* window)
 	{
 		CreateFactory();
 		CreateDevice();
@@ -33,103 +33,6 @@ namespace Dune
 			{
 				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 			}
-		}
-
-		// Create the vertex buffer.
-		{
-			m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get());
-
-			// Define the geometry for a triangle.
-			Vertex triangleVertices[] =
-			{
-				{ { 0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-				{ { 0.0f, 0.25f * 1.77f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-				{ { -0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
-			};
-
-			const UINT vertexBufferSize = sizeof(triangleVertices);
-
-			// Note: using upload heaps to transfer static data like vert buffers is not 
-			// recommended. Every time the GPU needs it, the upload heap will be marshalled 
-			// over. Please read up on Default Heap usage. An upload heap is used here for 
-			// code simplicity and because there are very few verts to actually transfer.
-			D3D12_HEAP_PROPERTIES heapProps;
-			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			Microsoft::WRL::ComPtr<ID3D12Resource> intermediateVertexBuffer;
-
-			D3D12_RESOURCE_DESC vertexBufferResourceDesc;
-			vertexBufferResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			vertexBufferResourceDesc.Alignment = 0;
-			vertexBufferResourceDesc.Width = vertexBufferSize;
-			vertexBufferResourceDesc.Height = 1;
-			vertexBufferResourceDesc.DepthOrArraySize = 1;
-			vertexBufferResourceDesc.MipLevels = 1;
-			vertexBufferResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-			vertexBufferResourceDesc.SampleDesc.Count = 1;
-			vertexBufferResourceDesc.SampleDesc.Quality = 0;
-			vertexBufferResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			vertexBufferResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-			ThrowIfFailed(m_device->CreateCommittedResource(
-				&heapProps,
-				D3D12_HEAP_FLAG_NONE,
-				&vertexBufferResourceDesc,
-				D3D12_RESOURCE_STATE_COPY_DEST,
-				nullptr,
-				IID_PPV_ARGS(&m_vertexBuffer)));
-
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-
-			Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
-			ThrowIfFailed(m_device->CreateCommittedResource(
-				&heapProps,
-				D3D12_HEAP_FLAG_NONE,
-				&vertexBufferResourceDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&uploadBuffer)));
-
-			// Copy the triangle data to the vertex buffer.
-			UINT8* pVertexDataBegin;
-
-			// We do not intend to read from this resource on the CPU.
-			D3D12_RANGE readRange;  
-			readRange.Begin = 0;
-			readRange.End = 0;    
-			ThrowIfFailed(uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-			memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
-			uploadBuffer->Unmap(0, nullptr);
-
-			m_commandList->CopyBufferRegion(m_vertexBuffer.Get(), 0, uploadBuffer.Get(), 0, vertexBufferSize);
-
-			D3D12_RESOURCE_BARRIER barrierDesc;
-			ZeroMemory(&barrierDesc, sizeof(barrierDesc));
-			barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			barrierDesc.Transition.pResource = m_vertexBuffer.Get();
-			barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-			barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-			barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-			m_commandList->ResourceBarrier(1, &barrierDesc);
-
-			// #11
-			m_commandList->Close();
-			std::vector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
-			m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-
-			m_fenceValue++;
-			WaitForGPU();
-
-			// Initialize the vertex buffer view.
-			m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-			m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-			m_vertexBufferView.SizeInBytes = vertexBufferSize;
 		}
 
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -248,11 +151,23 @@ namespace Dune
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
+		WaitForGPU();
+
+		// Command list allocators can only be reset when the associated 
+		// command lists have finished execution on the GPU; apps should use 
+		// fences to determine GPU execution progress.
+		ThrowIfFailed(m_commandAllocator->Reset());
+
+		// However, when ExecuteCommandList() is called on a particular command 
+		// list, that command list can then be reset at any time and must be before 
+		// re-recording.
+		ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+
 		ThrowIfFailed(m_device->CreateCommittedResource(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
 			IID_PPV_ARGS(&buffer->m_buffer)));
 
@@ -263,7 +178,7 @@ namespace Dune
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&uploadBuffer)));
 
@@ -294,7 +209,7 @@ namespace Dune
 		std::vector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 		WaitForGPU();
-
+		buffer->SetDescription(desc);
 		return std::move(buffer);
 	}
 
@@ -587,9 +502,27 @@ namespace Dune
 		// Record commands.
 		const float clearColor[] = { 0.1f, 0.1f, 0.15f, 1.0f };
 		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-		m_commandList->DrawInstanced(3, 1, 0, 0);
+		for (const GraphicsElement& elem : m_graphicsElements)
+		{
+			const Mesh& mesh = elem.GetMesh();
+			if (!mesh.IsUploaded())
+			{
+				continue;
+			}
+
+			const DX12GraphicsBuffer* const buffer = static_cast<const DX12GraphicsBuffer* const>(mesh.GetVertexBuffer());
+
+			D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+			// Initialize the vertex buffer view.
+			vertexBufferView.BufferLocation = buffer->m_buffer->GetGPUVirtualAddress();
+			vertexBufferView.StrideInBytes = sizeof(Vertex);
+			vertexBufferView.SizeInBytes = buffer->GetDescription().size;
+
+			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+			//Draw the first triangle
+			m_commandList->DrawInstanced(3, 1, 0, 0);
+		}
 
 		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
