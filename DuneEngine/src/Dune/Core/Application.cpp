@@ -4,6 +4,7 @@
 #include "Dune/Graphics/GraphicsCore.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Core/Window.h"
+#include "Dune/Core/Input.h"
 
 namespace Dune
 {
@@ -30,6 +31,7 @@ namespace Dune
 			if(show_demo_window)
 				ImGui::ShowDemoWindow(&show_demo_window);
 			GraphicsCore::Update();
+			Input::EndFrame();
 		};
 		GraphicsCore::Shutdown();
 		ImGui::DestroyContext();

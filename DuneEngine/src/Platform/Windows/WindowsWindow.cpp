@@ -2,6 +2,7 @@
 #include "WindowsWindow.h"
 #include "Dune/Graphics/GraphicsCore.h"
 #include "Dune/Core/Logger.h"
+#include "Dune/Core/Input.h"
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -117,6 +118,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_PAINT:
 		break;
+	case WM_KEYDOWN:
+		Dune::Input::SetKeyDown(static_cast<Dune::Input::KeyCode>(wParam));
+		break;
+	case WM_KEYUP:
+		Dune::Input::SetKeyUp(static_cast<Dune::Input::KeyCode>(wParam));
+		break;
+	
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
