@@ -20,16 +20,16 @@ namespace Dune
 		isInitialized = true;
 
 		// Define the geometry for a triangle.
-		std::vector<Vertex> triangleVertices =
+		dVector<Vertex> triangleVertices =
 		{
 			{ { 0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
 			{ { 0.0f, 0.25f * 1.77f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
 			{ { -0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
 		};
-		std::vector<uint32_t> indices = {};
+		dVector<uint32_t> indices = {};
 		Mesh* mesh = new Mesh(indices, triangleVertices);
 		mesh->UploadBuffers();
-		std::string path = "bla";
+		dString path = "bla";
 		Shader *shader = new Shader(path);
 		GraphicsElement * elem = new GraphicsElement(*mesh,*shader);
 
@@ -38,22 +38,26 @@ namespace Dune
 
 	void GraphicsCore::Shutdown()
 	{
+#ifdef _DEBUG
 		if (!isInitialized)
 		{
 			LOG_CRITICAL("Tried to shutdown GraphicsCore which is not initialized");
 			return;
 		}
+#endif // _DEBUG
 
 		m_graphicsRenderer->OnShutdown();
 	}
 
 	void GraphicsCore::Update()
 	{
+#ifdef _DEBUG
 		if (!isInitialized)
 		{
 			LOG_CRITICAL("Tried to update GraphicsCore which is not initialized");
 			return;
 		}
+#endif // _DEBUG
 
 		m_graphicsRenderer->WaitForGPU();
 		m_graphicsRenderer->Render();

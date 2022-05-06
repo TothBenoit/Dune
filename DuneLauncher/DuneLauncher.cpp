@@ -15,7 +15,7 @@ public:
 
 	void OnUpdate() override
 	{
-		Dune::LOG_ERROR("WAAAAAAAH")
+
 	}
 };
 

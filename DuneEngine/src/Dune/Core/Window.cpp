@@ -16,7 +16,7 @@ namespace Dune
 #error Platform not supported
 #endif
 	}
-	Window::WindowData::WindowData(uint32_t width, uint32_t height, const std::string& title)
+	Window::WindowData::WindowData(dU32 width, dU32 height, const dString& title)
 		: m_width(width), m_height(height), m_title(title)
 	{
 	}

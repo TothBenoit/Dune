@@ -22,7 +22,6 @@ namespace Dune
 	{
 		std::unique_ptr<Window> window = Window::Create();
 		GraphicsCore::Init(window.get());
-
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 		bool show_demo_window = true;

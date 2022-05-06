@@ -5,7 +5,7 @@
 
 namespace Dune
 {
-	Mesh::Mesh(const std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices)
+	Mesh::Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices)
 		: m_indices(indices), m_vertices(vertices)
 	{}
 
@@ -28,7 +28,7 @@ namespace Dune
 	bool Mesh::UploadVertexBuffer()
 	{
 		GraphicsBufferDesc desc = GraphicsBufferDesc();
-		desc.size = (uint32_t)m_vertices.size() * sizeof(Vertex);
+		desc.size = (dU32)m_vertices.size() * sizeof(Vertex);
 		if (desc.size == 0)
 		{
 			LOG_ERROR("Vertex buffer is empty");
@@ -42,7 +42,7 @@ namespace Dune
 	bool Mesh::UploadIndexBuffer()
 	{
 		GraphicsBufferDesc desc = GraphicsBufferDesc();
-		desc.size = (uint32_t)m_indices.size() * sizeof(uint32_t);
+		desc.size = (dU32)m_indices.size() * sizeof(dU32);
 		if (desc.size == 0)
 		{
 			LOG_ERROR("Index buffer is empty");

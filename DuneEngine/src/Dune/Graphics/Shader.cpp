@@ -4,7 +4,7 @@
 
 namespace Dune
 {
-	Shader::Shader(const std::string& path)
+	Shader::Shader(const dString& path)
 		: m_path(path)
 	{}
 }

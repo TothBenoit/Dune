@@ -8,18 +8,18 @@ namespace Dune
 
 		struct WindowData
 		{
-			uint32_t m_width;
-			uint32_t m_height;
+			dU32 m_width;
+			dU32 m_height;
 
-			std::string m_title;
+			dString m_title;
 
-			WindowData(uint32_t width = 1600, uint32_t height = 900, const std::string & = "Dune engine");
+			WindowData(dU32 width = 1600, dU32 height = 900, const dString & = "Dune engine");
 		};
 
 		virtual ~Window() = default;
 
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
+		virtual dU32 GetWidth() const = 0;
+		virtual dU32 GetHeight() const = 0;
 		virtual bool Update() = 0;
 
 		static std::unique_ptr<Window> Create(WindowData data = WindowData());

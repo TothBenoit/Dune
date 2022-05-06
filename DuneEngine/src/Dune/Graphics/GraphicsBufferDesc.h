@@ -5,6 +5,6 @@ namespace Dune
 	struct GraphicsBufferDesc
 	{
 
-		uint32_t size;
+		dU32 size;
 	};
 }

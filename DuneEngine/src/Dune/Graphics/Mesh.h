@@ -13,7 +13,7 @@ namespace Dune
 	class Mesh
 	{
 	public:
-		Mesh(const std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices);
+		Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
 
 		void UploadBuffers();
 		bool IsUploaded() const { return m_isUploaded; }
@@ -26,8 +26,8 @@ namespace Dune
 		bool UploadVertexBuffer();
 		bool UploadIndexBuffer();
 
-		std::vector<uint32_t> m_indices;
-		std::vector<Vertex> m_vertices;
+		dVector<dU32> m_indices;
+		dVector<Vertex> m_vertices;
 
 		bool m_isUploaded = false;
 

@@ -206,7 +206,7 @@ namespace Dune
 
 		// #11
 		m_commandList->Close();
-		std::vector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
+		dVector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 		WaitForGPU();
 		buffer->SetDescription(desc);
@@ -395,9 +395,9 @@ namespace Dune
 #else
 		UINT compileFlags = 0;
 #endif
-		std::wstring vertexPath = SHADER_DIR;
+		dWString vertexPath = SHADER_DIR;
 		vertexPath.append(L"VertexShader.cso");
-		std::wstring pixelPath = SHADER_DIR;
+		dWString pixelPath = SHADER_DIR;
 		pixelPath.append(L"PixelShader.cso");
 
 		ThrowIfFailed(D3DReadFileToBlob(vertexPath.c_str(), &vertexShader));

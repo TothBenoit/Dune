@@ -28,6 +28,10 @@
     <ClInclude Include="src\Platform\DirectX12\DX12GraphicsBuffer.h" />
     <ClInclude Include="src\Dune\Graphics\Mesh.h" />
     <ClInclude Include="src\Dune\Graphics\Shader.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Entity.h" />
+    <ClInclude Include="src\Dune\Core\ECS\EntityManager.h" />
+    <ClInclude Include="src\Dune\Core\ECS\ID.h" />
+    <ClInclude Include="src\Dune\Core\EngineCore.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />
@@ -49,6 +53,8 @@
     <ClCompile Include="src\Platform\DirectX12\DX12GraphicsBuffer.cpp" />
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Graphics\Shader.cpp" />
+    <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
+    <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Dune\Graphics\Shaders\PixelShader.hlsl" />

@@ -27,7 +27,7 @@ namespace Dune
 
 	protected:
 		GraphicsRenderer() = default;
-		std::vector<GraphicsElement> m_graphicsElements;
+		dVector<GraphicsElement> m_graphicsElements;
 	};
 }
 

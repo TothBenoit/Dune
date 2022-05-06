@@ -5,8 +5,8 @@ namespace Dune
 	class Shader
 	{
 	public:
-		Shader(const std::string& path);
+		Shader(const dString& path);
 	private:
-		std::string m_path;
+		dString m_path;
 	};
 }
