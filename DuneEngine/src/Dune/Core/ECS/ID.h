@@ -44,7 +44,7 @@ namespace Dune
 		constexpr name() : ID(ID::invalidID) {}					 \
 	};															 
 #else
-#define DEFINE_TYPEID(name) using name = ID;
+#define DEFINE_TYPE_ID(name) using name = ID;
 #endif
 
 }

@@ -1,10 +1,12 @@
 #include "pch.h"
 
 #include "Dune/Core/Application.h"
+#include "Dune/Core/EngineCore.h"
 #include "Dune/Graphics/GraphicsCore.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Core/Window.h"
 #include "Dune/Core/Input.h"
+
 
 namespace Dune
 {
@@ -21,6 +23,7 @@ namespace Dune
 	void Application::Start()
 	{
 		std::unique_ptr<Window> window = Window::Create();
+		EngineCore::Init();
 		GraphicsCore::Init(window.get());
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
