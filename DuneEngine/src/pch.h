@@ -21,6 +21,8 @@
 #define ThrowIfFailed(hr) if(FAILED(hr)) { __debugbreak(); assert(false);}
 #endif // DUNE_PLATFORM_WINDOWS
 
+#define Assert(condition) if (!(condition)) {__debugbreak(); assert(false);} 
+
 #include <iostream>
 #include <memory>
 #include <assert.h>

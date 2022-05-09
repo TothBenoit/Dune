@@ -17,6 +17,17 @@ namespace Dune
 
 		m_entityManager = std::make_unique<EntityManager>();
 
+		srand((unsigned int)time(NULL));
+
+		for (int i = 0; i < 10000; i++)
+		{
+			Entity e = m_entityManager->CreateEntity();
+			if((rand() % 11) < 3)
+			{
+				m_entityManager->RemoveEntity(e);
+			}
+		}
+
 		isInitialized = true;
 	}
 
