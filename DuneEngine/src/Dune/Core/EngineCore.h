@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Dune/Core/ECS/EntityManager.h"
+#include "Dune/Core/ECS/Components/ComponentManager.h"
+#include "Dune/Core/ECS/Components/Transform.h"
 
 namespace Dune
 {
@@ -19,6 +21,7 @@ namespace Dune
 	private:
 		static bool isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
+		static std::unique_ptr<ComponentManager<TransformComponent>> m_transformManager;
 	};
 }
 

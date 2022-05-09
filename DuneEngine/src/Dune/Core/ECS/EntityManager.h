@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Entity.h"
-
 namespace Dune
 {
 	class EntityManager
@@ -10,13 +8,12 @@ namespace Dune
 		EntityManager();
 		EntityManager(const EntityManager&) = delete;
 		EntityManager& operator=(const EntityManager&) = delete;
-		Entity CreateEntity();
-		void RemoveEntity(Entity entity);
-		bool IsAlive(Entity entity) const ;
+		EntityID CreateEntity();
+		void RemoveEntity(EntityID entity);
+		bool IsAlive(EntityID entity) const ;
 
 	private:
 		dQueue<EntityID> m_freeEntityIDs;
 		dVector<ID::GenerationType> m_generationIDs;
-		Entity m_entities[ID::GetMaximumIndex()];
 	};
 }

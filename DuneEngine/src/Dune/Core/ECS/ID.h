@@ -1,5 +1,7 @@
 #pragma once
 
+//Inspired by Arash Khatami
+
 namespace Dune
 {
 	namespace ID
@@ -34,23 +36,6 @@ namespace Dune
 		}
 	};
 
-#if _DEBUG
-	struct IDBase
-	{
-		constexpr explicit IDBase(ID::IDType id) : m_id(id) {}
-		constexpr operator ID::IDType() const { return m_id; }
-	private:
-		ID::IDType m_id;
-	};
-#define DEFINE_TYPE_ID(name)										\
-	struct name final : public IDBase								\
-	{																\
-		constexpr explicit name(ID::IDType id) : IDBase(id) {}		\
-		constexpr name() : IDBase(ID::invalidID) {}					\
-	};															 
-#else
-#define DEFINE_TYPE_ID(name) using name = ID::IDType;
-#endif
-
+	using EntityID = ID::IDType;
 }
 

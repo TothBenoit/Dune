@@ -8,7 +8,7 @@ namespace Dune
 	{
 		m_generationIDs.reserve(ID::GetMaximumIndex());
 	}
-	Entity EntityManager::CreateEntity()
+	EntityID EntityManager::CreateEntity()
 	{
 		EntityID id;
 
@@ -27,22 +27,22 @@ namespace Dune
 		else
 		{
 			LOG_CRITICAL("Maximum entities count reached");
-			id = EntityID(ID::invalidID);
+			return EntityID(ID::invalidID);
 		}
 
-		return Entity(id);
+		return EntityID(id);
 	}
 
-	void EntityManager::RemoveEntity(Entity entity)
+	void EntityManager::RemoveEntity(EntityID entity)
 	{
 		Assert(IsAlive(entity));
-		EntityID id = entity.GetID();
+		EntityID id = entity;
 		Assert(ID::GetIndex(id) < m_generationIDs.size());
 		m_freeEntityIDs.push(id);
 	}
-	bool EntityManager::IsAlive(Entity entity) const
+	bool EntityManager::IsAlive(EntityID entity) const
 	{
-		EntityID id = entity.GetID();
+		EntityID id = entity;
 		ID::IDType index = ID::GetIndex(id);
 		Assert(index < m_generationIDs.size());
 		return m_generationIDs[index] == ID::GetGeneration(id);

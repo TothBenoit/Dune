@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Dune/Core/ECS/Entity.h"
-
 namespace Dune
 {
 	struct SceneGraphNode

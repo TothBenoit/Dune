@@ -11,8 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\Transform.h" />
     <ClInclude Include="src\Dune\Core\ECS\EntityManager.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Entity.h" />
     <ClInclude Include="src\Dune\Core\ECS\ID.h" />
     <ClInclude Include="src\Dune\Core\EngineCore.h" />
     <ClInclude Include="src\Dune\Core\SceneGraph.h" />
