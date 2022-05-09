@@ -5,9 +5,6 @@
 
 #include "Dune/Core/Logger.h"
 
-#include <dxgidebug.h>
-#include <d3dcompiler.h>
-
 namespace Dune
 {
 	DX12GraphicsRenderer::DX12GraphicsRenderer(const WindowsWindow* window)

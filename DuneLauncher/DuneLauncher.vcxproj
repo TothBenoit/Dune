@@ -69,6 +69,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>for /r $(SolutionDir)bin\$(Configuration)\ %%F in (*.dll) do copy /Y %%F $(TargetDir)</Command>
@@ -92,6 +93,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>for /r $(SolutionDir)bin\$(Configuration)\ %%F in (*.dll) do copy /Y %%F $(TargetDir)</Command>

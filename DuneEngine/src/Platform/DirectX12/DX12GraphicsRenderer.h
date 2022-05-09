@@ -2,11 +2,6 @@
 #include "Dune/Graphics/GraphicsRenderer.h"
 #include "Platform/Windows/WindowsWindow.h"
 
-#include <dxgi1_6.h>
-#include <d3d12.h>
-#include <wrl.h>
-#include <DirectXMath.h>
-
 namespace Dune
 {
 	class DX12GraphicsRenderer : public GraphicsRenderer

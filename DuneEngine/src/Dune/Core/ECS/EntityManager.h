@@ -19,6 +19,6 @@ namespace Dune
 
 		dQueue<EntityID> m_freeEntityIDs;
 		dVector<ID::GenerationType> m_generationIDs;
-
+		Entity m_entities[MAX_ENTITIES];
 	};
 }

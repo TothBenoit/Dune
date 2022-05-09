@@ -1,7 +1,5 @@
 #pragma once
 #include "Dune/Graphics/GraphicsBuffer.h"
-#include <d3d12.h>
-#include <wrl.h>
 
 namespace Dune
 {

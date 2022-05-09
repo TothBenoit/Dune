@@ -2,9 +2,9 @@
 
 #ifdef DUNE_PLATFORM_WINDOWS
 	#ifdef DUNE_BUILD_DLL
-		#define DUNE_API __declspec(dllexport)
+		#define DUNE_API
 	#else
-		#define DUNE_API __declspec(dllimport)
+		#define DUNE_API
 	#endif
 #else
 	#error Platform not supported
