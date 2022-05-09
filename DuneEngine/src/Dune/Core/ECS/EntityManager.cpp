@@ -6,7 +6,7 @@ namespace Dune
 {
 	EntityManager::EntityManager()
 	{
-		m_generationIDs.reserve(MAX_ENTITIES);
+		m_generationIDs.reserve(ID::GetMaximumIndex());
 	}
 	Entity EntityManager::CreateEntity()
 	{
@@ -19,7 +19,7 @@ namespace Dune
 			m_generationIDs[ID::GetIndex(id)] = ID::GetGeneration(id);
 			m_freeEntityIDs.pop();
 		}
-		else if (m_generationIDs.size() < MAX_ENTITIES)
+		else if (m_generationIDs.size() < ID::GetMaximumIndex())
 		{
 			id = EntityID((ID::IDType)m_generationIDs.size());
 			m_generationIDs.push_back(ID::GenerationType(0));

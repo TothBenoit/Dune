@@ -15,10 +15,8 @@ namespace Dune
 		bool IsAlive(Entity entity) const ;
 
 	private:
-		static const dU32 MAX_ENTITIES = ID::GetMaximumIndex();
-
 		dQueue<EntityID> m_freeEntityIDs;
 		dVector<ID::GenerationType> m_generationIDs;
-		Entity m_entities[MAX_ENTITIES];
+		Entity m_entities[ID::GetMaximumIndex()];
 	};
 }
