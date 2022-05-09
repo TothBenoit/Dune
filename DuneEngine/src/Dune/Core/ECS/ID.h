@@ -5,7 +5,6 @@ namespace Dune
 	namespace ID
 	{
 		using IDType = dU32;
-
 		const IDType invalidID = IDType(-1);
 		const IDType generationBits = 8;
 		const IDType lastGeneration = (1 << generationBits) - 1;
@@ -13,6 +12,8 @@ namespace Dune
 		const IDType maxIndex = (1 << indexBits) - 1;
 		const IDType indexMask = (IDType(1) << indexBits) - 1;
 		const IDType generationMask = (IDType(1) << generationBits) - 1;
+
+		using GenerationType = std::conditional_t<generationBits <= 8, dU8, std::conditional_t<generationBits <= 16, dU16, dU32>>;
 
 		static constexpr IDType GetMaximumIndex() { return maxIndex; }
 

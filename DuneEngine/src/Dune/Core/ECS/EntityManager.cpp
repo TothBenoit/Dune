@@ -6,11 +6,10 @@ namespace Dune
 {
 	EntityManager::EntityManager()
 	{
-		m_entities.reserve(MAX_ENTITIES);
 		m_generationIDs.reserve(MAX_ENTITIES);
 
 	}
-	Entity& EntityManager::CreateEntity()
+	Entity EntityManager::CreateEntity()
 	{
 		EntityID id;
 
@@ -21,10 +20,10 @@ namespace Dune
 			m_generationIDs[ID::GetIndex(id)] = EntityID(ID::GetGeneration(id) + 1);
 			m_freeEntityIDs.pop();
 		}
-		else if (m_entities.size() < MAX_ENTITIES)
+		else if (m_generationIDs.size() < MAX_ENTITIES)
 		{
-			id = EntityID(m_entities.size());
-			m_generationIDs.push_back(EntityID(0));
+			id = EntityID((ID::IDType)m_generationIDs.size());
+			m_generationIDs.push_back(ID::GenerationType(0));
 		}
 		else
 		{
@@ -32,8 +31,21 @@ namespace Dune
 			id = EntityID(ID::invalidID);
 		}
 
-		m_entities.push_back(Entity(id));
+		return Entity(id);
+	}
 
-		return m_entities.back();
+	void EntityManager::RemoveEntity(Entity entity)
+	{
+		assert(IsAlive(entity));
+		EntityID id = entity.GetID();
+		assert(ID::GetIndex(id) < m_generationIDs.size());
+		m_freeEntityIDs.push(id);
+	}
+	bool EntityManager::IsAlive(Entity entity) const
+	{
+		EntityID id = entity.GetID();
+		ID::IDType index = ID::GetIndex(id);
+		assert(index < m_generationIDs.size());
+		return m_generationIDs[index] == ID::GetGeneration(id);
 	}
 }

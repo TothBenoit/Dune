@@ -10,15 +10,15 @@ namespace Dune
 		EntityManager();
 		EntityManager(const EntityManager&) = delete;
 		EntityManager& operator=(const EntityManager&) = delete;
-		Entity& CreateEntity();
-
+		Entity CreateEntity();
+		void RemoveEntity(Entity entity);
+		bool IsAlive(Entity entity) const ;
 
 	private:
 		static const dU32 MAX_ENTITIES = ID::GetMaximumIndex();
 
 		dQueue<EntityID> m_freeEntityIDs;
-		dVector<Entity> m_entities;
-		dVector<EntityID> m_generationIDs;
+		dVector<ID::GenerationType> m_generationIDs;
 
 	};
 }

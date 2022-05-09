@@ -13,6 +13,7 @@
 #include <iostream>
 #include <memory>
 #include <assert.h>
+#include <type_traits>
 #include "imgui/imgui.h"
 #include "Dune/Common/Types.h"
 #include "Dune/Core/ECS/ID.h"
