@@ -15,6 +15,8 @@ namespace Dune
 			return;
 		}
 
+		m_entityManager = std::make_unique<EntityManager>();
+
 		isInitialized = true;
 	}
 

@@ -7,14 +7,18 @@ namespace Dune
 	class EntityManager
 	{
 	public:
+		EntityManager();
 		EntityManager(const EntityManager&) = delete;
 		EntityManager& operator=(const EntityManager&) = delete;
+		Entity& CreateEntity();
+
 
 	private:
-		static const dU32 MAX_ENTITIES = 4096;
+		static const dU32 MAX_ENTITIES = ID::GetMaximumIndex();
 
 		dQueue<EntityID> m_freeEntityIDs;
-		EntityID m_entities[MAX_ENTITIES];
+		dVector<Entity> m_entities;
+		dVector<EntityID> m_generationIDs;
 
 	};
 }
