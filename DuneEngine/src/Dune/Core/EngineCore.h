@@ -16,7 +16,8 @@ namespace Dune
 		static void Shutdown();
 		static void Update();
 
-		static inline bool IsInitialized() { return isInitialized; }
+		inline static bool IsInitialized() { return isInitialized; }
+		inline static EntityManager* GetEntityManager() { return m_entityManager.get(); }
 
 	private:
 		static bool isInitialized;

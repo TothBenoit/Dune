@@ -30,6 +30,7 @@ namespace Dune
 		bool show_demo_window = true;
 		while (window->Update())
 		{
+			OnUpdate();
 			if(show_demo_window)
 				ImGui::ShowDemoWindow(&show_demo_window);
 			GraphicsCore::Update();
