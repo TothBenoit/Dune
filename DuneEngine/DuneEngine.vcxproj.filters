@@ -32,8 +32,9 @@
     <ClInclude Include="src\Dune\Core\ECS\ID.h" />
     <ClInclude Include="src\Dune\Core\EngineCore.h" />
     <ClInclude Include="src\Dune\Core\SceneGraph.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Components\Transform.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\GraphicsComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />

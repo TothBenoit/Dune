@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Dune/Core/SceneGraph.h"
 #include "Dune/Core/ECS/EntityManager.h"
 #include "Dune/Core/ECS/Components/ComponentManager.h"
-#include "Dune/Core/ECS/Components/Transform.h"
+#include "Dune/Core/ECS/Components/TransformComponent.h"
+#include "Dune/Core/ECS/Components/GraphicsComponent.h"
 
 namespace Dune
 {
@@ -23,6 +25,7 @@ namespace Dune
 		static bool isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
 		static std::unique_ptr<ComponentManager<TransformComponent>> m_transformManager;
+		static SceneGraph sceneGraph;
 	};
 }
 

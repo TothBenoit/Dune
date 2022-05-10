@@ -12,7 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Components\Transform.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\GraphicsComponent.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\EntityManager.h" />
     <ClInclude Include="src\Dune\Core\ECS\ID.h" />
     <ClInclude Include="src\Dune\Core\EngineCore.h" />

@@ -66,6 +66,6 @@ namespace Dune
 	private:
 		dVector<Component> m_components;
 		dVector<EntityID> m_entities;
-		dHashMap<EntityID, size_t> m_lookup;
+		dHashMap<EntityID, ID::IDType> m_lookup;
 	};
 }

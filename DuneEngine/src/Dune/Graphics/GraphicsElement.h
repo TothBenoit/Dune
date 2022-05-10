@@ -12,13 +12,21 @@ namespace Dune
 		GraphicsElement(const Mesh& mesh, const Shader& shader)
 			: m_mesh(mesh), m_shader(shader)
 		{}
+		
+		GraphicsElement(const GraphicsElement& other)
+			: m_mesh(other.m_mesh), m_shader(other.m_shader)
+		{}
 
 		inline const Mesh& GetMesh() const { return m_mesh; };
 		inline const Shader& GetShader() const { return m_shader; };
+		inline const dMatrix4x4& GetTransform() const { return m_transform; };
+
 	private:
 		//TODO: use handle instead of references
 		const Mesh& m_mesh;
 		const Shader& m_shader;
+		
+		dMatrix4x4 m_transform;
 	};
 }
 
