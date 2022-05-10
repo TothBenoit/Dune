@@ -18,9 +18,8 @@ namespace Dune
 		static void Shutdown();
 		static void Update();
 
-		static EntityID CreateEntity();
+		static EntityID CreateEntity(const dString& name);
 		static void RemoveEntity(EntityID);
-		static void DrawGraph();
 
 		inline static bool IsInitialized() { return m_isInitialized; }
 		inline static EntityManager* GetEntityManager() { return m_entityManager.get(); }

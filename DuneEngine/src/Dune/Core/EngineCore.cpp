@@ -42,7 +42,8 @@ namespace Dune
 		}
 #endif // _DEBUG
 	}
-	EntityID EngineCore::CreateEntity()
+
+	EntityID EngineCore::CreateEntity(const dString& name)
 	{
 #ifdef _DEBUG
 		if (!m_isInitialized)
@@ -53,11 +54,10 @@ namespace Dune
 #endif // _DEBUG
 
 		EntityID id = m_entityManager->CreateEntity();
-		std::stringstream ss;
-		ss << ID::GetIndex(id);
-		m_sceneGraph.AddNode(id, ss.str());
+		m_sceneGraph.AddNode(id, name);
 		return id;
 	}
+
 	void EngineCore::RemoveEntity(EntityID id)
 	{
 #ifdef _DEBUG
@@ -69,16 +69,5 @@ namespace Dune
 #endif // _DEBUG
 		m_entityManager->RemoveEntity(id);
 		m_sceneGraph.DeleteNode(id);
-	}
-	void EngineCore::DrawGraph()
-	{
-#ifdef _DEBUG
-		if (!m_isInitialized)
-		{
-			LOG_CRITICAL("Tried to draw graph while EngineCore was not initialized");
-			return;
-		}
-#endif // _DEBUG
-		m_sceneGraph.Draw();
 	}
 }

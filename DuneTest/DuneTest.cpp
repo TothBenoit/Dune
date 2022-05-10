@@ -21,16 +21,15 @@ public:
 			Dune::EntityManager* pEntityManager = Dune::EngineCore::GetEntityManager();
 			srand((unsigned int)time(NULL));
 
-			for (int i = 0; i < 10000; i++)
+			for (int i = 0; i < 1000; i++)
 			{
-				Dune::EntityID entity = Dune::EngineCore::CreateEntity();
+				Dune::EntityID entity = Dune::EngineCore::CreateEntity("Node");
 				if ((rand() % 11) < 3)
 				{
 					pEntityManager->RemoveEntity(entity);
 				}
 			}
 			didTestOnce = true;
-			Dune::EngineCore::DrawGraph();
 		}
 	}
 

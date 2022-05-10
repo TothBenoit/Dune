@@ -25,17 +25,20 @@ namespace Dune
 		std::unique_ptr<Window> window = Window::Create();
 		EngineCore::Init();
 		GraphicsCore::Init(window.get());
+
+		//TODO : Handle ImGui in its own layer
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
-		bool show_demo_window = true;
+
 		while (window->Update())
 		{
+			ImGui::ShowDemoWindow(nullptr);
 			OnUpdate();
-			if(show_demo_window)
-				ImGui::ShowDemoWindow(&show_demo_window);
+			EngineCore::Update();
 			GraphicsCore::Update();
 			Input::EndFrame();
 		};
+
 		GraphicsCore::Shutdown();
 		ImGui::DestroyContext();
 
