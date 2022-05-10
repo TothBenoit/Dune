@@ -36,6 +36,7 @@ namespace Dune
 		void CreateRootSignature();
 		void CreatePipeline();
 		void CreateCommandList();
+		void CreateFence();
 		void PopulateCommandList();
 
 	private:

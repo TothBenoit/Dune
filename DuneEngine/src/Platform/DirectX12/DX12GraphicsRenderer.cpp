@@ -18,20 +18,9 @@ namespace Dune
 		CreateRootSignature();
 		CreatePipeline();
 		CreateCommandList();
+		CreateFence();
 
-		// Create synchronization objects and wait until assets have been uploaded to the GPU.
-		{
-			ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-			m_fenceValue = 1;
-
-
-			m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-			if (!m_fenceEvent.IsValid())
-			{
-				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-			}
-		}
-
+		//Create ImGui descriptor heap
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		desc.NumDescriptors = 1;
@@ -463,6 +452,19 @@ namespace Dune
 		// Command lists are created in the recording state, but there is nothing
 		// to record yet. The main loop expects it to be closed, so close it now.
 		ThrowIfFailed(m_commandList->Close());
+	}
+
+	void DX12GraphicsRenderer::CreateFence()
+	{
+		// Create synchronization objects and wait until assets have been uploaded to the GPU.
+		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+		m_fenceValue = 1;
+
+		m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+		if (!m_fenceEvent.IsValid())
+		{
+			ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+		}
 	}
 
 	void DX12GraphicsRenderer::PopulateCommandList()
