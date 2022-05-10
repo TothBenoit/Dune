@@ -24,6 +24,7 @@
 #define Assert(condition) if (!(condition)) {__debugbreak(); assert(false);} 
 
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <assert.h>
 #include <type_traits>

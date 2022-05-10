@@ -18,14 +18,18 @@ namespace Dune
 		static void Shutdown();
 		static void Update();
 
-		inline static bool IsInitialized() { return isInitialized; }
+		static EntityID CreateEntity();
+		static void RemoveEntity(EntityID);
+		static void DrawGraph();
+
+		inline static bool IsInitialized() { return m_isInitialized; }
 		inline static EntityManager* GetEntityManager() { return m_entityManager.get(); }
 
 	private:
-		static bool isInitialized;
+		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
 		static std::unique_ptr<ComponentManager<TransformComponent>> m_transformManager;
-		static SceneGraph sceneGraph;
+		static SceneGraph m_sceneGraph;
 	};
 }
 

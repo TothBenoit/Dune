@@ -23,13 +23,14 @@ public:
 
 			for (int i = 0; i < 10000; i++)
 			{
-				Dune::EntityID entity = pEntityManager->CreateEntity();
+				Dune::EntityID entity = Dune::EngineCore::CreateEntity();
 				if ((rand() % 11) < 3)
 				{
 					pEntityManager->RemoveEntity(entity);
 				}
 			}
 			didTestOnce = true;
+			Dune::EngineCore::DrawGraph();
 		}
 	}
 
