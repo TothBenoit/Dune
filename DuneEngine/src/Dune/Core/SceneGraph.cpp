@@ -21,7 +21,7 @@ namespace Dune
 			return;
 		}
 
-		SceneGraphNode& node = m_lookup[id];
+		Node& node = m_lookup[id];
 		node.m_self = id;
 		node.m_name = name;
 
@@ -45,8 +45,8 @@ namespace Dune
 			return;
 		}
 
-		SceneGraphNode& node = m_lookup[id];
-		for (SceneGraphNode* child : node.m_children)
+		Node& node = m_lookup[id];
+		for (Node* child : node.m_children)
 		{
 			child->m_parent = m_root;
 		}
@@ -55,26 +55,8 @@ namespace Dune
 		m_lookup.erase(id);
 	}
 
-	bool SceneGraph::HasNode(EntityID id)
+	bool SceneGraph::HasNode(EntityID id) const
 	{
 		return m_lookup.find(id) != m_lookup.end();
-	}
-
-	void DrawNode(const SceneGraphNode* node, size_t depth)
-	{
-		for (const SceneGraphNode* child : node->GetChildren())
-		{
-			DrawNode(child, depth++);
-		}
-		std::cout << "NodeName: " << node->GetName() << " NodeID: " << node->GetSelf() << " Depth: " << depth << "\n";
-
-	}
-
-	void SceneGraph::Draw()
-	{
-		for (const SceneGraphNode* child : m_root->GetChildren())
-		{
-			DrawNode(child, 0);
-		}
 	}
 }

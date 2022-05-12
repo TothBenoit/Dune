@@ -25,10 +25,16 @@ namespace Dune
 		inline static EntityManager* GetEntityManager() { return m_entityManager.get(); }
 
 	private:
+
+		static void DrawSceneGraphInterface();
+		static void DrawChildNodes(const SceneGraph::Node* node);
+
+	private:
 		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
 		static std::unique_ptr<ComponentManager<TransformComponent>> m_transformManager;
 		static SceneGraph m_sceneGraph;
+		static EntityID m_selectedEntity;
 	};
 }
 
