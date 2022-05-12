@@ -35,6 +35,7 @@
     <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\GraphicsComponent.h" />
+    <ClInclude Include="src\Dune\Utilities\StringUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />

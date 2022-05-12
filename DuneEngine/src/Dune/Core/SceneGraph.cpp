@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SceneGraph.h"
 #include "Dune/Core/Logger.h"
+#include "Dune/Utilities/StringUtils.h"
 
 namespace Dune
 {
@@ -34,6 +35,7 @@ namespace Dune
 		{
 			node.m_parent = &m_lookup[parent];
 			node.m_parent->m_children.push_back(&node);
+			LOG_INFO(dStringUtils::printf("Node %u has been added", node.GetSelf()).c_str())
 		}
 	}
 
@@ -53,6 +55,8 @@ namespace Dune
 
 		node.m_parent->m_children.remove(&node);
 		m_lookup.erase(id);
+
+		LOG_INFO(dStringUtils::printf("Node %u has been removed", id).c_str())
 	}
 
 	bool SceneGraph::HasNode(EntityID id) const

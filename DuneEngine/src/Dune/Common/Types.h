@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include <queue>
+#include <stack>
 #include <map>
 #include <unordered_map>
 #include <set>
@@ -42,6 +43,9 @@ namespace Dune
 
 	template<typename T>
 	using dDeque =			std::deque<T>;
+
+	template<typename T>
+	using dStack =			std::stack<T>;
 
 	template<typename K, typename T>
 	using dMap =			std::map<K, T>;

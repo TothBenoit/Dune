@@ -33,7 +33,6 @@ namespace Dune
 
 		while (window->Update())
 		{
-			ImGui::ShowDemoWindow(nullptr);
 			OnUpdate();
 			EngineCore::Update();
 			GraphicsCore::Update();

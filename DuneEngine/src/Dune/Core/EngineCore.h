@@ -26,8 +26,10 @@ namespace Dune
 
 	private:
 
+		static void DrawMainMenuBar();
 		static void DrawSceneGraphInterface();
-		static void DrawChildNodes(const SceneGraph::Node* node);
+		static void DrawGraph();
+		static void DrawNode(const SceneGraph::Node* node);
 
 	private:
 		static bool m_isInitialized;
@@ -35,6 +37,7 @@ namespace Dune
 		static std::unique_ptr<ComponentManager<TransformComponent>> m_transformManager;
 		static SceneGraph m_sceneGraph;
 		static EntityID m_selectedEntity;
+		static bool m_showImGuiDemo;
 	};
 }
 

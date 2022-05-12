@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "EngineCore.h"
 #include "Dune/Core/Logger.h"
+#include "Dune/Utilities/StringUtils.h"
 
 namespace Dune
 {
@@ -8,6 +9,7 @@ namespace Dune
 	bool EngineCore::m_isInitialized = false;
 	SceneGraph EngineCore::m_sceneGraph;
 	EntityID EngineCore::m_selectedEntity;
+	bool EngineCore::m_showImGuiDemo;
 
 	void EngineCore::Init()
 	{
@@ -43,7 +45,11 @@ namespace Dune
 		}
 #endif // _DEBUG
 
+
+		DrawMainMenuBar();
 		DrawSceneGraphInterface();
+		if (m_showImGuiDemo)
+			ImGui::ShowDemoWindow(&m_showImGuiDemo);
 	}
 
 	EntityID EngineCore::CreateEntity(const dString& name)
@@ -74,6 +80,22 @@ namespace Dune
 		m_sceneGraph.DeleteNode(id);
 	}
 
+	void EngineCore::DrawMainMenuBar()
+	{
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("Main"))
+			{
+				if (ImGui::MenuItem("Show ImGui demo"))
+				{
+					m_showImGuiDemo = true;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+	}
+
 	void EngineCore::DrawSceneGraphInterface()
 	{
 		static ID::IDType counter = 0;
@@ -83,9 +105,7 @@ namespace Dune
 		ImGui::SameLine();
 		if (ImGui::Button("Add Entity"))
 		{
-			std::stringstream ss;
-			ss << "Node " << counter++;
-			CreateEntity(ss.str().c_str());
+			CreateEntity(dStringUtils::printf("%u", counter++).c_str());
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Remove Entity") && (ID::IsValid(m_selectedEntity)))
@@ -94,31 +114,47 @@ namespace Dune
 			m_selectedEntity = ID::invalidID;
 		}
 		ImGui::Separator();
-		DrawChildNodes(m_sceneGraph.GetRoot());
+		DrawGraph();
 		ImGui::End();
 	}
 
-	void EngineCore::DrawChildNodes(const SceneGraph::Node* node)
+	void EngineCore::DrawGraph()
 	{
-		for (const SceneGraph::Node* childNode : node->GetChildren())
+		for (const SceneGraph::Node* child : m_sceneGraph.GetRoot()->GetChildren())
 		{
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-
-			if (childNode->GetSelf() == m_selectedEntity)
-			{
-				flags |= ImGuiTreeNodeFlags_Selected;
-			}
-			bool isOpen = ImGui::TreeNodeEx((void*)(uintptr_t)childNode->GetSelf(), flags, childNode->GetName().c_str());
-
-			if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-			{
-				m_selectedEntity = childNode->GetSelf();
-			}
-			if (isOpen)
-			{
-				DrawChildNodes(childNode);
-				ImGui::TreePop();
-			}
+			DrawNode(child);
 		}
 	}
+
+	void EngineCore::DrawNode(const SceneGraph::Node* node)
+	{
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+
+		//if selected, highlight it
+		if (node->GetSelf() == m_selectedEntity)
+		{
+			flags |= ImGuiTreeNodeFlags_Selected;
+		}
+
+		//Create tree node
+		bool isOpen = ImGui::TreeNodeEx((void*)(uintptr_t)node->GetSelf(), flags, node->GetName().c_str());
+
+		//Select on click
+		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+		{
+			m_selectedEntity = node->GetSelf();
+		}
+
+		//Draw children if opened
+		if (isOpen)
+		{
+			for (const SceneGraph::Node* child : node->GetChildren())
+			{
+				DrawNode(child);
+			}
+
+			ImGui::TreePop();
+		}
+	}
+
 }

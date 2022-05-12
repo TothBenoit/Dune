@@ -20,6 +20,7 @@
     <ClInclude Include="src\Dune\Core\SceneGraph.h" />
     <ClInclude Include="src\Dune\Graphics\Mesh.h" />
     <ClInclude Include="src\Dune\Graphics\Shader.h" />
+    <ClInclude Include="src\Dune\Utilities\StringUtils.h" />
     <ClInclude Include="src\Platform\DirectX12\DX12GraphicsBuffer.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsBuffer.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsBufferDesc.h" />
