@@ -3,6 +3,7 @@
 
 #ifdef DUNE_PLATFORM_WINDOWS
 #include "Platform/DirectX12/DX12GraphicsRenderer.h"
+#include "Platform/Windows/WindowsWindow.h"
 #endif
 
 namespace Dune

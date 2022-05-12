@@ -2,7 +2,7 @@
 
 #include "Platform/DirectX12/DX12GraphicsRenderer.h"
 #include "Platform/DirectX12/DX12GraphicsBuffer.h"
-
+#include "Platform/Windows/WindowsWindow.h"
 #include "Dune/Core/Logger.h"
 
 namespace Dune

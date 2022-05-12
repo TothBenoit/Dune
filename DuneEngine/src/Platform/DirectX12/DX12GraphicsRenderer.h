@@ -1,9 +1,10 @@
 #pragma once
 #include "Dune/Graphics/GraphicsRenderer.h"
-#include "Platform/Windows/WindowsWindow.h"
 
 namespace Dune
 {
+	class WindowsWindow;
+
 	class DX12GraphicsRenderer : public GraphicsRenderer
 	{
 	public:
