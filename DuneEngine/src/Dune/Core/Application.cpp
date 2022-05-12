@@ -28,6 +28,7 @@ namespace Dune
 
 		//TODO : Handle ImGui in its own layer
 		// Setup Dear ImGui style
+		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui::StyleColorsDark();
 
 		while (window->Update())
