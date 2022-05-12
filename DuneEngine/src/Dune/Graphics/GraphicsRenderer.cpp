@@ -7,10 +7,10 @@
 
 namespace Dune
 {
-	std::unique_ptr<GraphicsRenderer> GraphicsRenderer::Create(const void * window)
+	std::unique_ptr<GraphicsRenderer> GraphicsRenderer::Create(const Window * window)
 	{
 #ifdef DUNE_PLATFORM_WINDOWS
-		return std::make_unique<DX12GraphicsRenderer>((const WindowsWindow*)window);
+		return std::make_unique<DX12GraphicsRenderer>(static_cast<const WindowsWindow*>(window));
 #else
 #error Platform not supported
 #endif

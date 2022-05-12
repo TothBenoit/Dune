@@ -4,6 +4,7 @@
 
 namespace Dune
 {
+	class Window;
 	class GraphicsBuffer;
 	struct GraphicsBufferDesc;
 
@@ -14,7 +15,7 @@ namespace Dune
 		GraphicsRenderer(const GraphicsRenderer&) = delete;
 		GraphicsRenderer& operator=(const GraphicsRenderer&) = delete;
 
-		static std::unique_ptr<GraphicsRenderer> Create(const void * window);
+		static std::unique_ptr<GraphicsRenderer> Create(const Window * window);
 
 		void AddGraphicsElement(const GraphicsElement& elem);
 

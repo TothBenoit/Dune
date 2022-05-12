@@ -8,7 +8,7 @@ namespace Dune
 	std::unique_ptr<GraphicsRenderer> GraphicsCore::m_graphicsRenderer = nullptr;
 	bool GraphicsCore::isInitialized = false;
 
-	void GraphicsCore::Init(const void* window)
+	void GraphicsCore::Init(const Window* window)
 	{
 		if (isInitialized)
 		{

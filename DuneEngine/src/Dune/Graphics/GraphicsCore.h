@@ -10,7 +10,7 @@ namespace Dune
 		GraphicsCore() = delete;
 		~GraphicsCore() = delete;
 
-		static void Init(const void* window);
+		static void Init(const Window* window);
 		static void Shutdown();
 		static void Update();
 
