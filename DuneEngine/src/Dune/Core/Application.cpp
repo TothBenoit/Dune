@@ -40,6 +40,7 @@ namespace Dune
 		};
 
 		GraphicsCore::Shutdown();
+		EngineCore::Shutdown();
 		ImGui::DestroyContext();
 
 	}

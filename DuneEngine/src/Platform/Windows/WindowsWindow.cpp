@@ -107,7 +107,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		ImGui_ImplWin32_Shutdown();
 		break;
 	case WM_SIZE:
 		if (Dune::GraphicsCore::IsInitialized() && wParam != SIZE_MINIMIZED)

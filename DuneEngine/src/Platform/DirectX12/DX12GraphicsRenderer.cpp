@@ -78,6 +78,7 @@ namespace Dune
 	{
 		WaitForGPU();
 		ImGui_ImplDX12_Shutdown();
+		ImGui_ImplWin32_Shutdown();
 	}
 
 	void DX12GraphicsRenderer::OnResize(int x, int y)
