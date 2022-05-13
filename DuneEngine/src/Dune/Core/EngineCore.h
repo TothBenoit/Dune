@@ -10,13 +10,6 @@
 namespace Dune
 {
 
-	enum class EComponentType
-	{
-		TransformComponent,
-		BindingComponent,
-		GraphicsComponent,
-	};
-
 	class EngineCore
 	{
 	public:
@@ -42,7 +35,6 @@ namespace Dune
 		static void DrawGraph();
 		static void DrawNode(const SceneGraph::Node* node);
 		static void DrawInspector();
-		static void DrawSelectedEntity();
 	private:
 		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
