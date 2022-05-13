@@ -44,7 +44,7 @@ namespace Dune
 		
 		LOG_INFO(dStringUtils::printf("Entity %u has been removed", entity).c_str());
 
-		//Dirty, really need to factorize this or do it in an another way
+		//TODO : Factorize component removing and optimize it (can the test be skipped ?)
 
 		ComponentManager<TransformComponent>* pTransformManager = EngineCore::GetTransformManager();
 		if (pTransformManager->Contains(entity))
