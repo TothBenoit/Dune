@@ -32,9 +32,11 @@ namespace Dune
 
 		inline static bool IsInitialized() { return m_isInitialized; }
 		inline static EntityManager* GetEntityManager() { return m_entityManager.get(); }
+		inline static ComponentManager<TransformComponent>* GetTransformManager() { return m_transformManager.get(); }
+		inline static ComponentManager<GraphicsComponent>* GetGraphicsManager() { return m_graphicsManager.get(); }
+		inline static ComponentManager<BindingComponent>* GetBindingManager() { return m_bindingManager.get(); }
 
 	private:
-
 		static void DrawMainMenuBar();
 		static void DrawSceneGraphInterface();
 		static void DrawGraph();

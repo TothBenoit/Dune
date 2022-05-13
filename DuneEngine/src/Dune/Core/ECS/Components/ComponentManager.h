@@ -63,6 +63,17 @@ namespace Dune
 				m_lookup.erase(entity);
 			}
 		}
+
+		Component* GetComponent(EntityID entity)
+		{
+			auto it = m_lookup.find(entity);
+			if (it != m_lookup.end())
+			{
+				return &m_components[it->second];
+			}
+			return nullptr;
+		}
+
 	private:
 		dVector<Component> m_components;
 		dVector<EntityID> m_entities;
