@@ -23,10 +23,28 @@ namespace Dune
 		static EntityID CreateEntity(const dString& name);
 		static void RemoveEntity(EntityID);
 
+		template<typename Component>
+		static void AddComponent(EntityID id)
+		{
+			ComponentManager<Component>::GetInstance()->Create(id);
+		}
+
+		template<typename Component>
+		static Component* GetComponent(EntityID id)
+		{
+			return ComponentManager<Component>::GetInstance()->GetComponent(id);
+		}
+
+		template<typename Component>
+		static void RemoveComponent(EntityID id)
+		{
+			if (ComponentManager<Component>::GetInstance()->Contains(id))
+			{
+				ComponentManager<Component>::GetInstance()->Remove(id);
+			}
+		}
+
 		inline static bool IsInitialized() { return m_isInitialized; }
-		inline static ComponentManager<TransformComponent>* const GetTransformManager() { return m_transformManager.get(); }
-		inline static ComponentManager<BindingComponent>* const GetBindingManager() { return m_bindingManager.get(); }
-		inline static ComponentManager<GraphicsComponent>* const GetGraphicsManager() { return m_graphicsManager.get(); }
 
 	private:
 		static void DrawMainMenuBar();
@@ -38,14 +56,6 @@ namespace Dune
 	private:
 		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
-
-		//Should ComponentManager be handle in entity manager ? EngineCore:: could implement GetComponent<> AddComponent<> ...
-		//Pros : - Easy to established a component list - clean interfacing 
-		//Cons : - I have no idea how to implement a templated GetComponent
-		static std::unique_ptr<ComponentManager<TransformComponent>> m_transformManager;
-		static std::unique_ptr<ComponentManager<BindingComponent>> m_bindingManager;
-		static std::unique_ptr<ComponentManager<GraphicsComponent>> m_graphicsManager;
-
 		static SceneGraph m_sceneGraph;
 		static EntityID m_selectedEntity;
 		static bool m_showImGuiDemo;

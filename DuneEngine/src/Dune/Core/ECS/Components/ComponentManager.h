@@ -7,13 +7,17 @@ namespace Dune
 	template<typename Component>
 	class ComponentManager
 	{
-	public:
-		ComponentManager()
+	private:
+		friend class EngineCore;
+
+		static ComponentManager<Component>* GetInstance()
 		{
-			constexpr size_t reservedCount = ID::GetMaximumIndex();
-			m_components.reserve(reservedCount);
-			m_entities.reserve(reservedCount);
-			m_lookup.reserve(reservedCount);
+			if (m_instance == nullptr)
+			{
+				m_instance = new ComponentManager<Component>();
+			}
+
+			return m_instance;
 		}
 
 		inline Component& Create(EntityID entity)
@@ -80,9 +84,25 @@ namespace Dune
 			return m_lookup.find(entity) != m_lookup.end();
 		}
 
+		ComponentManager()
+		{
+			Assert(m_instance == nullptr);
+
+			constexpr size_t reservedCount = MAX_ENTITIES;
+			m_components.reserve(reservedCount);
+			m_entities.reserve(reservedCount);
+			m_lookup.reserve(reservedCount);
+			m_instance = this;
+		}
+
 	private:
+
 		dVector<Component> m_components;
 		dVector<EntityID> m_entities;
 		dHashMap<EntityID, size_t> m_lookup;
+		static ComponentManager<Component>* m_instance;
 	};
+
+	template<typename Component>
+	ComponentManager<Component>* ComponentManager<Component>::m_instance;
 }

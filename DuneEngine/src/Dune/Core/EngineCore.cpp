@@ -6,9 +6,9 @@
 namespace Dune
 {
 	std::unique_ptr<EntityManager> EngineCore::m_entityManager = nullptr;
-	std::unique_ptr<ComponentManager<TransformComponent>> EngineCore::m_transformManager = nullptr;
-	std::unique_ptr<ComponentManager<GraphicsComponent>> EngineCore::m_graphicsManager = nullptr;
-	std::unique_ptr<ComponentManager<BindingComponent>> EngineCore::m_bindingManager = nullptr;
+	//std::unique_ptr<ComponentManager<TransformComponent>> EngineCore::m_transformManager = nullptr;
+	//std::unique_ptr<ComponentManager<GraphicsComponent>> EngineCore::m_graphicsManager = nullptr;
+	//std::unique_ptr<ComponentManager<BindingComponent>> EngineCore::m_bindingManager = nullptr;
 	bool EngineCore::m_isInitialized = false;
 	SceneGraph EngineCore::m_sceneGraph;
 	EntityID EngineCore::m_selectedEntity;
@@ -24,9 +24,9 @@ namespace Dune
 
 		m_entityManager = std::make_unique<EntityManager>();
 
-		m_transformManager = std::make_unique<ComponentManager<TransformComponent>>();
-		m_bindingManager = std::make_unique<ComponentManager<BindingComponent>>();
-		m_graphicsManager = std::make_unique<ComponentManager<GraphicsComponent>>();
+		ComponentManager<TransformComponent>::GetInstance();
+		ComponentManager<BindingComponent>::GetInstance();
+		ComponentManager<GraphicsComponent>::GetInstance();
 
 		m_isInitialized = true;
 	}
@@ -72,8 +72,8 @@ namespace Dune
 		EntityID id = m_entityManager->CreateEntity();
 		
 		//Add mandatory components
-		m_transformManager->Create(id);
-		m_bindingManager->Create(id);
+		AddComponent<TransformComponent>(id);
+		AddComponent<BindingComponent>(id);
 
 		m_sceneGraph.AddNode(id, name);
 		return id;
@@ -179,9 +179,9 @@ namespace Dune
 		ImGui::Begin("Inspector");
 		if (const SceneGraph::Node * node = m_sceneGraph.GetNode(m_selectedEntity))
 		{
-			ImGui::Text("%s", node->GetName());
+			ImGui::Text("%s", node->GetName().c_str());
 			ImGui::Separator();
-			if (TransformComponent * transform = m_transformManager->GetComponent(m_selectedEntity))
+			if (TransformComponent * transform = GetComponent<TransformComponent>(m_selectedEntity))
 			{
 				ImGui::Text("Transform :");
 

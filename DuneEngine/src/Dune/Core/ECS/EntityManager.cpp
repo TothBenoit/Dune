@@ -8,7 +8,7 @@ namespace Dune
 {
 	EntityManager::EntityManager()
 	{
-		m_generationIDs.reserve(ID::GetMaximumIndex());
+		m_generationIDs.reserve(MAX_ENTITIES);
 	}
 
 	EntityID EntityManager::CreateEntity()
@@ -47,27 +47,13 @@ namespace Dune
 		m_freeEntityIDs.push(newID);
 		
 		//Invalidate previous ID
-		m_generationIDs[ID::GetIndex(id)] = ID::GetGeneration(id);
+		m_generationIDs[ID::GetIndex(id)] = ID::GetGeneration(newID);
 		
 		//Remove its components
-		//TODO : Factorize component removing and optimize it (can the test be skipped by remembering the component list ?)
-		ComponentManager<TransformComponent>* pTransformManager = EngineCore::GetTransformManager();
-		if (pTransformManager->Contains(id))
-		{
-			pTransformManager->Remove(id);
-		}
-
-		ComponentManager<BindingComponent>* pBindingManager = EngineCore::GetBindingManager();
-		if (pBindingManager->Contains(id))
-		{
-			pBindingManager->Remove(id);
-		}
-
-		ComponentManager<GraphicsComponent>* pGraphicsManager = EngineCore::GetGraphicsManager();
-		if (pGraphicsManager->Contains(id))
-		{
-			pGraphicsManager->Remove(id);
-		}
+		//TODO : Create a component list ?
+		EngineCore::RemoveComponent<TransformComponent>(id);
+		EngineCore::RemoveComponent<BindingComponent>(id);
+		EngineCore::RemoveComponent<GraphicsComponent>(id);
 
 		LOG_INFO(dStringUtils::printf("Entity %u has been removed", id).c_str());
 	}

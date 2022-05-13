@@ -32,3 +32,4 @@
 #include "Dune/Common/Types.h"
 #include "Dune/Core/ECS/ID.h"
 
+#define MAX_ENTITIES 4096
