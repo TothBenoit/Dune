@@ -44,7 +44,7 @@ namespace Dune
 			auto it = m_lookup.find(entity);
 			if (it != m_lookup.end())
 			{
-				const ID::IDType index = it->second;
+				const size_t index = it->second;
 				const EntityID entity = m_entities[index];
 
 				if (index < m_components.size() - 1)
@@ -82,6 +82,6 @@ namespace Dune
 	private:
 		dVector<Component> m_components;
 		dVector<EntityID> m_entities;
-		dHashMap<EntityID, ID::IDType> m_lookup;
+		dHashMap<EntityID, size_t> m_lookup;
 	};
 }

@@ -54,7 +54,7 @@ namespace Dune
 
 
 		DrawMainMenuBar();
-		DrawSceneGraphInterface();
+		DrawInterface();
 		if (m_showImGuiDemo)
 			ImGui::ShowDemoWindow(&m_showImGuiDemo);
 	}
@@ -70,6 +70,11 @@ namespace Dune
 #endif // _DEBUG
 
 		EntityID id = m_entityManager->CreateEntity();
+		
+		//Add mandatory components
+		m_transformManager->Create(id);
+		m_bindingManager->Create(id);
+
 		m_sceneGraph.AddNode(id, name);
 		return id;
 	}
@@ -103,7 +108,13 @@ namespace Dune
 		}
 	}
 
-	void EngineCore::DrawSceneGraphInterface()
+	void EngineCore::DrawInterface()
+	{
+		DrawScene();
+		DrawInspector();
+	}
+
+	void EngineCore::DrawScene()
 	{
 		static ID::IDType counter = 0;
 
@@ -162,5 +173,40 @@ namespace Dune
 
 			ImGui::TreePop();
 		}
+	}
+	void EngineCore::DrawInspector()
+	{
+		ImGui::Begin("Inspector");
+		if (const SceneGraph::Node * node = m_sceneGraph.GetNode(m_selectedEntity))
+		{
+			ImGui::Text("%s", node->GetName());
+			ImGui::Separator();
+			if (TransformComponent * transform = m_transformManager->GetComponent(m_selectedEntity))
+			{
+				ImGui::Text("Transform :");
+
+				dVector3& pos = transform->position;
+				float imGuiPos[3] = { pos.x, pos.y, pos.z };
+				ImGui::InputFloat3("Position", imGuiPos, "%.2f");
+				pos.x = imGuiPos[0];
+				pos.y = imGuiPos[1];
+				pos.z = imGuiPos[2];
+
+				dVector3& rot = transform->rotation;
+				float imGuiRot[3] = { rot.x, rot.y, rot.z };
+				ImGui::InputFloat3("Rotation", imGuiRot, "%.2f");
+				rot.x = imGuiRot[0];
+				rot.y = imGuiRot[1];
+				rot.z = imGuiRot[2];
+
+				dVector3& scale = transform->scale;
+				float imGuiScale[3] = { scale.x, scale.y, scale.z };
+				ImGui::InputFloat3("Scale", imGuiScale, "%.2f");
+				scale.x = imGuiScale[0];
+				scale.y = imGuiScale[1];
+				scale.z = imGuiScale[2];
+			}
+		}
+		ImGui::End();
 	}
 }

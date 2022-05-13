@@ -25,6 +25,7 @@ namespace Dune
 		void AddNode(EntityID id, const dString& name = "New Node", EntityID m_parent = ID::invalidID);
 		void DeleteNode(EntityID id);
 		bool HasNode(EntityID id) const;
+		const Node* GetNode(EntityID id) const;
 		const Node* GetRoot() const { return m_root; }
 
 	private:

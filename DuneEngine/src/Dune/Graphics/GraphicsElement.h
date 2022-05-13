@@ -10,11 +10,11 @@ namespace Dune
 	{
 	public:
 		GraphicsElement(const Mesh& mesh, const Shader& shader)
-			: m_mesh(mesh), m_shader(shader)
+			: m_mesh(mesh), m_shader(shader), m_transform()
 		{}
 		
 		GraphicsElement(const GraphicsElement& other)
-			: m_mesh(other.m_mesh), m_shader(other.m_shader)
+			: m_mesh(other.m_mesh), m_shader(other.m_shader), m_transform(other.m_transform)
 		{}
 
 		GraphicsElement operator=(const GraphicsElement& other)

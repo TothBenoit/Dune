@@ -4,7 +4,7 @@ namespace Dune
 {
 	struct BindingComponent
 	{
-		EntityID parent;
+		EntityID parent = ID::invalidID;
 		dVector<EntityID> children;
 	};
 }

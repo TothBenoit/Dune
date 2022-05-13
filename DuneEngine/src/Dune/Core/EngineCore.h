@@ -37,10 +37,12 @@ namespace Dune
 
 	private:
 		static void DrawMainMenuBar();
-		static void DrawSceneGraphInterface();
+		static void DrawInterface();
+		static void DrawScene();
 		static void DrawGraph();
 		static void DrawNode(const SceneGraph::Node* node);
-
+		static void DrawInspector();
+		static void DrawSelectedEntity();
 	private:
 		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;

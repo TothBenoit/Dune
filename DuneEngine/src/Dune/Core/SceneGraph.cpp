@@ -60,4 +60,8 @@ namespace Dune
 	{
 		return m_lookup.find(id) != m_lookup.end();
 	}
+	const SceneGraph::Node* SceneGraph::GetNode(EntityID id) const
+	{	
+		return (HasNode(id)?&m_lookup.at(id):nullptr);
+	}
 }
