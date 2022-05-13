@@ -31,7 +31,6 @@ namespace Dune
 		static void RemoveEntity(EntityID);
 
 		inline static bool IsInitialized() { return m_isInitialized; }
-		inline static EntityManager* GetEntityManager() { return m_entityManager.get(); }
 		inline static ComponentManager<TransformComponent>* GetTransformManager() { return m_transformManager.get(); }
 		inline static ComponentManager<BindingComponent>* GetBindingManager() { return m_bindingManager.get(); }
 		inline static ComponentManager<GraphicsComponent>* GetGraphicsManager() { return m_graphicsManager.get(); }

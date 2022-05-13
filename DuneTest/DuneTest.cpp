@@ -18,7 +18,6 @@ public:
 		static bool didTestOnce = false;
 		if (!didTestOnce)
 		{
-			Dune::EntityManager* pEntityManager = Dune::EngineCore::GetEntityManager();
 			srand((unsigned int)time(NULL));
 
 			for (int i = 0; i < 1000; i++)
@@ -26,7 +25,7 @@ public:
 				Dune::EntityID entity = Dune::EngineCore::CreateEntity("Node");
 				if ((rand() % 11) < 3)
 				{
-					pEntityManager->RemoveEntity(entity);
+					Dune::EngineCore::RemoveEntity(entity);
 				}
 			}
 			didTestOnce = true;
