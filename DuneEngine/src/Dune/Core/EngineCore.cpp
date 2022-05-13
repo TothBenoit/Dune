@@ -6,6 +6,9 @@
 namespace Dune
 {
 	std::unique_ptr<EntityManager> EngineCore::m_entityManager = nullptr;
+	std::unique_ptr<ComponentManager<TransformComponent>> EngineCore::m_transformManager = nullptr;
+	std::unique_ptr<ComponentManager<GraphicsComponent>> EngineCore::m_graphicsManager = nullptr;
+	std::unique_ptr<ComponentManager<BindingComponent>> EngineCore::m_bindingManager = nullptr;
 	bool EngineCore::m_isInitialized = false;
 	SceneGraph EngineCore::m_sceneGraph;
 	EntityID EngineCore::m_selectedEntity;
@@ -20,6 +23,10 @@ namespace Dune
 		}
 
 		m_entityManager = std::make_unique<EntityManager>();
+
+		m_transformManager = std::make_unique<ComponentManager<TransformComponent>>();
+		m_bindingManager = std::make_unique<ComponentManager<BindingComponent>>();
+		m_graphicsManager = std::make_unique<ComponentManager<GraphicsComponent>>();
 
 		m_isInitialized = true;
 	}

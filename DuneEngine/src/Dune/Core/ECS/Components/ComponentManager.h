@@ -44,7 +44,7 @@ namespace Dune
 			auto it = m_lookup.find(entity);
 			if (it != m_lookup.end())
 			{
-				const size_t index = it->second;
+				const ID::IDType index = it->second;
 				const EntityID entity = m_entities[index];
 
 				if (index < m_components.size() - 1)
@@ -72,6 +72,11 @@ namespace Dune
 				return &m_components[it->second];
 			}
 			return nullptr;
+		}
+
+		bool Contains(EntityID entity) const
+		{
+			return m_lookup.find(entity) != m_lookup.end();
 		}
 
 	private:

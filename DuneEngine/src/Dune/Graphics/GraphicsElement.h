@@ -17,6 +17,11 @@ namespace Dune
 			: m_mesh(other.m_mesh), m_shader(other.m_shader)
 		{}
 
+		GraphicsElement operator=(const GraphicsElement& other)
+		{
+			return GraphicsElement(other);
+		}
+
 		inline const Mesh& GetMesh() const { return m_mesh; };
 		inline const Shader& GetShader() const { return m_shader; };
 		inline const dMatrix4x4& GetTransform() const { return m_transform; };

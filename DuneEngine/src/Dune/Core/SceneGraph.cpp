@@ -18,7 +18,7 @@ namespace Dune
 	{
 		if (HasNode(id))
 		{
-			LOG_CRITICAL("Node already present");
+			LOG_CRITICAL("Tried to add Node already present");
 			return;
 		}
 
@@ -28,14 +28,13 @@ namespace Dune
 
 		if (!HasNode(parent))
 		{
-			LOG_CRITICAL("Parent hasn't been added");
+			LOG_CRITICAL("Tried to set a non added Node as a parent");
 			node.m_parent = m_root;
 		}
 		else
 		{
 			node.m_parent = &m_lookup[parent];
 			node.m_parent->m_children.push_back(&node);
-			LOG_INFO(dStringUtils::printf("Node %u has been added", node.GetSelf()).c_str())
 		}
 	}
 
@@ -43,7 +42,7 @@ namespace Dune
 	{
 		if (!HasNode(id))
 		{
-			LOG_CRITICAL("Node doesn't exist");
+			LOG_CRITICAL("Tried to delete a non added Node");
 			return;
 		}
 
@@ -55,8 +54,6 @@ namespace Dune
 
 		node.m_parent->m_children.remove(&node);
 		m_lookup.erase(id);
-
-		LOG_INFO(dStringUtils::printf("Node %u has been removed", id).c_str())
 	}
 
 	bool SceneGraph::HasNode(EntityID id) const

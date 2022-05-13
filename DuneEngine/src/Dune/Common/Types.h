@@ -53,11 +53,11 @@ namespace Dune
 	template<typename K, typename T>
 	using dHashMap =		std::unordered_map <K, T> ;
 
-	template<typename K, typename T>
-	using dSet =			std::set <K, T>;
+	template<typename K>
+	using dSet =			std::set <K>;
 
-	template<typename K, typename T>
-	using dHashSet =		std::unordered_set <K, T>;
+	template<typename K>
+	using dHashSet =		std::unordered_set <K>;
 
 #ifdef DUNE_PLATFORM_WINDOWS
 	typedef DirectX::XMMATRIX           dXMMatrix;

@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "EntityManager.h"
+#include "Dune/Core/EngineCore.h"
+#include "Dune/Utilities/StringUtils.h"
 #include "Dune/Core/Logger.h"
 
 namespace Dune
@@ -30,15 +32,37 @@ namespace Dune
 			return EntityID(ID::invalidID);
 		}
 
+		LOG_INFO(dStringUtils::printf("Entity %u has been removed", id).c_str());
 		return EntityID(id);
 	}
 
 	void EntityManager::RemoveEntity(EntityID entity)
 	{
 		Assert(IsAlive(entity));
-		EntityID id = entity;
-		Assert(ID::GetIndex(id) < m_generationIDs.size());
-		m_freeEntityIDs.push(id);
+		Assert(ID::GetIndex(entity) < m_generationIDs.size());
+		m_freeEntityIDs.push(entity);
+		
+		LOG_INFO(dStringUtils::printf("Entity %u has been removed", entity).c_str());
+
+		//Dirty, really need to factorize this or do it in an another way
+
+		ComponentManager<TransformComponent>* pTransformManager = EngineCore::GetTransformManager();
+		if (pTransformManager->Contains(entity))
+		{
+			pTransformManager->Remove(entity);
+		}
+
+		ComponentManager<BindingComponent>* pBindingManager = EngineCore::GetBindingManager();
+		if (pBindingManager->Contains(entity))
+		{
+			pBindingManager->Remove(entity);
+		}
+
+		ComponentManager<GraphicsComponent>* pGraphicsManager = EngineCore::GetGraphicsManager();
+		if (pGraphicsManager->Contains(entity))
+		{
+			pGraphicsManager->Remove(entity);
+		}
 	}
 	bool EntityManager::IsAlive(EntityID entity) const
 	{
