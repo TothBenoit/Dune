@@ -10,6 +10,7 @@ namespace Dune
 	{
 		m_generationIDs.reserve(ID::GetMaximumIndex());
 	}
+
 	EntityID EntityManager::CreateEntity()
 	{
 		EntityID id;
@@ -17,9 +18,8 @@ namespace Dune
 		if (m_freeEntityIDs.size() > 0)
 		{
 			id = m_freeEntityIDs.front();
-			id = EntityID(ID::NextGeneration(id));
-			m_generationIDs[ID::GetIndex(id)] = ID::GetGeneration(id);
 			m_freeEntityIDs.pop();
+			id = EntityID(id);
 		}
 		else if (m_generationIDs.size() < ID::GetMaximumIndex())
 		{
@@ -36,37 +36,43 @@ namespace Dune
 		return EntityID(id);
 	}
 
-	void EntityManager::RemoveEntity(EntityID entity)
+	//To remove an Entity we have to invalidate its ID and remove its components
+	void EntityManager::RemoveEntity(EntityID id)
 	{
-		Assert(IsAlive(entity));
-		Assert(ID::GetIndex(entity) < m_generationIDs.size());
-		m_freeEntityIDs.push(entity);
+		Assert(IsValid(id));
+		Assert(ID::GetIndex(id) < m_generationIDs.size());
+
+		//Generate new ID
+		EntityID newID = EntityID(ID::NextGeneration(id));
+		m_freeEntityIDs.push(newID);
 		
-		LOG_INFO(dStringUtils::printf("Entity %u has been removed", entity).c_str());
-
-		//TODO : Factorize component removing and optimize it (can the test be skipped ?)
-
+		//Invalidate previous ID
+		m_generationIDs[ID::GetIndex(id)] = ID::GetGeneration(id);
+		
+		//Remove its components
+		//TODO : Factorize component removing and optimize it (can the test be skipped by remembering the component list ?)
 		ComponentManager<TransformComponent>* pTransformManager = EngineCore::GetTransformManager();
-		if (pTransformManager->Contains(entity))
+		if (pTransformManager->Contains(id))
 		{
-			pTransformManager->Remove(entity);
+			pTransformManager->Remove(id);
 		}
 
 		ComponentManager<BindingComponent>* pBindingManager = EngineCore::GetBindingManager();
-		if (pBindingManager->Contains(entity))
+		if (pBindingManager->Contains(id))
 		{
-			pBindingManager->Remove(entity);
+			pBindingManager->Remove(id);
 		}
 
 		ComponentManager<GraphicsComponent>* pGraphicsManager = EngineCore::GetGraphicsManager();
-		if (pGraphicsManager->Contains(entity))
+		if (pGraphicsManager->Contains(id))
 		{
-			pGraphicsManager->Remove(entity);
+			pGraphicsManager->Remove(id);
 		}
+
+		LOG_INFO(dStringUtils::printf("Entity %u has been removed", id).c_str());
 	}
-	bool EntityManager::IsAlive(EntityID entity) const
+	bool EntityManager::IsValid(EntityID id) const
 	{
-		EntityID id = entity;
 		ID::IDType index = ID::GetIndex(id);
 		Assert(index < m_generationIDs.size());
 		return m_generationIDs[index] == ID::GetGeneration(id);

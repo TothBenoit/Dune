@@ -10,7 +10,7 @@ namespace Dune
 		EntityManager& operator=(const EntityManager&) = delete;
 		EntityID CreateEntity();
 		void RemoveEntity(EntityID entity);
-		bool IsAlive(EntityID entity) const;
+		bool IsValid(EntityID entity) const;
 
 	private:
 		dQueue<EntityID> m_freeEntityIDs;
