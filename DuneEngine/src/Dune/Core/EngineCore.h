@@ -31,9 +31,9 @@ namespace Dune
 		static void RemoveEntity(EntityID);
 
 		inline static bool IsInitialized() { return m_isInitialized; }
-		inline static ComponentManager<TransformComponent>* GetTransformManager() { return m_transformManager.get(); }
-		inline static ComponentManager<BindingComponent>* GetBindingManager() { return m_bindingManager.get(); }
-		inline static ComponentManager<GraphicsComponent>* GetGraphicsManager() { return m_graphicsManager.get(); }
+		inline static ComponentManager<TransformComponent>* const GetTransformManager() { return m_transformManager.get(); }
+		inline static ComponentManager<BindingComponent>* const GetBindingManager() { return m_bindingManager.get(); }
+		inline static ComponentManager<GraphicsComponent>* const GetGraphicsManager() { return m_graphicsManager.get(); }
 
 	private:
 		static void DrawMainMenuBar();
