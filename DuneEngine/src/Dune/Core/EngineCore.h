@@ -5,9 +5,18 @@
 #include "Dune/Core/ECS/Components/ComponentManager.h"
 #include "Dune/Core/ECS/Components/TransformComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
+#include "Dune/Core/ECS/Components/BindingComponent.h"
 
 namespace Dune
 {
+
+	enum class EComponentType
+	{
+		TransformComponent,
+		GraphicsComponent,
+		BindingComponent,
+	};
+
 	class EngineCore
 	{
 	public:
@@ -35,6 +44,8 @@ namespace Dune
 		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
 		static std::unique_ptr<ComponentManager<TransformComponent>> m_transformManager;
+		static std::unique_ptr<ComponentManager<GraphicsComponent>> m_graphicsManager;
+		static std::unique_ptr<ComponentManager<BindingComponent>> m_bindingManager;
 		static SceneGraph m_sceneGraph;
 		static EntityID m_selectedEntity;
 		static bool m_showImGuiDemo;
