@@ -26,21 +26,21 @@ namespace Dune
 		template<typename Component>
 		static void AddComponent(EntityID id)
 		{
-			ComponentManager<Component>::GetInstance()->Create(id);
+			ComponentManager<Component>::Create(id);
 		}
 
 		template<typename Component>
 		static Component* GetComponent(EntityID id)
 		{
-			return ComponentManager<Component>::GetInstance()->GetComponent(id);
+			return ComponentManager<Component>::GetComponent(id);
 		}
 
 		template<typename Component>
 		static void RemoveComponent(EntityID id)
 		{
-			if (ComponentManager<Component>::GetInstance()->Contains(id))
+			if (ComponentManager<Component>::Contains(id))
 			{
-				ComponentManager<Component>::GetInstance()->Remove(id);
+				ComponentManager<Component>::Remove(id);
 			}
 		}
 

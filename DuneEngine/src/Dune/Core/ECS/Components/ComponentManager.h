@@ -10,17 +10,7 @@ namespace Dune
 	private:
 		friend class EngineCore;
 
-		static ComponentManager<Component>* GetInstance()
-		{
-			if (m_instance == nullptr)
-			{
-				m_instance = new ComponentManager<Component>();
-			}
-
-			return m_instance;
-		}
-
-		inline Component& Create(EntityID entity)
+		static Component& Create(EntityID entity)
 		{
 			Assert(entity != ID::invalidID);
 
@@ -44,7 +34,7 @@ namespace Dune
 		}
 
 		//TODO : Find a solution to specify which component is mandatory and if it is the case allow remove only from EngineCore::RemoveEntity
-		inline void Remove(EntityID entity)
+		static void Remove(EntityID entity)
 		{
 			auto it = m_lookup.find(entity);
 			if (it != m_lookup.end())
@@ -69,7 +59,7 @@ namespace Dune
 			}
 		}
 
-		Component* GetComponent(EntityID entity)
+		static Component* GetComponent(EntityID entity)
 		{
 			auto it = m_lookup.find(entity);
 			if (it != m_lookup.end())
@@ -79,30 +69,36 @@ namespace Dune
 			return nullptr;
 		}
 
-		bool Contains(EntityID entity) const
+		static bool Contains(EntityID entity)
 		{
 			return m_lookup.find(entity) != m_lookup.end();
 		}
 
-		ComponentManager()
+		static void Init()
 		{
-			Assert(m_instance == nullptr);
+			Assert(!m_isInitialized);
 
 			constexpr size_t reservedCount = MAX_ENTITIES;
 			m_components.reserve(reservedCount);
 			m_entities.reserve(reservedCount);
 			m_lookup.reserve(reservedCount);
-			m_instance = this;
+			m_isInitialized = true;
 		}
 
 	private:
 
-		dVector<Component> m_components;
-		dVector<EntityID> m_entities;
-		dHashMap<EntityID, size_t> m_lookup;
-		static ComponentManager<Component>* m_instance;
+		static dVector<Component> m_components;
+		static dVector<EntityID> m_entities;
+		static dHashMap<EntityID, size_t> m_lookup;
+		static bool m_isInitialized;
 	};
 
 	template<typename Component>
-	ComponentManager<Component>* ComponentManager<Component>::m_instance;
+	dVector<Component>	ComponentManager<Component>::m_components;
+	template<typename Component>
+	dVector<EntityID> ComponentManager<Component>::m_entities;
+	template<typename Component>
+	dHashMap<EntityID, size_t> ComponentManager<Component>::m_lookup;
+	template<typename Component>
+	bool ComponentManager<Component>::m_isInitialized = false;
 }

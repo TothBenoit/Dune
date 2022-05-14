@@ -24,9 +24,9 @@ namespace Dune
 
 		m_entityManager = std::make_unique<EntityManager>();
 
-		ComponentManager<TransformComponent>::GetInstance();
-		ComponentManager<BindingComponent>::GetInstance();
-		ComponentManager<GraphicsComponent>::GetInstance();
+		ComponentManager<TransformComponent>::Init();
+		ComponentManager<BindingComponent>::Init();
+		ComponentManager<GraphicsComponent>::Init();
 
 		m_isInitialized = true;
 	}
