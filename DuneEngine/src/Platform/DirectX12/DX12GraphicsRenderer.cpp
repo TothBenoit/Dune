@@ -510,18 +510,26 @@ namespace Dune
 				continue;
 			}
 
-			const DX12GraphicsBuffer* const buffer = static_cast<const DX12GraphicsBuffer* const>(mesh.GetVertexBuffer());
+			const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh.GetVertexBuffer());
+			const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh.GetIndexBuffer());
 
 			D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 			// Initialize the vertex buffer view.
-			vertexBufferView.BufferLocation = buffer->m_buffer->GetGPUVirtualAddress();
+			vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
 			vertexBufferView.StrideInBytes = sizeof(Vertex);
-			vertexBufferView.SizeInBytes = buffer->GetDescription().size;
+			vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
+
+			D3D12_INDEX_BUFFER_VIEW indexBufferView;
+			indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
+			indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+			indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
 
 			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-			//Draw the first triangle
-			m_commandList->DrawInstanced(3, 1, 0, 0);
+			m_commandList->IASetIndexBuffer(&indexBufferView);
+
+			dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
+			m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 		}
 
 		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());

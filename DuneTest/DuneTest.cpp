@@ -39,15 +39,21 @@ public:
 		{
 			Dune::GraphicsRenderer& graphicsRenderer = Dune::GraphicsCore::GetGraphicsRenderer();
 
+			Dune::dVector<Dune::dU32> triangleIndices =
+			{
+				0,1,2,1,3,2
+			};
+
 			// Define the geometry for a triangle.
 			Dune::dVector<Dune::Vertex> triangleVertices =
 			{
-				{ { 0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+				{ { -0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
 				{ { 0.0f, 0.25f * 1.77f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-				{ { -0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+				{ { 0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+				{ { 0.25f, 0.25f * 1.77f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
 			};
-			Dune::dVector<uint32_t> indices = {};
-			Dune::Mesh* mesh = new Dune::Mesh(indices, triangleVertices);
+
+			Dune::Mesh* mesh = new Dune::Mesh(triangleIndices, triangleVertices);
 			mesh->UploadBuffers();
 			Dune::dString path = "bla";
 			Dune::Shader* shader = new Dune::Shader(path);
@@ -61,7 +67,7 @@ public:
 
 	void OnUpdate() override
 	{
-		Test1();
+		//Test1();
 		Test2();
 	}
 

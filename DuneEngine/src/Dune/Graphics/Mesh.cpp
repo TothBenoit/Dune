@@ -11,10 +11,10 @@ namespace Dune
 
 	void Mesh::UploadBuffers()
 	{
-		//if (!UploadIndexBuffer())
-		//{
-		//	return;
-		//}
+		if (!UploadIndexBuffer())
+		{
+			return;
+		}
 
 		if (!UploadVertexBuffer())
 		{
