@@ -119,7 +119,31 @@ namespace Dune
 		const UINT bufferSize = desc.size;
 
 		D3D12_HEAP_PROPERTIES heapProps;
-		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+		D3D12_RESOURCE_STATES resourceState;
+
+		if (desc.usage == EBufferUsage::Upload)
+		{
+			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+			resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+		}
+		else
+		{
+			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+			resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
+
+			WaitForGPU();
+
+			// Command list allocators can only be reset when the associated 
+			// command lists have finished execution on the GPU; apps should use 
+			// fences to determine GPU execution progress.
+			ThrowIfFailed(m_commandAllocator->Reset());
+
+			// However, when ExecuteCommandList() is called on a particular command 
+			// list, that command list can then be reset at any time and must be before 
+			// re-recording.
+			ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+		}
+
 		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 		heapProps.CreationNodeMask = 1;
@@ -138,64 +162,68 @@ namespace Dune
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-		WaitForGPU();
-
-		// Command list allocators can only be reset when the associated 
-		// command lists have finished execution on the GPU; apps should use 
-		// fences to determine GPU execution progress.
-		ThrowIfFailed(m_commandAllocator->Reset());
-
-		// However, when ExecuteCommandList() is called on a particular command 
-		// list, that command list can then be reset at any time and must be before 
-		// re-recording.
-		ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
-
 		ThrowIfFailed(m_device->CreateCommittedResource(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
+			resourceState,
 			nullptr,
 			IID_PPV_ARGS(&buffer->m_buffer)));
 
-		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+		if (desc.usage == EBufferUsage::Upload)
+		{
+			UINT8* pDataBegin;
 
-		Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
-		ThrowIfFailed(m_device->CreateCommittedResource(
-			&heapProps,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&uploadBuffer)));
+			D3D12_RANGE readRange;
+			readRange.Begin = 0;
+			readRange.End = 0;
+			ThrowIfFailed(buffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
+			memcpy(pDataBegin, data, bufferSize);
+			buffer->m_buffer->Unmap(0, nullptr);
+		}
+		else
+		{
+			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
 
-		UINT8* pDataBegin;
+			Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
+			ThrowIfFailed(m_device->CreateCommittedResource(
+				&heapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&resourceDesc,
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(&uploadBuffer)));
 
-		D3D12_RANGE readRange;
-		readRange.Begin = 0;
-		readRange.End = 0;
-		ThrowIfFailed(uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-		memcpy(pDataBegin, data, bufferSize);
-		uploadBuffer->Unmap(0, nullptr);
+			UINT8* pDataBegin;
 
-		m_commandList->CopyBufferRegion(buffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
+			D3D12_RANGE readRange;
+			readRange.Begin = 0;
+			readRange.End = 0;
+			ThrowIfFailed(uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
+			memcpy(pDataBegin, data, bufferSize);
+			uploadBuffer->Unmap(0, nullptr);
 
-		D3D12_RESOURCE_BARRIER barrierDesc;
-		ZeroMemory(&barrierDesc, sizeof(barrierDesc));
-		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrierDesc.Transition.pResource = buffer->m_buffer.Get();
-		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			m_commandList->CopyBufferRegion(buffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
 
-		m_commandList->ResourceBarrier(1, &barrierDesc);
+			D3D12_RESOURCE_BARRIER barrierDesc;
+			ZeroMemory(&barrierDesc, sizeof(barrierDesc));
+			barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			barrierDesc.Transition.pResource = buffer->m_buffer.Get();
+			barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+			barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+			barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-		// #11
-		m_commandList->Close();
-		dVector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-		WaitForGPU();
+			m_commandList->ResourceBarrier(1, &barrierDesc);
+
+			// #11
+			m_commandList->Close();
+			dVector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
+			m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+			WaitForGPU();
+		}
+
+
 		buffer->SetDescription(desc);
 		return std::move(buffer);
 	}
