@@ -14,6 +14,5 @@ PS_OUTPUT PSMain(PS_INPUT input)
 {
 	PS_OUTPUT output;
 	output.color = input.color;
-	//output.color = float4(1,1,1,1);
 	return output;
 }

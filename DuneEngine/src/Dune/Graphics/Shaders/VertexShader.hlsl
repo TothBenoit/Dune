@@ -1,3 +1,10 @@
+struct ModelViewProjection
+{
+    float4x4 MVP;
+};
+
+ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
+
 struct VS_INPUT
 {
     float3 vPos : POSITION;
@@ -13,7 +20,7 @@ struct VS_OUTPUT
 VS_OUTPUT VSMain(VS_INPUT input)
 {
     VS_OUTPUT o;
-    o.position = float4(input.vPos, 1.0f);
+    o.position = mul(ModelViewProjectionCB.MVP, float4(input.vPos, 1.0f) );
     o.color = input.vColor;
 
 	return o;

@@ -33,6 +33,7 @@ namespace Dune
 		void CreateCommandQueue();
 		void CreateSwapChain(HWND handle);
 		void CreateRenderTargets();
+		void CreateDepthStencil(int width, int height);
 		void CreateCommandAllocator();
 		void CreateRootSignature();
 		void CreatePipeline();
@@ -47,7 +48,9 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12Device>				m_device;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_renderTargets[FrameCount];
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_depthStencilBuffer;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_rtvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_dsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocator;

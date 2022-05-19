@@ -14,6 +14,7 @@ namespace Dune
 		CreateCommandQueue();
 		CreateSwapChain(window->GetHandle());
 		CreateRenderTargets();
+		CreateDepthStencil(window->GetWidth(), window->GetHeight());
 		CreateCommandAllocator();
 		CreateRootSignature();
 		CreatePipeline();
@@ -101,7 +102,7 @@ namespace Dune
 		));
 
 		CreateRenderTargets();
-
+		CreateDepthStencil(x, y);
 		// Reset the index to the current back buffer.
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
@@ -362,6 +363,62 @@ namespace Dune
 		}
 	}
 
+	void DX12GraphicsRenderer::CreateDepthStencil(int width, int height)
+	{
+		// Resize screen dependent resources.
+		// Create a depth buffer.
+		D3D12_CLEAR_VALUE optimizedClearValue = {};
+		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+		optimizedClearValue.DepthStencil = { 1.0f, 0 };
+
+		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+		dsvHeapDesc.NumDescriptors = 1;
+		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		dsvHeapDesc.NodeMask = 0;
+
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
+
+		D3D12_HEAP_PROPERTIES heapProps;
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = 0;
+		heapProps.VisibleNodeMask = 0;
+
+		D3D12_RESOURCE_DESC dsDesc = {};
+		dsDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		dsDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		dsDesc.Width = width;
+		dsDesc.Height = height;
+		dsDesc.DepthOrArraySize = 1;
+		dsDesc.MipLevels = 1;
+		dsDesc.SampleDesc.Count = 1;
+		dsDesc.SampleDesc.Quality = 0;
+		dsDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		dsDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		dsDesc.Alignment = 0;
+
+		ThrowIfFailed(m_device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&dsDesc,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			&optimizedClearValue,
+			IID_PPV_ARGS(&m_depthStencilBuffer)
+		));
+
+		// Update the depth-stencil view.
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		dsvDesc.Texture2D.MipSlice = 0;
+		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+		m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), &dsvDesc,
+			m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+	}
+
 	void DX12GraphicsRenderer::CreateCommandAllocator()
 	{
 		ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
@@ -369,26 +426,21 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateRootSignature()
 	{
-
-		D3D12_DESCRIPTOR_RANGE1 ranges[1];
-		ranges[0].BaseShaderRegister = 0;
-		ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-		ranges[0].NumDescriptors = 1;
-		ranges[0].RegisterSpace = 0;
-		ranges[0].OffsetInDescriptorsFromTableStart = 0;
-		ranges[0].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
-
 		D3D12_ROOT_PARAMETER1 rootParameters[1];
-		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-		rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
-		rootParameters[0].DescriptorTable.pDescriptorRanges = ranges;
+		rootParameters[0].Constants.RegisterSpace = 0;
+		rootParameters[0].Constants.ShaderRegister = 0;
+		rootParameters[0].Constants.Num32BitValues = sizeof(dMatrix4x4)/ 4;
 
 		D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		rootSignatureDesc.Desc_1_1.Flags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 		rootSignatureDesc.Desc_1_1.NumParameters = 1;
 		rootSignatureDesc.Desc_1_1.pParameters = rootParameters;
 		rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
@@ -437,7 +489,7 @@ namespace Dune
 		rasterDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 		rasterDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
 		rasterDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-		rasterDesc.DepthClipEnable = FALSE;
+		rasterDesc.DepthClipEnable = TRUE;
 		rasterDesc.MultisampleEnable = FALSE;
 		rasterDesc.AntialiasedLineEnable = FALSE;
 		rasterDesc.ForcedSampleCount = 0;
@@ -462,13 +514,15 @@ namespace Dune
 		for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
 			blendDesc.RenderTarget[i] = defaultRenderTargetBlendDesc;
 		psoDesc.BlendState = blendDesc;
-
-		psoDesc.DepthStencilState.DepthEnable = FALSE;
+		psoDesc.DepthStencilState.DepthEnable = TRUE;
+		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		psoDesc.DepthStencilState.StencilEnable = FALSE;
 		psoDesc.SampleMask = UINT_MAX;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 		psoDesc.SampleDesc.Count = 1;
 		ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 	}
@@ -525,11 +579,14 @@ namespace Dune
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 		rtvHandle.ptr = rtvHandle.ptr + (m_frameIndex * m_rtvDescriptorSize);
-		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		// Record commands.
 		const float clearColor[] = { 0.1f, 0.1f, 0.15f, 1.0f };
 		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
 		for (const GraphicsElement& elem : m_graphicsElements)
 		{
 			const Mesh& mesh = elem.GetMesh();
@@ -555,7 +612,16 @@ namespace Dune
 			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 			m_commandList->IASetIndexBuffer(&indexBufferView);
+			static float frameCount = 0;
 
+			DirectX::XMMATRIX model = DirectX::XMMatrixRotationY(
+				DirectX::XMConvertToRadians(
+					frameCount++
+				));
+			model = DirectX::XMMatrixMultiply(model, XMLoadFloat4x4(&elem.GetTransform()));
+			dMatrix4x4 result;
+			XMStoreFloat4x4(&result, model);
+			m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(Dune::dMatrix4x4) / 4, &result, 0);
 			dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
 			m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 		}

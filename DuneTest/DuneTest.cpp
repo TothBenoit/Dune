@@ -1,4 +1,7 @@
 #include <Dune.h>
+#include <DirectXMath.h>
+
+using namespace DirectX;
 
 class DuneLauncher : public Dune::Application
 {
@@ -39,25 +42,48 @@ public:
 		{
 			Dune::GraphicsRenderer& graphicsRenderer = Dune::GraphicsCore::GetGraphicsRenderer();
 
-			Dune::dVector<Dune::dU32> triangleIndices =
+			const XMVECTOR rotationAxis = XMVectorSet(0, 1, 1, 0);
+			XMMATRIX ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(90.f));
+
+			XMMATRIX ViewMatrix = XMMatrixTranslationFromVector(XMVectorSet(0, 0, 10, 1));
+
+			// Update the projection matrix.
+			float aspectRatio = 1600.f / static_cast<float>(900.f);
+			XMMATRIX ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.f), aspectRatio, 0.1f, 100.0f);
+
+			// Update the MVP matrix
+			XMMATRIX mvpMatrix = ModelMatrix * ViewMatrix * ProjectionMatrix;
+			Dune::dVector<Dune::dU32> indices =
 			{
-				0,1,2,1,3,2
+				0, 1, 2, 0, 2, 3,
+				4, 6, 5, 4, 7, 6,
+				4, 5, 1, 4, 1, 0,
+				3, 2, 6, 3, 6, 7,
+				1, 5, 6, 1, 6, 2,
+				4, 0, 3, 4, 3, 7
 			};
 
 			// Define the geometry for a triangle.
-			Dune::dVector<Dune::Vertex> triangleVertices =
+			Dune::dVector<Dune::Vertex> vertices =
 			{
-				{ { -0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-				{ { 0.0f, 0.25f * 1.77f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-				{ { 0.25f, -0.25f * 1.77f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-				{ { 0.25f, 0.25f * 1.77f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+				{ {-0.5f, -0.5f, -0.5f},	{0.0f, 0.0f, 0.0f, 1.0f} }, // 0
+				{ {-0.5f,  0.5f, -0.5f},	{0.0f, 1.0f, 0.0f, 1.0f} }, // 1
+				{ {0.5f,  0.5f, -0.5f},		{1.0f, 1.0f, 0.0f, 1.0f} }, // 2
+				{ {0.5f, -0.5f, -0.5f},		{1.0f, 0.0f, 0.0f, 1.0f} }, // 3
+				{ {-0.5f, -0.5f,  0.5f},	{0.0f, 0.0f, 1.0f, 1.0f} }, // 4
+				{ {-0.5f,  0.5f,  0.5f},	{0.0f, 1.0f, 1.0f, 1.0f} }, // 5
+				{ {0.5f,  0.5f,  0.5f},		{1.0f, 1.0f, 1.0f, 1.0f} }, // 6
+				{ {0.5f, -0.5f,  0.5f},		{1.0f, 0.0f, 1.0f, 1.0f} },  // 7
 			};
 
-			Dune::Mesh* mesh = new Dune::Mesh(triangleIndices, triangleVertices);
+			Dune::dMatrix4x4* mvp = new Dune::dMatrix4x4;
+			XMStoreFloat4x4(mvp, mvpMatrix);
+
+			Dune::Mesh* mesh = new Dune::Mesh(indices, vertices);
 			mesh->UploadBuffers();
 			Dune::dString path = "bla";
 			Dune::Shader* shader = new Dune::Shader(path);
-			Dune::GraphicsElement* elem = new Dune::GraphicsElement(*mesh, *shader);
+			Dune::GraphicsElement* elem = new Dune::GraphicsElement(*mesh, *shader, *mvp);
 
 			graphicsRenderer.AddGraphicsElement(*elem);
 

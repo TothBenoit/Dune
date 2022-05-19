@@ -9,8 +9,8 @@ namespace Dune
 	class GraphicsElement
 	{
 	public:
-		GraphicsElement(const Mesh& mesh, const Shader& shader)
-			: m_mesh(mesh), m_shader(shader), m_transform()
+		GraphicsElement(const Mesh& mesh, const Shader& shader, const dMatrix4x4& transform = dMatrix4x4())
+			: m_mesh(mesh), m_shader(shader), m_transform(transform)
 		{}
 		
 		GraphicsElement(const GraphicsElement& other)
