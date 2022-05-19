@@ -220,17 +220,44 @@ namespace Dune
 		inline static bool GetKeyDown(KeyCode key) { return m_keyDown[(int)key]; }
 		inline static bool GetKeyUp(KeyCode key) { return m_keyUp[(int)key]; }
 
+		inline static bool GetMouseButton(int index) { return m_mouseState[index]; }
+		inline static bool GetMouseButtonDown(int index) { return m_mouseDown[index]; }
+		inline static bool GetMouseButtonUp(int index) { return m_mouseUp[index]; }
+
+		inline static double GetMousePosX() { return m_mousePosX; }
+		inline static double GetMousePosY() { return m_mousePosY; }
+		inline static double GetMouseDeltaX() { return m_mouseDeltaX; }
+		inline static double GetMouseDeltaY() { return m_mouseDeltaY; }
+		inline static double GetMouseWheelDelta() { return m_mouseWheelDelta; }
+
+		//TODO: shouldn't be able to SetKey or SetMouse outside from window event, friend class Window ?
 		static void SetKeyDown(KeyCode key);
 		static void SetKeyUp(KeyCode key);
+
+		static void SetMouseButtonDown(int index);
+		static void SetMouseButtonUp(int index);
+
+		static void SetMousePosX(double posX);
+		static void SetMousePosY(double posY);
+		static void SetMouseWheelDelta(double delta);
 		
 		static void EndFrame();
 
 
 	private:
-
 		static bool m_keyState[256];
 		static bool m_keyDown[256];
 		static bool m_keyUp[256];
+
+		static bool m_mouseState[3];
+		static bool m_mouseDown[3];
+		static bool m_mouseUp[3];
+
+		static double m_mousePosX;
+		static double m_mousePosY;
+		static double m_mouseDeltaX;
+		static double m_mouseDeltaY;
+		static double m_mouseWheelDelta;
 	};
 }
 

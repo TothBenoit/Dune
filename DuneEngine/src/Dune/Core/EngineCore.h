@@ -49,6 +49,7 @@ namespace Dune
 		inline static bool IsInitialized() { return m_isInitialized; }
 
 	private:
+		static void UpdateCamera();
 		static void DrawMainMenuBar();
 		static void DrawInterface();
 		static void DrawScene();

@@ -123,7 +123,31 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYUP:
 		Dune::Input::SetKeyUp(static_cast<Dune::KeyCode>(wParam));
 		break;
-	
+	case WM_MOUSEWHEEL:
+		Dune::Input::SetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam));
+		break;
+	case WM_MOUSEMOVE:
+		Dune::Input::SetMousePosX((short)LOWORD(lParam));
+		Dune::Input::SetMousePosY((short)HIWORD(lParam));
+		break;
+	case WM_LBUTTONDOWN:
+		Dune::Input::SetMouseButtonDown(0);
+		break;
+	case WM_LBUTTONUP:
+		Dune::Input::SetMouseButtonUp(0);
+		break;
+	case WM_MBUTTONDOWN:
+		Dune::Input::SetMouseButtonDown(1);
+		break;
+	case WM_MBUTTONUP:
+		Dune::Input::SetMouseButtonUp(1);
+		break;
+	case WM_RBUTTONDOWN:
+		Dune::Input::SetMouseButtonDown(2);
+		break;
+	case WM_RBUTTONUP:
+		Dune::Input::SetMouseButtonUp(2);
+		break;
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

@@ -33,10 +33,17 @@ namespace Dune
 		ComponentManager<GraphicsComponent>::Init();
 		ComponentManager<CameraComponent>::Init();
 
+		m_isInitialized = true;
+
 		m_cameraID = CreateEntity("Camera");
 		AddComponent<CameraComponent>(m_cameraID);
+		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
+		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
+		camera->viewMatrix = DirectX::XMMatrixTranslation(-cameraTransform->position.x, -cameraTransform->position.y, -cameraTransform->position.z);
+		camera->viewMatrix *= DirectX::XMMatrixRotationX(-cameraTransform->position.x);
+		camera->viewMatrix *= DirectX::XMMatrixRotationY(-cameraTransform->position.y);
+		camera->viewMatrix *= DirectX::XMMatrixRotationZ(-cameraTransform->position.z);
 
-		m_isInitialized = true;
 	}
 
 	void EngineCore::Shutdown()
@@ -60,48 +67,7 @@ namespace Dune
 		}
 #endif // _DEBUG
 
-		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
-		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
-		
-		dVec3 velocity = { 0.f,0.f,0.f };
-		if (Input::GetKey(KeyCode::Q))
-		{
-			velocity.x += -0.02f;
-		}
-		if (Input::GetKey(KeyCode::D))
-		{
-			velocity.x += 0.02f;
-		}
-
-		if (Input::GetKey(KeyCode::A))
-		{
-			velocity.y += -0.02f;
-		}
-		if (Input::GetKey(KeyCode::E))
-		{
-			velocity.y += 0.02f;
-		}
-
-		if (Input::GetKey(KeyCode::Z))
-		{
-			velocity.z += 0.02f;
-		}
-		if (Input::GetKey(KeyCode::S))
-		{
-			velocity.z += -0.02f;
-		}
-
-		cameraTransform->position.x += velocity.x;
-		cameraTransform->position.y += velocity.y;
-		cameraTransform->position.z += velocity.z;
-
-		const DirectX::XMVECTOR eyePosition = DirectX::XMVectorSet(cameraTransform->position.x, cameraTransform->position.y, cameraTransform->position.z, 1);
-		const DirectX::XMVECTOR focusPoint = DirectX::XMVectorSet(cameraTransform->position.x, cameraTransform->position.y, cameraTransform->position.z + 10, 1);
-		const DirectX::XMVECTOR upDirection = DirectX::XMVectorSet(0, 1, 0, 0);
-		camera->viewMatrix = DirectX::XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
-		float aspectRatio = 1600.f / static_cast<float>(900.f);
-		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
-
+		UpdateCamera();
 		DrawMainMenuBar();
 		DrawInterface();
 		if (m_showImGuiDemo)
@@ -119,7 +85,7 @@ namespace Dune
 #endif // _DEBUG
 
 		EntityID id = m_entityManager->CreateEntity();
-		
+
 		//Add mandatory components
 		AddComponent<TransformComponent>(id);
 		AddComponent<BindingComponent>(id);
@@ -139,6 +105,65 @@ namespace Dune
 #endif // _DEBUG
 		m_entityManager->RemoveEntity(id);
 		m_sceneGraph.DeleteNode(id);
+	}
+
+	void EngineCore::UpdateCamera()
+	{
+		dVec3 translate{ 0.f,0.f,0.f };
+		dVec3 rotation{ 0.f,0.f,0.f };
+		if (Input::GetKey(KeyCode::Q))
+		{
+			translate.x = -0.1f;
+		}
+		if (Input::GetKey(KeyCode::D))
+		{
+			translate.x = 0.1f;
+		}
+
+		if (Input::GetKey(KeyCode::A))
+		{
+			translate.y = -0.1f;
+		}
+		if (Input::GetKey(KeyCode::E))
+		{
+			translate.y = 0.1f;
+		}
+
+		if (Input::GetKey(KeyCode::Z))
+		{
+			translate.z = 0.1f;
+		}
+		if (Input::GetKey(KeyCode::S))
+		{
+			translate.z = -0.1f;
+		}
+		if (Input::GetMouseButton(2))
+		{
+			rotation.x = (float) Input::GetMouseDeltaY() * 0.01f;
+			rotation.y = (float) Input::GetMouseDeltaX() * 0.01f;
+		}
+
+		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
+		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
+
+		//TODO : Rotate Translate to forward
+		cameraTransform->position.x += translate.x * 0.01f;
+		cameraTransform->position.y += translate.y * 0.01f;
+		cameraTransform->position.z += translate.z * 0.01f;
+
+		cameraTransform->rotation.x += rotation.x;
+		cameraTransform->rotation.y += rotation.y;
+		cameraTransform->rotation.z += rotation.z;
+		
+		camera->viewMatrix = DirectX::XMMatrixTranslation(-cameraTransform->position.x, -cameraTransform->position.y, -cameraTransform->position.z);
+		//TODO : Use Quaternion
+		camera->viewMatrix *= DirectX::XMMatrixRotationX(-cameraTransform->rotation.x);
+		camera->viewMatrix *= DirectX::XMMatrixRotationY(-cameraTransform->rotation.y);
+		camera->viewMatrix *= DirectX::XMMatrixRotationZ(-cameraTransform->rotation.z);
+
+		float aspectRatio = 1600.f / static_cast<float>(900.f);
+		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
+
 	}
 
 	void EngineCore::DrawMainMenuBar()
@@ -226,11 +251,11 @@ namespace Dune
 	void EngineCore::DrawInspector()
 	{
 		ImGui::Begin("Inspector");
-		if (const SceneGraph::Node * node = m_sceneGraph.GetNode(m_selectedEntity))
+		if (const SceneGraph::Node* node = m_sceneGraph.GetNode(m_selectedEntity))
 		{
 			ImGui::Text("%s", node->GetName().c_str());
 			ImGui::Separator();
-			if (TransformComponent * transform = GetComponent<TransformComponent>(m_selectedEntity))
+			if (TransformComponent* transform = GetComponent<TransformComponent>(m_selectedEntity))
 			{
 				ImGui::Text("Transform :");
 

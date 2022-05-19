@@ -615,10 +615,11 @@ namespace Dune
 			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 			m_commandList->IASetIndexBuffer(&indexBufferView);
-			DirectX::XMMATRIX modelMatrix = elem.GetTransform();
+
 			DirectX::XMFLOAT4X4 mvp;
-			DirectX::XMStoreFloat4x4(&mvp, modelMatrix * camera->viewMatrix * camera->projectionMatrix);
+			DirectX::XMStoreFloat4x4(&mvp, elem.GetTransform() * camera->viewMatrix * camera->projectionMatrix);
 			m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(dMatrix4x4) / 4, &mvp, 0);
+
 			dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
 			m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 		}
