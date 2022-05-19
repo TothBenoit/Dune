@@ -308,8 +308,8 @@ namespace Dune
 		m_viewport.TopLeftY = 0.0f;
 		m_viewport.Width = static_cast<float>(clientRect.right);
 		m_viewport.Height = static_cast<float>(clientRect.bottom);
-		m_viewport.MinDepth = .1f;
-		m_viewport.MaxDepth = 1000.f;
+		m_viewport.MinDepth = 0.f;
+		m_viewport.MaxDepth = 1.f;
 
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
 		swapChainDesc.BufferCount = FrameCount;
@@ -516,7 +516,7 @@ namespace Dune
 		psoDesc.BlendState = blendDesc;
 		psoDesc.DepthStencilState.DepthEnable = TRUE;
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		psoDesc.DepthStencilState.StencilEnable = FALSE;
 		psoDesc.SampleMask = UINT_MAX;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;

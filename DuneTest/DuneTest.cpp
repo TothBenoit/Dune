@@ -45,11 +45,15 @@ public:
 			const XMVECTOR rotationAxis = XMVectorSet(0, 1, 1, 0);
 			XMMATRIX ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(90.f));
 
-			XMMATRIX ViewMatrix = XMMatrixTranslationFromVector(XMVectorSet(0, 0, 10, 1));
+			// Update the view matrix.
+			const XMVECTOR eyePosition = XMVectorSet(0, 0, -10, 1);
+			const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
+			const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
+			XMMATRIX ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
 
 			// Update the projection matrix.
 			float aspectRatio = 1600.f / static_cast<float>(900.f);
-			XMMATRIX ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.f), aspectRatio, 0.1f, 100.0f);
+			XMMATRIX ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
 
 			// Update the MVP matrix
 			XMMATRIX mvpMatrix = ModelMatrix * ViewMatrix * ProjectionMatrix;
