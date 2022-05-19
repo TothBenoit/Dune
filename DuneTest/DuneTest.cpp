@@ -77,7 +77,7 @@ public:
 		}
 	}
 
-	void OnUpdate() override
+	void OnUpdate(float dt) override
 	{
 		//Test1();
 		Test2();

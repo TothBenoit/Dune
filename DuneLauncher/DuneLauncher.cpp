@@ -13,7 +13,7 @@ public:
 
 	}
 
-	void OnUpdate() override
+	void OnUpdate(float dt) override
 	{
 
 	}

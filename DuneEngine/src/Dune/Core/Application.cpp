@@ -31,11 +31,17 @@ namespace Dune
 		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui::StyleColorsDark();
 
+		auto lastFrameTimer = std::chrono::high_resolution_clock::now();
+
 		while (window->Update())
 		{
-			OnUpdate();
-			EngineCore::Update();
-			GraphicsCore::Update();
+			auto timer = std::chrono::high_resolution_clock::now();
+			float dt = (float)std::chrono::duration<float>(timer - lastFrameTimer).count();
+			lastFrameTimer = std::chrono::high_resolution_clock::now();
+
+			OnUpdate(dt);
+			EngineCore::Update(dt);
+			GraphicsCore::Update(dt);
 			Input::EndFrame();
 		};
 

@@ -12,7 +12,7 @@ namespace Dune
 
 		static void Init(const Window* window);
 		static void Shutdown();
-		static void Update();
+		static void Update(float dt);
 
 		static inline bool IsInitialized() { return isInitialized; }
 		static inline GraphicsRenderer& GetGraphicsRenderer() { return *m_graphicsRenderer; }

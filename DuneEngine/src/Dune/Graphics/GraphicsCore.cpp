@@ -33,7 +33,7 @@ namespace Dune
 		m_graphicsRenderer->OnShutdown();
 	}
 
-	void GraphicsCore::Update()
+	void GraphicsCore::Update(float dt)
 	{
 #ifdef _DEBUG
 		if (!isInitialized)

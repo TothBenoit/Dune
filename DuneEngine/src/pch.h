@@ -14,7 +14,6 @@
 #include <dxgi1_6.h>
 #include <d3dcompiler.h>
 #include <dxgidebug.h>
-
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx12.h"
 
@@ -25,6 +24,8 @@
 
 #include <iostream>
 #include <sstream>
+#include <chrono>
+#include <ctime>
 #include <memory>
 #include <assert.h>
 #include <type_traits>

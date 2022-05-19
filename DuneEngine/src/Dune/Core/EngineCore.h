@@ -15,7 +15,7 @@ namespace Dune
 
 		static void Init();
 		static void Shutdown();
-		static void Update();
+		static void Update(float dt);
 
 		static EntityID CreateEntity(const dString& name);
 		static void RemoveEntity(EntityID);
@@ -49,7 +49,7 @@ namespace Dune
 		inline static bool IsInitialized() { return m_isInitialized; }
 
 	private:
-		static void UpdateCamera();
+		static void UpdateCamera(float dt);
 		static void DrawMainMenuBar();
 		static void DrawInterface();
 		static void DrawScene();

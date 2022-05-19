@@ -57,7 +57,7 @@ namespace Dune
 #endif // _DEBUG
 	}
 
-	void EngineCore::Update()
+	void EngineCore::Update(float dt)
 	{
 #ifdef _DEBUG
 		if (!m_isInitialized)
@@ -67,7 +67,7 @@ namespace Dune
 		}
 #endif // _DEBUG
 
-		UpdateCamera();
+		UpdateCamera(dt);
 		DrawMainMenuBar();
 		DrawInterface();
 		if (m_showImGuiDemo)
@@ -107,7 +107,7 @@ namespace Dune
 		m_sceneGraph.DeleteNode(id);
 	}
 
-	void EngineCore::UpdateCamera()
+	void EngineCore::UpdateCamera(float dt)
 	{
 		dVec3 translate{ 0.f,0.f,0.f };
 		dVec3 rotation{ 0.f,0.f,0.f };
@@ -145,11 +145,14 @@ namespace Dune
 
 		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
 		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
+		
+		DirectX::XMStoreFloat3(&translate, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&translate)));
 
 		//TODO : Rotate Translate to forward
-		cameraTransform->position.x += translate.x * 0.01f;
-		cameraTransform->position.y += translate.y * 0.01f;
-		cameraTransform->position.z += translate.z * 0.01f;
+		const float speed = 3.f;
+		cameraTransform->position.x += translate.x * speed * dt;
+		cameraTransform->position.y += translate.y * speed * dt;
+		cameraTransform->position.z += translate.z * speed * dt;
 
 		cameraTransform->rotation.x += rotation.x;
 		cameraTransform->rotation.y += rotation.y;
