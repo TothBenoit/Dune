@@ -59,20 +59,23 @@ namespace Dune
 	template<typename K>
 	using dHashSet =		std::unordered_set <K>;
 
+	//TODO Class wrapper
 #ifdef DUNE_PLATFORM_WINDOWS
-	typedef DirectX::XMMATRIX           dMatrix;
-	typedef DirectX::XMFLOAT3X3         dMatrix3x3;
-	typedef DirectX::XMFLOAT4X3         dMatrix4x3;
-	typedef DirectX::XMFLOAT4X4         dMatrix4x4;
-	typedef DirectX::XMVECTOR           dVec;
-	typedef DirectX::XMFLOAT2           dVec2;
-	typedef DirectX::XMFLOAT3           dVec3;
-	typedef DirectX::XMFLOAT4           dVec4;
-	typedef DirectX::XMUINT2            dVec2u;
-	typedef DirectX::XMUINT3            dVec3u;
-	typedef DirectX::XMUINT4            dVec4u;
-	typedef DirectX::XMINT2             dVec2i;
-	typedef DirectX::XMINT3             dVec3i;
-	typedef DirectX::XMINT4             dVec4i;
+	typedef DirectX::XMMATRIX					dMatrix;
+	typedef DirectX::XMFLOAT3X3					dMatrix3x3;
+	typedef DirectX::XMFLOAT4X3					dMatrix4x3;
+	typedef DirectX::XMFLOAT4X4					dMatrix4x4;
+	typedef DirectX::XMVECTOR					dQuat;
+	typedef DirectX::XMVECTOR					dVec;
+	typedef DirectX::XMFLOAT2					dVec2;
+	typedef DirectX::XMFLOAT3					dVec3;
+	typedef DirectX::XMFLOAT4					dVec4;
+	typedef DirectX::XMUINT2					dVec2u;
+	typedef DirectX::XMUINT3					dVec3u;
+	typedef DirectX::XMUINT4					dVec4u;
+	typedef DirectX::XMINT2						dVec2i;
+	typedef DirectX::XMINT3						dVec3i;
+	typedef DirectX::XMINT4						dVec4i;
+
 #endif // DUNE_PLATFORM_WINDOWS
 }
