@@ -6,8 +6,8 @@ namespace Dune
 {
 	struct Vertex
 	{
-		dVector3 position;
-		dVector4 color;
+		dVec3 position;
+		dVec4 color;
 	};
 
 	class Mesh

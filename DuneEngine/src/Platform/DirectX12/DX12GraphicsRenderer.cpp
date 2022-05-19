@@ -4,6 +4,8 @@
 #include "Platform/DirectX12/DX12GraphicsBuffer.h"
 #include "Platform/Windows/WindowsWindow.h"
 #include "Dune/Core/Logger.h"
+#include "Dune/Utilities/StringUtils.h"
+#include "Dune/Core/EngineCore.h"
 
 namespace Dune
 {
@@ -587,16 +589,17 @@ namespace Dune
 		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
+		CameraComponent * camera = EngineCore::GetCamera();
 		for (const GraphicsElement& elem : m_graphicsElements)
 		{
-			const Mesh& mesh = elem.GetMesh();
-			if (!mesh.IsUploaded())
+			const Mesh* mesh = elem.GetMesh();
+			if (!mesh->IsUploaded())
 			{
 				continue;
 			}
 
-			const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh.GetVertexBuffer());
-			const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh.GetIndexBuffer());
+			const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
+			const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
 
 			D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 			// Initialize the vertex buffer view.
@@ -612,16 +615,10 @@ namespace Dune
 			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 			m_commandList->IASetIndexBuffer(&indexBufferView);
-			static float frameCount = 0;
-
-			DirectX::XMMATRIX model = DirectX::XMMatrixRotationY(
-				DirectX::XMConvertToRadians(
-					frameCount++
-				));
-			model = DirectX::XMMatrixMultiply(model, XMLoadFloat4x4(&elem.GetTransform()));
-			dMatrix4x4 result;
-			XMStoreFloat4x4(&result, model);
-			m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(Dune::dMatrix4x4) / 4, &result, 0);
+			DirectX::XMMATRIX modelMatrix = elem.GetTransform();
+			DirectX::XMFLOAT4X4 mvp;
+			DirectX::XMStoreFloat4x4(&mvp, modelMatrix * camera->viewMatrix * camera->projectionMatrix);
+			m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(dMatrix4x4) / 4, &mvp, 0);
 			dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
 			m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 		}

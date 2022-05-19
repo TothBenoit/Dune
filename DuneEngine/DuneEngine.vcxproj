@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Dune\Core\ECS\Components\BindingComponent.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\CameraComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\GraphicsComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />

@@ -3,6 +3,10 @@
 #include "Dune/Core/EngineCore.h"
 #include "Dune/Utilities/StringUtils.h"
 #include "Dune/Core/Logger.h"
+#include "Dune/Core/ECS/Components/TransformComponent.h"
+#include "Dune/Core/ECS/Components/BindingComponent.h"
+#include "Dune/Core/ECS/Components/GraphicsComponent.h"
+#include "Dune/Core/ECS/Components/CameraComponent.h"
 
 namespace Dune
 {
@@ -54,6 +58,7 @@ namespace Dune
 		EngineCore::RemoveComponent<TransformComponent>(id);
 		EngineCore::RemoveComponent<BindingComponent>(id);
 		EngineCore::RemoveComponent<GraphicsComponent>(id);
+		EngineCore::RemoveComponent<CameraComponent>(id);
 
 		LOG_INFO(dStringUtils::printf("Entity %u has been removed", id).c_str());
 	}

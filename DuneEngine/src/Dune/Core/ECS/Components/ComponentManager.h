@@ -45,7 +45,7 @@ namespace Dune
 				if (index < m_components.size() - 1)
 				{
 					// Swap out the dead element with the last one:
-					m_components[index] = std::move(m_components.back()); // try to use move instead of copy
+					m_components[index] = std::move(m_components.back());
 					m_entities[index] = m_entities.back();
 
 					// Update the lookup table:

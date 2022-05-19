@@ -3,13 +3,10 @@
 #include "Dune/Core/SceneGraph.h"
 #include "Dune/Core/ECS/EntityManager.h"
 #include "Dune/Core/ECS/Components/ComponentManager.h"
-#include "Dune/Core/ECS/Components/TransformComponent.h"
-#include "Dune/Core/ECS/Components/BindingComponent.h"
-#include "Dune/Core/ECS/Components/GraphicsComponent.h"
+#include "Dune/Core/ECS/Components/CameraComponent.h"
 
 namespace Dune
 {
-
 	class EngineCore
 	{
 	public:
@@ -44,6 +41,11 @@ namespace Dune
 			}
 		}
 
+		static CameraComponent* GetCamera()
+		{
+			return GetComponent<CameraComponent>(m_cameraID);
+		}
+
 		inline static bool IsInitialized() { return m_isInitialized; }
 
 	private:
@@ -59,6 +61,7 @@ namespace Dune
 		static SceneGraph m_sceneGraph;
 		static EntityID m_selectedEntity;
 		static bool m_showImGuiDemo;
+		static EntityID m_cameraID;
 	};
 }
 

@@ -118,10 +118,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 		break;
 	case WM_KEYDOWN:
-		Dune::Input::SetKeyDown(static_cast<Dune::Input::KeyCode>(wParam));
+		Dune::Input::SetKeyDown(static_cast<Dune::KeyCode>(wParam));
 		break;
 	case WM_KEYUP:
-		Dune::Input::SetKeyUp(static_cast<Dune::Input::KeyCode>(wParam));
+		Dune::Input::SetKeyUp(static_cast<Dune::KeyCode>(wParam));
 		break;
 	
 	}

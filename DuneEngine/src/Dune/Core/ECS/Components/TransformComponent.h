@@ -4,8 +4,8 @@ namespace Dune
 {
 	struct TransformComponent
 	{
-		dVector3 position;
-		dVector3 rotation;
-		dVector3 scale;
+		dVec3 position;
+		dVec3 rotation;
+		dVec3 scale;
 	};
 }

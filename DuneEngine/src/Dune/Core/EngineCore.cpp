@@ -1,18 +1,22 @@
 #include "pch.h"
 #include "EngineCore.h"
+#include "Dune/Core/Input.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Utilities/StringUtils.h"
+#include "Dune/Core/ECS/Components/TransformComponent.h"
+#include "Dune/Core/ECS/Components/BindingComponent.h"
+#include "Dune/Core/ECS/Components/GraphicsComponent.h"
+
+#include <DirectXMath.h>
 
 namespace Dune
 {
 	std::unique_ptr<EntityManager> EngineCore::m_entityManager = nullptr;
-	//std::unique_ptr<ComponentManager<TransformComponent>> EngineCore::m_transformManager = nullptr;
-	//std::unique_ptr<ComponentManager<GraphicsComponent>> EngineCore::m_graphicsManager = nullptr;
-	//std::unique_ptr<ComponentManager<BindingComponent>> EngineCore::m_bindingManager = nullptr;
 	bool EngineCore::m_isInitialized = false;
 	SceneGraph EngineCore::m_sceneGraph;
 	EntityID EngineCore::m_selectedEntity;
 	bool EngineCore::m_showImGuiDemo;
+	EntityID EngineCore::m_cameraID;
 
 	void EngineCore::Init()
 	{
@@ -27,6 +31,10 @@ namespace Dune
 		ComponentManager<TransformComponent>::Init();
 		ComponentManager<BindingComponent>::Init();
 		ComponentManager<GraphicsComponent>::Init();
+		ComponentManager<CameraComponent>::Init();
+
+		m_cameraID = CreateEntity("Camera");
+		AddComponent<CameraComponent>(m_cameraID);
 
 		m_isInitialized = true;
 	}
@@ -52,6 +60,47 @@ namespace Dune
 		}
 #endif // _DEBUG
 
+		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
+		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
+		
+		dVec3 velocity = { 0.f,0.f,0.f };
+		if (Input::GetKey(KeyCode::Q))
+		{
+			velocity.x += -0.02f;
+		}
+		if (Input::GetKey(KeyCode::D))
+		{
+			velocity.x += 0.02f;
+		}
+
+		if (Input::GetKey(KeyCode::A))
+		{
+			velocity.y += -0.02f;
+		}
+		if (Input::GetKey(KeyCode::E))
+		{
+			velocity.y += 0.02f;
+		}
+
+		if (Input::GetKey(KeyCode::Z))
+		{
+			velocity.z += 0.02f;
+		}
+		if (Input::GetKey(KeyCode::S))
+		{
+			velocity.z += -0.02f;
+		}
+
+		cameraTransform->position.x += velocity.x;
+		cameraTransform->position.y += velocity.y;
+		cameraTransform->position.z += velocity.z;
+
+		const DirectX::XMVECTOR eyePosition = DirectX::XMVectorSet(cameraTransform->position.x, cameraTransform->position.y, cameraTransform->position.z, 1);
+		const DirectX::XMVECTOR focusPoint = DirectX::XMVectorSet(cameraTransform->position.x, cameraTransform->position.y, cameraTransform->position.z + 10, 1);
+		const DirectX::XMVECTOR upDirection = DirectX::XMVectorSet(0, 1, 0, 0);
+		camera->viewMatrix = DirectX::XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
+		float aspectRatio = 1600.f / static_cast<float>(900.f);
+		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
 
 		DrawMainMenuBar();
 		DrawInterface();
@@ -185,21 +234,21 @@ namespace Dune
 			{
 				ImGui::Text("Transform :");
 
-				dVector3& pos = transform->position;
+				dVec3& pos = transform->position;
 				float imGuiPos[3] = { pos.x, pos.y, pos.z };
 				ImGui::InputFloat3("Position", imGuiPos, "%.2f");
 				pos.x = imGuiPos[0];
 				pos.y = imGuiPos[1];
 				pos.z = imGuiPos[2];
 
-				dVector3& rot = transform->rotation;
+				dVec3& rot = transform->rotation;
 				float imGuiRot[3] = { rot.x, rot.y, rot.z };
 				ImGui::InputFloat3("Rotation", imGuiRot, "%.2f");
 				rot.x = imGuiRot[0];
 				rot.y = imGuiRot[1];
 				rot.z = imGuiRot[2];
 
-				dVector3& scale = transform->scale;
+				dVec3& scale = transform->scale;
 				float imGuiScale[3] = { scale.x, scale.y, scale.z };
 				ImGui::InputFloat3("Scale", imGuiScale, "%.2f");
 				scale.x = imGuiScale[0];

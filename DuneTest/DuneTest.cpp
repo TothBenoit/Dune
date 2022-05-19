@@ -42,21 +42,8 @@ public:
 		{
 			Dune::GraphicsRenderer& graphicsRenderer = Dune::GraphicsCore::GetGraphicsRenderer();
 
-			const XMVECTOR rotationAxis = XMVectorSet(0, 1, 1, 0);
-			XMMATRIX ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(90.f));
-
-			// Update the view matrix.
-			const XMVECTOR eyePosition = XMVectorSet(0, 0, -10, 1);
-			const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
-			const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
-			XMMATRIX ViewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
-
-			// Update the projection matrix.
-			float aspectRatio = 1600.f / static_cast<float>(900.f);
-			XMMATRIX ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
-
-			// Update the MVP matrix
-			XMMATRIX mvpMatrix = ModelMatrix * ViewMatrix * ProjectionMatrix;
+			const XMVECTOR rotationAxis = XMVectorSet(0, 1, 0, 0);
+			Dune::dMatrix ModelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(90.f));
 			Dune::dVector<Dune::dU32> indices =
 			{
 				0, 1, 2, 0, 2, 3,
@@ -80,16 +67,11 @@ public:
 				{ {0.5f, -0.5f,  0.5f},		{1.0f, 0.0f, 1.0f, 1.0f} },  // 7
 			};
 
-			Dune::dMatrix4x4* mvp = new Dune::dMatrix4x4;
-			XMStoreFloat4x4(mvp, mvpMatrix);
-
 			Dune::Mesh* mesh = new Dune::Mesh(indices, vertices);
 			mesh->UploadBuffers();
-			Dune::dString path = "bla";
-			Dune::Shader* shader = new Dune::Shader(path);
-			Dune::GraphicsElement* elem = new Dune::GraphicsElement(*mesh, *shader, *mvp);
+			Dune::GraphicsElement elem = Dune::GraphicsElement(mesh, ModelMatrix);
 
-			graphicsRenderer.AddGraphicsElement(*elem);
+			graphicsRenderer.AddGraphicsElement(elem);
 
 			didTestOnce = true;
 		}
