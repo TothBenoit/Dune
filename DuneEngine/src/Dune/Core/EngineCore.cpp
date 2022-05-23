@@ -123,11 +123,14 @@ namespace Dune
 
 	void EngineCore::UpdateCamera(float dt)
 	{
+		//TODO: Input and transformation should be decoupled so we can compute new transformation only when it changed
+		if (!m_entityManager->IsValid(m_cameraID))
+			return;
+
 		dVec3 translate{ 0.f,0.f,0.f };
 		dVec3 rotation{ 0.f,0.f,0.f };
 
 		//Get input
-		//TODO: bind key to event (Need event system)
 		if (Input::GetKey(KeyCode::Q))
 		{
 			translate.x = -0.1f;
@@ -161,8 +164,10 @@ namespace Dune
 		}
 
 		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
+		Assert(camera);
 		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
-		
+		Assert(cameraTransform);
+
 		//Add rotation
 		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x,DirectX::XM_2PI);
 		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y, DirectX::XM_2PI);
@@ -201,7 +206,7 @@ namespace Dune
 		camera->viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
 
 		//Compute camera projection matrix
-		float aspectRatio = 1600.f / static_cast<float>(900.f);
+		float aspectRatio = 1600.f / 900.f;
 		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
 	}
 
@@ -229,21 +234,24 @@ namespace Dune
 
 	void EngineCore::DrawScene()
 	{
-		static ID::IDType counter = 0;
-
 		ImGui::Begin("Scene");
 		ImGui::Text("Scene graph");
 		ImGui::SameLine();
 		if (ImGui::Button("Add Entity"))
 		{
-			CreateEntity(dStringUtils::printf("%u", counter++).c_str());
+			CreateEntity("New entity");
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Remove Entity") && (ID::IsValid(m_selectedEntity)))
+		const bool wantToDeleteEntity = ImGui::IsWindowFocused() && Input::GetKey(KeyCode::Delete);
+		if ((ImGui::Button("Remove Entity") || wantToDeleteEntity) && (ID::IsValid(m_selectedEntity)))
 		{
+			//Check if m_selectedEntity was deleted but not set to invalidID
+			Assert(m_entityManager->IsValid(m_selectedEntity));
+
 			RemoveEntity(m_selectedEntity);
 			m_selectedEntity = ID::invalidID;
 		}
+
 		ImGui::Separator();
 		DrawGraph();
 		ImGui::End();

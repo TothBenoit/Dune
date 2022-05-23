@@ -590,38 +590,44 @@ namespace Dune
 		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		CameraComponent * camera = EngineCore::GetCamera();
-		for (const GraphicsElement& elem : m_graphicsElements)
+		// TODO: If there is no camera we do not want to run this function
+		// however we still want ImGui to run, game and ImGui should be decoupled, for now we just skip the graphics element loop
+		// Will be easier to do once we have a proper render pass pipeline
+		if (camera)
 		{
-			const Mesh* mesh = elem.GetMesh();
-			if (!mesh->IsUploaded())
+			for (const GraphicsElement& elem : m_graphicsElements)
 			{
-				continue;
+				const Mesh* mesh = elem.GetMesh();
+				if (!mesh->IsUploaded())
+				{
+					continue;
+				}
+
+				const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
+				const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
+
+				D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+				// Initialize the vertex buffer view.
+				vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
+				vertexBufferView.StrideInBytes = sizeof(Vertex);
+				vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
+
+				D3D12_INDEX_BUFFER_VIEW indexBufferView;
+				indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
+				indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+				indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
+
+				m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+				m_commandList->IASetIndexBuffer(&indexBufferView);
+
+				DirectX::XMFLOAT4X4 mvp;
+				DirectX::XMStoreFloat4x4(&mvp, elem.GetTransform() * camera->viewMatrix * camera->projectionMatrix);
+				m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(dMatrix4x4) / 4, &mvp, 0);
+
+				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
+				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 			}
-
-			const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
-			const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
-
-			D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-			// Initialize the vertex buffer view.
-			vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
-			vertexBufferView.StrideInBytes = sizeof(Vertex);
-			vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
-
-			D3D12_INDEX_BUFFER_VIEW indexBufferView;
-			indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
-			indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-			indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
-
-			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-			m_commandList->IASetIndexBuffer(&indexBufferView);
-
-			DirectX::XMFLOAT4X4 mvp;
-			DirectX::XMStoreFloat4x4(&mvp, elem.GetTransform() * camera->viewMatrix * camera->projectionMatrix);
-			m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(dMatrix4x4) / 4, &mvp, 0);
-
-			dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
-			m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 		}
 
 		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
