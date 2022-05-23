@@ -49,7 +49,7 @@ namespace Dune
 			NULL        // Additional application data
 		);
 
-		assert(m_handle != NULL);
+		Assert(m_handle != NULL);
 
 		ShowWindow(m_handle, 1);
 

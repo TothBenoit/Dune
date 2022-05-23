@@ -24,4 +24,6 @@ namespace Dune
 		{ {0.5f,  0.5f,  0.5f},		{1.0f, 1.0f, 1.0f, 1.0f} }, // 6
 		{ {0.5f, -0.5f,  0.5f},		{1.0f, 0.0f, 1.0f, 1.0f} }, // 7
 	};
+
+	const std::shared_ptr<Mesh> GraphicsComponent::m_defaultMesh = std::make_shared<Mesh>(Mesh(GraphicsComponent::m_defaultCubeIndices, GraphicsComponent::m_defaultCubeVertices));
 }

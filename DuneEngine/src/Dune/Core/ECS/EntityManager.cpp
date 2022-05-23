@@ -59,7 +59,6 @@ namespace Dune
 		EngineCore::RemoveComponent<BindingComponent>(id);
 		EngineCore::RemoveComponent<GraphicsComponent>(id);
 		EngineCore::RemoveComponent<CameraComponent>(id);
-
 		LOG_INFO(dStringUtils::printf("Entity %u has been removed", id).c_str());
 	}
 	bool EntityManager::IsValid(EntityID id) const

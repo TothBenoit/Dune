@@ -300,13 +300,14 @@ namespace Dune
 	void EngineCore::DrawInspector()
 	{
 		ImGui::Begin("Inspector");
-		if (!ID::IsValid(m_selectedEntity))
-			return;
 
-		Assert(m_entityManager->IsValid(m_selectedEntity));
-
-		if (const SceneGraph::Node* node = m_sceneGraph.GetNode(m_selectedEntity))
+		if (ID::IsValid(m_selectedEntity))
 		{
+			Assert(m_entityManager->IsValid(m_selectedEntity));
+
+			const SceneGraph::Node* node = m_sceneGraph.GetNode(m_selectedEntity);
+			Assert(node);
+
 			ImGui::Text("%s", node->GetName().c_str());
 			ImGui::Separator();
 			if (TransformComponent* transform = GetComponent<TransformComponent>(m_selectedEntity))
@@ -361,12 +362,12 @@ namespace Dune
 			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&transformComponent->rotation)));
 
 			//TODO : Find when we should upload mesh
-			if (!graphicsComponent->mesh.IsUploaded())
+			if (!graphicsComponent->mesh->IsUploaded())
 			{
-				graphicsComponent->mesh.UploadBuffers();
+				graphicsComponent->mesh->UploadBuffers();
 			}
 
-			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(GraphicsElement(&graphicsComponent->mesh, modelMatrix));
+			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(GraphicsElement(graphicsComponent->mesh, modelMatrix));
 		}
 	}
 }
