@@ -356,9 +356,9 @@ namespace Dune
 			TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
 
 			// TODO : use transformComponent matrix when implemented
-			dMatrix modelMatrix;
-			modelMatrix = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transformComponent->position));
+			dMatrix modelMatrix = DirectX::XMMatrixIdentity();
 			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&transformComponent->scale)));
+			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transformComponent->position)));
 			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&transformComponent->rotation)));
 
 			//TODO : Find when we should upload mesh
