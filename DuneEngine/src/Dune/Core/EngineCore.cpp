@@ -316,21 +316,21 @@ namespace Dune
 
 				dVec3& pos = transform->position;
 				float imGuiPos[3] = { pos.x, pos.y, pos.z };
-				ImGui::DragFloat3("Position", imGuiPos, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+				ImGui::DragFloat3("Position", imGuiPos, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
 				pos.x = imGuiPos[0];
 				pos.y = imGuiPos[1];
 				pos.z = imGuiPos[2];
 
 				dVec3& rot = transform->rotation;
 				float imGuiRot[3] = { DirectX::XMConvertToDegrees(rot.x),DirectX::XMConvertToDegrees(rot.y), DirectX::XMConvertToDegrees(rot.z) };
-				ImGui::DragFloat3("Rotation", imGuiRot, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+				ImGui::DragFloat3("Rotation", imGuiRot, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
 				rot.x = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[0]), DirectX::XM_2PI);
 				rot.y = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[1]), DirectX::XM_2PI);
 				rot.z = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[2]), DirectX::XM_2PI);
 
 				dVec3& scale = transform->scale;
 				float imGuiScale[3] = { scale.x, scale.y, scale.z };
-				ImGui::DragFloat3("Scale", imGuiScale, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+				ImGui::DragFloat3("Scale", imGuiScale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
 				scale.x = imGuiScale[0];
 				scale.y = imGuiScale[1];
 				scale.z = imGuiScale[2];

@@ -2,6 +2,7 @@
 
 #ifdef DUNE_PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
 
 #pragma comment(lib,"d3d12.lib") 
