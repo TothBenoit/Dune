@@ -36,7 +36,7 @@ namespace Dune
 			return EntityID(ID::invalidID);
 		}
 
-		LOG_INFO(dStringUtils::printf("Entity %u has been removed", id).c_str());
+		LOG_INFO(dStringUtils::printf("Entity %u has been created", id).c_str());
 		return EntityID(id);
 	}
 
