@@ -62,6 +62,7 @@
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
+    <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Dune\Graphics\Shaders\PixelShader.hlsl" />

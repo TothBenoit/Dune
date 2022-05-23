@@ -56,6 +56,7 @@ namespace Dune
 		static void DrawGraph();
 		static void DrawNode(const SceneGraph::Node* node);
 		static void DrawInspector();
+		static void SendDataToGraphicsCore();
 	private:
 		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;

@@ -86,7 +86,7 @@ namespace Dune
 		}
 
 	private:
-
+		friend class EngineCore;
 		static dVector<Component> m_components;
 		static dVector<EntityID> m_entities;
 		static dHashMap<EntityID, size_t> m_lookup;

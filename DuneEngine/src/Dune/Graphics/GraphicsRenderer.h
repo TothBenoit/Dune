@@ -17,6 +17,7 @@ namespace Dune
 
 		static std::unique_ptr<GraphicsRenderer> Create(const Window * window);
 
+		void ClearGraphicsElement() { m_graphicsElements.clear(); }
 		void AddGraphicsElement(const GraphicsElement& elem);
 
 		virtual void WaitForGPU() = 0;

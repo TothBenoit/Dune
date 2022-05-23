@@ -6,6 +6,7 @@
 #include "Dune/Core/ECS/Components/TransformComponent.h"
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
+#include "Dune/Graphics/GraphicsCore.h"
 
 #include <DirectXMath.h>
 
@@ -86,6 +87,7 @@ namespace Dune
 		DrawInterface();
 		if (m_showImGuiDemo)
 			ImGui::ShowDemoWindow(&m_showImGuiDemo);
+		SendDataToGraphicsCore();
 	}
 
 	EntityID EngineCore::CreateEntity(const dString& name)
@@ -298,6 +300,11 @@ namespace Dune
 	void EngineCore::DrawInspector()
 	{
 		ImGui::Begin("Inspector");
+		if (!ID::IsValid(m_selectedEntity))
+			return;
+
+		Assert(m_entityManager->IsValid(m_selectedEntity));
+
 		if (const SceneGraph::Node* node = m_sceneGraph.GetNode(m_selectedEntity))
 		{
 			ImGui::Text("%s", node->GetName().c_str());
@@ -328,6 +335,38 @@ namespace Dune
 				scale.z = imGuiScale[2];
 			}
 		}
+		if (!GetComponent<GraphicsComponent>(m_selectedEntity))
+		{
+			if (ImGui::Button("Add GraphicsComponent"))
+			{
+				AddComponent<GraphicsComponent>(m_selectedEntity);
+			}
+		}
+		
 		ImGui::End();
+	}
+	void EngineCore::SendDataToGraphicsCore()
+	{
+		GraphicsCore::GetGraphicsRenderer().ClearGraphicsElement();
+
+		for (const EntityID entity : ComponentManager<GraphicsComponent>::m_entities)
+		{
+			GraphicsComponent* graphicsComponent = ComponentManager<GraphicsComponent>::GetComponent(entity);
+			TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
+
+			// TODO : use transformComponent matrix when implemented
+			dMatrix modelMatrix;
+			modelMatrix = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transformComponent->position));
+			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&transformComponent->scale)));
+			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&transformComponent->rotation)));
+
+			//TODO : Find when we should upload mesh
+			if (!graphicsComponent->mesh.IsUploaded())
+			{
+				graphicsComponent->mesh.UploadBuffers();
+			}
+
+			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(GraphicsElement(&graphicsComponent->mesh, modelMatrix));
+		}
 	}
 }
