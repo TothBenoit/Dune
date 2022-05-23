@@ -358,8 +358,8 @@ namespace Dune
 			// TODO : use transformComponent matrix when implemented
 			dMatrix modelMatrix = DirectX::XMMatrixIdentity();
 			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&transformComponent->scale)));
-			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transformComponent->position)));
 			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&transformComponent->rotation)));
+			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transformComponent->position)));
 
 			//TODO : Find when we should upload mesh
 			if (!graphicsComponent->mesh->IsUploaded())
