@@ -125,6 +125,9 @@ namespace Dune
 	{
 		dVec3 translate{ 0.f,0.f,0.f };
 		dVec3 rotation{ 0.f,0.f,0.f };
+
+		//Get input
+		//TODO: bind key to event (Need event system)
 		if (Input::GetKey(KeyCode::Q))
 		{
 			translate.x = -0.1f;
@@ -160,48 +163,46 @@ namespace Dune
 		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
 		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
 		
-		DirectX::XMStoreFloat3(&translate, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&translate)));
-
-		//TODO : Rotate Translate to forward
-
+		//Add rotation
 		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x,DirectX::XM_2PI);
 		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y, DirectX::XM_2PI);
 		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z, DirectX::XM_2PI);
 		
+		//Compute quaternion from camera rotation
 		DirectX::XMVECTOR quat = DirectX::XMQuaternionIdentity();
 		DirectX::XMVECTOR x = DirectX::XMQuaternionRotationRollPitchYaw(cameraTransform->rotation.x, 0, 0);
 		DirectX::XMVECTOR y = DirectX::XMQuaternionRotationRollPitchYaw(0, cameraTransform->rotation.y, 0);
 		DirectX::XMVECTOR z = DirectX::XMQuaternionRotationRollPitchYaw(0, 0, cameraTransform->rotation.z);
-
 		quat = DirectX::XMQuaternionMultiply(y, quat);
 		quat = DirectX::XMQuaternionMultiply(x, quat);
 		quat = DirectX::XMQuaternionMultiply(z, quat);
 		quat = DirectX::XMQuaternionNormalize(quat);
 
-		dVec forward = DirectX::XMVectorSet(0.f, 0.f, 1.f, 1.f);
-		forward = DirectX::XMVector3Rotate(forward, quat);
-		forward = DirectX::XMVectorMultiply(forward, DirectX::XMLoadFloat3(&translate));
-		forward = DirectX::XMVector3Normalize(forward);
+		//Apply camera rotation to translation
+		DirectX::XMStoreFloat3(&translate, 
+			DirectX::XMVector3TransformNormal(
+				DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&translate)),
+				DirectX::XMMatrixRotationQuaternion(quat)
+			)
+		);
 
-		DirectX::XMStoreFloat3(&translate, forward);
-
+		//Apply translation
 		const float speed = 3.f;
 		cameraTransform->position.x += translate.x * speed * dt;
 		cameraTransform->position.y += translate.y * speed * dt;
 		cameraTransform->position.z += translate.z * speed * dt;
 
-
+		//Compute camera view matrix
 		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&cameraTransform->position);
 		DirectX::XMVECTOR at = DirectX::XMVectorSet(0, 0, 1, 0);
 		DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
 		at = DirectX::XMVector3TransformNormal(at, DirectX::XMMatrixRotationQuaternion(quat));
 		up = DirectX::XMVector3TransformNormal(up, DirectX::XMMatrixRotationQuaternion(quat));
-
 		camera->viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
 
+		//Compute camera projection matrix
 		float aspectRatio = 1600.f / static_cast<float>(900.f);
 		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
-
 	}
 
 	void EngineCore::DrawMainMenuBar()
