@@ -15,9 +15,9 @@ namespace Dune
 	std::unique_ptr<EntityManager> EngineCore::m_entityManager = nullptr;
 	bool EngineCore::m_isInitialized = false;
 	SceneGraph EngineCore::m_sceneGraph;
-	EntityID EngineCore::m_selectedEntity;
-	bool EngineCore::m_showImGuiDemo;
-	EntityID EngineCore::m_cameraID;
+	EntityID EngineCore::m_selectedEntity = ID::invalidID;
+	bool EngineCore::m_showImGuiDemo = false;
+	EntityID EngineCore::m_cameraID = ID::invalidID;
 
 	void EngineCore::Init()
 	{
@@ -38,27 +38,6 @@ namespace Dune
 
 		m_cameraID = CreateEntity("Camera");
 		AddComponent<CameraComponent>(m_cameraID);
-		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
-		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
-
-		DirectX::XMVECTOR quat = DirectX::XMQuaternionIdentity();
-		DirectX::XMVECTOR x = DirectX::XMQuaternionRotationRollPitchYaw(cameraTransform->rotation.x, 0, 0);
-		DirectX::XMVECTOR y = DirectX::XMQuaternionRotationRollPitchYaw(0, cameraTransform->rotation.y, 0);
-		DirectX::XMVECTOR z = DirectX::XMQuaternionRotationRollPitchYaw(0, 0, cameraTransform->rotation.z);
-
-		quat = DirectX::XMQuaternionMultiply(y, quat);
-		quat = DirectX::XMQuaternionMultiply(x, quat);
-		quat = DirectX::XMQuaternionMultiply(z, quat);
-		quat = DirectX::XMQuaternionNormalize(quat);
-
-		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&cameraTransform->position);
-		DirectX::XMVECTOR at = DirectX::XMVectorSet(0, 0, 1, 0);
-		DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
-		at = DirectX::XMVector3TransformNormal(at, DirectX::XMMatrixRotationQuaternion(quat));
-		up = DirectX::XMVector3TransformNormal(up, DirectX::XMMatrixRotationQuaternion(quat));
-
-		camera->viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
-
 	}
 
 	void EngineCore::Shutdown()
@@ -335,14 +314,16 @@ namespace Dune
 				scale.y = imGuiScale[1];
 				scale.z = imGuiScale[2];
 			}
-		}
-		if (!GetComponent<GraphicsComponent>(m_selectedEntity))
-		{
-			if (ImGui::Button("Add GraphicsComponent"))
+
+			if (!GetComponent<GraphicsComponent>(m_selectedEntity))
 			{
-				AddComponent<GraphicsComponent>(m_selectedEntity);
+				if (ImGui::Button("Add GraphicsComponent"))
+				{
+					AddComponent<GraphicsComponent>(m_selectedEntity);
+				}
 			}
 		}
+
 		
 		ImGui::End();
 	}
