@@ -18,6 +18,7 @@ namespace Dune
 	EntityID EngineCore::m_selectedEntity = ID::invalidID;
 	bool EngineCore::m_showImGuiDemo = false;
 	EntityID EngineCore::m_cameraID = ID::invalidID;
+	float EngineCore::m_deltaTime = 0.f;
 
 	void EngineCore::Init()
 	{
@@ -60,8 +61,8 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
-
-		UpdateCamera(dt);
+		m_deltaTime = dt;
+		UpdateCamera();
 		DrawMainMenuBar();
 		DrawInterface();
 		if (m_showImGuiDemo)
@@ -102,7 +103,7 @@ namespace Dune
 		m_sceneGraph.DeleteNode(id);
 	}
 
-	void EngineCore::UpdateCamera(float dt)
+	void EngineCore::UpdateCamera()
 	{
 		//TODO: Input and transformation should be decoupled so we can compute new transformation only when it changed
 		if (!m_entityManager->IsValid(m_cameraID))
@@ -174,9 +175,9 @@ namespace Dune
 
 		//Apply translation
 		const float speed = 3.f;
-		cameraTransform->position.x += translate.x * speed * dt;
-		cameraTransform->position.y += translate.y * speed * dt;
-		cameraTransform->position.z += translate.z * speed * dt;
+		cameraTransform->position.x += translate.x * speed * m_deltaTime;
+		cameraTransform->position.y += translate.y * speed * m_deltaTime;
+		cameraTransform->position.z += translate.z * speed * m_deltaTime;
 
 		//Compute camera view matrix
 		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&cameraTransform->position);
@@ -203,6 +204,15 @@ namespace Dune
 				}
 				ImGui::EndMenu();
 			}
+			
+			{
+				static float framerate = 0.0f;
+				framerate += (1 / m_deltaTime);
+				framerate /= 2;
+				dString FPSlabel = dStringUtils::printf("FPS : %.0f", framerate);
+				ImGui::BeginMenu(FPSlabel.c_str(), false);
+			}
+			
 			ImGui::EndMainMenuBar();
 		}
 	}
@@ -315,7 +325,16 @@ namespace Dune
 				scale.z = imGuiScale[2];
 			}
 
-			if (!GetComponent<GraphicsComponent>(m_selectedEntity))
+			if (GraphicsComponent* graphicsComponent = GetComponent<GraphicsComponent>(m_selectedEntity))
+			{
+				ImGui::Text("Material :");
+				float imGuiBaseColor[3] = { graphicsComponent->material->m_baseColor.x, graphicsComponent->material->m_baseColor.y, graphicsComponent->material->m_baseColor.z };
+				ImGui::ColorPicker3("BaseColor", imGuiBaseColor);
+				graphicsComponent->material->m_baseColor.x = imGuiBaseColor[0];
+				graphicsComponent->material->m_baseColor.y = imGuiBaseColor[1];
+				graphicsComponent->material->m_baseColor.z = imGuiBaseColor[2];
+			}
+			else
 			{
 				if (ImGui::Button("Add GraphicsComponent"))
 				{
@@ -348,7 +367,7 @@ namespace Dune
 				graphicsComponent->mesh->UploadBuffers();
 			}
 
-			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(GraphicsElement(graphicsComponent->mesh, modelMatrix));
+			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, modelMatrix));
 		}
 	}
 }

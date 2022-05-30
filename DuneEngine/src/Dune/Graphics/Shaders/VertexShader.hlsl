@@ -5,6 +5,13 @@ struct ModelViewProjection
 
 ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
 
+struct Material
+{
+    float4 BaseColor;
+};
+
+ConstantBuffer<Material> MaterialCB : register(b1);
+
 struct VS_INPUT
 {
     float3 vPos : POSITION;
@@ -21,7 +28,7 @@ VS_OUTPUT VSMain(VS_INPUT input)
 {
     VS_OUTPUT o;
     o.position = mul(ModelViewProjectionCB.MVP, float4(input.vPos, 1.0f) );
-    o.color = input.vColor;
+    o.color = MaterialCB.BaseColor;
 
 	return o;
 }

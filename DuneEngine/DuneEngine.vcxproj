@@ -20,6 +20,7 @@
     <ClInclude Include="src\Dune\Core\ECS\ID.h" />
     <ClInclude Include="src\Dune\Core\EngineCore.h" />
     <ClInclude Include="src\Dune\Core\SceneGraph.h" />
+    <ClInclude Include="src\Dune\Graphics\Material.h" />
     <ClInclude Include="src\Dune\Graphics\Mesh.h" />
     <ClInclude Include="src\Dune\Graphics\Shader.h" />
     <ClInclude Include="src\Dune\Utilities\StringUtils.h" />

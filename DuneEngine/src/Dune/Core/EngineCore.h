@@ -49,7 +49,7 @@ namespace Dune
 		inline static bool IsInitialized() { return m_isInitialized; }
 
 	private:
-		static void UpdateCamera(float dt);
+		static void UpdateCamera();
 		static void DrawMainMenuBar();
 		static void DrawInterface();
 		static void DrawScene();
@@ -64,6 +64,7 @@ namespace Dune
 		static EntityID m_selectedEntity;
 		static bool m_showImGuiDemo;
 		static EntityID m_cameraID;
+		static float m_deltaTime;
 	};
 }
 

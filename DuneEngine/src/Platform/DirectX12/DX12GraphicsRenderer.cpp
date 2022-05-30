@@ -429,12 +429,19 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateRootSignature()
 	{
-		D3D12_ROOT_PARAMETER1 rootParameters[1];
+		D3D12_ROOT_PARAMETER1 rootParameters[2];
+		//MVP
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 		rootParameters[0].Constants.RegisterSpace = 0;
 		rootParameters[0].Constants.ShaderRegister = 0;
 		rootParameters[0].Constants.Num32BitValues = sizeof(dMatrix4x4)/ 4;
+
+		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+		rootParameters[1].Constants.RegisterSpace = 0;
+		rootParameters[1].Constants.ShaderRegister = 1;
+		rootParameters[1].Constants.Num32BitValues = sizeof(dVec4) / 4;
 
 		D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -444,7 +451,7 @@ namespace Dune
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-		rootSignatureDesc.Desc_1_1.NumParameters = 1;
+		rootSignatureDesc.Desc_1_1.NumParameters = 2;
 		rootSignatureDesc.Desc_1_1.pParameters = rootParameters;
 		rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
 		rootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
@@ -625,6 +632,8 @@ namespace Dune
 				DirectX::XMFLOAT4X4 mvp;
 				DirectX::XMStoreFloat4x4(&mvp, elem.GetTransform() * camera->viewMatrix * camera->projectionMatrix);
 				m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(dMatrix4x4) / 4, &mvp, 0);
+
+				m_commandList->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
 
 				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
