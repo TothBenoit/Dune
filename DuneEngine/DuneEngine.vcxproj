@@ -57,7 +57,6 @@
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Graphics\Shader.cpp" />
-    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsBuffer.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>

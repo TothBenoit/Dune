@@ -57,7 +57,6 @@
     <ClCompile Include="include\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsBuffer.cpp" />
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Graphics\Shader.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
