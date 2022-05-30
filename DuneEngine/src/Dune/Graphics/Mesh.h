@@ -8,6 +8,7 @@ namespace Dune
 	{
 		dVec3 position;
 		dVec4 color;
+		dVec3 normal;
 	};
 
 	class Mesh

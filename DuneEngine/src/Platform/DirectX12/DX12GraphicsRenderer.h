@@ -22,12 +22,6 @@ namespace Dune
 	private:
 		static const UINT FrameCount = 2;
 
-		struct Vertex
-		{
-			DirectX::XMFLOAT3 position;
-			DirectX::XMFLOAT4 color;
-		};
-
 		void CreateFactory();
 		void CreateDevice();
 		void CreateCommandQueue();
