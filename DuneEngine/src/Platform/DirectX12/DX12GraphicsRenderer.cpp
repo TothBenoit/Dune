@@ -430,13 +430,14 @@ namespace Dune
 	void DX12GraphicsRenderer::CreateRootSignature()
 	{
 		D3D12_ROOT_PARAMETER1 rootParameters[2];
-		//MVP
+		//Instance Matrices (MVP and Normal)
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 		rootParameters[0].Constants.RegisterSpace = 0;
 		rootParameters[0].Constants.ShaderRegister = 0;
-		rootParameters[0].Constants.Num32BitValues = sizeof(dMatrix4x4)/ 4;
+		rootParameters[0].Constants.Num32BitValues = 2 * sizeof(dMatrix4x4) / 4;
 
+		//Material (BaseColor)
 		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 		rootParameters[1].Constants.RegisterSpace = 0;
@@ -451,7 +452,7 @@ namespace Dune
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-		rootSignatureDesc.Desc_1_1.NumParameters = 2;
+		rootSignatureDesc.Desc_1_1.NumParameters = _countof(rootParameters);
 		rootSignatureDesc.Desc_1_1.pParameters = rootParameters;
 		rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
 		rootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
@@ -598,7 +599,7 @@ namespace Dune
 		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-		CameraComponent * camera = EngineCore::GetCamera();
+		CameraComponent* camera = EngineCore::GetCamera();
 		// TODO: If there is no camera we do not want to run this function
 		// however we still want ImGui to run, game and ImGui should be decoupled, for now we just skip the graphics element loop
 		// Will be easier to do once we have a proper render pass pipeline
@@ -630,10 +631,21 @@ namespace Dune
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 				m_commandList->IASetIndexBuffer(&indexBufferView);
 
-				DirectX::XMFLOAT4X4 mvp;
-				DirectX::XMStoreFloat4x4(&mvp, elem.GetTransform() * camera->viewMatrix * camera->projectionMatrix);
-				m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(dMatrix4x4) / 4, &mvp, 0);
+				DirectX::XMMATRIX normalMatrix = elem.GetTransform();
+				normalMatrix = DirectX::XMMatrixInverse(nullptr, normalMatrix);
+				normalMatrix = DirectX::XMMatrixTranspose(normalMatrix);
+				
+				struct InstanceMatrices
+				{
+					DirectX::XMFLOAT4X4 mvpMatrix;
+					DirectX::XMFLOAT4X4 normalMatrix;
+				};
 
+				InstanceMatrices instanceMatrices;
+				DirectX::XMStoreFloat4x4(&instanceMatrices.mvpMatrix, elem.GetTransform() * camera->viewMatrix * camera->projectionMatrix);
+				DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, normalMatrix);
+
+				m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);
 				m_commandList->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
 
 				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));

@@ -16,7 +16,7 @@ PS_OUTPUT PSMain(PS_INPUT input)
 {
 	float3 sunDir = normalize(float3(0.9f, 0.5f, -0.3f));
 	float3 sunColor = normalize(float3(120, 192, 224));
-	float3 diffuseLight = saturate(dot(input.normal, sunDir)) * sunColor;
+	float3 diffuseLight = saturate(dot(input.normal.xyz, sunDir)) * sunColor;
 	float ambientLight = 0.2f;
 
 

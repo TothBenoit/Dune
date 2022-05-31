@@ -1,9 +1,10 @@
-struct ModelViewProjection
+struct InstanceMatrices
 {
-    float4x4 MVP;
+    float4x4 MVPMatrix;
+    float4x4 NormalMatrix;
 };
 
-ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
+ConstantBuffer<InstanceMatrices> InstanceMatricesCB: register(b0);
 
 struct Material
 {
@@ -29,9 +30,9 @@ struct VS_OUTPUT
 VS_OUTPUT VSMain(VS_INPUT input)
 {
     VS_OUTPUT o;
-    o.position = mul(ModelViewProjectionCB.MVP, float4(input.vPos, 1.0f) );
+    o.position = mul(InstanceMatricesCB.MVPMatrix, float4(input.vPos, 1.0f) );
     o.color = MaterialCB.BaseColor;
-    o.normal = float4(input.vNormal, 1.0f);
+    o.normal = mul(InstanceMatricesCB.NormalMatrix, float4(input.vNormal, 1.0f));
 
 	return o;
 }
