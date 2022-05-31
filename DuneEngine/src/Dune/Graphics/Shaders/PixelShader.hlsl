@@ -19,7 +19,6 @@ PS_OUTPUT PSMain(PS_INPUT input)
 	float3 diffuseLight = saturate(dot(input.normal.xyz, sunDir)) * sunColor;
 	float ambientLight = 0.2f;
 
-
 	PS_OUTPUT output;
 	output.color = input.color * float4(saturate(ambientLight + diffuseLight), 1.0f);
 	return output;

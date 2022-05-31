@@ -230,8 +230,25 @@ namespace Dune
 		ImGui::SameLine();
 		if (ImGui::Button("Add Entity"))
 		{
-			CreateEntity("New entity");
+			EntityID id = CreateEntity("New entity");
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("Add 1000 GraphicsEntity"))
+		{
+			for (int i = 0; i < 1000; i++)
+			{
+				EntityID id = CreateEntity("New entity");
+				AddComponent<GraphicsComponent>(id);
+				auto transform = GetComponent<TransformComponent>(id);
+				float LO = -100.f;
+				float HI = 100.f;
+
+				transform->position.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
+				transform->position.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+				transform->position.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+			}
+		}
+
 		ImGui::SameLine();
 		const bool wantToDeleteEntity = ImGui::IsWindowFocused() && Input::GetKey(KeyCode::Delete);
 		if ((ImGui::Button("Remove Entity") || wantToDeleteEntity) && (ID::IsValid(m_selectedEntity)))
