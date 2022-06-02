@@ -62,6 +62,8 @@ namespace Dune
 		static std::unique_ptr<EntityManager> m_entityManager;
 		static SceneGraph m_sceneGraph;
 		static EntityID m_selectedEntity;
+		static bool m_showScene;
+		static bool m_showInspector;
 		static bool m_showImGuiDemo;
 		static EntityID m_cameraID;
 		static float m_deltaTime;

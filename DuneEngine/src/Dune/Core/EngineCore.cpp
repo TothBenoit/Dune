@@ -16,6 +16,8 @@ namespace Dune
 	bool EngineCore::m_isInitialized = false;
 	SceneGraph EngineCore::m_sceneGraph;
 	EntityID EngineCore::m_selectedEntity = ID::invalidID;
+	bool EngineCore::m_showScene = true;
+	bool EngineCore::m_showInspector = true;
 	bool EngineCore::m_showImGuiDemo = false;
 	EntityID EngineCore::m_cameraID = ID::invalidID;
 	float EngineCore::m_deltaTime = 0.f;
@@ -63,7 +65,6 @@ namespace Dune
 #endif // _DEBUG
 		m_deltaTime = dt;
 		UpdateCamera();
-		DrawMainMenuBar();
 		DrawInterface();
 		if (m_showImGuiDemo)
 			ImGui::ShowDemoWindow(&m_showImGuiDemo);
@@ -174,7 +175,7 @@ namespace Dune
 		);
 
 		//Apply translation
-		const float speed = 3.f;
+		const float speed = (Input::GetKey(KeyCode::ShiftKey))? 50.f:5.f;
 		cameraTransform->position.x += translate.x * speed * m_deltaTime;
 		cameraTransform->position.y += translate.y * speed * m_deltaTime;
 		cameraTransform->position.z += translate.z * speed * m_deltaTime;
@@ -202,6 +203,14 @@ namespace Dune
 				{
 					m_showImGuiDemo = true;
 				}
+				if (ImGui::MenuItem("Show scene"))
+				{
+					m_showScene = true;
+				}
+				if (ImGui::MenuItem("Show inspector"))
+				{
+					m_showInspector = true;
+				}
 				ImGui::EndMenu();
 			}
 			
@@ -219,13 +228,16 @@ namespace Dune
 
 	void EngineCore::DrawInterface()
 	{
-		DrawScene();
-		DrawInspector();
+		DrawMainMenuBar();
+		if(m_showScene)
+			DrawScene();
+		if (m_showInspector)
+			DrawInspector();
 	}
 
 	void EngineCore::DrawScene()
 	{
-		ImGui::Begin("Scene");
+		ImGui::Begin("Scene", &m_showScene);
 		ImGui::Text("Scene graph");
 		ImGui::SameLine();
 		if (ImGui::Button("Add Entity"))
@@ -267,9 +279,14 @@ namespace Dune
 
 	void EngineCore::DrawGraph()
 	{
-		for (const SceneGraph::Node* child : m_sceneGraph.GetRoot()->GetChildren())
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+		if (ImGui::TreeNodeEx((void*)(uintptr_t)ID::invalidID, flags, "Root"))
 		{
-			DrawNode(child);
+			for (const SceneGraph::Node* child : m_sceneGraph.GetRoot()->GetChildren())
+			{
+				DrawNode(child);
+			}
+			ImGui::TreePop();
 		}
 	}
 
@@ -305,7 +322,7 @@ namespace Dune
 	}
 	void EngineCore::DrawInspector()
 	{
-		ImGui::Begin("Inspector");
+		ImGui::Begin("Inspector", &m_showInspector);
 
 		if (ID::IsValid(m_selectedEntity))
 		{
@@ -379,6 +396,7 @@ namespace Dune
 			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transformComponent->position)));
 
 			//TODO : Find when we should upload mesh
+			// Once when loaded I guess
 			if (!graphicsComponent->mesh->IsUploaded())
 			{
 				graphicsComponent->mesh->UploadBuffers();

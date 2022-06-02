@@ -5,7 +5,7 @@
 
 namespace Dune
 {
-	// TODO : Every graphics component has a copy of its mesh, we should use an id to a mesh inside a mesh manager
+	// TODO : Do a mesh manager and a material manager
 	struct GraphicsComponent
 	{
 		std::shared_ptr<Mesh> mesh = m_defaultMesh;

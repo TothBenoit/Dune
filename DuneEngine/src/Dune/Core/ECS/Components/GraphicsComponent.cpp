@@ -10,7 +10,7 @@ namespace Dune
 		10, 11, 9, 10, 9, 8,		//Left
 		13, 12, 14, 13, 14, 15,		//Right
 		16, 18, 19, 16, 19, 17,		//Top
-		22, 20, 21, 22, 21, 23		//Botoom
+		22, 20, 21, 22, 21, 23		//Bottom
 	};
 
 	const dVector<Vertex> GraphicsComponent::m_defaultCubeVertices =

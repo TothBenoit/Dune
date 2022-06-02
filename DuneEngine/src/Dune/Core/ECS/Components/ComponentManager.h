@@ -33,7 +33,6 @@ namespace Dune
 			return m_components.back();
 		}
 
-		//TODO : Find a solution to specify which component is mandatory and if it is the case allow remove only from EngineCore::RemoveEntity
 		static void Remove(EntityID entity)
 		{
 			auto it = m_lookup.find(entity);
