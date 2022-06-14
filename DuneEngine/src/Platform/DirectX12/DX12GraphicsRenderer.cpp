@@ -496,8 +496,8 @@ namespace Dune
 		psoDesc.PS = { reinterpret_cast<UINT8*>(pixelShader->GetBufferPointer()), pixelShader->GetBufferSize() };
 		D3D12_RASTERIZER_DESC rasterDesc;
 		rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
-		rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
-		rasterDesc.FrontCounterClockwise = TRUE;
+		rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
+		rasterDesc.FrontCounterClockwise = FALSE;
 		rasterDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 		rasterDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
 		rasterDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
