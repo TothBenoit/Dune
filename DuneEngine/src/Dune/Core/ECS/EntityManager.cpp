@@ -7,6 +7,7 @@
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
 #include "Dune/Core/ECS/Components/CameraComponent.h"
+#include "Dune/Core/ECS/Components/PointLightComponent.h"
 
 namespace Dune
 {
@@ -59,6 +60,7 @@ namespace Dune
 		EngineCore::RemoveComponent<BindingComponent>(id);
 		EngineCore::RemoveComponent<GraphicsComponent>(id);
 		EngineCore::RemoveComponent<CameraComponent>(id);
+		EngineCore::RemoveComponent<PointLightComponent>(id);
 		LOG_INFO(dStringUtils::printf("Entity %u has been removed", id).c_str());
 	}
 	bool EntityManager::IsValid(EntityID id) const

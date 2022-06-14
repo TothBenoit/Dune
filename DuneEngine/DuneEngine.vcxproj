@@ -15,6 +15,7 @@
     <ClInclude Include="src\Dune\Core\ECS\Components\CameraComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\GraphicsComponent.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\EntityManager.h" />
     <ClInclude Include="src\Dune\Core\ECS\ID.h" />
