@@ -22,6 +22,11 @@ namespace Dune
 
 	void Application::Start()
 	{
+		// Create the main instance of Remotery.
+		// You need only do this once per program.
+		Remotery* rmt;
+		rmt_CreateGlobalInstance(&rmt);
+
 		std::unique_ptr<Window> window = Window::Create();
 		EngineCore::Init();
 		GraphicsCore::Init(window.get());
@@ -35,6 +40,8 @@ namespace Dune
 
 		while (window->Update())
 		{
+			rmt_ScopedCPUSample(Update, 0);
+
 			auto timer = std::chrono::high_resolution_clock::now();
 			float dt = (float)std::chrono::duration<float>(timer - lastFrameTimer).count();
 			lastFrameTimer = std::chrono::high_resolution_clock::now();
@@ -49,6 +56,8 @@ namespace Dune
 		EngineCore::Shutdown();
 		ImGui::DestroyContext();
 
+		// Destroy the main instance of Remotery.
+		rmt_DestroyGlobalInstance(rmt);
 	}
 }
 

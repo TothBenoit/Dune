@@ -39,6 +39,7 @@
     <ClInclude Include="src\Dune\Core\ECS\Components\BindingComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\CameraComponent.h" />
     <ClInclude Include="src\Dune\Graphics\Material.h" />
+    <ClInclude Include="include\Recovery\Remotery.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />
@@ -63,6 +64,7 @@
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
+    <ClCompile Include="include\Recovery\Remotery.c" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Dune\Graphics\Shaders\PixelShader.hlsl" />

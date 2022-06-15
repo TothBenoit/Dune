@@ -17,6 +17,7 @@
 #include <dxgidebug.h>
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx12.h"
+#include "Recovery/Remotery.h"
 
 #define ThrowIfFailed(hr) if(FAILED(hr)) { __debugbreak(); assert(false);}
 #endif // DUNE_PLATFORM_WINDOWS
