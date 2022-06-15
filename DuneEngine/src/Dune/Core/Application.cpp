@@ -22,6 +22,7 @@ namespace Dune
 
 	void Application::Start()
 	{
+		Logger::Init();
 		std::unique_ptr<Window> window = Window::Create();
 		EngineCore::Init();
 		GraphicsCore::Init(window.get());
@@ -48,6 +49,7 @@ namespace Dune
 		GraphicsCore::Shutdown();
 		EngineCore::Shutdown();
 		ImGui::DestroyContext();
+		Logger::Shutdown();
 
 	}
 }
