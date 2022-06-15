@@ -13,7 +13,7 @@ namespace Dune
 	{
 		CreateFactory();
 		CreateDevice();
-		CreateCommandQueue();
+		CreateCommandQueues();
 		CreateSwapChain(window->GetHandle());
 		CreateRenderTargets();
 		CreateDepthStencil(window->GetWidth(), window->GetHeight());
@@ -21,7 +21,7 @@ namespace Dune
 		CreateRootSignature();
 		CreatePipeline();
 		CreateCommandLists();
-		CreateFence();
+		CreateFences();
 
 		//Create ImGui descriptor heap
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -37,38 +37,53 @@ namespace Dune
 
 	DX12GraphicsRenderer::~DX12GraphicsRenderer()
 	{
+		Microsoft::WRL::ComPtr<ID3D12DebugDevice2> debugDevice;
+		m_device->QueryInterface(IID_PPV_ARGS(&debugDevice));
+		debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
 	}
 
 	void DX12GraphicsRenderer::WaitForGPU()
 	{
-		if (m_commandQueue && m_fence && m_fenceEvent.IsValid())
-		{
-			// Schedule a Signal command in the GPU queue.
-			const UINT64 fenceValue = m_fenceValues[m_frameIndex];
-			if (SUCCEEDED(m_commandQueue->Signal(m_fence.Get(), fenceValue)))
-			{
-				// Wait until the Signal has been processed.
-				if (SUCCEEDED(m_fence->SetEventOnCompletion(fenceValue, m_fenceEvent.Get())))
-				{
-					std::ignore = WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
+		rmt_ScopedCPUSample(WaitForGPU, 0);
 
-					// Increment the fence value for the current frame.
-					m_fenceValues[m_frameIndex]++;
-				}
-			}
+		Assert(m_fence && m_fenceEvent.IsValid());
+
+		// Schedule a Signal command in the GPU queue.
+		const UINT64 frameFenceValue = m_fenceValues[m_frameIndex];
+		if (m_fence->GetCompletedValue() < frameFenceValue)
+		{
+			// Wait until the Signal has been processed.
+			ThrowIfFailed(m_fence->SetEventOnCompletion(frameFenceValue, m_fenceEvent.Get()))
+			std::ignore = WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
 		}
+
+		Assert(m_copyFence && m_copyFenceEvent.IsValid());
+		// Schedule a Signal command in the GPU queue.
+		const UINT64 copyFenceValue = m_copyFenceValue;
+		if (m_copyFence->GetCompletedValue() < copyFenceValue)
+		{
+			// Wait until the Signal has been processed.
+			ThrowIfFailed(m_copyFence->SetEventOnCompletion(copyFenceValue, m_copyFenceEvent.Get()))
+			std::ignore = WaitForSingleObjectEx(m_copyFenceEvent.Get(), INFINITE, FALSE);
+		}
+		
 	}
 
 	void DX12GraphicsRenderer::Render()
 	{
+		rmt_ScopedCPUSample(Render, 0);
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-
 		ImGui::Render();
 		PopulateCommandList();
 
 		// Execute the command list.
 		ID3D12CommandList* ppCommandLists[] = { m_commandLists[m_frameIndex].Get() };
 		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		const UINT64 fenceValue = m_fenceValues[m_frameIndex] + FrameCount;
+		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), fenceValue));
+
+		// Increment the fence value for the current frame.
+		m_fenceValues[m_frameIndex] += FrameCount;
 	}
 
 	void DX12GraphicsRenderer::Present()
@@ -79,7 +94,12 @@ namespace Dune
 
 	void DX12GraphicsRenderer::OnShutdown()
 	{
-		WaitForGPU();
+		for (dU32 i = 0; i < FrameCount; i++)
+		{
+			m_frameIndex = (m_frameIndex + 1) % FrameCount;
+			WaitForGPU();
+		}
+
 		ImGui_ImplDX12_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 	}
@@ -133,19 +153,7 @@ namespace Dune
 		else
 		{
 			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-			resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
-
-			WaitForGPU();
-
-			// Command list allocators can only be reset when the associated 
-			// command lists have finished execution on the GPU; apps should use 
-			// fences to determine GPU execution progress.
-			ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
-
-			// However, when ExecuteCommandList() is called on a particular command 
-			// list, that command list can then be reset at any time and must be before 
-			// re-recording.
-			ThrowIfFailed(m_commandLists[m_frameIndex]->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
+			resourceState = D3D12_RESOURCE_STATE_COMMON;
 		}
 
 		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -207,26 +215,20 @@ namespace Dune
 			memcpy(pDataBegin, data, bufferSize);
 			uploadBuffer->Unmap(0, nullptr);
 
-			m_commandLists[m_frameIndex]->CopyBufferRegion(buffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
+			WaitForGPU();
+			ThrowIfFailed(m_copyCommandAllocator->Reset());
+			ThrowIfFailed(m_copyCommandList->Reset(m_copyCommandAllocator.Get(), nullptr));
 
-			D3D12_RESOURCE_BARRIER barrierDesc;
-			ZeroMemory(&barrierDesc, sizeof(barrierDesc));
-			barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			barrierDesc.Transition.pResource = buffer->m_buffer.Get();
-			barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-			barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-			barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			m_copyCommandList->CopyBufferRegion(buffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
+			m_copyCommandList->Close();
+			dVector<ID3D12CommandList*> ppCommandLists{ m_copyCommandList.Get() };
+			m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 
-			m_commandLists[m_frameIndex]->ResourceBarrier(1, &barrierDesc);
+			ThrowIfFailed(m_copyCommandQueue->Signal(m_copyFence.Get(), m_copyFenceValue + 1));
+			m_copyFenceValue += 1;
 
-			// #11
-			m_commandLists[m_frameIndex]->Close();
-			dVector<ID3D12CommandList*> ppCommandLists{ m_commandLists[m_frameIndex].Get() };
-			m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 			WaitForGPU();
 		}
-
 
 		buffer->SetDescription(desc);
 		return std::move(buffer);
@@ -285,9 +287,10 @@ namespace Dune
 		// Create Device
 		ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0,
 			IID_PPV_ARGS(&m_device)));
+		NameDXObject(m_device, L"Device");
 	}
 
-	void DX12GraphicsRenderer::CreateCommandQueue()
+	void DX12GraphicsRenderer::CreateCommandQueues()
 	{
 		// Describe and create the command queue.
 		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -295,6 +298,13 @@ namespace Dune
 		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
 		ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+		NameDXObject(m_commandQueue, L"CommandQueue");
+		
+		D3D12_COMMAND_QUEUE_DESC copyQueueDesc = {};
+		copyQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+		copyQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+		ThrowIfFailed(m_device->CreateCommandQueue(&copyQueueDesc, IID_PPV_ARGS(&m_copyCommandQueue)));
+		NameDXObject(m_copyCommandQueue, L"CopyCommandQueue");
 	}
 
 	void DX12GraphicsRenderer::CreateSwapChain(HWND handle)
@@ -348,7 +358,7 @@ namespace Dune
 			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 			ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
-
+			NameDXObject(m_rtvHeap,L"RtvHeap");
 			m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		}
 
@@ -357,10 +367,11 @@ namespace Dune
 			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 			// Create a RTV for each frame.
-			for (UINT n = 0; n < FrameCount; n++)
+			for (UINT i = 0; i < FrameCount; i++)
 			{
-				ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
-				m_device->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvHandle);
+				ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_renderTargets[i])));
+				m_device->CreateRenderTargetView(m_renderTargets[i].Get(), nullptr, rtvHandle);
+				NameDXObjectIndexed(m_renderTargets[i], i, L"RenderTarget");
 				rtvHandle.ptr += (1 * m_rtvDescriptorSize);
 			}
 		}
@@ -381,6 +392,7 @@ namespace Dune
 		dsvHeapDesc.NodeMask = 0;
 
 		ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
+		NameDXObject(m_dsvHeap, L"DsvHeap");
 
 		D3D12_HEAP_PROPERTIES heapProps;
 		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -410,6 +422,7 @@ namespace Dune
 			&optimizedClearValue,
 			IID_PPV_ARGS(&m_depthStencilBuffer)
 		));
+		NameDXObject(m_depthStencilBuffer, L"DepthStencilBuffer");
 
 		// Update the depth-stencil view.
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
@@ -427,7 +440,11 @@ namespace Dune
 		for (dU32 i = 0; i < FrameCount; i++)
 		{
 			ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
+			NameDXObjectIndexed(m_commandAllocators[i], i,  L"CommandAllocators");
 		}
+
+		ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&m_copyCommandAllocator)));
+		NameDXObject(m_copyCommandAllocator, L"CopyCommandAllocator");
 	}
 
 	void DX12GraphicsRenderer::CreateRootSignature()
@@ -545,23 +562,28 @@ namespace Dune
 	void DX12GraphicsRenderer::CreateCommandLists()
 	{
 		// Create the command list.
+		// Command lists are created in the recording state, but there is nothing
+		// to record yet. The main loop expects it to be closed, so close it now.
 		for (dU32 i = 0; i < FrameCount; i++)
 		{
 			ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[i].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandLists[i])));
 			ThrowIfFailed(m_commandLists[i]->Close());
+			NameDXObjectIndexed(m_commandLists[i], i, L"CommandList");
 		}
 
-		// Command lists are created in the recording state, but there is nothing
-		// to record yet. The main loop expects it to be closed, so close it now.
+		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, m_copyCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_copyCommandList)));
+		ThrowIfFailed(m_copyCommandList->Close());
+		NameDXObject(m_copyCommandList,L"CopyCommandList");
 	}
 
-	void DX12GraphicsRenderer::CreateFence()
+	void DX12GraphicsRenderer::CreateFences()
 	{
 		// Create synchronization objects and wait until assets have been uploaded to the GPU.
 		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+		NameDXObject(m_fence, L"Fence");
 		for (dU32 i = 0; i < FrameCount; i++)
 		{
-			m_fenceValues[i] = 1;
+			m_fenceValues[i] = i;
 		}
 
 		m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
@@ -569,10 +591,21 @@ namespace Dune
 		{
 			ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 		}
+
+		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_copyFence)));
+		NameDXObject(m_copyFence, L"CopyFence");
+		m_copyFenceValue = 0;
+
+		m_copyFenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+		if (!m_copyFenceEvent.IsValid())
+		{
+			ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+		}
 	}
 
 	void DX12GraphicsRenderer::PopulateCommandList()
 	{
+		rmt_ScopedCPUSample(PopulateCommandList, 0);
 		// Command list allocators can only be reset when the associated 
 		// command lists have finished execution on the GPU; apps should use 
 		// fences to determine GPU execution progress.
@@ -614,6 +647,7 @@ namespace Dune
 		// Will be easier to do once we have a proper render pass pipeline
 		if (camera)
 		{
+			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
 			for (const GraphicsElement& elem : m_graphicsElements)
 			{
 				const Mesh* mesh = elem.GetMesh();

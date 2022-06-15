@@ -42,6 +42,7 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
+		rmt_ScopedCPUSample(GraphicsCoreUpdate, 0);
 
 		m_graphicsRenderer->WaitForGPU();
 		m_graphicsRenderer->Render();

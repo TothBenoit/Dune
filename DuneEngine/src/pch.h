@@ -20,6 +20,23 @@
 #include "Recovery/Remotery.h"
 
 #define ThrowIfFailed(hr) if(FAILED(hr)) { __debugbreak(); assert(false);}
+#ifdef _DEBUG
+#define NameDXObject(obj, name) obj->SetName(name); OutputDebugString(name); OutputDebugString(L" has been created \n");
+
+#define NameDXObjectIndexed(obj, n, name)						\
+{																\
+	wchar_t indexedName[128];									\
+	if (swprintf_s(indexedName, L"%s[%u]", name, n) > 0)		\
+	{															\
+		obj->SetName(indexedName);								\
+		OutputDebugString(indexedName);							\
+		OutputDebugString(L" has been created \n");				\
+	}															\
+}
+#else
+#define NameDXObject(obj, name)
+#define NameDXObjectIndexed(obj, n, name)
+#endif
 #endif // DUNE_PLATFORM_WINDOWS
 
 #define Assert(condition) if (!(condition)) {__debugbreak(); assert(false);} 

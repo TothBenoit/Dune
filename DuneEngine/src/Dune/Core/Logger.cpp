@@ -74,16 +74,16 @@ namespace Dune
 	{
 		while (m_shouldProcess)
 		{
-			if (!m_pendingMessages.empty())
-			{
-				std::pair<LogLevel, dString> msg;
+				while (!m_pendingMessages.empty())
 				{
-					std::lock_guard lock(m_logMutex);
-					msg = m_pendingMessages.front();
-					m_pendingMessages.pop();
+					std::pair<LogLevel, dString> msg;
+					{
+						std::lock_guard lock(m_logMutex);
+						msg = m_pendingMessages.front();
+						m_pendingMessages.pop();
+					}
+					Log(msg.first, msg.second);
 				}
-				Log(msg.first, msg.second);
-			}
 		}
 	}
 

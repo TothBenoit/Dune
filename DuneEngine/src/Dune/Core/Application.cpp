@@ -41,7 +41,7 @@ namespace Dune
 
 		while (window->Update())
 		{
-			rmt_ScopedCPUSample(Update, 0);
+			rmt_ScopedCPUSample(Frame, 0);
 
 			auto timer = std::chrono::high_resolution_clock::now();
 			float dt = (float)std::chrono::duration<float>(timer - lastFrameTimer).count();
@@ -53,10 +53,10 @@ namespace Dune
 			Input::EndFrame();
 		};
 
-		GraphicsCore::Shutdown();
-		EngineCore::Shutdown();
-		ImGui::DestroyContext();
-		Logger::Shutdown();
+			GraphicsCore::Shutdown();
+			EngineCore::Shutdown();
+			ImGui::DestroyContext();
+			Logger::Shutdown();
 
 		// Destroy the main instance of Remotery.
 		rmt_DestroyGlobalInstance(rmt);

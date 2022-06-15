@@ -21,10 +21,9 @@ namespace Dune
 
 	private:
 		static const UINT FrameCount = 2;
-
 		void CreateFactory();
 		void CreateDevice();
-		void CreateCommandQueue();
+		void CreateCommandQueues();
 		void CreateSwapChain(HWND handle);
 		void CreateRenderTargets();
 		void CreateDepthStencil(int width, int height);
@@ -32,10 +31,11 @@ namespace Dune
 		void CreateRootSignature();
 		void CreatePipeline();
 		void CreateCommandLists();
-		void CreateFence();
+		void CreateFences();
 		void PopulateCommandList();
 
 	private:
+		//TODO : FrameContext which contains graphics commands and copy commands (allocator and list), fences, render target 
 		D3D12_VIEWPORT										m_viewport;
 		D3D12_RECT											m_scissorRect;
 		Microsoft::WRL::ComPtr<IDXGIFactory4>				m_factory;
@@ -49,6 +49,9 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[FrameCount];
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandLists[FrameCount];
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_copyCommandQueue;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_copyCommandAllocator;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 		UINT												m_rtvDescriptorSize;
@@ -58,6 +61,9 @@ namespace Dune
 		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;
 		UINT64												m_fenceValues[FrameCount];
+		Microsoft::WRL::Wrappers::Event						m_copyFenceEvent;
+		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
+		UINT64												m_copyFenceValue;
 	};
 }
 

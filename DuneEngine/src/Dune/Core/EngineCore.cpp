@@ -65,6 +65,8 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
+		rmt_ScopedCPUSample(EngineCoreUpdate, 0);
+
 		m_deltaTime = dt;
 		UpdateCamera();
 		DrawInterface();
@@ -108,6 +110,7 @@ namespace Dune
 
 	void EngineCore::UpdateCamera()
 	{
+		rmt_ScopedCPUSample(UpdateCamera, 0);
 		//TODO: Input and transformation should be decoupled so we can compute new transformation only when it changed
 		if (!m_entityManager->IsValid(m_cameraID))
 			return;
@@ -230,6 +233,8 @@ namespace Dune
 
 	void EngineCore::DrawInterface()
 	{
+		rmt_ScopedCPUSample(DrawInterface, 0);
+
 		DrawMainMenuBar();
 		if(m_showScene)
 			DrawScene();
@@ -422,6 +427,7 @@ namespace Dune
 	}
 	void EngineCore::SendDataToGraphicsCore()
 	{
+		rmt_ScopedCPUSample(SendDataToGraphicsCore, 0);
 		GraphicsCore::GetGraphicsRenderer().ClearGraphicsElement();
 
 		for (const EntityID entity : ComponentManager<GraphicsComponent>::m_entities)
