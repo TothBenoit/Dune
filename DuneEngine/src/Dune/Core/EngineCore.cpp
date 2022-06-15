@@ -6,6 +6,7 @@
 #include "Dune/Core/ECS/Components/TransformComponent.h"
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
+#include "Dune/Core/ECS/Components/PointLightComponent.h"
 #include "Dune/Graphics/GraphicsCore.h"
 
 #include <DirectXMath.h>
@@ -36,6 +37,7 @@ namespace Dune
 		ComponentManager<BindingComponent>::Init();
 		ComponentManager<GraphicsComponent>::Init();
 		ComponentManager<CameraComponent>::Init();
+		ComponentManager<PointLightComponent>::Init();
 
 		m_isInitialized = true;
 
@@ -258,6 +260,20 @@ namespace Dune
 				transform->position.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
 				transform->position.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
 				transform->position.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+
+				LO = -180.f;
+				HI = 180.f;
+
+				transform->rotation.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
+				transform->rotation.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+				transform->rotation.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+
+				LO = 0.25f;
+				HI = 1.5f;
+
+				transform->scale.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
+				transform->scale.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+				transform->scale.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
 			}
 		}
 
@@ -373,6 +389,30 @@ namespace Dune
 				if (ImGui::Button("Add GraphicsComponent"))
 				{
 					AddComponent<GraphicsComponent>(m_selectedEntity);
+				}
+			}
+			if (PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(m_selectedEntity))
+			{
+				ImGui::Text("Point light attributes :");
+				float imGuiIntensity = pointLightComponent->intensity;
+				ImGui::DragFloat("Intensity", &imGuiIntensity, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f");
+				pointLightComponent->intensity = imGuiIntensity;
+
+				float imGuiRadius = pointLightComponent->radius;
+				ImGui::DragFloat("Radius", &imGuiRadius, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f");
+				pointLightComponent->radius = imGuiRadius;
+
+				float imGuiBaseColor[3] = { pointLightComponent->color.x, pointLightComponent->color.y, pointLightComponent->color.z };
+				ImGui::ColorPicker3("Color", imGuiBaseColor);
+				pointLightComponent->color.x = imGuiBaseColor[0];
+				pointLightComponent->color.y = imGuiBaseColor[1];
+				pointLightComponent->color.z = imGuiBaseColor[2];
+			}
+			else
+			{
+				if (ImGui::Button("Add PointLightComponent"))
+				{
+					AddComponent<PointLightComponent>(m_selectedEntity);
 				}
 			}
 		}

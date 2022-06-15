@@ -27,7 +27,7 @@ namespace Dune
 
 	bool Mesh::UploadVertexBuffer()
 	{
-		GraphicsBufferDesc desc = GraphicsBufferDesc();
+		GraphicsBufferDesc desc;
 		desc.size = (dU32)m_vertices.size() * sizeof(Vertex);
 		if (desc.size == 0)
 		{
@@ -41,7 +41,7 @@ namespace Dune
 
 	bool Mesh::UploadIndexBuffer()
 	{
-		GraphicsBufferDesc desc = GraphicsBufferDesc();
+		GraphicsBufferDesc desc;
 		desc.size = (dU32)m_indices.size() * sizeof(dU32);
 		if (desc.size == 0)
 		{

@@ -17,10 +17,10 @@ namespace Dune
 		CreateSwapChain(window->GetHandle());
 		CreateRenderTargets();
 		CreateDepthStencil(window->GetWidth(), window->GetHeight());
-		CreateCommandAllocator();
+		CreateCommandAllocators();
 		CreateRootSignature();
 		CreatePipeline();
-		CreateCommandList();
+		CreateCommandLists();
 		CreateFence();
 
 		//Create ImGui descriptor heap
@@ -44,7 +44,7 @@ namespace Dune
 		if (m_commandQueue && m_fence && m_fenceEvent.IsValid())
 		{
 			// Schedule a Signal command in the GPU queue.
-			const UINT64 fenceValue = m_fenceValue;
+			const UINT64 fenceValue = m_fenceValues[m_frameIndex];
 			if (SUCCEEDED(m_commandQueue->Signal(m_fence.Get(), fenceValue)))
 			{
 				// Wait until the Signal has been processed.
@@ -53,7 +53,7 @@ namespace Dune
 					std::ignore = WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
 
 					// Increment the fence value for the current frame.
-					m_fenceValue++;
+					m_fenceValues[m_frameIndex]++;
 				}
 			}
 		}
@@ -67,7 +67,7 @@ namespace Dune
 		PopulateCommandList();
 
 		// Execute the command list.
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+		ID3D12CommandList* ppCommandLists[] = { m_commandLists[m_frameIndex].Get() };
 		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
@@ -140,12 +140,12 @@ namespace Dune
 			// Command list allocators can only be reset when the associated 
 			// command lists have finished execution on the GPU; apps should use 
 			// fences to determine GPU execution progress.
-			ThrowIfFailed(m_commandAllocator->Reset());
+			ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
 
 			// However, when ExecuteCommandList() is called on a particular command 
 			// list, that command list can then be reset at any time and must be before 
 			// re-recording.
-			ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+			ThrowIfFailed(m_commandLists[m_frameIndex]->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
 		}
 
 		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -207,7 +207,7 @@ namespace Dune
 			memcpy(pDataBegin, data, bufferSize);
 			uploadBuffer->Unmap(0, nullptr);
 
-			m_commandList->CopyBufferRegion(buffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
+			m_commandLists[m_frameIndex]->CopyBufferRegion(buffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
 
 			D3D12_RESOURCE_BARRIER barrierDesc;
 			ZeroMemory(&barrierDesc, sizeof(barrierDesc));
@@ -218,11 +218,11 @@ namespace Dune
 			barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 			barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-			m_commandList->ResourceBarrier(1, &barrierDesc);
+			m_commandLists[m_frameIndex]->ResourceBarrier(1, &barrierDesc);
 
 			// #11
-			m_commandList->Close();
-			dVector<ID3D12CommandList*> ppCommandLists{ m_commandList.Get() };
+			m_commandLists[m_frameIndex]->Close();
+			dVector<ID3D12CommandList*> ppCommandLists{ m_commandLists[m_frameIndex].Get() };
 			m_commandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 			WaitForGPU();
 		}
@@ -422,9 +422,12 @@ namespace Dune
 			m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 	}
 
-	void DX12GraphicsRenderer::CreateCommandAllocator()
+	void DX12GraphicsRenderer::CreateCommandAllocators()
 	{
-		ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
+		for (dU32 i = 0; i < FrameCount; i++)
+		{
+			ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
+		}
 	}
 
 	void DX12GraphicsRenderer::CreateRootSignature()
@@ -496,8 +499,8 @@ namespace Dune
 		psoDesc.PS = { reinterpret_cast<UINT8*>(pixelShader->GetBufferPointer()), pixelShader->GetBufferSize() };
 		D3D12_RASTERIZER_DESC rasterDesc;
 		rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
-		rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
-		rasterDesc.FrontCounterClockwise = TRUE;
+		rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
+		rasterDesc.FrontCounterClockwise = FALSE;
 		rasterDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 		rasterDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
 		rasterDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
@@ -539,21 +542,27 @@ namespace Dune
 		ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 	}
 
-	void DX12GraphicsRenderer::CreateCommandList()
+	void DX12GraphicsRenderer::CreateCommandLists()
 	{
 		// Create the command list.
-		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
+		for (dU32 i = 0; i < FrameCount; i++)
+		{
+			ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[i].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandLists[i])));
+			ThrowIfFailed(m_commandLists[i]->Close());
+		}
 
 		// Command lists are created in the recording state, but there is nothing
 		// to record yet. The main loop expects it to be closed, so close it now.
-		ThrowIfFailed(m_commandList->Close());
 	}
 
 	void DX12GraphicsRenderer::CreateFence()
 	{
 		// Create synchronization objects and wait until assets have been uploaded to the GPU.
 		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-		m_fenceValue = 1;
+		for (dU32 i = 0; i < FrameCount; i++)
+		{
+			m_fenceValues[i] = 1;
+		}
 
 		m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
 		if (!m_fenceEvent.IsValid())
@@ -567,17 +576,17 @@ namespace Dune
 		// Command list allocators can only be reset when the associated 
 		// command lists have finished execution on the GPU; apps should use 
 		// fences to determine GPU execution progress.
-		ThrowIfFailed(m_commandAllocator->Reset());
+		ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
 
 		// However, when ExecuteCommandList() is called on a particular command 
 		// list, that command list can then be reset at any time and must be before 
 		// re-recording.
-		ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+		ThrowIfFailed(m_commandLists[m_frameIndex]->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
 
 		// Set necessary state.
-		m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
-		m_commandList->RSSetViewports(1, &m_viewport);
-		m_commandList->RSSetScissorRects(1, &m_scissorRect);
+		m_commandLists[m_frameIndex]->SetGraphicsRootSignature(m_rootSignature.Get());
+		m_commandLists[m_frameIndex]->RSSetViewports(1, &m_viewport);
+		m_commandLists[m_frameIndex]->RSSetScissorRects(1, &m_scissorRect);
 
 		// Indicate that the back buffer will be used as a render target.
 		D3D12_RESOURCE_BARRIER renderTargetBarrier;
@@ -587,17 +596,17 @@ namespace Dune
 		renderTargetBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 		renderTargetBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		renderTargetBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
+		m_commandLists[m_frameIndex]->ResourceBarrier(1, &renderTargetBarrier);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 		rtvHandle.ptr = rtvHandle.ptr + (m_frameIndex * m_rtvDescriptorSize);
 		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
-		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+		m_commandLists[m_frameIndex]->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		// Record commands.
 		const float clearColor[] = { 0.1f, 0.1f, 0.15f, 1.0f };
-		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		m_commandLists[m_frameIndex]->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		m_commandLists[m_frameIndex]->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		CameraComponent* camera = EngineCore::GetCamera();
 		// TODO: If there is no camera we do not want to run this function
@@ -627,9 +636,9 @@ namespace Dune
 				indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 				indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
 
-				m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-				m_commandList->IASetIndexBuffer(&indexBufferView);
+				m_commandLists[m_frameIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				m_commandLists[m_frameIndex]->IASetVertexBuffers(0, 1, &vertexBufferView);
+				m_commandLists[m_frameIndex]->IASetIndexBuffer(&indexBufferView);
 
 				DirectX::XMMATRIX normalMatrix = elem.GetTransform();
 				normalMatrix = DirectX::XMMatrixInverse(nullptr, normalMatrix);
@@ -645,16 +654,16 @@ namespace Dune
 				DirectX::XMStoreFloat4x4(&instanceMatrices.mvpMatrix, elem.GetTransform() * camera->viewMatrix * camera->projectionMatrix);
 				DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, normalMatrix);
 
-				m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);
-				m_commandList->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
+				m_commandLists[m_frameIndex]->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);
+				m_commandLists[m_frameIndex]->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
 
 				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
-				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+				m_commandLists[m_frameIndex]->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 			}
 		}
 
-		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+		m_commandLists[m_frameIndex]->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandLists[m_frameIndex].Get());
 
 		// Indicate that the back buffer will now be used to present.
 		D3D12_RESOURCE_BARRIER presentBarrier;
@@ -664,9 +673,9 @@ namespace Dune
 		presentBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		presentBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		presentBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		m_commandList->ResourceBarrier(1, &presentBarrier);
+		m_commandLists[m_frameIndex]->ResourceBarrier(1, &presentBarrier);
 
-		ThrowIfFailed(m_commandList->Close());
+		ThrowIfFailed(m_commandLists[m_frameIndex]->Close());
 	}
 
 }

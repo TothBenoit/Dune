@@ -10,7 +10,7 @@ namespace Dune
 
 	void GraphicsCore::Init(const Window* window)
 	{
-		if (isInitialized)
+		if (IsInitialized())
 		{
 			LOG_CRITICAL("Tried to initialize GraphicsCore which is already initialized");
 			return;
@@ -23,7 +23,7 @@ namespace Dune
 	void GraphicsCore::Shutdown()
 	{
 #ifdef _DEBUG
-		if (!isInitialized)
+		if (!IsInitialized())
 		{
 			LOG_CRITICAL("Tried to shutdown GraphicsCore which is not initialized");
 			return;
@@ -36,7 +36,7 @@ namespace Dune
 	void GraphicsCore::Update(float dt)
 	{
 #ifdef _DEBUG
-		if (!isInitialized)
+		if (!IsInitialized())
 		{
 			LOG_CRITICAL("Tried to update GraphicsCore which is not initialized");
 			return;

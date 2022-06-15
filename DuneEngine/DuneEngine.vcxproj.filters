@@ -40,6 +40,7 @@
     <ClInclude Include="src\Dune\Core\ECS\Components\CameraComponent.h" />
     <ClInclude Include="src\Dune\Graphics\Material.h" />
     <ClInclude Include="include\Recovery\Remotery.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />
