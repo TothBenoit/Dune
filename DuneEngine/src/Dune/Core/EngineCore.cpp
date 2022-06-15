@@ -260,6 +260,20 @@ namespace Dune
 				transform->position.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
 				transform->position.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
 				transform->position.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+
+				LO = -180.f;
+				HI = 180.f;
+
+				transform->rotation.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
+				transform->rotation.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+				transform->rotation.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+
+				LO = 0.25f;
+				HI = 1.5f;
+
+				transform->scale.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
+				transform->scale.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+				transform->scale.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
 			}
 		}
 

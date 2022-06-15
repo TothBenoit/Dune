@@ -30,8 +30,11 @@
 #include <memory>
 #include <assert.h>
 #include <type_traits>
+#include <thread>
+#include <mutex>
+#include <atomic>
 #include "imgui/imgui.h"
 #include "Dune/Common/Types.h"
 #include "Dune/Core/ECS/ID.h"
 
-#define MAX_ENTITIES 4096
+#define RESERVED_ENTITIES 4096

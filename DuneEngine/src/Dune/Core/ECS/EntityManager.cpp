@@ -13,7 +13,7 @@ namespace Dune
 {
 	EntityManager::EntityManager()
 	{
-		m_generationIDs.reserve(MAX_ENTITIES);
+		m_generationIDs.reserve(RESERVED_ENTITIES);
 	}
 
 	EntityID EntityManager::CreateEntity()

@@ -28,10 +28,10 @@ namespace Dune
 		void CreateSwapChain(HWND handle);
 		void CreateRenderTargets();
 		void CreateDepthStencil(int width, int height);
-		void CreateCommandAllocator();
+		void CreateCommandAllocators();
 		void CreateRootSignature();
 		void CreatePipeline();
-		void CreateCommandList();
+		void CreateCommandLists();
 		void CreateFence();
 		void PopulateCommandList();
 
@@ -47,8 +47,8 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_dsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocator;
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[FrameCount];
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandLists[FrameCount];
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 		UINT												m_rtvDescriptorSize;
@@ -57,7 +57,7 @@ namespace Dune
 		UINT												m_frameIndex;
 		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;
-		UINT64												m_fenceValue;
+		UINT64												m_fenceValues[FrameCount];
 	};
 }
 

@@ -77,7 +77,7 @@ namespace Dune
 		{
 			Assert(!m_isInitialized);
 
-			constexpr size_t reservedCount = MAX_ENTITIES;
+			constexpr size_t reservedCount = RESERVED_ENTITIES;
 			m_components.reserve(reservedCount);
 			m_entities.reserve(reservedCount);
 			m_lookup.reserve(reservedCount);
