@@ -73,7 +73,7 @@ namespace Dune
 			ImGui::ShowDemoWindow(&m_showImGuiDemo);
 
 		UpdateCamera();
-		UpdateTransformsMatrix();
+		UpdateTransforms();
 		SendDataToGraphicsCore();
 	}
 
