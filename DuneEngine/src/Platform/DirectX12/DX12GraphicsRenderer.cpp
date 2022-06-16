@@ -37,9 +37,11 @@ namespace Dune
 
 	DX12GraphicsRenderer::~DX12GraphicsRenderer()
 	{
+#ifdef _DEBUG
 		Microsoft::WRL::ComPtr<ID3D12DebugDevice2> debugDevice;
 		m_device->QueryInterface(IID_PPV_ARGS(&debugDevice));
 		debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+#endif
 	}
 
 	void DX12GraphicsRenderer::WaitForFrame(const dU64 frameIndex)

@@ -68,10 +68,12 @@ namespace Dune
 		rmt_ScopedCPUSample(EngineCoreUpdate, 0);
 
 		m_deltaTime = dt;
-		UpdateCamera();
 		DrawInterface();
 		if (m_showImGuiDemo)
 			ImGui::ShowDemoWindow(&m_showImGuiDemo);
+
+		UpdateCamera();
+		UpdateTransformsMatrix();
 		SendDataToGraphicsCore();
 	}
 
@@ -117,44 +119,58 @@ namespace Dune
 
 		dVec3 translate{ 0.f,0.f,0.f };
 		dVec3 rotation{ 0.f,0.f,0.f };
+		bool cameraHasMoved = false;
 
 		//Get input
 		if (Input::GetKey(KeyCode::Q))
 		{
 			translate.x = -0.1f;
+			cameraHasMoved = true;
 		}
 		if (Input::GetKey(KeyCode::D))
 		{
 			translate.x = 0.1f;
+			cameraHasMoved = true;
 		}
 
 		if (Input::GetKey(KeyCode::A))
 		{
 			translate.y = -0.1f;
+			cameraHasMoved = true;
 		}
 		if (Input::GetKey(KeyCode::E))
 		{
 			translate.y = 0.1f;
+			cameraHasMoved = true;
 		}
 
 		if (Input::GetKey(KeyCode::Z))
 		{
 			translate.z = 0.1f;
+			cameraHasMoved = true;
 		}
 		if (Input::GetKey(KeyCode::S))
 		{
 			translate.z = -0.1f;
+			cameraHasMoved = true;
 		}
 		if (Input::GetMouseButton(2))
 		{
 			rotation.x = (float) Input::GetMouseDeltaY() * 0.01f;
 			rotation.y = (float) Input::GetMouseDeltaX() * 0.01f;
+			cameraHasMoved = true;
+		}
+
+		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
+		Assert(cameraTransform);
+
+		if (!cameraHasMoved && !cameraTransform->hasChanged)
+		{
+			return;
 		}
 
 		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
 		Assert(camera);
-		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
-		Assert(cameraTransform);
 
 		//Add rotation
 		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x,DirectX::XM_2PI);
@@ -196,6 +212,24 @@ namespace Dune
 		//Compute camera projection matrix
 		float aspectRatio = 1600.f / 900.f;
 		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
+	}
+
+	void EngineCore::UpdateTransforms()
+	{
+		for (TransformComponent& transform : ComponentManager<TransformComponent>::m_components)
+		{
+			if (transform.hasChanged)
+			{
+				dMatrix modelMatrix = DirectX::XMMatrixIdentity();
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&transform.scale)));
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&transform.rotation)));
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)));
+				
+				transform.matrix = modelMatrix;
+
+				transform.hasChanged = false;
+			}
+		}
 	}
 
 	void EngineCore::DrawMainMenuBar()
@@ -360,24 +394,35 @@ namespace Dune
 
 				dVec3& pos = transform->position;
 				float imGuiPos[3] = { pos.x, pos.y, pos.z };
-				ImGui::DragFloat3("Position", imGuiPos, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
-				pos.x = imGuiPos[0];
-				pos.y = imGuiPos[1];
-				pos.z = imGuiPos[2];
+				if (ImGui::DragFloat3("Position", imGuiPos, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f"))
+				{
+					pos.x = imGuiPos[0];
+					pos.y = imGuiPos[1];
+					pos.z = imGuiPos[2];
+					transform->hasChanged = true;
+				}
+
 
 				dVec3& rot = transform->rotation;
 				float imGuiRot[3] = { DirectX::XMConvertToDegrees(rot.x),DirectX::XMConvertToDegrees(rot.y), DirectX::XMConvertToDegrees(rot.z) };
-				ImGui::DragFloat3("Rotation", imGuiRot, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
-				rot.x = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[0]), DirectX::XM_2PI);
-				rot.y = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[1]), DirectX::XM_2PI);
-				rot.z = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[2]), DirectX::XM_2PI);
+				if (ImGui::DragFloat3("Rotation", imGuiRot, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f"))
+				{
+					rot.x = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[0]), DirectX::XM_2PI);
+					rot.y = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[1]), DirectX::XM_2PI);
+					rot.z = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[2]), DirectX::XM_2PI);
+					transform->hasChanged = true;
+				}
 
 				dVec3& scale = transform->scale;
 				float imGuiScale[3] = { scale.x, scale.y, scale.z };
-				ImGui::DragFloat3("Scale", imGuiScale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
-				scale.x = imGuiScale[0];
-				scale.y = imGuiScale[1];
-				scale.z = imGuiScale[2];
+				if (ImGui::DragFloat3("Scale", imGuiScale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f"))
+				{
+					scale.x = imGuiScale[0];
+					scale.y = imGuiScale[1];
+					scale.z = imGuiScale[2];
+					transform->hasChanged = true;
+				}
+
 			}
 
 			if (GraphicsComponent* graphicsComponent = GetComponent<GraphicsComponent>(m_selectedEntity))
@@ -435,12 +480,6 @@ namespace Dune
 			GraphicsComponent* graphicsComponent = ComponentManager<GraphicsComponent>::GetComponent(entity);
 			TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
 
-			// TODO : use transformComponent matrix when implemented
-			dMatrix modelMatrix = DirectX::XMMatrixIdentity();
-			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&transformComponent->scale)));
-			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&transformComponent->rotation)));
-			modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transformComponent->position)));
-
 			//TODO : Find when we should upload mesh
 			// Once when loaded I guess
 			if (!graphicsComponent->mesh->IsUploaded())
@@ -448,7 +487,7 @@ namespace Dune
 				graphicsComponent->mesh->UploadBuffers();
 			}
 
-			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, modelMatrix));
+			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
 		}
 	}
 }

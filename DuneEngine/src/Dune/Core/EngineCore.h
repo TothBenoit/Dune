@@ -50,6 +50,7 @@ namespace Dune
 
 	private:
 		static void UpdateCamera();
+		static void UpdateTransforms();
 		static void DrawMainMenuBar();
 		static void DrawInterface();
 		static void DrawScene();
