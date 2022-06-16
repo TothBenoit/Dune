@@ -27,6 +27,7 @@ namespace Dune
 	private:
 		static std::thread m_logThread;
 		static std::mutex m_logMutex;
+		//Use LockLessQueue
 		static std::queue < std::pair<LogLevel, dString>> m_pendingMessages;
 		static std::atomic_bool m_shouldProcess;
 	};

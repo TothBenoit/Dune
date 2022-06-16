@@ -20,9 +20,7 @@ namespace Dune
 		void ClearGraphicsElement() { m_graphicsElements.clear(); }
 		void AddGraphicsElement(const GraphicsElement& elem);
 
-		virtual void WaitForGPU() = 0;
 		virtual void Render() = 0;
-		virtual void Present() = 0;
 		virtual void OnShutdown() = 0;
 		virtual void OnResize(int width, int height) = 0;
 		virtual std::unique_ptr<GraphicsBuffer> CreateBuffer(const void* data, const GraphicsBufferDesc& desc) = 0;

@@ -11,16 +11,14 @@ namespace Dune
 		DX12GraphicsRenderer(const WindowsWindow * window);
 		~DX12GraphicsRenderer() override;
 
-		void WaitForGPU() override;
 		void Render() override;
-		void Present() override;
 		void OnShutdown() override;
 		void OnResize(int width, int height) override;
 
 		std::unique_ptr<GraphicsBuffer> CreateBuffer(const void* data, const GraphicsBufferDesc& desc) override;
 
 	private:
-		static const UINT FrameCount = 2;
+		static const dU32 FrameCount = 2;
 		void CreateFactory();
 		void CreateDevice();
 		void CreateCommandQueues();
@@ -32,6 +30,8 @@ namespace Dune
 		void CreatePipeline();
 		void CreateCommandLists();
 		void CreateFences();
+		void WaitForFrame(const dU64 frameIndex);
+		void WaitForCopy();
 		void PopulateCommandList();
 
 	private:
@@ -54,16 +54,16 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-		UINT												m_rtvDescriptorSize;
+		dU32												m_rtvDescriptorSize;
 
 		// Synchronization
-		UINT												m_frameIndex;
+		dU64												m_frameNumber = 0;
 		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;
-		UINT64												m_fenceValues[FrameCount];
+		dU64												m_fenceValues[FrameCount];
 		Microsoft::WRL::Wrappers::Event						m_copyFenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
-		UINT64												m_copyFenceValue;
+		dU64												m_copyFenceValue;
 	};
 }
 
