@@ -651,7 +651,7 @@ namespace Dune
 		if (camera)
 		{
 			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
-			for (const GraphicsElement& elem : m_graphicsElements)
+			for (const auto& [id, elem]: m_graphicsElements)
 			{
 				const Mesh* mesh = elem.GetMesh();
 				if (!mesh->IsUploaded())

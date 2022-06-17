@@ -18,7 +18,8 @@ namespace Dune
 		static std::unique_ptr<GraphicsRenderer> Create(const Window * window);
 
 		void ClearGraphicsElement() { m_graphicsElements.clear(); }
-		void AddGraphicsElement(const GraphicsElement& elem);
+		void RemoveGraphicsElement(EntityID id) { m_graphicsElements.erase(id); }
+		void AddGraphicsElement(EntityID id, const GraphicsElement& elem);
 
 		virtual void Render() = 0;
 		virtual void OnShutdown() = 0;
@@ -27,7 +28,7 @@ namespace Dune
 
 	protected:
 		GraphicsRenderer() = default;
-		dVector<GraphicsElement> m_graphicsElements;
+		dHashMap<EntityID, GraphicsElement> m_graphicsElements;
 	};
 }
 

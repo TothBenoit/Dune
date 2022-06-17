@@ -108,6 +108,7 @@ namespace Dune
 #endif // _DEBUG
 		m_entityManager->RemoveEntity(id);
 		m_sceneGraph.DeleteNode(id);
+		GraphicsCore::GetGraphicsRenderer().RemoveGraphicsElement(id);
 	}
 
 	void EngineCore::UpdateCamera()
@@ -226,8 +227,6 @@ namespace Dune
 				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)));
 				
 				transform.matrix = modelMatrix;
-
-				transform.hasChanged = false;
 			}
 		}
 	}
@@ -473,12 +472,18 @@ namespace Dune
 	void EngineCore::SendDataToGraphicsCore()
 	{
 		rmt_ScopedCPUSample(SendDataToGraphicsCore, 0);
-		GraphicsCore::GetGraphicsRenderer().ClearGraphicsElement();
-
+		
 		for (const EntityID entity : ComponentManager<GraphicsComponent>::m_entities)
 		{
-			GraphicsComponent* graphicsComponent = ComponentManager<GraphicsComponent>::GetComponent(entity);
 			TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
+			
+			if (!transformComponent->hasChanged)
+			{
+				continue;
+			}
+			transformComponent->hasChanged = false;
+
+			GraphicsComponent* graphicsComponent = ComponentManager<GraphicsComponent>::GetComponent(entity);
 
 			//TODO : Find when we should upload mesh
 			// Once when loaded I guess
@@ -487,7 +492,7 @@ namespace Dune
 				graphicsComponent->mesh->UploadBuffers();
 			}
 
-			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
+			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(entity ,GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
 		}
 	}
 }
