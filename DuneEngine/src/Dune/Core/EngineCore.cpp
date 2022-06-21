@@ -517,7 +517,7 @@ namespace Dune
 					graphicsComponent->mesh->UploadBuffers();
 				}
 
-				renderer.AddGraphicsElement(entity, GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
+				renderer.SubmitGraphicsElement(entity, GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
 			}
 		}
 	}

@@ -19,7 +19,7 @@ namespace Dune
 
 		void ClearGraphicsElement();
 		void RemoveGraphicsElement(EntityID id);
-		void AddGraphicsElement(EntityID id, const GraphicsElement& elem);
+		void SubmitGraphicsElement(EntityID id, const GraphicsElement& elem);
 		void UpdateCamera();
 
 		virtual void Render() = 0;
@@ -32,9 +32,9 @@ namespace Dune
 
 	protected:
 		GraphicsRenderer() = default;
-		dHashMap<EntityID, dU32> m_lookupEntityToIndex;
-		//Graphics Element don't directly contain their entityID make it lighter and improve cache efficiency.
-		dVector<EntityID> m_lookupIndexToEntity;
+		dHashMap<EntityID, dU32> m_lookup;
+		//Graphics Element don't directly contain their entityID to make it lighter and improve cache efficiency.
+		dVector<EntityID> m_entities;
 		dVector<GraphicsElement> m_graphicsElements;
 		std::unique_ptr<GraphicsBuffer>	m_cameraMatrixBuffer;
 	};

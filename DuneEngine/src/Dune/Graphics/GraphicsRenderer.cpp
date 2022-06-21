@@ -21,28 +21,27 @@ namespace Dune
 	void GraphicsRenderer::ClearGraphicsElement()
 	{
 		m_graphicsElements.clear();
-		m_lookupEntityToIndex.clear();
-		m_lookupIndexToEntity.clear();
+		m_lookup.clear();
+		m_entities.clear();
 	}
 
-	void GraphicsRenderer::AddGraphicsElement(EntityID id, const GraphicsElement& elem)
+	void GraphicsRenderer::SubmitGraphicsElement(EntityID id, const GraphicsElement& elem)
 	{
-		auto it = m_lookupEntityToIndex.find(id);
-		if ( it != m_lookupEntityToIndex.end())
+		Assert(id != ID::invalidID);
+
+		auto it = m_lookup.find(id);
+		if ( it != m_lookup.end())
 		{
 			dU32 index = (*it).second;
 			m_graphicsElements[index] = elem;
-			m_lookupIndexToEntity[index] = id;
+			m_entities[index] = id;
 		}
 		else
 		{
-			m_graphicsElements.push_back(elem);
-			m_lookupIndexToEntity.push_back(id);
-			m_lookupEntityToIndex[id] = m_graphicsElements.size() - 1;
+			m_graphicsElements.emplace_back(elem);
+			m_entities.emplace_back(id);
+			m_lookup[id] = m_graphicsElements.size() - 1;
 		}
-
-		Assert(m_graphicsElements.size() == m_lookupIndexToEntity.size());
-		Assert(m_graphicsElements.size() == m_lookupEntityToIndex.size())
 	}
 
 	void GraphicsRenderer::UpdateCamera()
@@ -57,24 +56,23 @@ namespace Dune
 
 	void GraphicsRenderer::RemoveGraphicsElement(EntityID id)
 	{
-		auto it = m_lookupEntityToIndex.find(id);
-		Assert(it != m_lookupEntityToIndex.end());
+		auto it = m_lookup.find(id);
+		Assert(it != m_lookup.end());
 
-		dU32 index = (*it).second;
-		dU32 lastIndex = m_graphicsElements.size() - 1;
+		const dU32 index = (*it).second;
+		const EntityID entity = m_entities[index];
 
-		m_graphicsElements[index] = m_graphicsElements[lastIndex];
+		if (index < m_graphicsElements.size() - 1)
+		{
+			m_graphicsElements[index] = std::move(m_graphicsElements.back());
+			m_entities[index] = m_entities.back();
 
-		EntityID movedEntity = m_lookupEntityToIndex[lastIndex];
-		m_lookupIndexToEntity[index] = movedEntity;
-		m_lookupEntityToIndex[movedEntity] = index;
+			m_lookup[m_entities[index]] = index;
+		}
 		
 		m_graphicsElements.pop_back();
-		m_lookupIndexToEntity.pop_back();
-		m_lookupEntityToIndex.erase(id);
-
-		Assert(m_graphicsElements.size() == m_lookupIndexToEntity.size());
-		Assert(m_graphicsElements.size() == m_lookupEntityToIndex.size())
+		m_entities.pop_back();
+		m_lookup.erase(id);
 	}
 
 }
