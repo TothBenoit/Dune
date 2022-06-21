@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Dune/Core/ECS/Components/PointLightComponent.h"
 #include "GraphicsElement.h"
+#include "Dune/Graphics/PointLight.h"
 
 namespace Dune
 {
@@ -17,9 +19,13 @@ namespace Dune
 
 		static std::unique_ptr<GraphicsRenderer> Create(const Window * window);
 
-		void ClearGraphicsElement();
+		void ClearGraphicsElements();
 		void RemoveGraphicsElement(EntityID id);
 		void SubmitGraphicsElement(EntityID id, const GraphicsElement& elem);
+
+		void ClearPointLights();
+		void SubmitPointLight(const PointLightComponent& light, dVec3 pos);
+
 		void UpdateCamera();
 
 		virtual void Render() = 0;
@@ -32,10 +38,15 @@ namespace Dune
 
 	protected:
 		GraphicsRenderer() = default;
-		dHashMap<EntityID, dU32> m_lookup;
-		//Graphics Element don't directly contain their entityID to make it lighter and improve cache efficiency.
-		dVector<EntityID> m_entities;
+
+	protected:
+		
+		dVector<PointLight> m_pointsLights;
+		
 		dVector<GraphicsElement> m_graphicsElements;
+		dVector<EntityID> m_graphicsEntities;
+		dHashMap<EntityID, dU32> m_lookupGraphicsElements;
+
 		std::unique_ptr<GraphicsBuffer>	m_cameraMatrixBuffer;
 	};
 }

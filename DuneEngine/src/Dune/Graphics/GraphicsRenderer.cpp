@@ -18,30 +18,40 @@ namespace Dune
 #endif
 	}
 
-	void GraphicsRenderer::ClearGraphicsElement()
+	void GraphicsRenderer::ClearGraphicsElements()
 	{
 		m_graphicsElements.clear();
-		m_lookup.clear();
-		m_entities.clear();
+		m_lookupGraphicsElements.clear();
+		m_graphicsEntities.clear();
 	}
 
 	void GraphicsRenderer::SubmitGraphicsElement(EntityID id, const GraphicsElement& elem)
 	{
 		Assert(id != ID::invalidID);
 
-		auto it = m_lookup.find(id);
-		if ( it != m_lookup.end())
+		auto it = m_lookupGraphicsElements.find(id);
+		if ( it != m_lookupGraphicsElements.end())
 		{
 			dU32 index = (*it).second;
 			m_graphicsElements[index] = elem;
-			m_entities[index] = id;
+			m_graphicsEntities[index] = id;
 		}
 		else
 		{
+			m_lookupGraphicsElements[id] = (dU32) m_graphicsElements.size();
 			m_graphicsElements.emplace_back(elem);
-			m_entities.emplace_back(id);
-			m_lookup[id] = m_graphicsElements.size() - 1;
+			m_graphicsEntities.emplace_back(id);
 		}
+	}
+
+	void GraphicsRenderer::ClearPointLights()
+	{
+		m_pointsLights.clear();
+	}
+
+	void GraphicsRenderer::SubmitPointLight(const PointLightComponent& light, dVec3 pos)
+	{
+		m_pointsLights.emplace_back(light.color, light.intensity, light.radius, pos);
 	}
 
 	void GraphicsRenderer::UpdateCamera()
@@ -56,23 +66,23 @@ namespace Dune
 
 	void GraphicsRenderer::RemoveGraphicsElement(EntityID id)
 	{
-		auto it = m_lookup.find(id);
-		Assert(it != m_lookup.end());
+		auto it = m_lookupGraphicsElements.find(id);
+		Assert(it != m_lookupGraphicsElements.end());
 
 		const dU32 index = (*it).second;
-		const EntityID entity = m_entities[index];
+		const EntityID entity = m_graphicsEntities[index];
 
 		if (index < m_graphicsElements.size() - 1)
 		{
 			m_graphicsElements[index] = std::move(m_graphicsElements.back());
-			m_entities[index] = m_entities.back();
+			m_graphicsEntities[index] = m_graphicsEntities.back();
 
-			m_lookup[m_entities[index]] = index;
+			m_lookupGraphicsElements[m_graphicsEntities[index]] = index;
 		}
 		
 		m_graphicsElements.pop_back();
-		m_entities.pop_back();
-		m_lookup.erase(id);
+		m_graphicsEntities.pop_back();
+		m_lookupGraphicsElements.erase(id);
 	}
 
 }

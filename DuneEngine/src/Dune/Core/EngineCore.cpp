@@ -503,11 +503,21 @@ namespace Dune
 			cameraTransform->hasChanged = false;
 		}
 
+		renderer.ClearPointLights();
+
+		for (const EntityID id : ComponentManager<PointLightComponent>::m_entities)
+		{
+			PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(id);
+			TransformComponent* transformComponent = GetComponent<TransformComponent>(id);
+
+			renderer.SubmitPointLight(*pointLightComponent, transformComponent->position);
+		}
+
 		for (const EntityID entity : m_transformModifiedEntities)
 		{
-			if (GraphicsComponent* graphicsComponent = ComponentManager<GraphicsComponent>::GetComponent(entity))
+			if (GraphicsComponent* graphicsComponent = GetComponent<GraphicsComponent>(entity))
 			{
-				TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
+				TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
 				Assert(transformComponent);
 
 				//TODO : Find when we should upload mesh

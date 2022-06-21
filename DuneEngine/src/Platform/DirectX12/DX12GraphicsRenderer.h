@@ -35,6 +35,10 @@ namespace Dune
 		void WaitForCopy();
 		void PopulateCommandList();
 
+		//TEMP
+		void CreateLightsBuffer();
+		void UpdateLights();
+
 	private:
 		//TODO : FrameContext which contains graphics commands and copy commands (allocator and list), fences, render target 
 		D3D12_VIEWPORT										m_viewport;
@@ -65,6 +69,10 @@ namespace Dune
 		Microsoft::WRL::Wrappers::Event						m_copyFenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
 		dU64												m_copyFenceValue;
+
+		//TEMP
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_lightsBuffer;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightsHeap;
 	};
 }
 

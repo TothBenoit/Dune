@@ -22,6 +22,7 @@ namespace Dune
 		CreatePipeline();
 		CreateCommandLists();
 		CreateFences();
+		CreateLightsBuffer();
 
 		dMatrix identity;
 		GraphicsBufferDesc camBufferDesc;
@@ -238,6 +239,9 @@ namespace Dune
 
 			ThrowIfFailed(m_copyCommandQueue->Signal(m_copyFence.Get(), m_copyFenceValue + 1));
 			m_copyFenceValue += 1;
+
+			//TODO : Store somewhere the temp upload buffer so we don't have to wait so it doesn't release too soon
+			WaitForCopy();
 		}
 
 		buffer->SetDescription(desc);
@@ -483,7 +487,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateRootSignature()
 	{
-		D3D12_ROOT_PARAMETER1 rootParameters[3];
+		D3D12_ROOT_PARAMETER1 rootParameters[4];
 		//Instance Matrices (MVP and Normal)
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -504,14 +508,26 @@ namespace Dune
 		rootParameters[2].Descriptor.RegisterSpace = 0;
 		rootParameters[2].Descriptor.ShaderRegister = 2;
 
+		D3D12_DESCRIPTOR_RANGE1 range;
+		range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // we're using structured buffers - it's a SRV
+		range.NumDescriptors = 1; // we have 2 structured buffers and 2 descriptors
+		range.BaseShaderRegister = 0; // we start from the first register (t0)
+		range.RegisterSpace = 0; // this allows us to use the same register name if we use different space
+		range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+		range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+		rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
+		rootParameters[3].DescriptorTable.pDescriptorRanges = &range;
+
 		D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		rootSignatureDesc.Desc_1_1.Flags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 		rootSignatureDesc.Desc_1_1.NumParameters = _countof(rootParameters);
 		rootSignatureDesc.Desc_1_1.pParameters = rootParameters;
 		rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
@@ -519,7 +535,11 @@ namespace Dune
 
 		Microsoft::WRL::ComPtr<ID3DBlob> signature;
 		Microsoft::WRL::ComPtr<ID3DBlob> error;
-		ThrowIfFailed(D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error));
+		if (FAILED(D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error)))
+		{
+			OutputDebugStringA((const char *)error->GetBufferPointer());
+			Assert(0);
+		}
 		ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
 	}
 
@@ -643,6 +663,52 @@ namespace Dune
 		}
 	}
 
+	void DX12GraphicsRenderer::CreateLightsBuffer()
+	{
+		const UINT bufferSize = sizeof(PointLight) * 100;
+
+		D3D12_HEAP_PROPERTIES heapProps;
+		D3D12_RESOURCE_STATES resourceState;
+
+		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+		resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = 1;
+		heapProps.VisibleNodeMask = 1;
+
+		D3D12_RESOURCE_DESC resourceDesc;
+		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		resourceDesc.Alignment = 0;
+		resourceDesc.Width = bufferSize;
+		resourceDesc.Height = 1;
+		resourceDesc.DepthOrArraySize = 1;
+		resourceDesc.MipLevels = 1;
+		resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+		resourceDesc.SampleDesc.Count = 1;
+		resourceDesc.SampleDesc.Quality = 0;
+		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		ThrowIfFailed(m_device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			resourceState,
+			nullptr,
+			IID_PPV_ARGS(&m_lightsBuffer)));
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = 1;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		heapDesc.NodeMask = 0;
+
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_lightsHeap.ReleaseAndGetAddressOf())));
+	}
+
 	void DX12GraphicsRenderer::PopulateCommandList()
 	{
 		rmt_ScopedCPUSample(PopulateCommandList, 0);
@@ -678,12 +744,19 @@ namespace Dune
 		m_commandLists[frameIndex]->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		// Record commands.
-		const float clearColor[] = { 0.1f, 0.1f, 0.15f, 1.0f };
+		const float clearColor[] = { 0.05f, 0.05f, 0.075f, 1.0f };
 		m_commandLists[frameIndex]->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		m_commandLists[frameIndex]->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
 		m_commandLists[frameIndex]->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
+
+		UpdateLights();
+
+		ID3D12DescriptorHeap* ppHeaps[] = { m_lightsHeap.Get() };
+		m_commandLists[frameIndex]->SetDescriptorHeaps(1, ppHeaps);
+		D3D12_GPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetGPUDescriptorHandleForHeapStart() };
+		m_commandLists[frameIndex]->SetGraphicsRootDescriptorTable(3, d);
 
 		rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
 		for (const auto& elem: m_graphicsElements)
@@ -746,6 +819,33 @@ namespace Dune
 		m_commandLists[frameIndex]->ResourceBarrier(1, &presentBarrier);
 
 		ThrowIfFailed(m_commandLists[frameIndex]->Close());
+	}
+
+	void DX12GraphicsRenderer::UpdateLights()
+	{
+		if (m_pointsLights.empty())
+			return;
+			
+		UINT8* pDataBegin;
+		D3D12_RANGE readRange;
+		readRange.Begin = 0;
+		readRange.End = 0;
+		ThrowIfFailed(m_lightsBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
+		memcpy(pDataBegin, m_pointsLights.data(), m_pointsLights.size() * sizeof(PointLight));
+		m_lightsBuffer->Unmap(0, nullptr);
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+		ZeroMemory(&srvDesc, sizeof(srvDesc));
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Buffer.FirstElement = 0;
+		srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointsLights.size());
+		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
+		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
+		m_device->CreateShaderResourceView(m_lightsBuffer.Get(), &srvDesc, d);
 	}
 
 }

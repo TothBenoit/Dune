@@ -32,6 +32,7 @@ struct VS_OUTPUT
     float4 position : SV_Position;
     float4 color : COLOR;
     float4 normal : NORMAL;
+    float4 wPos : WPOS;
 };
 
 VS_OUTPUT VSMain(VS_INPUT input)
@@ -41,6 +42,6 @@ VS_OUTPUT VSMain(VS_INPUT input)
     o.position = mul(MVP, float4(input.vPos, 1.0f) );
     o.color = MaterialCB.BaseColor;
     o.normal = mul(InstanceMatricesCB.NormalMatrix, float4(input.vNormal, 1.0f));
-
+    o.wPos = mul(InstanceMatricesCB.ModelMatrix, float4(input.vPos, 1.0f));
 	return o;
 }

@@ -41,6 +41,7 @@
     <ClInclude Include="src\Dune\Graphics\Material.h" />
     <ClInclude Include="include\Recovery\Remotery.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h" />
+    <ClInclude Include="src\Dune\Graphics\PointLight.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />
@@ -66,6 +67,7 @@
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
     <ClCompile Include="include\Recovery\Remotery.c" />
+    <ClCompile Include="src\Dune\Graphics\GraphicsElement.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Dune\Graphics\Shaders\PixelShader.hlsl" />
