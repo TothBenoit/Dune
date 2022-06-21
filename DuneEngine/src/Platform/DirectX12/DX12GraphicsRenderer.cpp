@@ -692,7 +692,7 @@ namespace Dune
 			m_commandLists[frameIndex]->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
 
 			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
-			for (const auto& [id, elem]: m_graphicsElements)
+			for (const auto& elem: m_graphicsElements)
 			{
 				const Mesh* mesh = elem.GetMesh();
 				if (!mesh->IsUploaded())

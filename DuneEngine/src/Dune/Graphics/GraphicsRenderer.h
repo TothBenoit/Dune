@@ -17,8 +17,8 @@ namespace Dune
 
 		static std::unique_ptr<GraphicsRenderer> Create(const Window * window);
 
-		void ClearGraphicsElement() { m_graphicsElements.clear(); }
-		void RemoveGraphicsElement(EntityID id) { m_graphicsElements.erase(id); }
+		void ClearGraphicsElement();
+		void RemoveGraphicsElement(EntityID id);
 		void AddGraphicsElement(EntityID id, const GraphicsElement& elem);
 		void UpdateCamera();
 
@@ -32,7 +32,10 @@ namespace Dune
 
 	protected:
 		GraphicsRenderer() = default;
-		dHashMap<EntityID, GraphicsElement> m_graphicsElements;
+		dHashMap<EntityID, dU32> m_lookupEntityToIndex;
+		//Graphics Element don't directly contain their entityID make it lighter and improve cache efficiency.
+		dVector<EntityID> m_lookupIndexToEntity;
+		dVector<GraphicsElement> m_graphicsElements;
 		std::unique_ptr<GraphicsBuffer>	m_cameraMatrixBuffer;
 	};
 }

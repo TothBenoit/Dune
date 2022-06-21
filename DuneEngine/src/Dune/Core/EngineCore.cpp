@@ -484,6 +484,8 @@ namespace Dune
 			}
 		}
 
+		//TODO : Create a "pendingGraphicsEntities" to loop through
+		//		 Avoid to loop through every entity
 		for (const EntityID entity : ComponentManager<GraphicsComponent>::m_entities)
 		{
 			TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
