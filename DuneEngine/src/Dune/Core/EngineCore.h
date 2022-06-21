@@ -58,6 +58,7 @@ namespace Dune
 		static void DrawNode(const SceneGraph::Node* node);
 		static void DrawInspector();
 		static void SendDataToGraphicsCore();
+		static void ClearTransformModifiedEntities();
 	private:
 		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
@@ -68,6 +69,7 @@ namespace Dune
 		static bool m_showImGuiDemo;
 		static EntityID m_cameraID;
 		static float m_deltaTime;
+		static dVector<EntityID> m_transformModifiedEntities;
 	};
 }
 

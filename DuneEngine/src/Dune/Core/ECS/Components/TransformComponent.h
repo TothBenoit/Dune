@@ -2,7 +2,7 @@
 
 namespace Dune
 {
-	// TODO : should be a single matrix, and should be only modified through a system so we update matrix only when it changed (same as camera)
+	// TODO : find a consistent way to notify when a transform has been modified. Should we use only function like unity ? Or hide transform component and use an interface ?
 	struct TransformComponent
 	{
 		dVec3 position = { 0.f,0.f,0.f };

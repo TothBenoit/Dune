@@ -22,6 +22,7 @@ namespace Dune
 	bool EngineCore::m_showImGuiDemo = false;
 	EntityID EngineCore::m_cameraID = ID::invalidID;
 	float EngineCore::m_deltaTime = 0.f;
+	dVector<EntityID> EngineCore::m_transformModifiedEntities;
 
 	void EngineCore::Init()
 	{
@@ -75,6 +76,7 @@ namespace Dune
 		UpdateCamera();
 		UpdateTransforms();
 		SendDataToGraphicsCore();
+		ClearTransformModifiedEntities();
 	}
 
 	EntityID EngineCore::CreateEntity(const dString& name)
@@ -92,6 +94,8 @@ namespace Dune
 		//Add mandatory components
 		AddComponent<TransformComponent>(id);
 		AddComponent<BindingComponent>(id);
+
+		m_transformModifiedEntities.push_back(id);
 
 		m_sceneGraph.AddNode(id, name);
 		return id;
@@ -165,9 +169,17 @@ namespace Dune
 		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
 		Assert(cameraTransform);
 
-		if (!cameraHasMoved && !cameraTransform->hasChanged)
+		if (!cameraTransform->hasChanged)
 		{
-			return;
+			if (!cameraHasMoved)
+			{
+				return;
+			}
+			else
+			{
+				cameraTransform->hasChanged = true;
+				m_transformModifiedEntities.push_back(m_cameraID);
+			}
 		}
 
 		CameraComponent* camera = GetComponent<CameraComponent>(m_cameraID);
@@ -217,16 +229,16 @@ namespace Dune
 
 	void EngineCore::UpdateTransforms()
 	{
-		for (TransformComponent& transform : ComponentManager<TransformComponent>::m_components)
+		for (const EntityID entity: m_transformModifiedEntities)
 		{
-			if (transform.hasChanged)
+			if (TransformComponent* transform = GetComponent<TransformComponent>(entity))
 			{
 				dMatrix modelMatrix = DirectX::XMMatrixIdentity();
-				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&transform.scale)));
-				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&transform.rotation)));
-				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)));
-				
-				transform.matrix = modelMatrix;
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&transform->scale)));
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&transform->rotation)));
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform->position)));
+
+				transform->matrix = modelMatrix;
 			}
 		}
 	}
@@ -389,6 +401,8 @@ namespace Dune
 			ImGui::Separator();
 			if (TransformComponent* transform = GetComponent<TransformComponent>(m_selectedEntity))
 			{
+				bool hasChanged = false;
+
 				ImGui::Text("Transform :");
 
 				dVec3& pos = transform->position;
@@ -398,7 +412,7 @@ namespace Dune
 					pos.x = imGuiPos[0];
 					pos.y = imGuiPos[1];
 					pos.z = imGuiPos[2];
-					transform->hasChanged = true;
+					hasChanged = true;
 				}
 
 
@@ -409,7 +423,7 @@ namespace Dune
 					rot.x = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[0]), DirectX::XM_2PI);
 					rot.y = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[1]), DirectX::XM_2PI);
 					rot.z = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[2]), DirectX::XM_2PI);
-					transform->hasChanged = true;
+					hasChanged = true;
 				}
 
 				dVec3& scale = transform->scale;
@@ -419,7 +433,13 @@ namespace Dune
 					scale.x = imGuiScale[0];
 					scale.y = imGuiScale[1];
 					scale.z = imGuiScale[2];
+					hasChanged = true;
+				}
+
+				if (hasChanged)
+				{
 					transform->hasChanged = true;
+					m_transformModifiedEntities.push_back(m_selectedEntity);
 				}
 
 			}
@@ -476,37 +496,43 @@ namespace Dune
 		GraphicsRenderer& renderer = GraphicsCore::GetGraphicsRenderer();
 
 		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
-		if (cameraTransform)
+		Assert(cameraTransform);
+		if (cameraTransform->hasChanged)
 		{
-			if (cameraTransform->hasChanged)
-			{
-				renderer.UpdateCamera();
-			}
+			renderer.UpdateCamera();
+			cameraTransform->hasChanged = false;
 		}
 
-		//TODO : Create a "pendingGraphicsEntities" to loop through
-		//		 Avoid to loop through every entity
-		for (const EntityID entity : ComponentManager<GraphicsComponent>::m_entities)
+		for (const EntityID entity : m_transformModifiedEntities)
 		{
-			TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
-			Assert(transformComponent);
-
-			if (!transformComponent->hasChanged)
+			if (GraphicsComponent* graphicsComponent = ComponentManager<GraphicsComponent>::GetComponent(entity))
 			{
-				continue;
+				TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
+				Assert(transformComponent);
+
+				//TODO : Find when we should upload mesh
+				// Once when loaded I guess
+				if (!graphicsComponent->mesh->IsUploaded())
+				{
+					graphicsComponent->mesh->UploadBuffers();
+				}
+
+				renderer.AddGraphicsElement(entity, GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
 			}
-			transformComponent->hasChanged = false;
-
-			GraphicsComponent* graphicsComponent = ComponentManager<GraphicsComponent>::GetComponent(entity);
-
-			//TODO : Find when we should upload mesh
-			// Once when loaded I guess
-			if (!graphicsComponent->mesh->IsUploaded())
-			{
-				graphicsComponent->mesh->UploadBuffers();
-			}
-
-			renderer.AddGraphicsElement(entity ,GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
 		}
 	}
+
+	void EngineCore::ClearTransformModifiedEntities()
+	{
+		for (const EntityID entity : m_transformModifiedEntities)
+		{
+			TransformComponent* transform = GetComponent<TransformComponent>(entity);
+			Assert(transform);
+
+			transform->hasChanged = false;
+		}
+
+		m_transformModifiedEntities.clear();
+	}
+
 }

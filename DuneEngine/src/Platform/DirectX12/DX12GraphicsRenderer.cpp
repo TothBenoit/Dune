@@ -682,62 +682,54 @@ namespace Dune
 		m_commandLists[frameIndex]->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		m_commandLists[frameIndex]->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-		CameraComponent* camera = EngineCore::GetCamera();
-		// TODO: If there is no camera we do not want to run this function
-		// however we still want ImGui to run, game and ImGui should be decoupled, for now we just skip the graphics element loop
-		// Will be easier to do once we have a proper render pass pipeline
-		if (camera)
+		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
+		m_commandLists[frameIndex]->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
+
+		rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
+		for (const auto& elem: m_graphicsElements)
 		{
-			Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
-			m_commandLists[frameIndex]->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
+			const Mesh* mesh = elem.GetMesh();
 
-			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
-			for (const auto& elem: m_graphicsElements)
-			{
-				const Mesh* mesh = elem.GetMesh();
-				if (!mesh->IsUploaded())
-				{
-					continue;
-				}
+			// At this point, mesh should be already uploaded.
+			Assert(mesh->IsUploaded());
 
-				const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
-				const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
+			const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
+			const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
 
-				D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-				// Initialize the vertex buffer view.
-				vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
-				vertexBufferView.StrideInBytes = sizeof(Vertex);
-				vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
+			D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+			// Initialize the vertex buffer view.
+			vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
+			vertexBufferView.StrideInBytes = sizeof(Vertex);
+			vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
 
-				D3D12_INDEX_BUFFER_VIEW indexBufferView;
-				indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
-				indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-				indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
+			D3D12_INDEX_BUFFER_VIEW indexBufferView;
+			indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
+			indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+			indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
 
-				m_commandLists[frameIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				m_commandLists[frameIndex]->IASetVertexBuffers(0, 1, &vertexBufferView);
-				m_commandLists[frameIndex]->IASetIndexBuffer(&indexBufferView);
+			m_commandLists[frameIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_commandLists[frameIndex]->IASetVertexBuffers(0, 1, &vertexBufferView);
+			m_commandLists[frameIndex]->IASetIndexBuffer(&indexBufferView);
 
-				DirectX::XMMATRIX normalMatrix = elem.GetTransform();
-				normalMatrix = DirectX::XMMatrixInverse(nullptr, normalMatrix);
-				normalMatrix = DirectX::XMMatrixTranspose(normalMatrix);
+			DirectX::XMMATRIX normalMatrix = elem.GetTransform();
+			normalMatrix = DirectX::XMMatrixInverse(nullptr, normalMatrix);
+			normalMatrix = DirectX::XMMatrixTranspose(normalMatrix);
 				
-				struct InstanceMatrices
-				{
-					DirectX::XMFLOAT4X4 modelMatrix;
-					DirectX::XMFLOAT4X4 normalMatrix;
-				};
+			struct InstanceMatrices
+			{
+				DirectX::XMFLOAT4X4 modelMatrix;
+				DirectX::XMFLOAT4X4 normalMatrix;
+			};
 
-				InstanceMatrices instanceMatrices;
-				DirectX::XMStoreFloat4x4(&instanceMatrices.modelMatrix, elem.GetTransform());
-				DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, normalMatrix);
+			InstanceMatrices instanceMatrices;
+			DirectX::XMStoreFloat4x4(&instanceMatrices.modelMatrix, elem.GetTransform());
+			DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, normalMatrix);
 
-				m_commandLists[frameIndex]->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);
-				m_commandLists[frameIndex]->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
+			m_commandLists[frameIndex]->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);
+			m_commandLists[frameIndex]->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
 
-				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
-				m_commandLists[frameIndex]->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
-			}
+			dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
+			m_commandLists[frameIndex]->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 		}
 
 		m_commandLists[frameIndex]->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
