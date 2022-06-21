@@ -23,6 +23,12 @@ namespace Dune
 		CreateCommandLists();
 		CreateFences();
 
+		dMatrix identity;
+		GraphicsBufferDesc camBufferDesc;
+		camBufferDesc.size = sizeof(dMatrix);
+		camBufferDesc.usage = EBufferUsage::Upload;
+		m_cameraMatrixBuffer = CreateBuffer(&identity, camBufferDesc);
+
 		//Create ImGui descriptor heap
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -238,6 +244,32 @@ namespace Dune
 		return std::move(buffer);
 	}
 
+	void DX12GraphicsRenderer::UpdateBuffer(std::unique_ptr<GraphicsBuffer>& buffer, const void* data)
+	{
+		DX12GraphicsBuffer* graphicsBuffer = static_cast<DX12GraphicsBuffer*>(buffer.get());
+
+		GraphicsBufferDesc desc = graphicsBuffer->GetDescription();
+
+		switch (desc.usage)
+		{
+		case EBufferUsage::Default:
+			buffer.reset(nullptr);
+			buffer = CreateBuffer(data, desc);
+			break;
+		case EBufferUsage::Upload:
+			UINT8* pDataBegin;
+			D3D12_RANGE readRange;
+			readRange.Begin = 0;
+			readRange.End = 0;
+			ThrowIfFailed(graphicsBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
+			memcpy(pDataBegin, data, desc.size);
+			graphicsBuffer->m_buffer->Unmap(0, nullptr);
+			break;
+		default:
+			break;
+		}
+	}
+
 	void DX12GraphicsRenderer::CreateFactory()
 	{
 		UINT dxgiFactoryFlags = 0;
@@ -451,7 +483,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateRootSignature()
 	{
-		D3D12_ROOT_PARAMETER1 rootParameters[2];
+		D3D12_ROOT_PARAMETER1 rootParameters[3];
 		//Instance Matrices (MVP and Normal)
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -465,6 +497,12 @@ namespace Dune
 		rootParameters[1].Constants.RegisterSpace = 0;
 		rootParameters[1].Constants.ShaderRegister = 1;
 		rootParameters[1].Constants.Num32BitValues = sizeof(dVec4) / 4;
+
+		rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+		rootParameters[2].Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC;
+		rootParameters[2].Descriptor.RegisterSpace = 0;
+		rootParameters[2].Descriptor.ShaderRegister = 2;
 
 		D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -650,6 +688,9 @@ namespace Dune
 		// Will be easier to do once we have a proper render pass pipeline
 		if (camera)
 		{
+			Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
+			m_commandLists[frameIndex]->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
+
 			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
 			for (const auto& [id, elem]: m_graphicsElements)
 			{
@@ -683,12 +724,12 @@ namespace Dune
 				
 				struct InstanceMatrices
 				{
-					DirectX::XMFLOAT4X4 mvpMatrix;
+					DirectX::XMFLOAT4X4 modelMatrix;
 					DirectX::XMFLOAT4X4 normalMatrix;
 				};
 
 				InstanceMatrices instanceMatrices;
-				DirectX::XMStoreFloat4x4(&instanceMatrices.mvpMatrix, elem.GetTransform() * camera->viewMatrix * camera->projectionMatrix);
+				DirectX::XMStoreFloat4x4(&instanceMatrices.modelMatrix, elem.GetTransform());
 				DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, normalMatrix);
 
 				m_commandLists[frameIndex]->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);

@@ -5,6 +5,7 @@
 #include "Platform/DirectX12/DX12GraphicsRenderer.h"
 #include "Platform/Windows/WindowsWindow.h"
 #endif
+#include "Dune/Core/EngineCore.h"
 
 namespace Dune
 {
@@ -20,4 +21,15 @@ namespace Dune
 	{
 		m_graphicsElements.insert({ id, elem });
 	}
+
+	void GraphicsRenderer::UpdateCamera()
+	{
+		CameraComponent* camera = EngineCore::GetCamera();
+		if (camera)
+		{
+			dMatrix viewProjMatrix = camera->viewMatrix * camera->projectionMatrix;
+			UpdateBuffer(m_cameraMatrixBuffer, &viewProjMatrix);
+		}
+	}
+
 }

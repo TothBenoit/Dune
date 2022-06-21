@@ -1,6 +1,13 @@
+struct CameraMatrix
+{
+    float4x4 ViewProjMatrix;
+};
+
+ConstantBuffer< CameraMatrix> CameraMatrixCB : register(b2);
+
 struct InstanceMatrices
 {
-    float4x4 MVPMatrix;
+    float4x4 ModelMatrix;
     float4x4 NormalMatrix;
 };
 
@@ -30,7 +37,8 @@ struct VS_OUTPUT
 VS_OUTPUT VSMain(VS_INPUT input)
 {
     VS_OUTPUT o;
-    o.position = mul(InstanceMatricesCB.MVPMatrix, float4(input.vPos, 1.0f) );
+    float4x4 MVP = mul(CameraMatrixCB.ViewProjMatrix, InstanceMatricesCB.ModelMatrix);
+    o.position = mul(MVP, float4(input.vPos, 1.0f) );
     o.color = MaterialCB.BaseColor;
     o.normal = mul(InstanceMatricesCB.NormalMatrix, float4(input.vNormal, 1.0f));
 

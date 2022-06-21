@@ -473,10 +473,22 @@ namespace Dune
 	{
 		rmt_ScopedCPUSample(SendDataToGraphicsCore, 0);
 		
+		GraphicsRenderer& renderer = GraphicsCore::GetGraphicsRenderer();
+
+		TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
+		if (cameraTransform)
+		{
+			if (cameraTransform->hasChanged)
+			{
+				renderer.UpdateCamera();
+			}
+		}
+
 		for (const EntityID entity : ComponentManager<GraphicsComponent>::m_entities)
 		{
 			TransformComponent* transformComponent = ComponentManager<TransformComponent>::GetComponent(entity);
-			
+			Assert(transformComponent);
+
 			if (!transformComponent->hasChanged)
 			{
 				continue;
@@ -492,7 +504,7 @@ namespace Dune
 				graphicsComponent->mesh->UploadBuffers();
 			}
 
-			GraphicsCore::GetGraphicsRenderer().AddGraphicsElement(entity ,GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
+			renderer.AddGraphicsElement(entity ,GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
 		}
 	}
 }
