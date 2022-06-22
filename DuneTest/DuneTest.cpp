@@ -43,9 +43,28 @@ public:
 		{
 			Dune::EntityID entity = Dune::EngineCore::CreateEntity("My cube");
 			Dune::EngineCore::AddComponent<Dune::GraphicsComponent>(entity);
+			if (Dune::TransformComponent* cubeTransform = Dune::EngineCore::GetComponent<Dune::TransformComponent>(entity))
+			{
+				cubeTransform->position.z = 3.f;
+				cubeTransform->position.y = -1.25f;
+				cubeTransform->hasChanged = true;
+			}
+
+			Dune::EntityID cameraID = Dune::EngineCore::GetCameraID();
+			Dune::EngineCore::AddComponent<Dune::PointLightComponent>(cameraID);
+			if (Dune::PointLightComponent* light = Dune::EngineCore::GetComponent<Dune::PointLightComponent>(cameraID))
+			{
+				light->radius = 10.f;
+			}
+			if (Dune::TransformComponent* camTransform = Dune::EngineCore::GetComponent<Dune::TransformComponent>(cameraID))
+			{
+				camTransform->rotation.x = 20.f * 3.14f/180.f;
+				camTransform->hasChanged = true;
+			}
 
 			didTestOnce = true;
 		}
+
 	}
 
 	void OnUpdate(float dt) override

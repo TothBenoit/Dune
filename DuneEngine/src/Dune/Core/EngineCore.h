@@ -46,6 +46,11 @@ namespace Dune
 			return GetComponent<CameraComponent>(m_cameraID);
 		}
 
+		static EntityID GetCameraID()
+		{
+			return m_cameraID;
+		}
+
 		inline static bool IsInitialized() { return m_isInitialized; }
 
 	private:

@@ -60,7 +60,7 @@ namespace Dune
 		if (camera)
 		{
 			dMatrix viewProjMatrix = camera->viewMatrix * camera->projectionMatrix;
-			UpdateBuffer(m_cameraMatrixBuffer, &viewProjMatrix);
+			UpdateBuffer(m_cameraMatrixBuffer.get(), &viewProjMatrix);
 		}
 	}
 

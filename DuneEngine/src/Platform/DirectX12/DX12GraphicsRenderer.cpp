@@ -152,6 +152,7 @@ namespace Dune
 	std::unique_ptr<GraphicsBuffer> DX12GraphicsRenderer::CreateBuffer(const void* data, const GraphicsBufferDesc& desc)
 	{
 		std::unique_ptr<DX12GraphicsBuffer> buffer = std::make_unique<DX12GraphicsBuffer>();
+		buffer->SetDescription(desc);
 
 		const UINT bufferSize = desc.size;
 
@@ -195,20 +196,41 @@ namespace Dune
 			nullptr,
 			IID_PPV_ARGS(&buffer->m_buffer)));
 
-		if (desc.usage == EBufferUsage::Upload)
+		if (data)
 		{
-			UINT8* pDataBegin;
-
-			D3D12_RANGE readRange;
-			readRange.Begin = 0;
-			readRange.End = 0;
-			ThrowIfFailed(buffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-			memcpy(pDataBegin, data, bufferSize);
-			buffer->m_buffer->Unmap(0, nullptr);
+			UpdateBuffer(buffer.get(), data);
 		}
-		else
+
+		return std::move(buffer);
+	}
+
+	void DX12GraphicsRenderer::UpdateBuffer(GraphicsBuffer* buffer, const void* data)
+	{
+		DX12GraphicsBuffer* graphicsBuffer = static_cast<DX12GraphicsBuffer*>(buffer);
+
+		GraphicsBufferDesc desc = graphicsBuffer->GetDescription();
+
+		if (desc.usage == EBufferUsage::Default)
 		{
+			D3D12_HEAP_PROPERTIES heapProps;
 			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+			heapProps.CreationNodeMask = 1;
+			heapProps.VisibleNodeMask = 1;
+
+			D3D12_RESOURCE_DESC resourceDesc;
+			resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+			resourceDesc.Alignment = 0;
+			resourceDesc.Width = desc.size;
+			resourceDesc.Height = 1;
+			resourceDesc.DepthOrArraySize = 1;
+			resourceDesc.MipLevels = 1;
+			resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+			resourceDesc.SampleDesc.Count = 1;
+			resourceDesc.SampleDesc.Quality = 0;
+			resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
 			Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
 			ThrowIfFailed(m_device->CreateCommittedResource(
@@ -220,19 +242,18 @@ namespace Dune
 				IID_PPV_ARGS(&uploadBuffer)));
 
 			UINT8* pDataBegin;
-
 			D3D12_RANGE readRange;
 			readRange.Begin = 0;
 			readRange.End = 0;
 			ThrowIfFailed(uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-			memcpy(pDataBegin, data, bufferSize);
+			memcpy(pDataBegin, data, desc.size);
 			uploadBuffer->Unmap(0, nullptr);
 
 			WaitForCopy();
 			ThrowIfFailed(m_copyCommandAllocator->Reset());
 			ThrowIfFailed(m_copyCommandList->Reset(m_copyCommandAllocator.Get(), nullptr));
 
-			m_copyCommandList->CopyBufferRegion(buffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, bufferSize);
+			m_copyCommandList->CopyBufferRegion(graphicsBuffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, desc.size);
 			m_copyCommandList->Close();
 			dVector<ID3D12CommandList*> ppCommandLists{ m_copyCommandList.Get() };
 			m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
@@ -243,24 +264,8 @@ namespace Dune
 			//TODO : Store somewhere the temp upload buffer so we don't have to wait so it doesn't release too soon
 			WaitForCopy();
 		}
-
-		buffer->SetDescription(desc);
-		return std::move(buffer);
-	}
-
-	void DX12GraphicsRenderer::UpdateBuffer(std::unique_ptr<GraphicsBuffer>& buffer, const void* data)
-	{
-		DX12GraphicsBuffer* graphicsBuffer = static_cast<DX12GraphicsBuffer*>(buffer.get());
-
-		GraphicsBufferDesc desc = graphicsBuffer->GetDescription();
-
-		switch (desc.usage)
+		else if (desc.usage == EBufferUsage::Upload)
 		{
-		case EBufferUsage::Default:
-			buffer.reset(nullptr);
-			buffer = CreateBuffer(data, desc);
-			break;
-		case EBufferUsage::Upload:
 			UINT8* pDataBegin;
 			D3D12_RANGE readRange;
 			readRange.Begin = 0;
@@ -268,9 +273,6 @@ namespace Dune
 			ThrowIfFailed(graphicsBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
 			memcpy(pDataBegin, data, desc.size);
 			graphicsBuffer->m_buffer->Unmap(0, nullptr);
-			break;
-		default:
-			break;
 		}
 	}
 

@@ -33,7 +33,7 @@ namespace Dune
 		virtual void OnResize(int width, int height) = 0;
 		//TODO : Get rid of const void* data
 		virtual std::unique_ptr<GraphicsBuffer> CreateBuffer(const void* data, const GraphicsBufferDesc& desc) = 0;
-		virtual void UpdateBuffer(std::unique_ptr<GraphicsBuffer>& buffer, const void* data) = 0;
+		virtual void UpdateBuffer(GraphicsBuffer * buffer, const void* data) = 0;
 
 
 	protected:
