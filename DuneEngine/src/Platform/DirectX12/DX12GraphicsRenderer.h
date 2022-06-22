@@ -36,7 +36,7 @@ namespace Dune
 		void PopulateCommandList();
 
 		//TEMP
-		void CreateLightsBuffer();
+		void CreateLightsBuffer(dU32 size);
 		void UpdateLights();
 
 	private:
@@ -71,7 +71,7 @@ namespace Dune
 		dU64												m_copyFenceValue;
 
 		//TEMP
-		Microsoft::WRL::ComPtr<ID3D12Resource>				m_lightsBuffer;
+		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightsHeap;
 	};
 }

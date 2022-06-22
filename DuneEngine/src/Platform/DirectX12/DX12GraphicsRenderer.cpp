@@ -22,7 +22,7 @@ namespace Dune
 		CreatePipeline();
 		CreateCommandLists();
 		CreateFences();
-		CreateLightsBuffer();
+		CreateLightsBuffer((dU32)sizeof(PointLight));
 
 		dMatrix identity;
 		GraphicsBufferDesc camBufferDesc;
@@ -665,41 +665,12 @@ namespace Dune
 		}
 	}
 
-	void DX12GraphicsRenderer::CreateLightsBuffer()
+	void DX12GraphicsRenderer::CreateLightsBuffer(dU32 size)
 	{
-		const UINT bufferSize = sizeof(PointLight) * 100;
-
-		D3D12_HEAP_PROPERTIES heapProps;
-		D3D12_RESOURCE_STATES resourceState;
-
-		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-		resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
-
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
-
-		D3D12_RESOURCE_DESC resourceDesc;
-		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		resourceDesc.Alignment = 0;
-		resourceDesc.Width = bufferSize;
-		resourceDesc.Height = 1;
-		resourceDesc.DepthOrArraySize = 1;
-		resourceDesc.MipLevels = 1;
-		resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-		resourceDesc.SampleDesc.Count = 1;
-		resourceDesc.SampleDesc.Quality = 0;
-		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-		ThrowIfFailed(m_device->CreateCommittedResource(
-			&heapProps,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			resourceState,
-			nullptr,
-			IID_PPV_ARGS(&m_lightsBuffer)));
+		GraphicsBufferDesc desc;
+		desc.size = size;
+		desc.usage = EBufferUsage::Upload;
+		m_lightsBuffer = CreateBuffer(nullptr, desc);
 
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
 		ZeroMemory(&heapDesc, sizeof(heapDesc));
@@ -826,15 +797,35 @@ namespace Dune
 	void DX12GraphicsRenderer::UpdateLights()
 	{
 		if (m_pointsLights.empty())
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+			ZeroMemory(&srvDesc, sizeof(srvDesc));
+			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Buffer.FirstElement = 0;
+			srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointsLights.size());
+			srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
+			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+			m_device->CreateShaderResourceView(0, &srvDesc, d);
 			return;
-			
+		}
+		
+		if (m_pointsLights.size() > m_lightsBuffer->GetDescription().size / sizeof(PointLight))
+		{
+			CreateLightsBuffer((dU32)(m_pointsLights.size() * sizeof(PointLight)));
+		}
+
+		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_lightsBuffer.get());
+
 		UINT8* pDataBegin;
 		D3D12_RANGE readRange;
 		readRange.Begin = 0;
 		readRange.End = 0;
-		ThrowIfFailed(m_lightsBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
+		ThrowIfFailed(lightBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
 		memcpy(pDataBegin, m_pointsLights.data(), m_pointsLights.size() * sizeof(PointLight));
-		m_lightsBuffer->Unmap(0, nullptr);
+		lightBuffer->m_buffer->Unmap(0, nullptr);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
 		ZeroMemory(&srvDesc, sizeof(srvDesc));
@@ -847,7 +838,7 @@ namespace Dune
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
-		m_device->CreateShaderResourceView(m_lightsBuffer.Get(), &srvDesc, d);
+		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, d);
 	}
 
 }

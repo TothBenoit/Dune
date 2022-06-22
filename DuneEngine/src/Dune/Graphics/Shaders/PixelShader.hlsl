@@ -25,8 +25,11 @@ struct PS_OUTPUT
 
 PS_OUTPUT PSMain(PS_INPUT input)
 {
+	uint lightCount;
+	uint stride;
+	PointLights.GetDimensions(lightCount, stride);
 	float3 accumulatedPointLight = { 0,0,0 };
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < lightCount; i++)
 	{
 		float3 toLight = PointLights[i].wPos - input.wPos;
 		float distToLight = length(toLight);
