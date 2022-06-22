@@ -289,6 +289,8 @@ namespace Dune
 
 	void EngineCore::DrawScene()
 	{
+		static float spawnRadius = 100.f;
+		
 		ImGui::Begin("Scene", &m_showScene);
 		ImGui::Text("Scene graph");
 		ImGui::SameLine();
@@ -304,12 +306,21 @@ namespace Dune
 				EntityID id = CreateEntity("New entity");
 				AddComponent<GraphicsComponent>(id);
 				auto transform = GetComponent<TransformComponent>(id);
-				float LO = -100.f;
-				float HI = 100.f;
+				float LO = -spawnRadius;
+				float HI = spawnRadius;
 
-				transform->position.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
-				transform->position.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
-				transform->position.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+				float u = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+				float v = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+				float theta = u * 2.0f * DirectX::XM_PI;
+				float phi = acosf(2.0f * v - 1.0f);
+				float r = cbrtf(static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+				float sinTheta = sinf(theta);
+				float cosTheta = cosf(theta);
+				float sinPhi = sinf(phi);
+				float cosPhi = cosf(phi);
+				transform->position.x = spawnRadius * r * sinPhi * cosTheta;
+				transform->position.y = spawnRadius * r * sinPhi * sinTheta;
+				transform->position.z = spawnRadius * r * cosPhi;
 
 				LO = -180.f;
 				HI = 180.f;
@@ -318,7 +329,7 @@ namespace Dune
 				transform->rotation.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
 				transform->rotation.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
 
-				LO = 0.25f;
+				LO = 0.5f;
 				HI = 1.5f;
 
 				transform->scale.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
@@ -337,6 +348,8 @@ namespace Dune
 			RemoveEntity(m_selectedEntity);
 			m_selectedEntity = ID::invalidID;
 		}
+
+		ImGui::DragFloat("Spawn Radius", &spawnRadius, 1.f, 0, FLT_MAX, "%.0f", 1);
 
 		ImGui::Separator();
 		DrawGraph();

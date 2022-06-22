@@ -67,7 +67,8 @@ namespace Dune
 	void GraphicsRenderer::RemoveGraphicsElement(EntityID id)
 	{
 		auto it = m_lookupGraphicsElements.find(id);
-		Assert(it != m_lookupGraphicsElements.end());
+		if (it == m_lookupGraphicsElements.end())
+			return;
 
 		const dU32 index = (*it).second;
 		const EntityID entity = m_graphicsEntities[index];
