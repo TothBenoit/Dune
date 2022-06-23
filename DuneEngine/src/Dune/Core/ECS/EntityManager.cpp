@@ -45,7 +45,14 @@ namespace Dune
 	void EntityManager::RemoveEntity(EntityID id)
 	{
 		Assert(IsValid(id));
-		Assert(ID::GetIndex(id) < m_generationIDs.size());
+
+		//Remove its components
+		//TODO : Create a component list ?
+		EngineCore::RemoveComponent<TransformComponent>(id);
+		EngineCore::RemoveComponent<BindingComponent>(id);
+		EngineCore::RemoveComponent<GraphicsComponent>(id);
+		EngineCore::RemoveComponent<CameraComponent>(id);
+		EngineCore::RemoveComponent<PointLightComponent>(id);
 
 		//Generate new ID
 		EntityID newID = EntityID(ID::NextGeneration(id));
@@ -54,19 +61,13 @@ namespace Dune
 		//Invalidate previous ID
 		m_generationIDs[ID::GetIndex(id)] = ID::GetGeneration(newID);
 		
-		//Remove its components
-		//TODO : Create a component list ?
-		EngineCore::RemoveComponent<TransformComponent>(id);
-		EngineCore::RemoveComponent<BindingComponent>(id);
-		EngineCore::RemoveComponent<GraphicsComponent>(id);
-		EngineCore::RemoveComponent<CameraComponent>(id);
-		EngineCore::RemoveComponent<PointLightComponent>(id);
 		LOG_INFO(dStringUtils::printf("Entity %u has been removed", id).c_str());
 	}
 	bool EntityManager::IsValid(EntityID id) const
 	{
-		ID::IDType index = ID::GetIndex(id);
+		const ID::IDType index = ID::GetIndex(id);
 		Assert(index < m_generationIDs.size());
-		return m_generationIDs[index] == ID::GetGeneration(id);
+		const ID::GenerationType generation = ID::GetGeneration(id);
+		return m_generationIDs[index] == generation;
 	}
 }

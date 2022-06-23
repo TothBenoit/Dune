@@ -20,30 +20,47 @@ namespace Dune
 		static EntityID CreateEntity(const dString& name);
 		static void RemoveEntity(EntityID);
 
+		static bool IsAlive(EntityID entity) { return m_entityManager->IsValid(entity); }
+
 		template<typename Component>
 		static void AddComponent(EntityID id)
 		{
+			Assert(m_entityManager->IsValid(id));
+			m_modifiedEntities.insert(id);
 			ComponentManager<Component>::Create(id);
 		}
 
 		template<typename Component>
-		static Component* GetComponent(EntityID id)
+		static const Component* GetComponent(EntityID id)
 		{
+			Assert(m_entityManager->IsValid(id));
+			return ComponentManager<Component>::GetComponent(id);
+		}
+
+		template<typename Component>
+		static Component* ModifyComponent(EntityID id)
+		{
+			Assert(m_entityManager->IsValid(id));
+			m_modifiedEntities.insert(id);
 			return ComponentManager<Component>::GetComponent(id);
 		}
 
 		template<typename Component>
 		static void RemoveComponent(EntityID id)
 		{
-			if (ComponentManager<Component>::Contains(id))
-			{
-				ComponentManager<Component>::Remove(id);
-			}
+			Assert(m_entityManager->IsValid(id));
+			m_modifiedEntities.insert(id);
+			ComponentManager<Component>::Remove(id);
 		}
 
-		static CameraComponent* GetCamera()
+		static const CameraComponent* GetCamera()
 		{
 			return GetComponent<CameraComponent>(m_cameraID);
+		}
+
+		static CameraComponent* ModifyCamera()
+		{
+			return ModifyComponent<CameraComponent>(m_cameraID);
 		}
 
 		static EntityID GetCameraID()
@@ -74,7 +91,8 @@ namespace Dune
 		static bool m_showImGuiDemo;
 		static EntityID m_cameraID;
 		static float m_deltaTime;
-		static dVector<EntityID> m_transformModifiedEntities;
+		//IDEA : map of modified entity containing a flag of which component has been modified
+		static dSet<EntityID> m_modifiedEntities;
 	};
 }
 

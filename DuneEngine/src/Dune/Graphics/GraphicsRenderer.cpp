@@ -56,7 +56,7 @@ namespace Dune
 
 	void GraphicsRenderer::UpdateCamera()
 	{
-		CameraComponent* camera = EngineCore::GetCamera();
+		const CameraComponent* camera = EngineCore::GetCamera();
 		if (camera)
 		{
 			dMatrix viewProjMatrix = camera->viewMatrix * camera->projectionMatrix;
