@@ -46,12 +46,50 @@ namespace Dune
 
 	void GraphicsRenderer::ClearPointLights()
 	{
-		m_pointsLights.clear();
+		m_pointLights.clear();
+		m_pointLightEntities.clear();
+		m_lookupPointLights.clear();
 	}
 
-	void GraphicsRenderer::SubmitPointLight(const PointLightComponent& light, dVec3 pos)
+	void GraphicsRenderer::RemovePointLight(EntityID id)
 	{
-		m_pointsLights.emplace_back(light.color, light.intensity, light.radius, pos);
+		auto it = m_lookupPointLights.find(id);
+		if (it == m_lookupPointLights.end())
+			return;
+
+		const dU32 index = (*it).second;
+		const EntityID entity = m_pointLightEntities[index];
+
+		if (index < m_pointLights.size() - 1)
+		{
+			m_pointLights[index] = std::move(m_pointLights.back());
+			m_pointLightEntities[index] = m_pointLightEntities.back();
+
+			m_lookupPointLights[m_pointLightEntities[index]] = index;
+		}
+
+		m_pointLights.pop_back();
+		m_pointLightEntities.pop_back();
+		m_lookupPointLights.erase(id);
+	}
+
+	void GraphicsRenderer::SubmitPointLight(EntityID id, const PointLight& light)
+	{
+		Assert(id != ID::invalidID);
+
+		auto it = m_lookupPointLights.find(id);
+		if (it != m_lookupPointLights.end())
+		{
+			dU32 index = (*it).second;
+			m_pointLights[index] = light;
+			m_pointLightEntities[index] = id;
+		}
+		else
+		{
+			m_lookupPointLights[id] = (dU32)m_pointLights.size();
+			m_pointLights.emplace_back(light);
+			m_pointLightEntities.emplace_back(id);
+		}
 	}
 
 	void GraphicsRenderer::UpdateCamera()

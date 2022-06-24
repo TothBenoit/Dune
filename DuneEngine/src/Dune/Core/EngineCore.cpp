@@ -114,6 +114,7 @@ namespace Dune
 		m_modifiedEntities.erase(id);
 		m_sceneGraph.DeleteNode(id);
 		GraphicsCore::GetGraphicsRenderer().RemoveGraphicsElement(id);
+		GraphicsCore::GetGraphicsRenderer().RemovePointLight(id);
 	}
 
 	void EngineCore::UpdateCamera()
@@ -167,21 +168,14 @@ namespace Dune
 			cameraHasMoved = true;
 		}
 
-		TransformComponent* cameraTransform = ModifyComponent<TransformComponent>(m_cameraID);
-		Assert(cameraTransform);
 
-		if (!cameraTransform->hasChanged)
+		if ((m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end()) && !cameraHasMoved)
 		{
-			if (!cameraHasMoved)
-			{
-				return;
-			}
-			else
-			{
-				cameraTransform->hasChanged = true;
-			}
+			return;
 		}
 
+		TransformComponent* cameraTransform = ModifyComponent<TransformComponent>(m_cameraID);
+		Assert(cameraTransform);
 		CameraComponent* camera = ModifyComponent<CameraComponent>(m_cameraID);
 		Assert(camera);
 
@@ -414,8 +408,6 @@ namespace Dune
 			ImGui::Separator();
 			if (TransformComponent* transform = ModifyComponent<TransformComponent>(m_selectedEntity))
 			{
-				bool hasChanged = false;
-
 				ImGui::Text("Transform :");
 
 				dVec3& pos = transform->position;
@@ -425,7 +417,6 @@ namespace Dune
 					pos.x = imGuiPos[0];
 					pos.y = imGuiPos[1];
 					pos.z = imGuiPos[2];
-					hasChanged = true;
 				}
 
 
@@ -436,7 +427,6 @@ namespace Dune
 					rot.x = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[0]), DirectX::XM_2PI);
 					rot.y = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[1]), DirectX::XM_2PI);
 					rot.z = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[2]), DirectX::XM_2PI);
-					hasChanged = true;
 				}
 
 				dVec3& scale = transform->scale;
@@ -446,14 +436,7 @@ namespace Dune
 					scale.x = imGuiScale[0];
 					scale.y = imGuiScale[1];
 					scale.z = imGuiScale[2];
-					hasChanged = true;
 				}
-
-				if (hasChanged)
-				{
-					transform->hasChanged = hasChanged;
-				}
-
 			}
 
 			if (GraphicsComponent* graphicsComponent = ModifyComponent<GraphicsComponent>(m_selectedEntity))
@@ -507,21 +490,9 @@ namespace Dune
 		
 		GraphicsRenderer& renderer = GraphicsCore::GetGraphicsRenderer();
 
-		const TransformComponent* cameraTransform = GetComponent<TransformComponent>(m_cameraID);
-		Assert(cameraTransform);
-		if (cameraTransform->hasChanged)
+		if (m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end())
 		{
 			renderer.UpdateCamera();
-		}
-
-		renderer.ClearPointLights();
-
-		for (const EntityID id : ComponentManager<PointLightComponent>::m_entities)
-		{
-			const PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(id);
-			const TransformComponent* transformComponent = GetComponent<TransformComponent>(id);
-
-			renderer.SubmitPointLight(*pointLightComponent, transformComponent->position);
 		}
 
 		for (const EntityID entity : m_modifiedEntities)
@@ -540,19 +511,20 @@ namespace Dune
 
 				renderer.SubmitGraphicsElement(entity, GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
 			}
+
+			if (const PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(entity))
+			{
+				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
+				
+				renderer.SubmitPointLight(entity, PointLight(pointLightComponent->color, pointLightComponent->intensity, pointLightComponent->radius, transformComponent->position));
+			}
+
+
 		}
 	}
 
 	void EngineCore::ClearTransformModifiedEntities()
 	{
-		for (const EntityID entity : m_modifiedEntities)
-		{
-			TransformComponent* transform = ModifyComponent<TransformComponent>(entity);
-			Assert(transform);
-
-			transform->hasChanged = false;
-		}
-
 		m_modifiedEntities.clear();
 	}
 

@@ -10,6 +10,5 @@ namespace Dune
 		dVec3 scale = { 1.f,1.f,1.f };
 		
 		dMatrix matrix;
-		bool hasChanged = true;
 	};
 }

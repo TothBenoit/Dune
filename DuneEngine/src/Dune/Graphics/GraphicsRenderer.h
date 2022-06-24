@@ -24,7 +24,8 @@ namespace Dune
 		void SubmitGraphicsElement(EntityID id, const GraphicsElement& elem);
 
 		void ClearPointLights();
-		void SubmitPointLight(const PointLightComponent& light, dVec3 pos);
+		void RemovePointLight(EntityID id);
+		void SubmitPointLight(EntityID id, const PointLight& light);
 
 		void UpdateCamera();
 
@@ -41,7 +42,9 @@ namespace Dune
 
 	protected:
 		
-		dVector<PointLight> m_pointsLights;
+		dVector<PointLight> m_pointLights;
+		dVector<EntityID> m_pointLightEntities;
+		dHashMap<EntityID, dU32> m_lookupPointLights;
 		
 		dVector<GraphicsElement> m_graphicsElements;
 		dVector<EntityID> m_graphicsEntities;

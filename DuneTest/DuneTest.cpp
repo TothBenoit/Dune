@@ -28,7 +28,6 @@ public:
 			{
 				cubeTransform->position.z = 3.f;
 				cubeTransform->position.y = -1.25f;
-				cubeTransform->hasChanged = true;
 			}
 
 			Dune::EntityID cameraID = Dune::EngineCore::GetCameraID();
@@ -40,7 +39,6 @@ public:
 			if (Dune::TransformComponent* camTransform = Dune::EngineCore::ModifyComponent<Dune::TransformComponent>(cameraID))
 			{
 				camTransform->rotation.x = 20.f * 3.14f/180.f;
-				camTransform->hasChanged = true;
 			}
 
 			flyingLight1 = Dune::EngineCore::CreateEntity("Flying light1");
@@ -87,7 +85,6 @@ public:
 				flyingLightTransform->position.x = 100 * cosf(time / 1.75f);
 				flyingLightTransform->position.y = 100 * sinf(time / 1.5f);
 				flyingLightTransform->position.z = 100 * cosf(time / 1.25f);
-				flyingLightTransform->hasChanged = true;
 			}
 		}
 
@@ -98,7 +95,6 @@ public:
 				flyingLightTransform->position.x = 100 * sinf(time / 1.f);
 				flyingLightTransform->position.y = 100 * cosf(time / 1.5f);
 				flyingLightTransform->position.z = 100 * cosf(time / 2.f);
-				flyingLightTransform->hasChanged = true;
 			}
 		}
 
@@ -109,7 +105,6 @@ public:
 				flyingLightTransform->position.x = 100 * cos(time * 1.25f);
 				flyingLightTransform->position.y = 100 * sin(time * 2.f);
 				flyingLightTransform->position.z = 100 * sin(time * 1.5f);
-				flyingLightTransform->hasChanged = true;
 			}
 		}
 	}

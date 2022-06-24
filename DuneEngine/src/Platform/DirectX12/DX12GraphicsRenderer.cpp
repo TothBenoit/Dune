@@ -796,7 +796,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::UpdateLights()
 	{
-		if (m_pointsLights.empty())
+		if (m_pointLights.empty())
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -805,16 +805,16 @@ namespace Dune
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Buffer.FirstElement = 0;
-			srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointsLights.size());
+			srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointLights.size());
 			srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 			m_device->CreateShaderResourceView(0, &srvDesc, d);
 			return;
 		}
 		
-		if (m_pointsLights.size() > m_lightsBuffer->GetDescription().size / sizeof(PointLight))
+		if (m_pointLights.size() > m_lightsBuffer->GetDescription().size / sizeof(PointLight))
 		{
-			CreateLightsBuffer((dU32)(m_pointsLights.size() * sizeof(PointLight)));
+			CreateLightsBuffer((dU32)(m_pointLights.size() * sizeof(PointLight)));
 		}
 
 		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_lightsBuffer.get());
@@ -824,7 +824,7 @@ namespace Dune
 		readRange.Begin = 0;
 		readRange.End = 0;
 		ThrowIfFailed(lightBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-		memcpy(pDataBegin, m_pointsLights.data(), m_pointsLights.size() * sizeof(PointLight));
+		memcpy(pDataBegin, m_pointLights.data(), m_pointLights.size() * sizeof(PointLight));
 		lightBuffer->m_buffer->Unmap(0, nullptr);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -833,7 +833,7 @@ namespace Dune
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srvDesc.Buffer.FirstElement = 0;
-		srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointsLights.size());
+		srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointLights.size());
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
