@@ -40,7 +40,7 @@ namespace Dune
 		void UpdateLights();
 
 	private:
-		//TODO : FrameContext which contains graphics commands and copy commands (allocator and list), fences, render target 
+		//TODO : FrameContext which contains command allocator, fences, render target 
 		D3D12_VIEWPORT										m_viewport;
 		D3D12_RECT											m_scissorRect;
 		Microsoft::WRL::ComPtr<IDXGIFactory4>				m_factory;
@@ -53,7 +53,7 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[FrameCount];
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandLists[FrameCount];
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_copyCommandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_copyCommandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
