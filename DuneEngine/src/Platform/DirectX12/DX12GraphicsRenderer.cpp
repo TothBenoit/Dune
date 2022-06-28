@@ -91,7 +91,7 @@ namespace Dune
 		PopulateCommandList();
 
 		// Execute the command list.
-		ID3D12CommandList* ppCommandLists[] = { m_commandLists[frameIndex].Get() };
+		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 		// Present the frame.
@@ -626,12 +626,9 @@ namespace Dune
 		// Create the command list.
 		// Command lists are created in the recording state, but there is nothing
 		// to record yet. The main loop expects it to be closed, so close it now.
-		for (dU32 i = 0; i < FrameCount; i++)
-		{
-			ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[i].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandLists[i])));
-			ThrowIfFailed(m_commandLists[i]->Close());
-			NameDXObjectIndexed(m_commandLists[i], i, L"CommandList");
-		}
+		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
+		ThrowIfFailed(m_commandList->Close());
+		NameDXObject(m_commandList, L"CommandList");
 
 		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, m_copyCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_copyCommandList)));
 		ThrowIfFailed(m_copyCommandList->Close());
@@ -694,12 +691,12 @@ namespace Dune
 		// However, when ExecuteCommandList() is called on a particular command 
 		// list, that command list can then be reset at any time and must be before 
 		// re-recording.
-		ThrowIfFailed(m_commandLists[frameIndex]->Reset(m_commandAllocators[frameIndex].Get(), m_pipelineState.Get()));
+		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[frameIndex].Get(), m_pipelineState.Get()));
 
 		// Set necessary state.
-		m_commandLists[frameIndex]->SetGraphicsRootSignature(m_rootSignature.Get());
-		m_commandLists[frameIndex]->RSSetViewports(1, &m_viewport);
-		m_commandLists[frameIndex]->RSSetScissorRects(1, &m_scissorRect);
+		m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+		m_commandList->RSSetViewports(1, &m_viewport);
+		m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
 		// Indicate that the back buffer will be used as a render target.
 		D3D12_RESOURCE_BARRIER renderTargetBarrier;
@@ -709,27 +706,27 @@ namespace Dune
 		renderTargetBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 		renderTargetBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		renderTargetBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		m_commandLists[frameIndex]->ResourceBarrier(1, &renderTargetBarrier);
+		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 		rtvHandle.ptr = rtvHandle.ptr + (frameIndex * m_rtvDescriptorSize);
 		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
-		m_commandLists[frameIndex]->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		// Record commands.
 		const float clearColor[] = { 0.05f, 0.05f, 0.075f, 1.0f };
-		m_commandLists[frameIndex]->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		m_commandLists[frameIndex]->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
-		m_commandLists[frameIndex]->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
+		m_commandList->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
 
 		UpdateLights();
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_lightsHeap.Get() };
-		m_commandLists[frameIndex]->SetDescriptorHeaps(1, ppHeaps);
+		m_commandList->SetDescriptorHeaps(1, ppHeaps);
 		D3D12_GPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetGPUDescriptorHandleForHeapStart() };
-		m_commandLists[frameIndex]->SetGraphicsRootDescriptorTable(3, d);
+		m_commandList->SetGraphicsRootDescriptorTable(3, d);
 
 		rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
 		for (const auto& elem: m_graphicsElements)
@@ -753,9 +750,9 @@ namespace Dune
 			indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 			indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
 
-			m_commandLists[frameIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_commandLists[frameIndex]->IASetVertexBuffers(0, 1, &vertexBufferView);
-			m_commandLists[frameIndex]->IASetIndexBuffer(&indexBufferView);
+			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+			m_commandList->IASetIndexBuffer(&indexBufferView);
 
 			DirectX::XMMATRIX normalMatrix = elem.GetTransform();
 			normalMatrix = DirectX::XMMatrixInverse(nullptr, normalMatrix);
@@ -771,15 +768,15 @@ namespace Dune
 			DirectX::XMStoreFloat4x4(&instanceMatrices.modelMatrix, elem.GetTransform());
 			DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, normalMatrix);
 
-			m_commandLists[frameIndex]->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);
-			m_commandLists[frameIndex]->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
+			m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);
+			m_commandList->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
 
 			dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
-			m_commandLists[frameIndex]->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+			m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 		}
 
-		m_commandLists[frameIndex]->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandLists[frameIndex].Get());
+		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 
 		// Indicate that the back buffer will now be used to present.
 		D3D12_RESOURCE_BARRIER presentBarrier;
@@ -789,14 +786,14 @@ namespace Dune
 		presentBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		presentBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		presentBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		m_commandLists[frameIndex]->ResourceBarrier(1, &presentBarrier);
+		m_commandList->ResourceBarrier(1, &presentBarrier);
 
-		ThrowIfFailed(m_commandLists[frameIndex]->Close());
+		ThrowIfFailed(m_commandList->Close());
 	}
 
 	void DX12GraphicsRenderer::UpdateLights()
 	{
-		if (m_pointsLights.empty())
+		if (m_pointLights.empty())
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -805,16 +802,16 @@ namespace Dune
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Buffer.FirstElement = 0;
-			srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointsLights.size());
+			srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointLights.size());
 			srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 			m_device->CreateShaderResourceView(0, &srvDesc, d);
 			return;
 		}
 		
-		if (m_pointsLights.size() > m_lightsBuffer->GetDescription().size / sizeof(PointLight))
+		if (m_pointLights.size() > m_lightsBuffer->GetDescription().size / sizeof(PointLight))
 		{
-			CreateLightsBuffer((dU32)(m_pointsLights.size() * sizeof(PointLight)));
+			CreateLightsBuffer((dU32)(m_pointLights.size() * sizeof(PointLight)));
 		}
 
 		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_lightsBuffer.get());
@@ -824,7 +821,7 @@ namespace Dune
 		readRange.Begin = 0;
 		readRange.End = 0;
 		ThrowIfFailed(lightBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-		memcpy(pDataBegin, m_pointsLights.data(), m_pointsLights.size() * sizeof(PointLight));
+		memcpy(pDataBegin, m_pointLights.data(), m_pointLights.size() * sizeof(PointLight));
 		lightBuffer->m_buffer->Unmap(0, nullptr);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -833,7 +830,7 @@ namespace Dune
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srvDesc.Buffer.FirstElement = 0;
-		srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointsLights.size());
+		srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointLights.size());
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
