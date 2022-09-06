@@ -664,10 +664,15 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateLightsBuffer(dU32 size)
 	{
-		GraphicsBufferDesc desc;
-		desc.size = size;
-		desc.usage = EBufferUsage::Upload;
-		m_lightsBuffer = CreateBuffer(nullptr, desc);
+		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+		for (int i = 0; i < FrameCount; i++)
+		{
+			GraphicsBufferDesc desc;
+			desc.size = size;
+			desc.usage = EBufferUsage::Upload;
+			m_lightsBuffer[i] = CreateBuffer(nullptr, desc);
+		}
 
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
 		ZeroMemory(&heapDesc, sizeof(heapDesc));
@@ -793,6 +798,8 @@ namespace Dune
 
 	void DX12GraphicsRenderer::UpdateLights()
 	{
+		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
 		if (m_pointLights.empty())
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
@@ -809,12 +816,15 @@ namespace Dune
 			return;
 		}
 		
-		if (m_pointLights.size() > m_lightsBuffer->GetDescription().size / sizeof(PointLight))
+		if (m_pointLights.size() > m_lightsBuffer[frameIndex]->GetDescription().size / sizeof(PointLight))
 		{
-			CreateLightsBuffer((dU32)(m_pointLights.size() * sizeof(PointLight)));
+			GraphicsBufferDesc desc;
+			desc.size = (dU32)(m_pointLights.size() * sizeof(PointLight));
+			desc.usage = EBufferUsage::Upload;
+			m_lightsBuffer[frameIndex] = CreateBuffer(nullptr, desc);
 		}
 
-		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_lightsBuffer.get());
+		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_lightsBuffer[frameIndex].get());
 
 		UINT8* pDataBegin;
 		D3D12_RANGE readRange;

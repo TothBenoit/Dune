@@ -71,7 +71,7 @@ namespace Dune
 		dU64												m_copyFenceValue;
 
 		//TEMP
-		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer;
+		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer[FrameCount];
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightsHeap;
 	};
 }
