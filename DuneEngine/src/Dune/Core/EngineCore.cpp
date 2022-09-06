@@ -131,40 +131,40 @@ namespace Dune
 		//Get input
 		if (Input::GetKey(KeyCode::Q))
 		{
-			translate.x = -0.1f;
+			translate.x = -1.f;
 			cameraHasMoved = true;
 		}
 		if (Input::GetKey(KeyCode::D))
 		{
-			translate.x = 0.1f;
+			translate.x = 1.f;
 			cameraHasMoved = true;
 		}
 
 		if (Input::GetKey(KeyCode::A))
 		{
-			translate.y = -0.1f;
+			translate.y = -1.f;
 			cameraHasMoved = true;
 		}
 		if (Input::GetKey(KeyCode::E))
 		{
-			translate.y = 0.1f;
+			translate.y = 1.f;
 			cameraHasMoved = true;
 		}
 
 		if (Input::GetKey(KeyCode::Z))
 		{
-			translate.z = 0.1f;
+			translate.z = 1.f;
 			cameraHasMoved = true;
 		}
 		if (Input::GetKey(KeyCode::S))
 		{
-			translate.z = -0.1f;
+			translate.z = -1.f;
 			cameraHasMoved = true;
 		}
 		if (Input::GetMouseButton(2))
 		{
-			rotation.x = (float) Input::GetMouseDeltaY() * 0.01f;
-			rotation.y = (float) Input::GetMouseDeltaX() * 0.01f;
+			rotation.x = (float)Input::GetMouseDeltaY();
+			rotation.y = (float)Input::GetMouseDeltaX();
 			cameraHasMoved = true;
 		}
 
@@ -180,9 +180,10 @@ namespace Dune
 		Assert(camera);
 
 		//Add rotation
-		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x,DirectX::XM_2PI);
-		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y, DirectX::XM_2PI);
-		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z, DirectX::XM_2PI);
+		const float turnSpeed = DirectX::XMConvertToRadians(45.f);
+		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x * turnSpeed * m_deltaTime, DirectX::XM_2PI);
+		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y * turnSpeed * m_deltaTime, DirectX::XM_2PI);
+		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z * turnSpeed * m_deltaTime, DirectX::XM_2PI);
 		
 		//Compute quaternion from camera rotation
 		DirectX::XMVECTOR quat = DirectX::XMQuaternionIdentity();
@@ -203,7 +204,7 @@ namespace Dune
 		);
 
 		//Apply translation
-		const float speed = (Input::GetKey(KeyCode::ShiftKey))? 50.f:5.f;
+		const float speed = (Input::GetKey(KeyCode::ShiftKey))? 25.f:5.f;
 		cameraTransform->position.x += translate.x * speed * m_deltaTime;
 		cameraTransform->position.y += translate.y * speed * m_deltaTime;
 		cameraTransform->position.z += translate.z * speed * m_deltaTime;
