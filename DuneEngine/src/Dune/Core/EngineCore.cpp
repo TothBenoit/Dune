@@ -166,7 +166,7 @@ namespace Dune
 		}
 
 
-		if ((m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end()) && !cameraHasMoved)
+		if ((m_modifiedEntities.find(m_cameraID) == m_modifiedEntities.end()) && !cameraHasMoved)
 		{
 			return;
 		}
@@ -218,7 +218,7 @@ namespace Dune
 
 		//Compute camera projection matrix
 		constexpr float aspectRatio = 1600.f / 900.f;
-		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
+		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera->verticalFieldOfView), aspectRatio, 0.1f, 1000.0f);
 	}
 
 	void EngineCore::UpdateTransforms()
@@ -409,6 +409,7 @@ namespace Dune
 
 			ImGui::Text("%s", node->GetName().c_str());
 			ImGui::Separator();
+
 			if (TransformComponent* transform = ModifyComponent<TransformComponent>(m_selectedEntity))
 			{
 				ImGui::Text("Transform :");
@@ -439,6 +440,17 @@ namespace Dune
 					scale.x = imGuiScale[0];
 					scale.y = imGuiScale[1];
 					scale.z = imGuiScale[2];
+				}
+			}
+
+			if (CameraComponent* camera = ModifyComponent<CameraComponent>(m_selectedEntity))
+			{
+				ImGui::Text("Camera :");
+
+				float verticalFieldOfView = camera->verticalFieldOfView;
+				if (ImGui::DragFloat("Vertical field of view", &verticalFieldOfView, 0.05f, 5.f, 179.999f, "%f", ImGuiSliderFlags_AlwaysClamp))
+				{
+					camera->verticalFieldOfView = verticalFieldOfView;
 				}
 			}
 
