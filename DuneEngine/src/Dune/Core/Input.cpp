@@ -11,11 +11,11 @@ namespace Dune
 	bool	Input::m_mouseDown[3];
 	bool	Input::m_mouseUp[3];
 
-	double	Input::m_mousePosX;
-	double	Input::m_mousePosY;
-	double	Input::m_mouseDeltaX;
-	double	Input::m_mouseDeltaY;
-	double	Input::m_mouseWheelDelta;
+	float	Input::m_mousePosX;
+	float	Input::m_mousePosY;
+	float	Input::m_mouseDeltaX;
+	float	Input::m_mouseDeltaY;
+	float	Input::m_mouseWheelDelta;
 
 
 	void Input::SetKeyDown(KeyCode key)
@@ -38,17 +38,17 @@ namespace Dune
 		m_mouseUp[index] = true;
 		m_mouseState[index] = false;
 	}
-	void Input::SetMousePosX(double posX)
+	void Input::SetMousePosX(float posX)
 	{
 		m_mouseDeltaX = posX - m_mousePosX;
 		m_mousePosX = posX;
 	}
-	void Input::SetMousePosY(double posY)
+	void Input::SetMousePosY(float posY)
 	{
 		m_mouseDeltaY = posY - m_mousePosY;
 		m_mousePosY = posY;
 	}
-	void Input::SetMouseWheelDelta(double delta)
+	void Input::SetMouseWheelDelta(float delta)
 	{
 		m_mouseWheelDelta = delta;
 	}

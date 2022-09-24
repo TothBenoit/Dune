@@ -7,15 +7,6 @@ using namespace DirectX;
 class DuneLauncher : public Dune::Application
 {
 public:
-	DuneLauncher()
-	{
-
-	}
-
-	~DuneLauncher()
-	{
-
-	}
 
 	void Test()
 	{

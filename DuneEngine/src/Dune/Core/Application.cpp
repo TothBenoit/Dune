@@ -43,10 +43,10 @@ namespace Dune
 			Input::EndFrame();
 		};
 
-			GraphicsCore::Shutdown();
-			EngineCore::Shutdown();
-			ImGui::DestroyContext();
-			Logger::Shutdown();
+		GraphicsCore::Shutdown();
+		EngineCore::Shutdown();
+		ImGui::DestroyContext();
+		Logger::Shutdown();
 
 		// Destroy the main instance of Remotery.
 		rmt_DestroyGlobalInstance(rmt);

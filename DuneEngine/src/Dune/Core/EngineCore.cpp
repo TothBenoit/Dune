@@ -182,7 +182,7 @@ namespace Dune
 		const float clampedDeltaTime = DirectX::XMMin(m_deltaTime, 0.033f);
 
 		//Add rotation
-		const float turnSpeed = DirectX::XMConvertToRadians(45.f);
+		constexpr float turnSpeed = DirectX::XMConvertToRadians(45.f);
 		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
 		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
 		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
@@ -220,7 +220,7 @@ namespace Dune
 		camera->viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
 
 		//Compute camera projection matrix
-		float aspectRatio = 1600.f / 900.f;
+		constexpr float aspectRatio = 1600.f / 900.f;
 		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(45.f), aspectRatio, 0.1f, 1000.0f);
 	}
 
