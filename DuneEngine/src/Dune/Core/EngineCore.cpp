@@ -179,11 +179,13 @@ namespace Dune
 		CameraComponent* camera = ModifyComponent<CameraComponent>(m_cameraID);
 		Assert(camera);
 
+		const float clampedDeltaTime = DirectX::XMMin(m_deltaTime, 0.033f);
+
 		//Add rotation
 		const float turnSpeed = DirectX::XMConvertToRadians(45.f);
-		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x * turnSpeed * m_deltaTime, DirectX::XM_2PI);
-		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y * turnSpeed * m_deltaTime, DirectX::XM_2PI);
-		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z * turnSpeed * m_deltaTime, DirectX::XM_2PI);
+		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
+		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
+		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
 		
 		//Compute quaternion from camera rotation
 		DirectX::XMVECTOR quat = DirectX::XMQuaternionIdentity();
@@ -205,9 +207,9 @@ namespace Dune
 
 		//Apply translation
 		const float speed = (Input::GetKey(KeyCode::ShiftKey))? 25.f:5.f;
-		cameraTransform->position.x += translate.x * speed * m_deltaTime;
-		cameraTransform->position.y += translate.y * speed * m_deltaTime;
-		cameraTransform->position.z += translate.z * speed * m_deltaTime;
+		cameraTransform->position.x += translate.x * speed * clampedDeltaTime;
+		cameraTransform->position.y += translate.y * speed * clampedDeltaTime;
+		cameraTransform->position.z += translate.z * speed * clampedDeltaTime;
 
 		//Compute camera view matrix
 		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&cameraTransform->position);
