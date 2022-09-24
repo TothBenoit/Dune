@@ -73,7 +73,7 @@ namespace Dune
 		UpdateCamera();
 		UpdateTransforms();
 		SendDataToGraphicsCore();
-		ClearTransformModifiedEntities();
+		ClearModifiedEntities();
 	}
 
 	EntityID EngineCore::CreateEntity(const dString& name)
