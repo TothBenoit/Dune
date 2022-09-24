@@ -7,12 +7,16 @@ namespace Dune
 	public:
 		static void Init();
 		static void Shutdown();
+
 		static void Info(const char* msg);
 		static void Warning(const char* msg);
 		static void Error(const char* msg);
 		static void Critical(const char* msg);
 
 	private:
+		Logger();
+		~Logger();
+
 		enum class LogLevel
 		{
 			Info,
@@ -20,14 +24,19 @@ namespace Dune
 			Error,
 			Critical,
 		};
-		static void Log(LogLevel level, const dString& msg);
-		static void Update();
+
+		void PushLog(LogLevel level, const dString& msg);
+
+		void Log(LogLevel level, const dString& msg);
+		void Update();
+
 	private:
-		static std::thread m_logThread;
-		static std::mutex m_logMutex;
-		//Use LockLessQueue
-		static std::queue < std::pair<LogLevel, dString>> m_pendingMessages;
-		static std::atomic_bool m_shouldProcess;
+		static Logger* ms_instance;
+		std::thread m_logThread;
+		std::mutex m_logMutex;
+		//TODO : Lock free queue
+		std::queue < std::pair<LogLevel, dString>> m_pendingMessages;
+		bool m_shouldProcess;
 	};
 
 #define LOG_INFO(msg)		Logger::Info(msg);

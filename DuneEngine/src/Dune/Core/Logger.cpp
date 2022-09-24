@@ -3,48 +3,74 @@
 
 namespace Dune
 {
-	std::thread Logger::m_logThread;
-	std::mutex Logger::m_logMutex;
-	std::queue<std::pair<Logger::LogLevel, dString>> Logger::m_pendingMessages;
-	std::atomic_bool Logger::m_shouldProcess = false;
+	Logger* Logger::ms_instance = nullptr;
 
 	void Logger::Init()
 	{
-		m_shouldProcess = true;
-		m_logThread = std::thread(Logger::Update);
+		if (!ms_instance)
+		{
+			ms_instance = new Logger();
+		}
+		else
+		{
+			Logger::Error("Tried to initialize Logger which is already initialized");
+		}
 	}
 
 	void Logger::Shutdown()
 	{
-		m_shouldProcess = false;
-		m_logThread.join();
+		if (ms_instance)
+		{
+			delete(ms_instance);
+		}
 	}
+
 	void Logger::Info(const char* msg)
 	{
+		if (ms_instance)
 		{
-			std::lock_guard lock(m_logMutex);
-			m_pendingMessages.push({ LogLevel::Info, msg });
+			ms_instance->PushLog(LogLevel::Info, msg);
 		}
 	}
 	void Logger::Warning(const char* msg)
 	{
+		if (ms_instance)
 		{
-			std::lock_guard lock(m_logMutex);
-			m_pendingMessages.push({ LogLevel::Warning, msg });
+			ms_instance->PushLog(LogLevel::Warning, msg);
 		}
 	}
 	void Logger::Error(const char* msg)
 	{
+		if (ms_instance)
 		{
-			std::lock_guard lock(m_logMutex);
-			m_pendingMessages.push({ LogLevel::Error, msg });
+			ms_instance->PushLog(LogLevel::Error, msg);
 		}
 	}
 	void Logger::Critical(const char* msg)
 	{
+		if (ms_instance)
+		{
+			ms_instance->PushLog( LogLevel::Critical, msg );
+		}
+	}
+
+	Logger::Logger()
+	{
+		m_shouldProcess = true;
+		m_logThread = std::thread(&Logger::Update, this);
+	}
+
+	Logger::~Logger()
+	{
+		m_shouldProcess = false;
+		m_logThread.join();
+	}
+
+	void Logger::PushLog(LogLevel level, const dString& msg)
+	{
 		{
 			std::lock_guard lock(m_logMutex);
-			m_pendingMessages.push({ LogLevel::Critical, msg });
+			m_pendingMessages.push({ level, msg });
 		}
 	}
 
