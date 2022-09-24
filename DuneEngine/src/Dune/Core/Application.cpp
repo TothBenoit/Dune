@@ -10,16 +10,6 @@
 
 namespace Dune
 {
-	Application::Application()
-	{
-
-	}
-
-	Application::~Application()
-	{
-
-	}
-
 	void Application::Start()
 	{
 		// Create the main instance of Remotery.
