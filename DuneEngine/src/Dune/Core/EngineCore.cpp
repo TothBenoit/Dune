@@ -22,7 +22,7 @@ namespace Dune
 	bool EngineCore::m_showImGuiDemo = false;
 	EntityID EngineCore::m_cameraID = ID::invalidID;
 	float EngineCore::m_deltaTime = 0.f;
-	dSet<EntityID> EngineCore::m_modifiedEntities;
+	dHashSet<EntityID> EngineCore::m_modifiedEntities;
 
 	void EngineCore::Init()
 	{
@@ -70,9 +70,6 @@ namespace Dune
 
 		m_deltaTime = dt;
 		DrawInterface();
-		if (m_showImGuiDemo)
-			ImGui::ShowDemoWindow(&m_showImGuiDemo);
-
 		UpdateCamera();
 		UpdateTransforms();
 		SendDataToGraphicsCore();
@@ -275,6 +272,9 @@ namespace Dune
 
 	void EngineCore::DrawInterface()
 	{
+		if (m_showImGuiDemo)
+			ImGui::ShowDemoWindow(&m_showImGuiDemo);
+
 		rmt_ScopedCPUSample(DrawInterface, 0);
 
 		DrawMainMenuBar();
@@ -526,7 +526,7 @@ namespace Dune
 		}
 	}
 
-	void EngineCore::ClearTransformModifiedEntities()
+	void EngineCore::ClearModifiedEntities()
 	{
 		m_modifiedEntities.clear();
 	}

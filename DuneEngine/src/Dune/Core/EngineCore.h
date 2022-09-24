@@ -80,7 +80,7 @@ namespace Dune
 		static void DrawNode(const SceneGraph::Node* node);
 		static void DrawInspector();
 		static void SendDataToGraphicsCore();
-		static void ClearTransformModifiedEntities();
+		static void ClearModifiedEntities();
 	private:
 		static bool m_isInitialized;
 		static std::unique_ptr<EntityManager> m_entityManager;
@@ -91,8 +91,7 @@ namespace Dune
 		static bool m_showImGuiDemo;
 		static EntityID m_cameraID;
 		static float m_deltaTime;
-		//IDEA : map of modified entity containing a flag of which component has been modified
-		static dSet<EntityID> m_modifiedEntities;
+		static dHashSet<EntityID> m_modifiedEntities;
 	};
 }
 
