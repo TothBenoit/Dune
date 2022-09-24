@@ -100,9 +100,9 @@ public:
 		}
 	}
 
-	Dune::EntityID flyingLight1;
-	Dune::EntityID flyingLight2;
-	Dune::EntityID flyingLight3;
+	Dune::EntityID flyingLight1 = Dune::ID::invalidID;
+	Dune::EntityID flyingLight2 = Dune::ID::invalidID;
+	Dune::EntityID flyingLight3 = Dune::ID::invalidID;
 
 };
 

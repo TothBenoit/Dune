@@ -287,14 +287,38 @@ namespace Dune
 	void EngineCore::DrawScene()
 	{
 		static float spawnRadius = 100.f;
-		
 		ImGui::Begin("Scene", &m_showScene);
 		ImGui::Text("Scene graph");
 		ImGui::SameLine();
 		if (ImGui::Button("Add Entity"))
 		{
-			EntityID id = CreateEntity("New entity");
+			ImGui::OpenPopup("##AddEntity");
 		}
+
+		if (ImGui::BeginPopup("##AddEntity"))
+		{
+			if (ImGui::Button("Empty"))
+			{
+				EntityID id = CreateEntity("New entity");
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::Button("Point light"))
+			{
+				EntityID id = CreateEntity("Point light");
+				AddComponent<PointLightComponent>(id);
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::Button("Cube"))
+			{
+				EntityID id = CreateEntity("Cube");
+				AddComponent<GraphicsComponent>(id);
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+
 		ImGui::SameLine();
 		if (ImGui::Button("Add 1000 GraphicsEntity"))
 		{
@@ -412,56 +436,65 @@ namespace Dune
 
 			if (TransformComponent* transform = ModifyComponent<TransformComponent>(m_selectedEntity))
 			{
-				ImGui::Text("Transform :");
-
-				dVec3& pos = transform->position;
-				float imGuiPos[3] = { pos.x, pos.y, pos.z };
-				if (ImGui::DragFloat3("Position", imGuiPos, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f"))
+				if (ImGui::TreeNodeEx("Transform :"))
 				{
-					pos.x = imGuiPos[0];
-					pos.y = imGuiPos[1];
-					pos.z = imGuiPos[2];
-				}
+					dVec3& pos = transform->position;
+					float imGuiPos[3] = { pos.x, pos.y, pos.z };
+					if (ImGui::DragFloat3("Position", imGuiPos, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f"))
+					{
+						pos.x = imGuiPos[0];
+						pos.y = imGuiPos[1];
+						pos.z = imGuiPos[2];
+					}
 
 
-				dVec3& rot = transform->rotation;
-				float imGuiRot[3] = { DirectX::XMConvertToDegrees(rot.x),DirectX::XMConvertToDegrees(rot.y), DirectX::XMConvertToDegrees(rot.z) };
-				if (ImGui::DragFloat3("Rotation", imGuiRot, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f"))
-				{
-					rot.x = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[0]), DirectX::XM_2PI);
-					rot.y = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[1]), DirectX::XM_2PI);
-					rot.z = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[2]), DirectX::XM_2PI);
-				}
+					dVec3& rot = transform->rotation;
+					float imGuiRot[3] = { DirectX::XMConvertToDegrees(rot.x),DirectX::XMConvertToDegrees(rot.y), DirectX::XMConvertToDegrees(rot.z) };
+					if (ImGui::DragFloat3("Rotation", imGuiRot, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f"))
+					{
+						rot.x = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[0]), DirectX::XM_2PI);
+						rot.y = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[1]), DirectX::XM_2PI);
+						rot.z = std::fmodf(DirectX::XMConvertToRadians(imGuiRot[2]), DirectX::XM_2PI);
+					}
 
-				dVec3& scale = transform->scale;
-				float imGuiScale[3] = { scale.x, scale.y, scale.z };
-				if (ImGui::DragFloat3("Scale", imGuiScale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f"))
-				{
-					scale.x = imGuiScale[0];
-					scale.y = imGuiScale[1];
-					scale.z = imGuiScale[2];
+					dVec3& scale = transform->scale;
+					float imGuiScale[3] = { scale.x, scale.y, scale.z };
+					if (ImGui::DragFloat3("Scale", imGuiScale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f"))
+					{
+						scale.x = imGuiScale[0];
+						scale.y = imGuiScale[1];
+						scale.z = imGuiScale[2];
+					}
+					ImGui::TreePop();
 				}
 			}
 
+
 			if (CameraComponent* camera = ModifyComponent<CameraComponent>(m_selectedEntity))
 			{
-				ImGui::Text("Camera :");
-
-				float verticalFieldOfView = camera->verticalFieldOfView;
-				if (ImGui::DragFloat("Vertical field of view", &verticalFieldOfView, 0.05f, 5.f, 179.999f, "%f", ImGuiSliderFlags_AlwaysClamp))
+				if (ImGui::TreeNodeEx("Camera :"))
 				{
-					camera->verticalFieldOfView = verticalFieldOfView;
+					float verticalFieldOfView = camera->verticalFieldOfView;
+					if (ImGui::DragFloat("Vertical field of view", &verticalFieldOfView, 0.05f, 5.f, 179.999f, "%f", ImGuiSliderFlags_AlwaysClamp))
+					{
+						camera->verticalFieldOfView = verticalFieldOfView;
+					}
+					ImGui::TreePop();
 				}
 			}
 
 			if (GraphicsComponent* graphicsComponent = ModifyComponent<GraphicsComponent>(m_selectedEntity))
 			{
-				ImGui::Text("Material :");
-				float imGuiBaseColor[3] = { graphicsComponent->material->m_baseColor.x, graphicsComponent->material->m_baseColor.y, graphicsComponent->material->m_baseColor.z };
-				ImGui::ColorPicker3("BaseColor", imGuiBaseColor);
-				graphicsComponent->material->m_baseColor.x = imGuiBaseColor[0];
-				graphicsComponent->material->m_baseColor.y = imGuiBaseColor[1];
-				graphicsComponent->material->m_baseColor.z = imGuiBaseColor[2];
+				if (ImGui::TreeNodeEx("Material :"))
+				{
+					float imGuiBaseColor[3] = { graphicsComponent->material->m_baseColor.x, graphicsComponent->material->m_baseColor.y, graphicsComponent->material->m_baseColor.z };
+					ImGui::ColorPicker3("BaseColor", imGuiBaseColor);
+					graphicsComponent->material->m_baseColor.x = imGuiBaseColor[0];
+					graphicsComponent->material->m_baseColor.y = imGuiBaseColor[1];
+					graphicsComponent->material->m_baseColor.z = imGuiBaseColor[2];
+
+					ImGui::TreePop();
+				}
 			}
 			else
 			{
@@ -470,22 +503,28 @@ namespace Dune
 					AddComponent<GraphicsComponent>(m_selectedEntity);
 				}
 			}
+
 			if (PointLightComponent* pointLightComponent = ModifyComponent<PointLightComponent>(m_selectedEntity))
 			{
-				ImGui::Text("Point light attributes :");
-				float imGuiIntensity = pointLightComponent->intensity;
-				ImGui::DragFloat("Intensity", &imGuiIntensity, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f");
-				pointLightComponent->intensity = imGuiIntensity;
+				if (ImGui::TreeNodeEx("Point light attributes :"))
+				{
+					float imGuiIntensity = pointLightComponent->intensity;
+					ImGui::DragFloat("Intensity", &imGuiIntensity, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f");
+					pointLightComponent->intensity = imGuiIntensity;
 
-				float imGuiRadius = pointLightComponent->radius;
-				ImGui::DragFloat("Radius", &imGuiRadius, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f");
-				pointLightComponent->radius = imGuiRadius;
+					float imGuiRadius = pointLightComponent->radius;
+					ImGui::DragFloat("Radius", &imGuiRadius, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f");
+					pointLightComponent->radius = imGuiRadius;
 
-				float imGuiBaseColor[3] = { pointLightComponent->color.x, pointLightComponent->color.y, pointLightComponent->color.z };
-				ImGui::ColorPicker3("Color", imGuiBaseColor);
-				pointLightComponent->color.x = imGuiBaseColor[0];
-				pointLightComponent->color.y = imGuiBaseColor[1];
-				pointLightComponent->color.z = imGuiBaseColor[2];
+					float imGuiBaseColor[3] = { pointLightComponent->color.x, pointLightComponent->color.y, pointLightComponent->color.z };
+					ImGui::ColorPicker3("Color", imGuiBaseColor);
+					pointLightComponent->color.x = imGuiBaseColor[0];
+					pointLightComponent->color.y = imGuiBaseColor[1];
+					pointLightComponent->color.z = imGuiBaseColor[2];
+
+					ImGui::TreePop();
+				}
+
 			}
 			else
 			{
