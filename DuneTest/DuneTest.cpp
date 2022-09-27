@@ -25,7 +25,8 @@ public:
 			Dune::EngineCore::AddComponent<Dune::PointLightComponent>(cameraID);
 			if (Dune::PointLightComponent* light = Dune::EngineCore::ModifyComponent<Dune::PointLightComponent>(cameraID))
 			{
-				light->radius = 10.f;
+				light->intensity = 0.5f;
+				light->radius = 10000.f;
 			}
 			if (Dune::TransformComponent* camTransform = Dune::EngineCore::ModifyComponent<Dune::TransformComponent>(cameraID))
 			{

@@ -19,7 +19,7 @@ namespace Dune
 		void UpdateBuffer(GraphicsBuffer * buffer, const void* data) override;
 
 	private:
-		static const dU32 FrameCount = 2;
+		static const dU32 ms_frameCount = 2;
 		void CreateFactory();
 		void CreateDevice();
 		void CreateCommandQueues();
@@ -46,13 +46,13 @@ namespace Dune
 		Microsoft::WRL::ComPtr<IDXGIFactory4>				m_factory;
 		Microsoft::WRL::ComPtr<ID3D12Device>				m_device;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
-		Microsoft::WRL::ComPtr<ID3D12Resource>				m_renderTargets[FrameCount];
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_renderTargets[ms_frameCount];
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_depthStencilBuffer;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_rtvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_dsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[FrameCount];
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[ms_frameCount];
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_copyCommandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_copyCommandAllocator;
@@ -65,13 +65,13 @@ namespace Dune
 		dU64												m_frameNumber = 0;
 		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;
-		dU64												m_fenceValues[FrameCount];
+		dU64												m_fenceValues[ms_frameCount];
 		Microsoft::WRL::Wrappers::Event						m_copyFenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
 		dU64												m_copyFenceValue;
 
 		//TEMP
-		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer[FrameCount];
+		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer[ms_frameCount];
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightsHeap;
 	};
 }

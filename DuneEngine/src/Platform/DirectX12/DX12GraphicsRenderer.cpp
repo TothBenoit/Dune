@@ -36,7 +36,7 @@ namespace Dune
 		desc.NumDescriptors = 1;
 		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiHeap)));
-		ImGui_ImplDX12_Init(m_device.Get(), FrameCount,
+		ImGui_ImplDX12_Init(m_device.Get(), ms_frameCount,
 			DXGI_FORMAT_R8G8B8A8_UNORM, m_imguiHeap.Get(),
 			m_imguiHeap->GetCPUDescriptorHandleForHeapStart(),
 			m_imguiHeap->GetGPUDescriptorHandleForHeapStart());
@@ -87,7 +87,9 @@ namespace Dune
 		rmt_ScopedCPUSample(Render, 0);
 		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(frameIndex);
+
 		ImGui::Render();
+
 		PopulateCommandList();
 
 		// Execute the command list.
@@ -107,7 +109,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::OnShutdown()
 	{
-		for (dU32 i = 0; i < FrameCount; i++)
+		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
 			WaitForFrame(i);
 		}
@@ -119,19 +121,19 @@ namespace Dune
 	void DX12GraphicsRenderer::OnResize(int x, int y)
 	{
 		// Wait until all previous frames are processed.
-		for (dU32 i = 0; i < FrameCount; i++)
+		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
 			WaitForFrame(i);
 		}
 
 		// Release resources that are tied to the swap chain.
-		for (dU32 i = 0; i < FrameCount; i++)
+		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
 			m_renderTargets[i].Reset();
 		}
 
 		ThrowIfFailed(m_swapChain->ResizeBuffers(
-			FrameCount,
+			ms_frameCount,
 			x,
 			y,
 			DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -367,7 +369,7 @@ namespace Dune
 		m_viewport.MaxDepth = 1.f;
 
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-		swapChainDesc.BufferCount = FrameCount;
+		swapChainDesc.BufferCount = ms_frameCount;
 		swapChainDesc.BufferDesc.Width = clientRect.right;
 		swapChainDesc.BufferDesc.Height = clientRect.bottom;
 		swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -394,7 +396,7 @@ namespace Dune
 		{
 			// Describe and create a render target view (RTV) descriptor heap.
 			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-			rtvHeapDesc.NumDescriptors = FrameCount;
+			rtvHeapDesc.NumDescriptors = ms_frameCount;
 			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 			ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
@@ -407,7 +409,7 @@ namespace Dune
 			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 			// Create a RTV for each frame.
-			for (UINT i = 0; i < FrameCount; i++)
+			for (UINT i = 0; i < ms_frameCount; i++)
 			{
 				ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_renderTargets[i])));
 				m_device->CreateRenderTargetView(m_renderTargets[i].Get(), nullptr, rtvHandle);
@@ -477,7 +479,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateCommandAllocators()
 	{
-		for (dU32 i = 0; i < FrameCount; i++)
+		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
 			ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
 			NameDXObjectIndexed(m_commandAllocators[i], i,  L"CommandAllocators");
@@ -640,7 +642,7 @@ namespace Dune
 		// Create synchronization objects and wait until assets have been uploaded to the GPU.
 		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
 		NameDXObject(m_fence, L"Fence");
-		for (dU32 i = 0; i < FrameCount; i++)
+		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
 			m_fenceValues[i] = 0;
 		}
@@ -666,7 +668,7 @@ namespace Dune
 	{
 		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
-		for (int i = 0; i < FrameCount; i++)
+		for (int i = 0; i < ms_frameCount; i++)
 		{
 			GraphicsBufferDesc desc;
 			desc.size = size;

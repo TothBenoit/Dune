@@ -21,7 +21,7 @@ namespace Dune
 		inline const dMatrix& GetTransform() const { return m_transform; };
 
 	private:
-		//TODO: use handle instead of references
+		//TODO: use handle instead of shared_ptr
 		std::shared_ptr<Mesh> m_mesh;
 		std::shared_ptr<Material> m_material;
 		dMatrix m_transform;

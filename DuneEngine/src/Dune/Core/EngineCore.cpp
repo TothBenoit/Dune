@@ -549,6 +549,7 @@ namespace Dune
 			renderer.UpdateCamera();
 		}
 
+		// should we track modified component instead of modified entities ?
 		for (const EntityID entity : m_modifiedEntities)
 		{
 			if (const GraphicsComponent* graphicsComponent = GetComponent<GraphicsComponent>(entity))
@@ -556,7 +557,7 @@ namespace Dune
 				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
 				Assert(transformComponent);
 
-				//TODO : Find when we should upload mesh
+				// TODO : Find when we should upload mesh
 				// Once when loaded I guess
 				if (!graphicsComponent->mesh->IsUploaded())
 				{
