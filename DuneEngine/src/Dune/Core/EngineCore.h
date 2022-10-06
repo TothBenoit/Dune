@@ -4,16 +4,19 @@
 #include "Dune/Core/ECS/EntityManager.h"
 #include "Dune/Core/ECS/Components/ComponentManager.h"
 #include "Dune/Core/ECS/Components/CameraComponent.h"
+#include "Dune/Graphics/GraphicsRenderer.h"
 
 namespace Dune
 {
+	class Window;
+
 	class EngineCore
 	{
 	public:
 		EngineCore() = delete;
 		~EngineCore() = delete;
 
-		static void Init();
+		static void Init(const Window* pWindow);
 		static void Shutdown();
 		static void Update(float dt);
 
@@ -67,6 +70,12 @@ namespace Dune
 		{
 			return m_cameraID;
 		}
+		
+		static GraphicsRenderer& GetGraphicsRenderer()
+		{
+			Assert(m_graphicsRenderer.get());
+			return *m_graphicsRenderer;
+		}
 
 		inline static bool IsInitialized() { return m_isInitialized; }
 
@@ -82,16 +91,17 @@ namespace Dune
 		static void SendDataToGraphicsCore();
 		static void ClearModifiedEntities();
 	private:
-		static bool m_isInitialized;
-		static std::unique_ptr<EntityManager> m_entityManager;
-		static SceneGraph m_sceneGraph;
-		static EntityID m_selectedEntity;
-		static bool m_showScene;
-		static bool m_showInspector;
-		static bool m_showImGuiDemo;
-		static EntityID m_cameraID;
-		static float m_deltaTime;
-		static dHashSet<EntityID> m_modifiedEntities;
+		static inline bool m_isInitialized = false;
+		static inline std::unique_ptr<EntityManager> m_entityManager = nullptr;
+		static inline SceneGraph m_sceneGraph;
+		static inline EntityID m_selectedEntity = ID::invalidID;
+		static inline bool m_showScene = true;
+		static inline bool m_showInspector = true;
+		static inline bool m_showImGuiDemo = false;
+		static inline EntityID m_cameraID = ID::invalidID;
+		static inline float m_deltaTime = 0.f;
+		static inline dHashSet<EntityID> m_modifiedEntities;
+		static inline std::unique_ptr<GraphicsRenderer> m_graphicsRenderer = nullptr;
 	};
 }
 

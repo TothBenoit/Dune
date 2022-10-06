@@ -8,7 +8,6 @@
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Dune\Core\Window.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
-    <ClInclude Include="src\Dune\Graphics\GraphicsCore.h" />
     <ClInclude Include="src\Dune\Utilities\NonCopyable.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsRenderer.h" />
     <ClInclude Include="src\Platform\DirectX12\DX12GraphicsRenderer.h" />
@@ -49,7 +48,6 @@
     <ClCompile Include="src\pch.cpp" />
     <ClCompile Include="src\Dune\Core\Window.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
-    <ClCompile Include="src\Dune\Graphics\GraphicsCore.cpp" />
     <ClCompile Include="src\Dune\Graphics\GraphicsRenderer.cpp" />
     <ClCompile Include="src\Platform\DirectX12\DX12GraphicsRenderer.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />

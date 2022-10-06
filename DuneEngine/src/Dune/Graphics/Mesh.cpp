@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Mesh.h"
 #include "Dune/Core/Logger.h"
-#include "Dune/Graphics/GraphicsCore.h"
+#include "Dune/Core/EngineCore.h"
 
 namespace Dune
 {
@@ -35,7 +35,7 @@ namespace Dune
 			return false;
 		}
 
-		m_vertexBuffer = GraphicsCore::GetGraphicsRenderer().CreateBuffer(m_vertices.data(), desc);
+		m_vertexBuffer = EngineCore::GetGraphicsRenderer().CreateBuffer(m_vertices.data(), desc);
 		return true;
 	}
 
@@ -49,7 +49,7 @@ namespace Dune
 			return false;
 		}
 
-		m_indexBuffer = GraphicsCore::GetGraphicsRenderer().CreateBuffer(m_indices.data(), desc);
+		m_indexBuffer = EngineCore::GetGraphicsRenderer().CreateBuffer(m_indices.data(), desc);
 		return true;
 	}
 

@@ -7,24 +7,13 @@
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
-#include "Dune/Graphics/GraphicsCore.h"
 
 #include <DirectXMath.h>
 
 namespace Dune
 {
-	std::unique_ptr<EntityManager> EngineCore::m_entityManager = nullptr;
-	bool EngineCore::m_isInitialized = false;
-	SceneGraph EngineCore::m_sceneGraph;
-	EntityID EngineCore::m_selectedEntity = ID::invalidID;
-	bool EngineCore::m_showScene = true;
-	bool EngineCore::m_showInspector = true;
-	bool EngineCore::m_showImGuiDemo = false;
-	EntityID EngineCore::m_cameraID = ID::invalidID;
-	float EngineCore::m_deltaTime = 0.f;
-	dHashSet<EntityID> EngineCore::m_modifiedEntities;
 
-	void EngineCore::Init()
+	void EngineCore::Init(const Window* pWindow)
 	{
 		if (m_isInitialized)
 		{
@@ -39,6 +28,8 @@ namespace Dune
 		ComponentManager<GraphicsComponent>::Init();
 		ComponentManager<CameraComponent>::Init();
 		ComponentManager<PointLightComponent>::Init();
+
+		m_graphicsRenderer = GraphicsRenderer::Create(pWindow);
 
 		m_isInitialized = true;
 
@@ -55,6 +46,7 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
+		m_graphicsRenderer->OnShutdown();
 	}
 
 	void EngineCore::Update(float dt)
@@ -74,6 +66,8 @@ namespace Dune
 		UpdateTransforms();
 		SendDataToGraphicsCore();
 		ClearModifiedEntities();
+
+		m_graphicsRenderer->Render();
 	}
 
 	EntityID EngineCore::CreateEntity(const dString& name)
@@ -110,8 +104,8 @@ namespace Dune
 		m_entityManager->RemoveEntity(id);
 		m_modifiedEntities.erase(id);
 		m_sceneGraph.DeleteNode(id);
-		GraphicsCore::GetGraphicsRenderer().RemoveGraphicsElement(id);
-		GraphicsCore::GetGraphicsRenderer().RemovePointLight(id);
+		m_graphicsRenderer->RemoveGraphicsElement(id);
+		m_graphicsRenderer->RemovePointLight(id);
 	}
 
 	void EngineCore::UpdateCamera()
@@ -541,12 +535,10 @@ namespace Dune
 	void EngineCore::SendDataToGraphicsCore()
 	{
 		rmt_ScopedCPUSample(SendDataToGraphicsCore, 0);
-		
-		GraphicsRenderer& renderer = GraphicsCore::GetGraphicsRenderer();
 
 		if (m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end())
 		{
-			renderer.UpdateCamera();
+			m_graphicsRenderer->UpdateCamera();
 		}
 
 		// should we track modified component instead of modified entities ?
@@ -564,14 +556,14 @@ namespace Dune
 					graphicsComponent->mesh->UploadBuffers();
 				}
 
-				renderer.SubmitGraphicsElement(entity, GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
+				m_graphicsRenderer->SubmitGraphicsElement(entity, GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
 			}
 
 			if (const PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(entity))
 			{
 				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
 				
-				renderer.SubmitPointLight(entity, PointLight(pointLightComponent->color, pointLightComponent->intensity, pointLightComponent->radius, transformComponent->position));
+				m_graphicsRenderer->SubmitPointLight(entity, PointLight(pointLightComponent->color, pointLightComponent->intensity, pointLightComponent->radius, transformComponent->position));
 			}
 
 

@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "WindowsWindow.h"
-#include "Dune/Graphics/GraphicsCore.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Core/Input.h"
+#include "Dune/Core/EngineCore.h"
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -110,9 +110,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		break;
 	case WM_SIZE:
-		if (Dune::GraphicsCore::IsInitialized() && wParam != SIZE_MINIMIZED)
+		if (Dune::EngineCore::IsInitialized() && wParam != SIZE_MINIMIZED)
 		{
-			Dune::GraphicsCore::GetGraphicsRenderer().OnResize(LOWORD(lParam), HIWORD(lParam));
+			Dune::EngineCore::GetGraphicsRenderer().OnResize(LOWORD(lParam), HIWORD(lParam));
 		}
 		break;
 
