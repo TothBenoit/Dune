@@ -56,7 +56,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
