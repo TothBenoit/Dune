@@ -36,10 +36,8 @@ namespace Dune
 		virtual std::unique_ptr<GraphicsBuffer> CreateBuffer(const void* data, const GraphicsBufferDesc& desc) = 0;
 		virtual void UpdateBuffer(GraphicsBuffer * buffer, const void* data) = 0;
 
-
 	protected:
 		GraphicsRenderer() = default;
-
 	protected:
 		
 		dVector<PointLight> m_pointLights;

@@ -31,8 +31,15 @@ namespace Dune
 		void CreatePipeline();
 		void CreateCommandLists();
 		void CreateFences();
+
+		void BeginFrame();
+		void ExecuteMainPass();
+		void Present();
+		void EndFrame();
+		
 		void WaitForFrame(const dU64 frameIndex);
 		void WaitForCopy();
+
 		void PopulateCommandList();
 
 		//TEMP

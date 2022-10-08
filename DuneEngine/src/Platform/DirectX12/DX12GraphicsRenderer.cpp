@@ -85,26 +85,10 @@ namespace Dune
 	void DX12GraphicsRenderer::Render()
 	{
 		rmt_ScopedCPUSample(Render, 0);
-		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-		WaitForFrame(frameIndex);
-
-		ImGui::Render();
-
-		PopulateCommandList();
-
-		// Execute the command list.
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-		// Present the frame.
-		ThrowIfFailed(m_swapChain->Present(1, 0));
-
-		//Signal when frame is over
-		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameNumber));
-		m_fenceValues[frameIndex] = m_frameNumber;
-
-		m_frameNumber++;
-
+		BeginFrame();
+		ExecuteMainPass();
+		Present();
+		EndFrame();
 	}
 
 	void DX12GraphicsRenderer::OnShutdown()
@@ -686,6 +670,39 @@ namespace Dune
 		ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_lightsHeap.ReleaseAndGetAddressOf())));
 	}
 
+	void DX12GraphicsRenderer::BeginFrame()
+	{
+		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+		WaitForFrame(frameIndex);
+		ImGui::Render();
+	}
+
+	void DX12GraphicsRenderer::ExecuteMainPass()
+	{
+		PopulateCommandList();
+
+		// Execute the command list.
+		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	}
+
+	void DX12GraphicsRenderer::Present()
+	{
+		// Present the frame.
+		ThrowIfFailed(m_swapChain->Present(1, 0));
+	}
+
+	void DX12GraphicsRenderer::EndFrame()
+	{
+		//Signal when frame is over
+		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameNumber));
+		m_fenceValues[frameIndex] = m_frameNumber;
+
+		m_frameNumber++;
+	}
+
 	void DX12GraphicsRenderer::PopulateCommandList()
 	{
 		rmt_ScopedCPUSample(PopulateCommandList, 0);
@@ -849,5 +866,4 @@ namespace Dune
 		D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
 		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, d);
 	}
-
 }
