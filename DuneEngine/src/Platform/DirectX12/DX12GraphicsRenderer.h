@@ -70,10 +70,11 @@ namespace Dune
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
+		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded wihtin the renderer
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightsHeap;					// TEMP
 
 		// ImGui Pass
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineStateImGui;
 
 		// Synchronization
 		dU64												m_frameIndex = 0;
@@ -85,9 +86,6 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
 		dU64												m_copyFenceValue;
 
-		//TEMP
-		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer[ms_frameCount];
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightsHeap;
 	};
 }
 
