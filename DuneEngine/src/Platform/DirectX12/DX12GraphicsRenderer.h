@@ -33,13 +33,12 @@ namespace Dune
 
 		void BeginFrame() override;
 		void ExecuteMainPass() override;
+		void ExecuteImGuiPass() override;
 		void Present() override;
 		void EndFrame() override;
 		
 		void WaitForFrame(const dU64 frameIndex);
 		void WaitForCopy();
-
-		void PopulateCommandList();
 
 		//TEMP
 		void CreateLightsBuffer(dU32 size);
@@ -68,6 +67,7 @@ namespace Dune
 		dU32												m_rtvDescriptorSize;
 
 		// Synchronization
+		dU64												m_frameIndex = 0;
 		dU64												m_frameNumber = 0;
 		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;

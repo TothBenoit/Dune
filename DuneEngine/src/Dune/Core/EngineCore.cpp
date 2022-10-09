@@ -64,7 +64,7 @@ namespace Dune
 		DrawInterface();
 		UpdateCamera();
 		UpdateTransforms();
-		SendDataToGraphicsCore();
+		UpdateGraphicsData();
 		ClearModifiedEntities();
 
 		m_graphicsRenderer->Render();
@@ -532,9 +532,9 @@ namespace Dune
 		
 		ImGui::End();
 	}
-	void EngineCore::SendDataToGraphicsCore()
+	void EngineCore::UpdateGraphicsData()
 	{
-		rmt_ScopedCPUSample(SendDataToGraphicsCore, 0);
+		rmt_ScopedCPUSample(UpdateGraphicsData, 0);
 
 		if (m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end())
 		{

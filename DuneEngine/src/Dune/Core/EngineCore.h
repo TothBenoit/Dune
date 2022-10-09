@@ -88,7 +88,7 @@ namespace Dune
 		static void DrawGraph();
 		static void DrawNode(const SceneGraph::Node* node);
 		static void DrawInspector();
-		static void SendDataToGraphicsCore();
+		static void UpdateGraphicsData();
 		static void ClearModifiedEntities();
 	private:
 		static inline bool m_isInitialized = false;

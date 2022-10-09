@@ -46,6 +46,7 @@ namespace Dune
 	private:
 		virtual void BeginFrame() = 0;
 		virtual void ExecuteMainPass() = 0;
+		virtual void ExecuteImGuiPass() = 0;
 		virtual void Present() = 0;
 		virtual void EndFrame() = 0;
 

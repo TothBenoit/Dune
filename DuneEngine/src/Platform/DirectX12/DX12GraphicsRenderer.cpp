@@ -62,12 +62,12 @@ namespace Dune
 		if (m_fence->GetCompletedValue() < frameFenceValue)
 		{
 			ThrowIfFailed(m_fence->SetEventOnCompletion(frameFenceValue, m_fenceEvent.Get()))
-			std::ignore = WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
+				std::ignore = WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
 		}
 
 		//Temp since we assume that mesh get instantly uploaded
 		WaitForCopy();
-		
+
 	}
 
 	void DX12GraphicsRenderer::WaitForCopy()
@@ -318,7 +318,7 @@ namespace Dune
 
 		ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
 		NameDXObject(m_commandQueue, L"CommandQueue");
-		
+
 		D3D12_COMMAND_QUEUE_DESC copyQueueDesc = {};
 		copyQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		copyQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
@@ -375,7 +375,7 @@ namespace Dune
 			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 			ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
-			NameDXObject(m_rtvHeap,L"RtvHeap");
+			NameDXObject(m_rtvHeap, L"RtvHeap");
 			m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		}
 
@@ -457,7 +457,7 @@ namespace Dune
 		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
 			ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
-			NameDXObjectIndexed(m_commandAllocators[i], i,  L"CommandAllocators");
+			NameDXObjectIndexed(m_commandAllocators[i], i, L"CommandAllocators");
 		}
 
 		ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&m_copyCommandAllocator)));
@@ -516,7 +516,7 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3DBlob> error;
 		if (FAILED(D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error)))
 		{
-			OutputDebugStringA((const char *)error->GetBufferPointer());
+			OutputDebugStringA((const char*)error->GetBufferPointer());
 			Assert(0);
 		}
 		ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
@@ -609,7 +609,7 @@ namespace Dune
 
 		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, m_copyCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_copyCommandList)));
 		ThrowIfFailed(m_copyCommandList->Close());
-		NameDXObject(m_copyCommandList,L"CopyCommandList");
+		NameDXObject(m_copyCommandList, L"CopyCommandList");
 	}
 
 	void DX12GraphicsRenderer::CreateFences()
@@ -641,8 +641,6 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateLightsBuffer(dU32 size)
 	{
-		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-
 		for (int i = 0; i < ms_frameCount; i++)
 		{
 			GraphicsBufferDesc desc;
@@ -663,52 +661,20 @@ namespace Dune
 
 	void DX12GraphicsRenderer::BeginFrame()
 	{
-		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-		WaitForFrame(frameIndex);
+		rmt_ScopedCPUSample(BeginFrame, 0);
+		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+		WaitForFrame(m_frameIndex);
 		ImGui::Render();
+
+		ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
 	}
 
 	void DX12GraphicsRenderer::ExecuteMainPass()
 	{
-		PopulateCommandList();
+		rmt_ScopedCPUSample(ExecuteMainPass, 0);
 
-		// Execute the command list.
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
 
-	}
-
-	void DX12GraphicsRenderer::Present()
-	{
-		// Present the frame.
-		ThrowIfFailed(m_swapChain->Present(1, 0));
-	}
-
-	void DX12GraphicsRenderer::EndFrame()
-	{
-		//Signal when frame is over
-		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameNumber));
-		m_fenceValues[frameIndex] = m_frameNumber;
-
-		m_frameNumber++;
-	}
-
-	void DX12GraphicsRenderer::PopulateCommandList()
-	{
-		rmt_ScopedCPUSample(PopulateCommandList, 0);
-		// Command list allocators can only be reset when the associated 
-		// command lists have finished execution on the GPU; apps should use 
-		// fences to determine GPU execution progress.
-		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-		ThrowIfFailed(m_commandAllocators[frameIndex]->Reset());
-
-		// However, when ExecuteCommandList() is called on a particular command 
-		// list, that command list can then be reset at any time and must be before 
-		// re-recording.
-		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[frameIndex].Get(), m_pipelineState.Get()));
-
-		// Set necessary state.
 		m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 		m_commandList->RSSetViewports(1, &m_viewport);
 		m_commandList->RSSetScissorRects(1, &m_scissorRect);
@@ -717,18 +683,17 @@ namespace Dune
 		D3D12_RESOURCE_BARRIER renderTargetBarrier;
 		renderTargetBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		renderTargetBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		renderTargetBarrier.Transition.pResource = m_renderTargets[frameIndex].Get();
+		renderTargetBarrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
 		renderTargetBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 		renderTargetBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		renderTargetBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-		rtvHandle.ptr = rtvHandle.ptr + (frameIndex * m_rtvDescriptorSize);
+		rtvHandle.ptr = rtvHandle.ptr + (m_frameIndex * m_rtvDescriptorSize);
 		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
-		// Record commands.
 		const float clearColor[] = { 0.05f, 0.05f, 0.075f, 1.0f };
 		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -743,73 +708,100 @@ namespace Dune
 		D3D12_GPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetGPUDescriptorHandleForHeapStart() };
 		m_commandList->SetGraphicsRootDescriptorTable(3, d);
 
-		rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
-		for (const auto& elem: m_graphicsElements)
 		{
-			const Mesh* mesh = elem.GetMesh();
+			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
 
-			// At this point, mesh should be already uploaded.
-			Assert(mesh->IsUploaded());
-
-			const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
-			const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
-
-			D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-			// Initialize the vertex buffer view.
-			vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
-			vertexBufferView.StrideInBytes = sizeof(Vertex);
-			vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
-
-			D3D12_INDEX_BUFFER_VIEW indexBufferView;
-			indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
-			indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-			indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
-
-			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-			m_commandList->IASetIndexBuffer(&indexBufferView);
-
-			DirectX::XMMATRIX normalMatrix = elem.GetTransform();
-			normalMatrix = DirectX::XMMatrixInverse(nullptr, normalMatrix);
-			normalMatrix = DirectX::XMMatrixTranspose(normalMatrix);
-				
-			struct InstanceMatrices
+			for (const auto& elem : m_graphicsElements)
 			{
-				DirectX::XMFLOAT4X4 modelMatrix;
-				DirectX::XMFLOAT4X4 normalMatrix;
-			};
+				const Mesh* mesh = elem.GetMesh();
 
-			InstanceMatrices instanceMatrices;
-			DirectX::XMStoreFloat4x4(&instanceMatrices.modelMatrix, elem.GetTransform());
-			DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, normalMatrix);
+				// At this point, mesh should be already uploaded.
+				Assert(mesh->IsUploaded());
 
-			m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(InstanceMatrices) / 4, &instanceMatrices, 0);
-			m_commandList->SetGraphicsRoot32BitConstants(1, sizeof(dVec4) / 4, &elem.GetMaterial()->m_baseColor, 0);
+				const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
+				const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
 
-			dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
-			m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+				D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+				// Initialize the vertex buffer view.
+				vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
+				vertexBufferView.StrideInBytes = sizeof(Vertex);
+				vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
+
+				D3D12_INDEX_BUFFER_VIEW indexBufferView;
+				indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
+				indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+				indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
+
+				m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+				m_commandList->IASetIndexBuffer(&indexBufferView);
+
+				const DirectX::XMMATRIX& normalMatrix = elem.GetTransform();
+
+				struct InstanceMatrices
+				{
+					DirectX::XMFLOAT4X4 modelMatrix;
+					DirectX::XMFLOAT4X4 normalMatrix;
+				};
+
+				InstanceMatrices instanceMatrices;
+				DirectX::XMStoreFloat4x4(&instanceMatrices.modelMatrix, normalMatrix);
+				DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, normalMatrix)));
+
+				constexpr dU32 instanceMatricesSize = sizeof(InstanceMatrices) / 4;
+				constexpr dU32 materialSize = sizeof(dVec4) / 4;
+
+				m_commandList->SetGraphicsRoot32BitConstants(0, instanceMatricesSize, &instanceMatrices, 0);
+				m_commandList->SetGraphicsRoot32BitConstants(1, materialSize, &elem.GetMaterial()->m_baseColor, 0);
+
+				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
+				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+			}
 		}
+	}
+
+	void DX12GraphicsRenderer::ExecuteImGuiPass()
+	{
+		rmt_ScopedCPUSample(ExecuteImGuiPass, 0);
 
 		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+	}
+
+	void DX12GraphicsRenderer::Present()
+	{
+		rmt_ScopedCPUSample(Present, 0);
 
 		// Indicate that the back buffer will now be used to present.
 		D3D12_RESOURCE_BARRIER presentBarrier;
 		presentBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		presentBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		presentBarrier.Transition.pResource = m_renderTargets[frameIndex].Get();
+		presentBarrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
 		presentBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		presentBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		presentBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		m_commandList->ResourceBarrier(1, &presentBarrier);
 
 		ThrowIfFailed(m_commandList->Close());
+
+		// Execute the command list.
+		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		// Present the frame.
+		ThrowIfFailed(m_swapChain->Present(1, 0));
+	}
+
+	void DX12GraphicsRenderer::EndFrame()
+	{
+		rmt_ScopedCPUSample(EndFrame, 0);
+		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameNumber));
+		m_fenceValues[m_frameIndex] = m_frameNumber;
+
+		m_frameNumber++;
 	}
 
 	void DX12GraphicsRenderer::UpdateLights()
 	{
-		const UINT64 frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-
 		if (m_pointLights.empty())
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
@@ -825,16 +817,16 @@ namespace Dune
 			m_device->CreateShaderResourceView(0, &srvDesc, d);
 			return;
 		}
-		
-		if (m_pointLights.size() > m_lightsBuffer[frameIndex]->GetDescription().size / sizeof(PointLight))
+
+		if (m_pointLights.size() > m_lightsBuffer[m_frameIndex]->GetDescription().size / sizeof(PointLight))
 		{
 			GraphicsBufferDesc desc;
 			desc.size = (dU32)(m_pointLights.size() * sizeof(PointLight));
 			desc.usage = EBufferUsage::Upload;
-			m_lightsBuffer[frameIndex] = CreateBuffer(nullptr, desc);
+			m_lightsBuffer[m_frameIndex] = CreateBuffer(nullptr, desc);
 		}
 
-		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_lightsBuffer[frameIndex].get());
+		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_lightsBuffer[m_frameIndex].get());
 
 		UINT8* pDataBegin;
 		D3D12_RANGE readRange;
