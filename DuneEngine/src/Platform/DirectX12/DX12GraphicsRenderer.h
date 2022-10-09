@@ -48,7 +48,6 @@ namespace Dune
 		void UpdateLights();
 
 	private:
-		//TODO : FrameContext which contains command allocator, fences, render target 
 		D3D12_VIEWPORT										m_viewport;
 		D3D12_RECT											m_scissorRect;
 		Microsoft::WRL::ComPtr<IDXGIFactory4>				m_factory;

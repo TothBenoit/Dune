@@ -230,7 +230,7 @@ namespace Dune
 		inline static float GetMouseDeltaY() { return m_mouseDeltaY; }
 		inline static float GetMouseWheelDelta() { return m_mouseWheelDelta; }
 
-		//TODO: shouldn't be able to SetKey or SetMouse outside from window event, friend class Window ?
+		//TODO: shouldn't be able to SetKey or SetMouse outside from window event, friend class Window then WindowImpl call protected method that set Input ?
 		static void SetKeyDown(KeyCode key);
 		static void SetKeyUp(KeyCode key);
 
