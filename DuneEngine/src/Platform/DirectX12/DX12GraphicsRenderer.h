@@ -31,6 +31,9 @@ namespace Dune
 		void CreateCommandLists();
 		void CreateFences();
 
+		void InitMainPass() override;
+		void InitImGuiPass() override;
+
 		void BeginFrame() override;
 		void ExecuteMainPass() override;
 		void ExecuteImGuiPass() override;
@@ -41,7 +44,7 @@ namespace Dune
 		void WaitForCopy();
 
 		//TEMP
-		void CreateLightsBuffer(dU32 size);
+		void CreateLightsBuffer();
 		void UpdateLights();
 
 	private:
@@ -55,16 +58,22 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_depthStencilBuffer;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_rtvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_dsvHeap;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[ms_frameCount];
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_copyCommandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_copyCommandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
+		dU32												m_rtvDescriptorSize;
+
+
+		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-		dU32												m_rtvDescriptorSize;
+
+		// ImGui Pass
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineStateImGui;
 
 		// Synchronization
 		dU64												m_frameIndex = 0;

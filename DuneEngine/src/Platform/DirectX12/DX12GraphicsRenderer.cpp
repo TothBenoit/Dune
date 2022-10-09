@@ -18,28 +18,17 @@ namespace Dune
 		CreateRenderTargets();
 		CreateDepthStencil(window->GetWidth(), window->GetHeight());
 		CreateCommandAllocators();
-		CreateRootSignature();
-		CreatePipeline();
 		CreateCommandLists();
 		CreateFences();
-		CreateLightsBuffer((dU32)sizeof(PointLight));
+
+		InitMainPass();
+		InitImGuiPass();
 
 		dMatrix identity;
 		GraphicsBufferDesc camBufferDesc;
 		camBufferDesc.size = sizeof(dMatrix);
 		camBufferDesc.usage = EBufferUsage::Upload;
 		m_cameraMatrixBuffer = CreateBuffer(&identity, camBufferDesc);
-
-		//Create ImGui descriptor heap
-		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		desc.NumDescriptors = 1;
-		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiHeap)));
-		ImGui_ImplDX12_Init(m_device.Get(), ms_frameCount,
-			DXGI_FORMAT_R8G8B8A8_UNORM, m_imguiHeap.Get(),
-			m_imguiHeap->GetCPUDescriptorHandleForHeapStart(),
-			m_imguiHeap->GetGPUDescriptorHandleForHeapStart());
 	}
 
 	DX12GraphicsRenderer::~DX12GraphicsRenderer()
@@ -639,12 +628,35 @@ namespace Dune
 		}
 	}
 
-	void DX12GraphicsRenderer::CreateLightsBuffer(dU32 size)
+	void DX12GraphicsRenderer::InitMainPass()
 	{
+		CreateRootSignature();
+		CreatePipeline();
+		CreateLightsBuffer();
+	}
+
+	void DX12GraphicsRenderer::InitImGuiPass()
+	{
+		//Create ImGui descriptor heap
+		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		desc.NumDescriptors = 1;
+		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiHeap)));
+		ImGui_ImplDX12_Init(m_device.Get(), ms_frameCount,
+			DXGI_FORMAT_R8G8B8A8_UNORM, m_imguiHeap.Get(),
+			m_imguiHeap->GetCPUDescriptorHandleForHeapStart(),
+			m_imguiHeap->GetGPUDescriptorHandleForHeapStart());
+	}
+
+	void DX12GraphicsRenderer::CreateLightsBuffer()
+	{
+		constexpr dU32 pointLightSize = (dU32)sizeof(PointLight);
+
 		for (int i = 0; i < ms_frameCount; i++)
 		{
 			GraphicsBufferDesc desc;
-			desc.size = size;
+			desc.size = pointLightSize;
 			desc.usage = EBufferUsage::Upload;
 			m_lightsBuffer[i] = CreateBuffer(nullptr, desc);
 		}
@@ -758,19 +770,38 @@ namespace Dune
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 			}
 		}
+
+		ThrowIfFailed(m_commandList->Close());
+
+		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
 	void DX12GraphicsRenderer::ExecuteImGuiPass()
 	{
 		rmt_ScopedCPUSample(ExecuteImGuiPass, 0);
 
+		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
+
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+		rtvHandle.ptr = rtvHandle.ptr + (m_frameIndex * m_rtvDescriptorSize);
+		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
 		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
+
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+
+		ThrowIfFailed(m_commandList->Close());
+
+		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
 	void DX12GraphicsRenderer::Present()
 	{
 		rmt_ScopedCPUSample(Present, 0);
+
+		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
 
 		// Indicate that the back buffer will now be used to present.
 		D3D12_RESOURCE_BARRIER presentBarrier;
@@ -784,10 +815,9 @@ namespace Dune
 
 		ThrowIfFailed(m_commandList->Close());
 
-		// Execute the command list.
 		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-		// Present the frame.
+
 		ThrowIfFailed(m_swapChain->Present(1, 0));
 	}
 
