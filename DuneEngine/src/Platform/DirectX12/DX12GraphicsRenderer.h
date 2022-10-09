@@ -11,7 +11,6 @@ namespace Dune
 		DX12GraphicsRenderer(const WindowsWindow * window);
 		~DX12GraphicsRenderer() override;
 
-		void Render() override;
 		void OnShutdown() override;
 		void OnResize(int width, int height) override;
 
@@ -32,10 +31,10 @@ namespace Dune
 		void CreateCommandLists();
 		void CreateFences();
 
-		void BeginFrame();
-		void ExecuteMainPass();
-		void Present();
-		void EndFrame();
+		void BeginFrame() override;
+		void ExecuteMainPass() override;
+		void Present() override;
+		void EndFrame() override;
 		
 		void WaitForFrame(const dU64 frameIndex);
 		void WaitForCopy();

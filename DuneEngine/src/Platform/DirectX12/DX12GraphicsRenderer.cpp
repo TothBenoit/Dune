@@ -82,15 +82,6 @@ namespace Dune
 		}
 	}
 
-	void DX12GraphicsRenderer::Render()
-	{
-		rmt_ScopedCPUSample(Render, 0);
-		BeginFrame();
-		ExecuteMainPass();
-		Present();
-		EndFrame();
-	}
-
 	void DX12GraphicsRenderer::OnShutdown()
 	{
 		for (dU32 i = 0; i < ms_frameCount; i++)

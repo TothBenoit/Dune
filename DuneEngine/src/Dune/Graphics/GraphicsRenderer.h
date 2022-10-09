@@ -16,6 +16,8 @@ namespace Dune
 		virtual ~GraphicsRenderer() = default;
 		GraphicsRenderer(const GraphicsRenderer&) = delete;
 		GraphicsRenderer& operator=(const GraphicsRenderer&) = delete;
+		GraphicsRenderer(GraphicsRenderer&&) = delete;
+		GraphicsRenderer& operator=(GraphicsRenderer&&) = delete;
 
 		static std::unique_ptr<GraphicsRenderer> Create(const Window * window);
 
@@ -29,17 +31,25 @@ namespace Dune
 
 		void UpdateCamera();
 
-		virtual void Render() = 0;
+		void Render();
+
 		virtual void OnShutdown() = 0;
 		virtual void OnResize(int width, int height) = 0;
+
 		//TODO : Get rid of const void* data
 		virtual std::unique_ptr<GraphicsBuffer> CreateBuffer(const void* data, const GraphicsBufferDesc& desc) = 0;
 		virtual void UpdateBuffer(GraphicsBuffer * buffer, const void* data) = 0;
 
 	protected:
 		GraphicsRenderer() = default;
-	protected:
 		
+	private:
+		virtual void BeginFrame() = 0;
+		virtual void ExecuteMainPass() = 0;
+		virtual void Present() = 0;
+		virtual void EndFrame() = 0;
+
+	protected:
 		dVector<PointLight> m_pointLights;
 		dVector<EntityID> m_pointLightEntities;
 		dHashMap<EntityID, dU32> m_lookupPointLights;

@@ -102,6 +102,15 @@ namespace Dune
 		}
 	}
 
+	void GraphicsRenderer::Render()
+	{
+		rmt_ScopedCPUSample(Render, 0);
+		BeginFrame();
+		ExecuteMainPass();
+		Present();
+		EndFrame();
+	}
+
 	void GraphicsRenderer::RemoveGraphicsElement(EntityID id)
 	{
 		auto it = m_lookupGraphicsElements.find(id);
