@@ -98,8 +98,7 @@ namespace Dune
 
 		ThrowIfFailed(m_swapChain->ResizeBuffers(
 			ms_frameCount,
-			x,
-			y,
+			0, 0,
 			DXGI_FORMAT_R8G8B8A8_UNORM,
 			0
 		));
@@ -333,8 +332,8 @@ namespace Dune
 
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
 		swapChainDesc.BufferCount = ms_frameCount;
-		swapChainDesc.BufferDesc.Width = clientRect.right;
-		swapChainDesc.BufferDesc.Height = clientRect.bottom;
+		swapChainDesc.BufferDesc.Width = 0;
+		swapChainDesc.BufferDesc.Height = 0;
 		swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -354,7 +353,6 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateRenderTargets()
 	{
-
 		// Create descriptor heaps.
 		{
 			// Describe and create a render target view (RTV) descriptor heap.

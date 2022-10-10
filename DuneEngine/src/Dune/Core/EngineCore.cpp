@@ -204,15 +204,11 @@ namespace Dune
 
 		//Compute camera view matrix
 		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&cameraTransform->position);
-		DirectX::XMVECTOR at = DirectX::XMVectorSet(0, 0, 1, 0);
-		DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
+		DirectX::XMVECTOR at{ 0, 0, 1, 0 };
+		DirectX::XMVECTOR up{ 0, 1, 0, 0 };
 		at = DirectX::XMVector3TransformNormal(at, DirectX::XMMatrixRotationQuaternion(quat));
 		up = DirectX::XMVector3TransformNormal(up, DirectX::XMMatrixRotationQuaternion(quat));
 		camera->viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
-
-		//Compute camera projection matrix
-		constexpr float aspectRatio = 1600.f / 900.f;
-		camera->projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera->verticalFieldOfView), aspectRatio, 0.1f, 1000.0f);
 	}
 
 	void EngineCore::UpdateTransforms()

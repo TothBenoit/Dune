@@ -5,7 +5,7 @@ namespace Dune
 {
 	class WindowsWindow;
 
-	class DX12GraphicsRenderer : public GraphicsRenderer
+	class DX12GraphicsRenderer final : public GraphicsRenderer
 	{
 	public:
 		DX12GraphicsRenderer(const WindowsWindow * window);
@@ -64,7 +64,6 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_copyCommandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
 		dU32												m_rtvDescriptorSize;
-
 
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
