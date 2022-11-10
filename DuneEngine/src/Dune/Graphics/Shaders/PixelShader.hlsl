@@ -1,3 +1,6 @@
+SamplerState sampleClamp : register(s0);
+
+Texture2D shadowMap[8] : register(t1);
 
 struct PointLight
 {

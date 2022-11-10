@@ -45,10 +45,12 @@ namespace Dune
 		
 	private:
 
+		virtual void InitShadowPass() = 0;
 		virtual void InitMainPass() = 0;
 		virtual void InitImGuiPass() = 0;
 
 		virtual void BeginFrame() = 0;
+		virtual void ExecuteShadowPass() = 0;
 		virtual void ExecuteMainPass() = 0;
 		virtual void ExecuteImGuiPass() = 0;
 		virtual void Present() = 0;

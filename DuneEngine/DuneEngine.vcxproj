@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\DX12\d3dx12.h" />
     <ClInclude Include="include\Remotery\Remotery.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\BindingComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\CameraComponent.h" />

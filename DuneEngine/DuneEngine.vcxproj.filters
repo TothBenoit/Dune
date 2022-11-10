@@ -40,6 +40,7 @@
     <ClInclude Include="include\Remotery\Remotery.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h" />
     <ClInclude Include="src\Dune\Graphics\PointLight.h" />
+    <ClInclude Include="include\DX12\d3dx12.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />

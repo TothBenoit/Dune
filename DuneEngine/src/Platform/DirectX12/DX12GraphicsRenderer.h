@@ -19,6 +19,8 @@ namespace Dune
 
 	private:
 		static const dU32 ms_frameCount = 2;
+		static const dU32 ms_shadowMapCount = 8;
+
 		void CreateFactory();
 		void CreateDevice();
 		void CreateCommandQueues();
@@ -26,15 +28,18 @@ namespace Dune
 		void CreateRenderTargets();
 		void CreateDepthStencil(int width, int height);
 		void CreateCommandAllocators();
+		void CreateSamplers();
 		void CreateRootSignature();
 		void CreatePipeline();
 		void CreateCommandLists();
 		void CreateFences();
 
+		void InitShadowPass() override;
 		void InitMainPass() override;
 		void InitImGuiPass() override;
 
 		void BeginFrame() override;
+		void ExecuteShadowPass() override;
 		void ExecuteMainPass() override;
 		void ExecuteImGuiPass() override;
 		void Present() override;
@@ -65,10 +70,16 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
 		dU32												m_rtvDescriptorSize;
 
+		// Shadow Pass
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowMapHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
+		D3D12_CPU_DESCRIPTOR_HANDLE							m_shadowDepthViews[ms_shadowMapCount];
+
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded wihtin the renderer
+		std::unique_ptr<GraphicsBuffer>						m_lightsBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightsHeap;					// TEMP
 
 		// ImGui Pass

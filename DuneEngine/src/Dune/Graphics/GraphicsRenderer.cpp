@@ -110,6 +110,7 @@ namespace Dune
 	{
 		rmt_ScopedCPUSample(Render, 0);
 		BeginFrame();
+		ExecuteShadowPass();
 		ExecuteMainPass();
 		ExecuteImGuiPass();
 		Present();

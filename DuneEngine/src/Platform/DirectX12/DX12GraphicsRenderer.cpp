@@ -21,6 +21,7 @@ namespace Dune
 		CreateCommandLists();
 		CreateFences();
 
+		InitShadowPass();
 		InitMainPass();
 		InitImGuiPass();
 
@@ -450,53 +451,58 @@ namespace Dune
 		NameDXObject(m_copyCommandAllocator, L"CopyCommandAllocator");
 	}
 
+	void DX12GraphicsRenderer::CreateSamplers()
+	{
+		D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {};
+		samplerHeapDesc.NumDescriptors = 1;        // One clamp sampler.
+		samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_samplerHeap)));
+
+		// Describe and create the point clamping sampler, which is 
+		// used for the shadow map.
+		D3D12_SAMPLER_DESC clampSamplerDesc = {};
+		clampSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+		clampSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		clampSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		clampSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		clampSamplerDesc.MipLODBias = 0.0f;
+		clampSamplerDesc.MaxAnisotropy = 1;
+		clampSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		clampSamplerDesc.BorderColor[0] = clampSamplerDesc.BorderColor[1] = clampSamplerDesc.BorderColor[2] = clampSamplerDesc.BorderColor[3] = 0;
+		clampSamplerDesc.MinLOD = 0;
+		clampSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+		m_device->CreateSampler(&clampSamplerDesc, m_samplerHeap->GetCPUDescriptorHandleForHeapStart());
+	}
+
 	void DX12GraphicsRenderer::CreateRootSignature()
 	{
-		D3D12_ROOT_PARAMETER1 rootParameters[4];
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, ms_shadowMapCount, 1);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+
+		CD3DX12_ROOT_PARAMETER1 rootParameters[6];
 		//Instance Matrices (MVP and Normal)
-		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		rootParameters[0].Constants.RegisterSpace = 0;
-		rootParameters[0].Constants.ShaderRegister = 0;
-		rootParameters[0].Constants.Num32BitValues = 2 * sizeof(dMatrix4x4) / 4;
-
+		rootParameters[0].InitAsConstants(2 * sizeof(dMatrix4x4) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 		//Material (BaseColor)
-		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		rootParameters[1].Constants.RegisterSpace = 0;
-		rootParameters[1].Constants.ShaderRegister = 1;
-		rootParameters[1].Constants.Num32BitValues = sizeof(dVec4) / 4;
+		rootParameters[1].InitAsConstants(sizeof(dVec4) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+		// Camera matrices
+		rootParameters[2].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
+		// Light buffers
+		rootParameters[3].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
+		// Shadow maps
+		rootParameters[4].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+		// Sampler
+		rootParameters[5].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
 
-		rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-		rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		rootParameters[2].Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC;
-		rootParameters[2].Descriptor.RegisterSpace = 0;
-		rootParameters[2].Descriptor.ShaderRegister = 2;
-
-		D3D12_DESCRIPTOR_RANGE1 range;
-		range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // we're using structured buffers - it's a SRV
-		range.NumDescriptors = 1; // we have 2 structured buffers and 2 descriptors
-		range.BaseShaderRegister = 0; // we start from the first register (t0)
-		range.RegisterSpace = 0; // this allows us to use the same register name if we use different space
-		range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-		range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-
-		rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-		rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		rootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
-		rootParameters[3].DescriptorTable.pDescriptorRanges = &range;
-
-		D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-		rootSignatureDesc.Desc_1_1.Flags =
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, 
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-		rootSignatureDesc.Desc_1_1.NumParameters = _countof(rootParameters);
-		rootSignatureDesc.Desc_1_1.pParameters = rootParameters;
-		rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-		rootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
+		);
 
 		Microsoft::WRL::ComPtr<ID3DBlob> signature;
 		Microsoft::WRL::ComPtr<ID3DBlob> error;
@@ -537,40 +543,11 @@ namespace Dune
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 		psoDesc.pRootSignature = m_rootSignature.Get();
-		psoDesc.VS = { reinterpret_cast<UINT8*>(vertexShader->GetBufferPointer()), vertexShader->GetBufferSize() };
-		psoDesc.PS = { reinterpret_cast<UINT8*>(pixelShader->GetBufferPointer()), pixelShader->GetBufferSize() };
-		D3D12_RASTERIZER_DESC rasterDesc;
-		rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
-		rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
-		rasterDesc.FrontCounterClockwise = FALSE;
-		rasterDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-		rasterDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-		rasterDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-		rasterDesc.DepthClipEnable = TRUE;
-		rasterDesc.MultisampleEnable = FALSE;
-		rasterDesc.AntialiasedLineEnable = FALSE;
-		rasterDesc.ForcedSampleCount = 0;
-		rasterDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-		psoDesc.RasterizerState = rasterDesc;
+        psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
+        psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
+		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		D3D12_BLEND_DESC blendDesc;
-		blendDesc.AlphaToCoverageEnable = FALSE;
-		blendDesc.IndependentBlendEnable = FALSE;
-		const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc = {
-			FALSE,
-			FALSE,
-			D3D12_BLEND_ONE,
-			D3D12_BLEND_ZERO,
-			D3D12_BLEND_OP_ADD,
-			D3D12_BLEND_ONE,
-			D3D12_BLEND_ZERO,
-			D3D12_BLEND_OP_ADD,
-			D3D12_LOGIC_OP_NOOP,
-			D3D12_COLOR_WRITE_ENABLE_ALL,
-		};
-		for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-			blendDesc.RenderTarget[i] = defaultRenderTargetBlendDesc;
-		psoDesc.BlendState = blendDesc;
+		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState.DepthEnable = TRUE;
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 		psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
@@ -625,6 +602,65 @@ namespace Dune
 		}
 	}
 
+	void DX12GraphicsRenderer::InitShadowPass()
+	{
+		CreateSamplers();
+
+		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+		dsvHeapDesc.NumDescriptors = 1;
+		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		dsvHeapDesc.NodeMask = 0;
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_shadowMapHeap)));
+		NameDXObject(m_shadowMapHeap, L"ShadowMapHeap");
+
+		CD3DX12_RESOURCE_DESC shadowTextureDesc(
+			D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+			0,
+			static_cast<UINT>(m_viewport.Width),
+			static_cast<UINT>(m_viewport.Height),
+			1,
+			1,
+			DXGI_FORMAT_D32_FLOAT,
+			1,
+			0,
+			D3D12_TEXTURE_LAYOUT_UNKNOWN,
+			D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE);
+
+		D3D12_CLEAR_VALUE clearValue;    // Performance tip: Tell the runtime at resource creation the desired clear value.
+		clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+		clearValue.DepthStencil.Depth = 1.0f;
+		clearValue.DepthStencil.Stencil = 0;
+
+		D3D12_HEAP_PROPERTIES heapProps;
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = 0;
+		heapProps.VisibleNodeMask = 0;
+
+		for (dU32 i = 0; i < ms_shadowMapCount; i++)
+		{
+			ThrowIfFailed(m_device->CreateCommittedResource(
+				&heapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&shadowTextureDesc,
+				D3D12_RESOURCE_STATE_DEPTH_WRITE,
+				&clearValue,
+				IID_PPV_ARGS(&m_shadowMaps[i])));
+
+			NameDXObject(m_shadowMaps[i], L"ShadowMapBuffer");
+
+			D3D12_CPU_DESCRIPTOR_HANDLE depthHandle(m_shadowMapHeap->GetCPUDescriptorHandleForHeapStart());
+			D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
+			depthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+			depthStencilViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			depthStencilViewDesc.Texture2D.MipSlice = 0;
+			m_device->CreateDepthStencilView(m_shadowMaps[i].Get(), &depthStencilViewDesc, depthHandle);
+			m_shadowDepthViews[i] = depthHandle;
+		}
+	}
+
 	void DX12GraphicsRenderer::InitMainPass()
 	{
 		CreateRootSignature();
@@ -674,8 +710,32 @@ namespace Dune
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(m_frameIndex);
 		ImGui::Render();
+		UpdateLights();
 
-		ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
+		ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset())
+	}
+
+	void DX12GraphicsRenderer::ExecuteShadowPass()
+	{
+		rmt_ScopedCPUSample(ExecuteShadowPass, 0);
+
+		//ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
+
+		//ID3D12DescriptorHeap* ppHeaps[] = { m_samplerHeap.Get() };
+		//m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+
+		//m_commandList->RSSetViewports(1, &m_viewport);
+		//m_commandList->RSSetScissorRects(1, &m_scissorRect);
+		//m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		//m_commandList->SetGraphicsRootDescriptorTable(3, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
+
+		//for (dU32 i = 0; i < m_pointLights.size(); i++)
+		//{
+		//	Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
+		//	m_commandList->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
+		//	m_commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowDepthViews[i]);    // No render target needed for the shadow pass.
+
+		//}
 	}
 
 	void DX12GraphicsRenderer::ExecuteMainPass()
@@ -709,8 +769,6 @@ namespace Dune
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
 		m_commandList->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
-
-		UpdateLights();
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_lightsHeap.Get() };
 		m_commandList->SetDescriptorHeaps(1, ppHeaps);
