@@ -482,19 +482,17 @@ namespace Dune
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, ms_shadowMapCount, 1);
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[6];
-		//Instance Matrices (MVP and Normal)
-		rootParameters[0].InitAsConstants(2 * sizeof(dMatrix4x4) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
-		//Material (BaseColor)
-		rootParameters[1].InitAsConstants(sizeof(dVec4) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX);
-		// Camera matrices
-		rootParameters[2].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
+		CD3DX12_ROOT_PARAMETER1 rootParameters[5];
+		// Instance constants (MVP, Normal matrix, BaseColor)
+		rootParameters[0].InitAsConstants(sizeof(InstanceConstantBuffer) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+		// Global constant (Camera matrices)
+		rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
 		// Light buffers
-		rootParameters[3].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[2].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 		// Shadow maps
-		rootParameters[4].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[3].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
 		// Sampler
-		rootParameters[5].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[4].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, 
@@ -741,7 +739,7 @@ namespace Dune
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_samplerHeap.Get() };
 		m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		m_commandList->SetGraphicsRootDescriptorTable(5, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
+		m_commandList->SetGraphicsRootDescriptorTable(4, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
 		m_commandList->RSSetViewports(1, &m_viewport);
 		m_commandList->RSSetScissorRects(1, &m_scissorRect);
@@ -753,7 +751,7 @@ namespace Dune
 			m_commandList->ResourceBarrier(1, &renderTargetBarrier);
 
 			Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
-			m_commandList->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
+			m_commandList->SetGraphicsRootConstantBufferView(1, cameraMatrixBuffer->GetGPUVirtualAddress());
 
 			m_commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowDepthViews[0]);    // No render target needed for the shadow pass.
 			m_commandList->ClearDepthStencilView(m_shadowDepthViews[0], D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -785,21 +783,15 @@ namespace Dune
 
 				const DirectX::XMMATRIX& normalMatrix = elem.GetTransform();
 
-				struct InstanceMatrices
-				{
-					DirectX::XMFLOAT4X4 modelMatrix;
-					DirectX::XMFLOAT4X4 normalMatrix;
-				};
+				InstanceConstantBuffer instanceConstantBuffer;
+				DirectX::XMStoreFloat4x4(&instanceConstantBuffer.modelMatrix, normalMatrix);
+				DirectX::XMStoreFloat4x4(&instanceConstantBuffer.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, normalMatrix)));
+				instanceConstantBuffer.baseColor = elem.GetMaterial()->m_baseColor;
 
-				InstanceMatrices instanceMatrices;
-				DirectX::XMStoreFloat4x4(&instanceMatrices.modelMatrix, normalMatrix);
-				DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, normalMatrix)));
-
-				constexpr dU32 instanceMatricesSize = sizeof(InstanceMatrices) / 4;
+				constexpr dU32 instanceConstantBufferSize = sizeof(InstanceConstantBuffer) / 4;
 				constexpr dU32 materialSize = sizeof(dVec4) / 4;
 
-				m_commandList->SetGraphicsRoot32BitConstants(0, instanceMatricesSize, &instanceMatrices, 0);
-				m_commandList->SetGraphicsRoot32BitConstants(1, materialSize, &elem.GetMaterial()->m_baseColor, 0);
+				m_commandList->SetGraphicsRoot32BitConstants(0, instanceConstantBufferSize, &instanceConstantBuffer, 0);
 
 				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
@@ -839,11 +831,11 @@ namespace Dune
 		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
-		m_commandList->SetGraphicsRootConstantBufferView(2, cameraMatrixBuffer->GetGPUVirtualAddress());
+		m_commandList->SetGraphicsRootConstantBufferView(1, cameraMatrixBuffer->GetGPUVirtualAddress());
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_lightsHeap.Get() };
 		m_commandList->SetDescriptorHeaps(1, ppHeaps);
-		m_commandList->SetGraphicsRootDescriptorTable(3, m_lightsHeap->GetGPUDescriptorHandleForHeapStart());
+		m_commandList->SetGraphicsRootDescriptorTable(2, m_lightsHeap->GetGPUDescriptorHandleForHeapStart());
 
 		{
 			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
@@ -875,21 +867,15 @@ namespace Dune
 
 				const DirectX::XMMATRIX& normalMatrix = elem.GetTransform();
 
-				struct InstanceMatrices
-				{
-					DirectX::XMFLOAT4X4 modelMatrix;
-					DirectX::XMFLOAT4X4 normalMatrix;
-				};
+				InstanceConstantBuffer instanceConstantBuffer;
+				DirectX::XMStoreFloat4x4(&instanceConstantBuffer.modelMatrix, normalMatrix);
+				DirectX::XMStoreFloat4x4(&instanceConstantBuffer.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, normalMatrix)));
+				instanceConstantBuffer.baseColor = elem.GetMaterial()->m_baseColor;
 
-				InstanceMatrices instanceMatrices;
-				DirectX::XMStoreFloat4x4(&instanceMatrices.modelMatrix, normalMatrix);
-				DirectX::XMStoreFloat4x4(&instanceMatrices.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, normalMatrix)));
-
-				constexpr dU32 instanceMatricesSize = sizeof(InstanceMatrices) / 4;
+				constexpr dU32 instanceConstantBufferSize = sizeof(InstanceConstantBuffer) / 4;
 				constexpr dU32 materialSize = sizeof(dVec4) / 4;
 
-				m_commandList->SetGraphicsRoot32BitConstants(0, instanceMatricesSize, &instanceMatrices, 0);
-				m_commandList->SetGraphicsRoot32BitConstants(1, materialSize, &elem.GetMaterial()->m_baseColor, 0);
+				m_commandList->SetGraphicsRoot32BitConstants(0, instanceConstantBufferSize, &instanceConstantBuffer, 0);
 
 				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);

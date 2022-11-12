@@ -10,6 +10,20 @@ namespace Dune
 	class GraphicsBuffer;
 	struct GraphicsBufferDesc;
 
+	// Change once per draw call
+	struct InstanceConstantBuffer
+	{
+		dMatrix4x4	modelMatrix;
+		dMatrix4x4	normalMatrix;
+		dVec4		baseColor;
+	};
+
+	// Change once per frame
+	struct GlobalConstantBuffer
+	{
+		dMatrix4x4	viewProjMatrix;
+	};
+
 	class GraphicsRenderer
 	{
 	public:
@@ -57,6 +71,8 @@ namespace Dune
 		virtual void EndFrame() = 0;
 
 	protected:
+		static constexpr dU32 ms_frameCount = 2;
+
 		dVector<PointLight> m_pointLights;
 		dVector<EntityID> m_pointLightEntities;
 		dHashMap<EntityID, dU32> m_lookupPointLights;

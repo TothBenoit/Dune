@@ -1,24 +1,18 @@
-struct CameraMatrix
+struct GlobalConstantBuffer
 {
     float4x4 ViewProjMatrix;
 };
 
-ConstantBuffer< CameraMatrix> CameraMatrixCB : register(b2);
+ConstantBuffer<GlobalConstantBuffer> GlobalCB : register(b1);
 
-struct InstanceMatrices
+struct InstanceConstantBuffer
 {
     float4x4 ModelMatrix;
     float4x4 NormalMatrix;
-};
-
-ConstantBuffer<InstanceMatrices> InstanceMatricesCB: register(b0);
-
-struct Material
-{
     float4 BaseColor;
 };
 
-ConstantBuffer<Material> MaterialCB : register(b1);
+ConstantBuffer<InstanceConstantBuffer> InstanceCB: register(b0);
 
 struct VS_INPUT
 {
@@ -38,10 +32,12 @@ struct VS_OUTPUT
 VS_OUTPUT VSMain(VS_INPUT input)
 {
     VS_OUTPUT o;
-    float4x4 MVP = mul(CameraMatrixCB.ViewProjMatrix, InstanceMatricesCB.ModelMatrix);
-    o.position = mul(MVP, float4(input.vPos, 1.0f) );
-    o.color = MaterialCB.BaseColor;
-    o.normal = mul(InstanceMatricesCB.NormalMatrix, float4(input.vNormal, 1.0f));
-    o.wPos = mul(InstanceMatricesCB.ModelMatrix, float4(input.vPos, 1.0f));
+
+    float4 wPos = mul(InstanceCB.ModelMatrix, float4(input.vPos, 1.0f));
+
+    o.wPos = wPos;
+    o.position = mul(GlobalCB.ViewProjMatrix, wPos);
+    o.color = InstanceCB.BaseColor;
+    o.normal = mul(InstanceCB.NormalMatrix, float4(input.vNormal, 1.0f));
 	return o;
 }
