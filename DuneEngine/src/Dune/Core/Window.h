@@ -18,8 +18,16 @@ namespace Dune
 
 		virtual ~Window() = default;
 
-		virtual dU32 GetWidth() const = 0;
-		virtual dU32 GetHeight() const = 0;
+		dU32 GetWidth() const
+		{
+			return m_data.m_width;
+		}
+
+		dU32 GetHeight() const
+		{
+			return m_data.m_height;
+		}
+
 		virtual bool Update() = 0;
 
 		static std::unique_ptr<Window> Create(WindowData data = WindowData());

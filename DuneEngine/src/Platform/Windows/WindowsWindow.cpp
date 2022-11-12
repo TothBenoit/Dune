@@ -79,17 +79,6 @@ namespace Dune
 		return true;
 	}
 
-
-	uint32_t WindowsWindow::GetWidth() const
-	{
-		return m_data.m_width;
-	}
-
-	uint32_t WindowsWindow::GetHeight() const
-	{
-		return m_data.m_height;
-	}
-
 	HWND WindowsWindow::GetHandle() const
 	{
 		return m_handle;
