@@ -92,6 +92,54 @@ namespace Dune
 		}
 	}
 
+	void GraphicsRenderer::ClearDirectionalLights()
+	{
+		m_directionalLights.clear();
+		m_directionalLightEntities.clear();
+		m_lookupDirectionalLights.clear();
+	}
+
+	void GraphicsRenderer::RemoveDirectionalLight(EntityID id)
+	{
+		auto it = m_lookupDirectionalLights.find(id);
+		if (it == m_lookupDirectionalLights.end())
+			return;
+
+		const dU32 index = (*it).second;
+		const EntityID entity = m_directionalLightEntities[index];
+
+		if (index < m_directionalLights.size() - 1)
+		{
+			m_directionalLights[index] = std::move(m_directionalLights.back());
+			m_directionalLightEntities[index] = m_directionalLightEntities.back();
+
+			m_lookupDirectionalLights[m_directionalLightEntities[index]] = index;
+		}
+
+		m_directionalLights.pop_back();
+		m_directionalLightEntities.pop_back();
+		m_lookupDirectionalLights.erase(id);
+	}
+
+	void GraphicsRenderer::SubmitDirectionalLight(EntityID id, const DirectionalLight& light)
+	{
+		Assert(id != ID::invalidID);
+
+		auto it = m_lookupDirectionalLights.find(id);
+		if (it != m_lookupDirectionalLights.end())
+		{
+			dU32 index = (*it).second;
+			m_directionalLights[index] = light;
+			m_directionalLightEntities[index] = id;
+		}
+		else
+		{
+			m_lookupDirectionalLights[id] = (dU32)m_directionalLights.size();
+			m_directionalLights.emplace_back(light);
+			m_directionalLightEntities.emplace_back(id);
+		}
+	}
+
 	void GraphicsRenderer::UpdateCamera()
 	{
 		const CameraComponent* camera = EngineCore::GetCamera();

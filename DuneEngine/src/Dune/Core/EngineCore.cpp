@@ -7,6 +7,7 @@
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
+#include "Dune/Core/ECS/Components/DirectionalLightComponent.h"
 
 #include <DirectXMath.h>
 
@@ -28,6 +29,7 @@ namespace Dune
 		ComponentManager<GraphicsComponent>::Init();
 		ComponentManager<CameraComponent>::Init();
 		ComponentManager<PointLightComponent>::Init();
+		ComponentManager<DirectionalLightComponent>::Init();
 
 		m_graphicsRenderer = GraphicsRenderer::Create(pWindow);
 
@@ -106,6 +108,7 @@ namespace Dune
 		m_sceneGraph.DeleteNode(id);
 		m_graphicsRenderer->RemoveGraphicsElement(id);
 		m_graphicsRenderer->RemovePointLight(id);
+		m_graphicsRenderer->RemoveDirectionalLight(id);
 	}
 
 	void EngineCore::UpdateCamera()
@@ -297,6 +300,13 @@ namespace Dune
 			{
 				EntityID id = CreateEntity("Point light");
 				AddComponent<PointLightComponent>(id);
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::Button("Directional light"))
+			{
+				EntityID id = CreateEntity("Directional light");
+				AddComponent<DirectionalLightComponent>(id);
 				ImGui::CloseCurrentPopup();
 			}
 
@@ -523,6 +533,31 @@ namespace Dune
 					AddComponent<PointLightComponent>(m_selectedEntity);
 				}
 			}
+
+			if (DirectionalLightComponent* pointLightComponent = ModifyComponent<DirectionalLightComponent>(m_selectedEntity))
+			{
+				if (ImGui::TreeNodeEx("Directional light attributes :"))
+				{
+					float imGuiIntensity = pointLightComponent->intensity;
+					ImGui::DragFloat("Intensity", &imGuiIntensity, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f");
+					pointLightComponent->intensity = imGuiIntensity;
+
+					float imGuiBaseColor[3] = { pointLightComponent->color.x, pointLightComponent->color.y, pointLightComponent->color.z };
+					ImGui::ColorPicker3("Color", imGuiBaseColor);
+					pointLightComponent->color.x = imGuiBaseColor[0];
+					pointLightComponent->color.y = imGuiBaseColor[1];
+					pointLightComponent->color.z = imGuiBaseColor[2];
+
+					ImGui::TreePop();
+				}
+			}
+			else
+			{
+				if (ImGui::Button("Add DirectionalLightComponent"))
+				{
+					AddComponent<DirectionalLightComponent>(m_selectedEntity);
+				}
+			}
 		}
 
 		
@@ -560,6 +595,31 @@ namespace Dune
 				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
 				
 				m_graphicsRenderer->SubmitPointLight(entity, PointLight(pointLightComponent->color, pointLightComponent->intensity, pointLightComponent->radius, transformComponent->position));
+			}
+
+			if (const DirectionalLightComponent* directionalLightComponent = GetComponent<DirectionalLightComponent>(entity))
+			{
+				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
+				
+				DirectX::XMVECTOR quat = DirectX::XMQuaternionIdentity();
+				DirectX::XMVECTOR x = DirectX::XMQuaternionRotationRollPitchYaw(transformComponent->rotation.x, 0, 0);
+				DirectX::XMVECTOR y = DirectX::XMQuaternionRotationRollPitchYaw(0, transformComponent->rotation.y, 0);
+				DirectX::XMVECTOR z = DirectX::XMQuaternionRotationRollPitchYaw(0, 0, transformComponent->rotation.z);
+				quat = DirectX::XMQuaternionMultiply(y, quat);
+				quat = DirectX::XMQuaternionMultiply(x, quat);
+				quat = DirectX::XMQuaternionMultiply(z, quat);
+				quat = DirectX::XMQuaternionNormalize(quat);
+				
+				dVec3 dir{ 0.f,0.f,1.f };
+				//Apply camera rotation to translation
+				DirectX::XMStoreFloat3(&dir,
+					DirectX::XMVector3TransformNormal(
+						DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&dir)),
+						DirectX::XMMatrixRotationQuaternion(quat)
+					)
+				);
+
+				m_graphicsRenderer->SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir));
 			}
 
 
