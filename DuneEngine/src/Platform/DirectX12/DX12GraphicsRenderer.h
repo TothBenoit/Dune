@@ -48,6 +48,7 @@ namespace Dune
 		void WaitForCopy();
 
 		//TEMP
+		void PrepareShadowPass();
 		void CreatePointLightsBuffer();
 		void UpdatePointLights();
 		void CreateDirectionalLightsBuffer();
@@ -76,6 +77,7 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowSrvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
+		std::unique_ptr<GraphicsBuffer>						m_shadowCameraBuffers[ms_shadowMapCount];
 		D3D12_CPU_DESCRIPTOR_HANDLE							m_shadowDepthViews[ms_shadowMapCount];
 		D3D12_GPU_DESCRIPTOR_HANDLE							m_shadowResourceViews[ms_shadowMapCount];
 

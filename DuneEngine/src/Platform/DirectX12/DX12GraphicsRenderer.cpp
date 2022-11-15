@@ -20,16 +20,11 @@ namespace Dune
 		CreateCommandAllocators();
 		CreateCommandLists();
 		CreateFences();
+		CreateCamera();
 
 		InitShadowPass();
 		InitMainPass();
 		InitImGuiPass();
-
-		dMatrix identity;
-		GraphicsBufferDesc camBufferDesc;
-		camBufferDesc.size = sizeof(dMatrix);
-		camBufferDesc.usage = EBufferUsage::Upload;
-		m_cameraMatrixBuffer = CreateBuffer(&identity, camBufferDesc);
 	}
 
 	DX12GraphicsRenderer::~DX12GraphicsRenderer()
@@ -70,6 +65,16 @@ namespace Dune
 			ThrowIfFailed(m_copyFence->SetEventOnCompletion(copyFenceValue, m_copyFenceEvent.Get()))
 				std::ignore = WaitForSingleObjectEx(m_copyFenceEvent.Get(), INFINITE, FALSE);
 		}
+	}
+
+	void DX12GraphicsRenderer::PrepareShadowPass()
+	{
+		for (int i = 0; i < ms_shadowMapCount && i < m_directionalLights.size(); i++)
+		{
+			dMatrix projectionMatrix = DirectX::XMMatrixOrthographicLH(1600, 900, 0.1f, 1000.0f);;
+			// dMatrix viewMatrix = dir ?
+		}
+
 	}
 
 	void DX12GraphicsRenderer::OnShutdown()

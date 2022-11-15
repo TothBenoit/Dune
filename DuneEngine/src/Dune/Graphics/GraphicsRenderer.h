@@ -19,8 +19,8 @@ namespace Dune
 		dVec4		baseColor;
 	};
 
-	// Change once per frame
-	struct GlobalConstantBuffer
+	// Change once per camera
+	struct CameraConstantBuffer
 	{
 		dMatrix4x4	viewProjMatrix;
 	};
@@ -50,6 +50,7 @@ namespace Dune
 		void RemoveDirectionalLight(EntityID id);
 		void SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
 
+		void CreateCamera();
 		void UpdateCamera();
 
 		void Render();

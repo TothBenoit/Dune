@@ -140,6 +140,15 @@ namespace Dune
 		}
 	}
 
+	void GraphicsRenderer::CreateCamera()
+	{
+		dMatrix identity;
+		GraphicsBufferDesc camBufferDesc;
+		camBufferDesc.size = sizeof(CameraConstantBuffer);
+		camBufferDesc.usage = EBufferUsage::Upload;
+		m_cameraMatrixBuffer = CreateBuffer(&identity, camBufferDesc);
+	}
+
 	void GraphicsRenderer::UpdateCamera()
 	{
 		const CameraComponent* camera = EngineCore::GetCamera();

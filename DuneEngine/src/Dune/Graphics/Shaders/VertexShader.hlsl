@@ -1,9 +1,9 @@
-struct GlobalConstantBuffer
+struct CameraConstantBuffer
 {
     float4x4 ViewProjMatrix;
 };
 
-ConstantBuffer<GlobalConstantBuffer> GlobalCB : register(b1);
+ConstantBuffer<CameraConstantBuffer> CameraCB : register(b1);
 
 struct InstanceConstantBuffer
 {
@@ -36,7 +36,7 @@ VS_OUTPUT VSMain(VS_INPUT input)
     float4 wPos = mul(InstanceCB.ModelMatrix, float4(input.vPos, 1.0f));
 
     o.wPos = wPos;
-    o.position = mul(GlobalCB.ViewProjMatrix, wPos);
+    o.position = mul(CameraCB.ViewProjMatrix, wPos);
     o.color = InstanceCB.BaseColor;
     o.normal = mul(InstanceCB.NormalMatrix, float4(input.vNormal, 1.0f));
 	return o;
