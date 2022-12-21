@@ -20,16 +20,11 @@ namespace Dune
 		CreateCommandAllocators();
 		CreateCommandLists();
 		CreateFences();
+		CreateCamera();
 
 		InitShadowPass();
 		InitMainPass();
 		InitImGuiPass();
-
-		dMatrix identity;
-		GraphicsBufferDesc camBufferDesc;
-		camBufferDesc.size = sizeof(dMatrix);
-		camBufferDesc.usage = EBufferUsage::Upload;
-		m_cameraMatrixBuffer = CreateBuffer(&identity, camBufferDesc);
 	}
 
 	DX12GraphicsRenderer::~DX12GraphicsRenderer()
@@ -70,6 +65,16 @@ namespace Dune
 			ThrowIfFailed(m_copyFence->SetEventOnCompletion(copyFenceValue, m_copyFenceEvent.Get()))
 				std::ignore = WaitForSingleObjectEx(m_copyFenceEvent.Get(), INFINITE, FALSE);
 		}
+	}
+
+	void DX12GraphicsRenderer::PrepareShadowPass()
+	{
+		for (int i = 0; i < ms_shadowMapCount && i < m_directionalLights.size(); i++)
+		{
+			dMatrix projectionMatrix = DirectX::XMMatrixOrthographicLH(1600, 900, 0.1f, 1000.0f);;
+			// dMatrix viewMatrix = dir ?
+		}
+
 	}
 
 	void DX12GraphicsRenderer::OnShutdown()
@@ -477,22 +482,25 @@ namespace Dune
 
 	void DX12GraphicsRenderer::CreateRootSignature()
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, ms_shadowMapCount, 1);
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, ms_shadowMapCount, 2);
+		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[5];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[6];
 		// Instance constants (MVP, Normal matrix, BaseColor)
 		rootParameters[0].InitAsConstants(sizeof(InstanceConstantBuffer) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 		// Global constant (Camera matrices)
 		rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
-		// Light buffers
+		// Point light buffers
 		rootParameters[2].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
-		// Shadow maps
+		// Directional light buffers
 		rootParameters[3].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
-		// Sampler
+		// Shadow maps
 		rootParameters[4].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+		// Sampler
+		rootParameters[5].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, 
@@ -679,7 +687,8 @@ namespace Dune
 	{
 		CreateRootSignature();
 		CreatePipeline();
-		CreateLightsBuffer();
+		CreatePointLightsBuffer();
+		CreateDirectionalLightsBuffer();
 	}
 
 	void DX12GraphicsRenderer::InitImGuiPass()
@@ -696,7 +705,7 @@ namespace Dune
 			m_imguiHeap->GetGPUDescriptorHandleForHeapStart());
 	}
 
-	void DX12GraphicsRenderer::CreateLightsBuffer()
+	void DX12GraphicsRenderer::CreatePointLightsBuffer()
 	{
 		constexpr dU32 pointLightSize = (dU32)sizeof(PointLight);
 
@@ -705,7 +714,7 @@ namespace Dune
 			GraphicsBufferDesc desc;
 			desc.size = pointLightSize;
 			desc.usage = EBufferUsage::Upload;
-			m_lightsBuffer[i] = CreateBuffer(nullptr, desc);
+			m_pointLightsBuffer[i] = CreateBuffer(nullptr, desc);
 		}
 
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
@@ -715,7 +724,79 @@ namespace Dune
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		heapDesc.NodeMask = 0;
 
-		ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_lightsHeap.ReleaseAndGetAddressOf())));
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_pointLightsHeap.ReleaseAndGetAddressOf())));
+	}
+
+	void DX12GraphicsRenderer::CreateDirectionalLightsBuffer()
+	{
+		constexpr dU32 directionalLightSize = (dU32)sizeof(DirectionalLight);
+
+		for (int i = 0; i < ms_frameCount; i++)
+		{
+			GraphicsBufferDesc desc;
+			desc.size = directionalLightSize;
+			desc.usage = EBufferUsage::Upload;
+			m_directionalLightBuffer[i] = CreateBuffer(nullptr, desc);
+		}
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = 1;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		heapDesc.NodeMask = 0;
+
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_directionalLightsHeap.ReleaseAndGetAddressOf())));
+	}
+
+	void DX12GraphicsRenderer::UpdateDirectionalLights()
+	{
+		if (m_directionalLights.empty())
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_directionalLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+			ZeroMemory(&srvDesc, sizeof(srvDesc));
+			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Buffer.FirstElement = 0;
+			srvDesc.Buffer.NumElements = static_cast<UINT>(m_directionalLights.size());
+			srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(DirectionalLight));
+			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+			m_device->CreateShaderResourceView(0, &srvDesc, d);
+			return;
+		}
+
+		if (m_directionalLights.size() > m_directionalLightBuffer[m_frameIndex]->GetDescription().size / sizeof(DirectionalLight))
+		{
+			GraphicsBufferDesc desc;
+			desc.size = (dU32)(m_directionalLights.size() * sizeof(DirectionalLight));
+			desc.usage = EBufferUsage::Upload;
+			m_directionalLightBuffer[m_frameIndex] = CreateBuffer(nullptr, desc);
+		}
+
+		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_directionalLightBuffer[m_frameIndex].get());
+
+		UINT8* pDataBegin;
+		D3D12_RANGE readRange;
+		readRange.Begin = 0;
+		readRange.End = 0;
+		ThrowIfFailed(lightBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
+		memcpy(pDataBegin, m_directionalLights.data(), m_directionalLights.size() * sizeof(DirectionalLight));
+		lightBuffer->m_buffer->Unmap(0, nullptr);
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+		ZeroMemory(&srvDesc, sizeof(srvDesc));
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Buffer.FirstElement = 0;
+		srvDesc.Buffer.NumElements = static_cast<UINT>(m_directionalLights.size());
+		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(DirectionalLight));
+		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE d{ m_directionalLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, d);
 	}
 
 	void DX12GraphicsRenderer::BeginFrame()
@@ -724,7 +805,8 @@ namespace Dune
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(m_frameIndex);
 		ImGui::Render();
-		UpdateLights();
+		UpdatePointLights();
+		UpdateDirectionalLights();
 
 		ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset())
 	}
@@ -739,7 +821,7 @@ namespace Dune
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_samplerHeap.Get() };
 		m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		m_commandList->SetGraphicsRootDescriptorTable(4, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
+		m_commandList->SetGraphicsRootDescriptorTable(5, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
 		m_commandList->RSSetViewports(1, &m_viewport);
 		m_commandList->RSSetScissorRects(1, &m_scissorRect);
@@ -833,9 +915,13 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
 		m_commandList->SetGraphicsRootConstantBufferView(1, cameraMatrixBuffer->GetGPUVirtualAddress());
 
-		ID3D12DescriptorHeap* ppHeaps[] = { m_lightsHeap.Get() };
+		ID3D12DescriptorHeap* ppHeaps[] = { m_pointLightsHeap.Get() };
 		m_commandList->SetDescriptorHeaps(1, ppHeaps);
-		m_commandList->SetGraphicsRootDescriptorTable(2, m_lightsHeap->GetGPUDescriptorHandleForHeapStart());
+		m_commandList->SetGraphicsRootDescriptorTable(2, m_pointLightsHeap->GetGPUDescriptorHandleForHeapStart());
+
+		ID3D12DescriptorHeap* ppHeaps2[] = { m_directionalLightsHeap.Get() };
+		m_commandList->SetDescriptorHeaps(1, ppHeaps2);
+		m_commandList->SetGraphicsRootDescriptorTable(3, m_directionalLightsHeap->GetGPUDescriptorHandleForHeapStart());
 
 		{
 			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
@@ -941,11 +1027,11 @@ namespace Dune
 		m_frameNumber++;
 	}
 
-	void DX12GraphicsRenderer::UpdateLights()
+	void DX12GraphicsRenderer::UpdatePointLights()
 	{
 		if (m_pointLights.empty())
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
+			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_pointLightsHeap->GetCPUDescriptorHandleForHeapStart() };
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
 			ZeroMemory(&srvDesc, sizeof(srvDesc));
 			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -959,15 +1045,15 @@ namespace Dune
 			return;
 		}
 
-		if (m_pointLights.size() > m_lightsBuffer[m_frameIndex]->GetDescription().size / sizeof(PointLight))
+		if (m_pointLights.size() > m_pointLightsBuffer[m_frameIndex]->GetDescription().size / sizeof(PointLight))
 		{
 			GraphicsBufferDesc desc;
 			desc.size = (dU32)(m_pointLights.size() * sizeof(PointLight));
 			desc.usage = EBufferUsage::Upload;
-			m_lightsBuffer[m_frameIndex] = CreateBuffer(nullptr, desc);
+			m_pointLightsBuffer[m_frameIndex] = CreateBuffer(nullptr, desc);
 		}
 
-		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_lightsBuffer[m_frameIndex].get());
+		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_pointLightsBuffer[m_frameIndex].get());
 
 		UINT8* pDataBegin;
 		D3D12_RANGE readRange;
@@ -987,7 +1073,7 @@ namespace Dune
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightsHeap->GetCPUDescriptorHandleForHeapStart() };
+		D3D12_CPU_DESCRIPTOR_HANDLE d{ m_pointLightsHeap->GetCPUDescriptorHandleForHeapStart() };
 		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, d);
 	}
 }

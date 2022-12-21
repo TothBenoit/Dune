@@ -3,6 +3,7 @@
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
 #include "GraphicsElement.h"
 #include "Dune/Graphics/PointLight.h"
+#include "Dune/Graphics/DirectionalLight.h"
 
 namespace Dune
 {
@@ -18,8 +19,8 @@ namespace Dune
 		dVec4		baseColor;
 	};
 
-	// Change once per frame
-	struct GlobalConstantBuffer
+	// Change once per camera
+	struct CameraConstantBuffer
 	{
 		dMatrix4x4	viewProjMatrix;
 	};
@@ -35,6 +36,8 @@ namespace Dune
 
 		static std::unique_ptr<GraphicsRenderer> Create(const Window * window);
 
+		// TODO : Generalize Clear/Remove/Submit pattern 
+
 		void ClearGraphicsElements();
 		void RemoveGraphicsElement(EntityID id);
 		void SubmitGraphicsElement(EntityID id, GraphicsElement&& elem);
@@ -43,6 +46,11 @@ namespace Dune
 		void RemovePointLight(EntityID id);
 		void SubmitPointLight(EntityID id, const PointLight& light);
 
+		void ClearDirectionalLights();
+		void RemoveDirectionalLight(EntityID id);
+		void SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
+
+		void CreateCamera();
 		void UpdateCamera();
 
 		void Render();
@@ -72,6 +80,10 @@ namespace Dune
 
 	protected:
 		static constexpr dU32 ms_frameCount = 2;
+
+		dVector<DirectionalLight> m_directionalLights;
+		dVector<EntityID> m_directionalLightEntities;
+		dHashMap<EntityID, dU32> m_lookupDirectionalLights;
 
 		dVector<PointLight> m_pointLights;
 		dVector<EntityID> m_pointLightEntities;

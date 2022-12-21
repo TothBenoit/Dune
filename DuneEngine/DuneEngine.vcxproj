@@ -16,6 +16,7 @@
     <ClInclude Include="src\Dune\Core\ECS\Components\BindingComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\CameraComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
+    <ClInclude Include="src\Dune\Core\ECS\Components\DirectionalLightComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\GraphicsComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />
@@ -23,6 +24,7 @@
     <ClInclude Include="src\Dune\Core\ECS\ID.h" />
     <ClInclude Include="src\Dune\Core\EngineCore.h" />
     <ClInclude Include="src\Dune\Core\SceneGraph.h" />
+    <ClInclude Include="src\Dune\Graphics\DirectionalLight.h" />
     <ClInclude Include="src\Dune\Graphics\Material.h" />
     <ClInclude Include="src\Dune\Graphics\Mesh.h" />
     <ClInclude Include="src\Dune\Graphics\PointLight.h" />
