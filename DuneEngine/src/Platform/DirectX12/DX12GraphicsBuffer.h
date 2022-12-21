@@ -7,6 +7,7 @@ namespace Dune
 	{
 
 	private:
+		dU8* m_cpuAdress{ nullptr };
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_buffer;	
 		friend class DX12GraphicsRenderer;
 	};

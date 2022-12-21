@@ -1,0 +1,3 @@
+GraphicsBuffer :
+ - Desc should only be used for buffer creation and not be set and get after. Mostly because we could set a description that doesn't match the real buffer.
+ - Update method ?

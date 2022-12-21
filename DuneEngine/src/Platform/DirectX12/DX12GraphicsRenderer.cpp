@@ -131,32 +131,16 @@ namespace Dune
 
 		if (desc.usage == EBufferUsage::Upload)
 		{
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 			resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		}
 		else
 		{
-			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT); 
 			resourceState = D3D12_RESOURCE_STATE_COMMON;
 		}
 
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
-
-		D3D12_RESOURCE_DESC resourceDesc;
-		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		resourceDesc.Alignment = 0;
-		resourceDesc.Width = bufferSize;
-		resourceDesc.Height = 1;
-		resourceDesc.DepthOrArraySize = 1;
-		resourceDesc.MipLevels = 1;
-		resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-		resourceDesc.SampleDesc.Count = 1;
-		resourceDesc.SampleDesc.Quality = 0;
-		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(bufferSize) };
 
 		ThrowIfFailed(m_device->CreateCommittedResource(
 			&heapProps,
@@ -165,6 +149,14 @@ namespace Dune
 			resourceState,
 			nullptr,
 			IID_PPV_ARGS(&buffer->m_buffer)));
+
+		if (desc.usage == EBufferUsage::Upload)
+		{
+			D3D12_RANGE readRange;
+			readRange.Begin = 0;
+			readRange.End = 0;
+			ThrowIfFailed(buffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&buffer->m_cpuAdress)));
+		}
 
 		if (data)
 		{
@@ -178,52 +170,18 @@ namespace Dune
 	{
 		DX12GraphicsBuffer* graphicsBuffer = static_cast<DX12GraphicsBuffer*>(buffer);
 
-		GraphicsBufferDesc desc = graphicsBuffer->GetDescription();
+		const GraphicsBufferDesc& desc = graphicsBuffer->GetDescription();
 
 		if (desc.usage == EBufferUsage::Default)
 		{
-			D3D12_HEAP_PROPERTIES heapProps;
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			D3D12_RESOURCE_DESC resourceDesc;
-			resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			resourceDesc.Alignment = 0;
-			resourceDesc.Width = desc.size;
-			resourceDesc.Height = 1;
-			resourceDesc.DepthOrArraySize = 1;
-			resourceDesc.MipLevels = 1;
-			resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-			resourceDesc.SampleDesc.Count = 1;
-			resourceDesc.SampleDesc.Quality = 0;
-			resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-			Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
-			ThrowIfFailed(m_device->CreateCommittedResource(
-				&heapProps,
-				D3D12_HEAP_FLAG_NONE,
-				&resourceDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&uploadBuffer)));
-
-			UINT8* pDataBegin;
-			D3D12_RANGE readRange;
-			readRange.Begin = 0;
-			readRange.End = 0;
-			ThrowIfFailed(uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-			memcpy(pDataBegin, data, desc.size);
-			uploadBuffer->Unmap(0, nullptr);
+			std::unique_ptr<GraphicsBuffer> uploadBuffer{ CreateBuffer(data, GraphicsBufferDesc{ EBufferUsage::Upload, desc.size }) };
+			DX12GraphicsBuffer* graphicsUploadBuffer = static_cast<DX12GraphicsBuffer*>(uploadBuffer.get());
 
 			WaitForCopy();
 			ThrowIfFailed(m_copyCommandAllocator->Reset());
 			ThrowIfFailed(m_copyCommandList->Reset(m_copyCommandAllocator.Get(), nullptr));
 
-			m_copyCommandList->CopyBufferRegion(graphicsBuffer->m_buffer.Get(), 0, uploadBuffer.Get(), 0, desc.size);
+			m_copyCommandList->CopyBufferRegion(graphicsBuffer->m_buffer.Get(), 0, graphicsUploadBuffer->m_buffer.Get(), 0, desc.size);
 			m_copyCommandList->Close();
 			dVector<ID3D12CommandList*> ppCommandLists{ m_copyCommandList.Get() };
 			m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
@@ -236,13 +194,7 @@ namespace Dune
 		}
 		else if (desc.usage == EBufferUsage::Upload)
 		{
-			UINT8* pDataBegin;
-			D3D12_RANGE readRange;
-			readRange.Begin = 0;
-			readRange.End = 0;
-			ThrowIfFailed(graphicsBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-			memcpy(pDataBegin, data, desc.size);
-			graphicsBuffer->m_buffer->Unmap(0, nullptr);
+			memcpy(graphicsBuffer->m_cpuAdress, data, desc.size);
 		}
 	}
 
