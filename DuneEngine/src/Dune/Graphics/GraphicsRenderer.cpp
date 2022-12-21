@@ -25,7 +25,7 @@ namespace Dune
 		m_graphicsEntities.clear();
 	}
 
-	void GraphicsRenderer::SubmitGraphicsElement(EntityID id, const GraphicsElement& elem)
+	void GraphicsRenderer::SubmitGraphicsElement(EntityID id, GraphicsElement&& elem)
 	{
 		Assert(id != ID::invalidID);
 
@@ -33,7 +33,7 @@ namespace Dune
 		if ( it != m_lookupGraphicsElements.end())
 		{
 			dU32 index = (*it).second;
-			m_graphicsElements[index] = elem;
+			m_graphicsElements[index] = std::move(elem);
 			m_graphicsEntities[index] = id;
 		}
 		else

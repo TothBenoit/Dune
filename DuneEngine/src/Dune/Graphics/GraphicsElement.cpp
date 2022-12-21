@@ -9,11 +9,11 @@ namespace Dune
 	GraphicsElement::GraphicsElement(const GraphicsElement & other)
 		: m_mesh(other.m_mesh), m_material(other.m_material), m_transform(other.m_transform)
 	{}
-	GraphicsElement& GraphicsElement::operator=(const GraphicsElement & other)
+	GraphicsElement& GraphicsElement::operator=(const GraphicsElement && other)
 	{
-		m_mesh = other.m_mesh;
-		m_material = other.m_material;
-		m_transform = other.m_transform;
+		m_mesh = std::move(other.m_mesh);
+		m_material = std::move(other.m_material);
+		m_transform = std::move(other.m_transform);
 		return *this;
 	}
 }

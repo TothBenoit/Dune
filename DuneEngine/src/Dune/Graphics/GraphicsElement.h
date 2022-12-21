@@ -14,7 +14,7 @@ namespace Dune
 		
 		GraphicsElement(const GraphicsElement& other);
 
-		GraphicsElement& operator=(const GraphicsElement& other);
+		GraphicsElement& operator=(const GraphicsElement&& other);
 
 		inline const Mesh* GetMesh() const { return m_mesh.get(); };
 		inline const Material* GetMaterial() const { return m_material.get(); }

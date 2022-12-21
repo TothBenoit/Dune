@@ -37,7 +37,7 @@ namespace Dune
 
 		void ClearGraphicsElements();
 		void RemoveGraphicsElement(EntityID id);
-		void SubmitGraphicsElement(EntityID id, const GraphicsElement& elem);
+		void SubmitGraphicsElement(EntityID id, GraphicsElement&& elem);
 
 		void ClearPointLights();
 		void RemovePointLight(EntityID id);

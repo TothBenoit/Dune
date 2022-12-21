@@ -552,7 +552,7 @@ namespace Dune
 					graphicsComponent->mesh->UploadBuffers();
 				}
 
-				m_graphicsRenderer->SubmitGraphicsElement(entity, GraphicsElement(graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix));
+				m_graphicsRenderer->SubmitGraphicsElement(entity, GraphicsElement { graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix });
 			}
 
 			if (const PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(entity))
