@@ -191,6 +191,7 @@ namespace Dune
 		}
 		else if (graphicsBuffer->m_usage == EBufferUsage::Upload)
 		{
+			Assert(size == graphicsBuffer->m_size);
 			memcpy(graphicsBuffer->m_cpuAdress, data, graphicsBuffer->m_size);
 		}
 	}
@@ -714,22 +715,20 @@ namespace Dune
 			return;
 		}
 
-		if ( ( m_directionalLights.size() * sizeof(DirectionalLight) ) > m_directionalLightBuffer[m_frameIndex]->GetSize())
+		GraphicsBuffer* directionalLightBuffer{ m_directionalLightBuffer[m_frameIndex].get() };
+
+		if ( ( m_directionalLights.size() * sizeof(DirectionalLight) ) > directionalLightBuffer->GetSize())
 		{
 			GraphicsBufferDesc desc{ EBufferUsage::Upload };
 			dU32 size{ (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)) };
 			m_directionalLightBuffer[m_frameIndex] = CreateBuffer(desc ,nullptr, size);
 		}
+		else
+		{
+			UpdateBuffer(directionalLightBuffer, m_directionalLights.data(), (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)));
+		}
 
 		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_directionalLightBuffer[m_frameIndex].get());
-
-		UINT8* pDataBegin;
-		D3D12_RANGE readRange;
-		readRange.Begin = 0;
-		readRange.End = 0;
-		ThrowIfFailed(lightBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-		memcpy(pDataBegin, m_directionalLights.data(), m_directionalLights.size() * sizeof(DirectionalLight));
-		lightBuffer->m_buffer->Unmap(0, nullptr);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
 		ZeroMemory(&srvDesc, sizeof(srvDesc));
@@ -741,8 +740,8 @@ namespace Dune
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(DirectionalLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE d{ m_directionalLightsHeap->GetCPUDescriptorHandleForHeapStart() };
-		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, d);
+		D3D12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_directionalLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, heapCpuStartAdress);
 	}
 
 	void DX12GraphicsRenderer::BeginFrame()
@@ -966,23 +965,22 @@ namespace Dune
 			m_device->CreateShaderResourceView(0, &srvDesc, d);
 			return;
 		}
+		
+		GraphicsBuffer* pointLightBuffer{ m_pointLightsBuffer[m_frameIndex].get() };
 
-		if (m_pointLights.size() > m_pointLightsBuffer[m_frameIndex]->GetSize() / sizeof(PointLight))
+		if (m_pointLights.size() > pointLightBuffer->GetSize() / sizeof(PointLight))
 		{
 			GraphicsBufferDesc desc { EBufferUsage::Upload };
 			dU32 size = (dU32)(m_pointLights.size() * sizeof(PointLight));
-			m_pointLightsBuffer[m_frameIndex] = CreateBuffer(desc, nullptr, size);
+			m_pointLightsBuffer[m_frameIndex] = CreateBuffer(desc, m_pointLights.data(), size);
+			pointLightBuffer = m_pointLightsBuffer[m_frameIndex].get();
+		}
+		else
+		{
+			UpdateBuffer(pointLightBuffer, m_pointLights.data(), (dU32)(m_pointLights.size() * sizeof(PointLight)));
 		}
 
-		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_pointLightsBuffer[m_frameIndex].get());
-
-		UINT8* pDataBegin;
-		D3D12_RANGE readRange;
-		readRange.Begin = 0;
-		readRange.End = 0;
-		ThrowIfFailed(lightBuffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-		memcpy(pDataBegin, m_pointLights.data(), m_pointLights.size() * sizeof(PointLight));
-		lightBuffer->m_buffer->Unmap(0, nullptr);
+		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(pointLightBuffer);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
 		ZeroMemory(&srvDesc, sizeof(srvDesc));
@@ -994,7 +992,7 @@ namespace Dune
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE d{ m_pointLightsHeap->GetCPUDescriptorHandleForHeapStart() };
-		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, d);
+		D3D12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_pointLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, heapCpuStartAdress);
 	}
 }

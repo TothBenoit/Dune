@@ -563,6 +563,7 @@ namespace Dune
 		
 		ImGui::End();
 	}
+
 	void EngineCore::UpdateGraphicsData()
 	{
 		rmt_ScopedCPUSample(UpdateGraphicsData, 0);

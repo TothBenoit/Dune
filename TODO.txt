@@ -1,3 +1,6 @@
-GraphicsBuffer :
- - Desc should only be used for buffer creation and not be set and get after. Mostly because we could set a description that doesn't match the real buffer.
- - Update method ?
+Clicking on entity in ImGui hierarchy triggers modified entity, why ?
+Submit all graphic elements instead of one by one.
+	More cache friendly 
+	Allow to allocate only once
+lights does something if empty ???
+need one Global SRV heap
