@@ -14,8 +14,8 @@ namespace Dune
 		void OnShutdown() override;
 		void OnResize(int width, int height) override;
 
-		std::unique_ptr<GraphicsBuffer> CreateBuffer(const void* data, const GraphicsBufferDesc& desc) override;
-		void UpdateBuffer(GraphicsBuffer * buffer, const void* data) override;
+		std::unique_ptr<GraphicsBuffer> CreateBuffer(const GraphicsBufferDesc& desc, const void* data, dU32 size) override;
+		void UpdateBuffer(GraphicsBuffer * buffer, const void* data, dU32 size) override;
 
 	private:
 		static constexpr dU32 ms_shadowMapCount = 8;

@@ -143,10 +143,9 @@ namespace Dune
 	void GraphicsRenderer::CreateCamera()
 	{
 		dMatrix identity;
-		GraphicsBufferDesc camBufferDesc;
-		camBufferDesc.size = sizeof(CameraConstantBuffer);
-		camBufferDesc.usage = EBufferUsage::Upload;
-		m_cameraMatrixBuffer = CreateBuffer(&identity, camBufferDesc);
+		GraphicsBufferDesc camBufferDesc{EBufferUsage::Upload};
+		dU32 size{ sizeof(CameraConstantBuffer) };
+		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc, &identity, size);
 	}
 
 	void GraphicsRenderer::UpdateCamera()
@@ -159,7 +158,7 @@ namespace Dune
 			constexpr float aspectRatio = 1600.f / 900.f;
 			dMatrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera->verticalFieldOfView), aspectRatio, 0.1f, 1000.0f);;
 			dMatrix viewProjMatrix = camera->viewMatrix * projectionMatrix;
-			UpdateBuffer(m_cameraMatrixBuffer.get(), &viewProjMatrix);
+			UpdateBuffer(m_cameraMatrixBuffer.get(), &viewProjMatrix, sizeof(viewProjMatrix));
 		}
 	}
 

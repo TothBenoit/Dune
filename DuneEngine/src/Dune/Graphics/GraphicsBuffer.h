@@ -9,13 +9,14 @@ namespace Dune
 	public:
 		virtual ~GraphicsBuffer() = default;
 
-		inline const GraphicsBufferDesc& GetDescription() const{ return m_desc; }
-		inline void SetDescription(const GraphicsBufferDesc& desc) { m_desc = desc; }
+		inline dU32 GetSize() const { return m_size; };
+		inline EBufferUsage GetUsage() const { return m_usage; };
 
 	protected:
 		GraphicsBuffer() = default;
 
-	private:
-		GraphicsBufferDesc m_desc;
+	protected:
+		dU32 m_size;
+		EBufferUsage m_usage;
 	};
 }

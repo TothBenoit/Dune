@@ -27,29 +27,29 @@ namespace Dune
 
 	bool Mesh::UploadVertexBuffer()
 	{
-		GraphicsBufferDesc desc;
-		desc.size = (dU32)m_vertices.size() * sizeof(Vertex);
-		if (desc.size == 0)
+		GraphicsBufferDesc desc{ EBufferUsage::Default};
+		dU32 size{ (dU32)m_vertices.size() * sizeof(Vertex) };
+		if (size == 0)
 		{
 			LOG_ERROR("Vertex buffer is empty");
 			return false;
 		}
 
-		m_vertexBuffer = EngineCore::GetGraphicsRenderer().CreateBuffer(m_vertices.data(), desc);
+		m_vertexBuffer = EngineCore::GetGraphicsRenderer().CreateBuffer(desc, m_vertices.data(), size);
 		return true;
 	}
 
 	bool Mesh::UploadIndexBuffer()
 	{
-		GraphicsBufferDesc desc;
-		desc.size = (dU32)m_indices.size() * sizeof(dU32);
-		if (desc.size == 0)
+		GraphicsBufferDesc desc{ EBufferUsage::Default };
+		dU32 size{ (dU32)m_indices.size() * sizeof(dU32) };
+		if (size == 0)
 		{
-			LOG_ERROR("Index buffer is empty");
+			LOG_ERROR("Vertex buffer is empty");
 			return false;
 		}
 
-		m_indexBuffer = EngineCore::GetGraphicsRenderer().CreateBuffer(m_indices.data(), desc);
+		m_indexBuffer = EngineCore::GetGraphicsRenderer().CreateBuffer(desc, m_indices.data(), size);
 		return true;
 	}
 

@@ -11,6 +11,5 @@ namespace Dune
 	struct GraphicsBufferDesc
 	{
 		EBufferUsage usage = EBufferUsage::Default;
-		dU32 size = 0;
 	};
 }

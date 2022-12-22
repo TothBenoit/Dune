@@ -119,13 +119,8 @@ namespace Dune
 		m_scissorRect.bottom = static_cast<LONG>(y);
 	}
 
-	std::unique_ptr<GraphicsBuffer> DX12GraphicsRenderer::CreateBuffer(const void* data, const GraphicsBufferDesc& desc)
+	std::unique_ptr<GraphicsBuffer> DX12GraphicsRenderer::CreateBuffer(const GraphicsBufferDesc& desc, const void* data, dU32 size)
 	{
-		std::unique_ptr<DX12GraphicsBuffer> buffer = std::make_unique<DX12GraphicsBuffer>();
-		buffer->SetDescription(desc);
-
-		const UINT bufferSize = desc.size;
-
 		D3D12_HEAP_PROPERTIES heapProps;
 		D3D12_RESOURCE_STATES resourceState;
 
@@ -140,7 +135,11 @@ namespace Dune
 			resourceState = D3D12_RESOURCE_STATE_COMMON;
 		}
 
-		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(bufferSize) };
+		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(size) };
+
+		DX12GraphicsBuffer* buffer = new DX12GraphicsBuffer();
+		buffer->m_size = size;
+		buffer->m_usage = desc.usage;
 
 		ThrowIfFailed(m_device->CreateCommittedResource(
 			&heapProps,
@@ -160,28 +159,26 @@ namespace Dune
 
 		if (data)
 		{
-			UpdateBuffer(buffer.get(), data);
+			UpdateBuffer(buffer, data, size);
 		}
 
-		return std::move(buffer);
+		return std::unique_ptr<GraphicsBuffer>(buffer);
 	}
 
-	void DX12GraphicsRenderer::UpdateBuffer(GraphicsBuffer* buffer, const void* data)
+	void DX12GraphicsRenderer::UpdateBuffer(GraphicsBuffer* buffer, const void* data, dU32 size)
 	{
 		DX12GraphicsBuffer* graphicsBuffer = static_cast<DX12GraphicsBuffer*>(buffer);
 
-		const GraphicsBufferDesc& desc = graphicsBuffer->GetDescription();
-
-		if (desc.usage == EBufferUsage::Default)
+		if (graphicsBuffer->m_usage == EBufferUsage::Default)
 		{
-			std::unique_ptr<GraphicsBuffer> uploadBuffer{ CreateBuffer(data, GraphicsBufferDesc{ EBufferUsage::Upload, desc.size }) };
-			DX12GraphicsBuffer* graphicsUploadBuffer = static_cast<DX12GraphicsBuffer*>(uploadBuffer.get());
+			std::unique_ptr<GraphicsBuffer> uploadBuffer{ CreateBuffer(GraphicsBufferDesc{EBufferUsage::Upload}, data, size) };
+			DX12GraphicsBuffer& graphicsUploadBuffer = *static_cast<DX12GraphicsBuffer*>(uploadBuffer.get());
 
 			WaitForCopy();
 			ThrowIfFailed(m_copyCommandAllocator->Reset());
 			ThrowIfFailed(m_copyCommandList->Reset(m_copyCommandAllocator.Get(), nullptr));
 
-			m_copyCommandList->CopyBufferRegion(graphicsBuffer->m_buffer.Get(), 0, graphicsUploadBuffer->m_buffer.Get(), 0, desc.size);
+			m_copyCommandList->CopyBufferRegion(graphicsBuffer->m_buffer.Get(), 0, graphicsUploadBuffer.m_buffer.Get(), 0, graphicsBuffer->m_size);
 			m_copyCommandList->Close();
 			dVector<ID3D12CommandList*> ppCommandLists{ m_copyCommandList.Get() };
 			m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
@@ -192,9 +189,9 @@ namespace Dune
 			//TODO : Store somewhere the temp upload buffer so we don't have to wait so it doesn't release too soon
 			WaitForCopy();
 		}
-		else if (desc.usage == EBufferUsage::Upload)
+		else if (graphicsBuffer->m_usage == EBufferUsage::Upload)
 		{
-			memcpy(graphicsBuffer->m_cpuAdress, data, desc.size);
+			memcpy(graphicsBuffer->m_cpuAdress, data, graphicsBuffer->m_size);
 		}
 	}
 
@@ -663,10 +660,8 @@ namespace Dune
 
 		for (int i = 0; i < ms_frameCount; i++)
 		{
-			GraphicsBufferDesc desc;
-			desc.size = pointLightSize;
-			desc.usage = EBufferUsage::Upload;
-			m_pointLightsBuffer[i] = CreateBuffer(nullptr, desc);
+			GraphicsBufferDesc desc{ EBufferUsage::Upload };
+			m_pointLightsBuffer[i] = CreateBuffer(desc, nullptr, pointLightSize);
 		}
 
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
@@ -685,10 +680,8 @@ namespace Dune
 
 		for (int i = 0; i < ms_frameCount; i++)
 		{
-			GraphicsBufferDesc desc;
-			desc.size = directionalLightSize;
-			desc.usage = EBufferUsage::Upload;
-			m_directionalLightBuffer[i] = CreateBuffer(nullptr, desc);
+			GraphicsBufferDesc desc{ EBufferUsage::Upload };
+			m_directionalLightBuffer[i] = CreateBuffer(desc ,nullptr, directionalLightSize);
 		}
 
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
@@ -705,7 +698,9 @@ namespace Dune
 	{
 		if (m_directionalLights.empty())
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_directionalLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+			// TODO : having a single heap for every SRV and having and use offset position for each SRV.
+			D3D12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_directionalLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
 			ZeroMemory(&srvDesc, sizeof(srvDesc));
 			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -715,16 +710,15 @@ namespace Dune
 			srvDesc.Buffer.NumElements = static_cast<UINT>(m_directionalLights.size());
 			srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(DirectionalLight));
 			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-			m_device->CreateShaderResourceView(0, &srvDesc, d);
+			m_device->CreateShaderResourceView(0, &srvDesc, heapCpuStartAdress);
 			return;
 		}
 
-		if (m_directionalLights.size() > m_directionalLightBuffer[m_frameIndex]->GetDescription().size / sizeof(DirectionalLight))
+		if ( ( m_directionalLights.size() * sizeof(DirectionalLight) ) > m_directionalLightBuffer[m_frameIndex]->GetSize())
 		{
-			GraphicsBufferDesc desc;
-			desc.size = (dU32)(m_directionalLights.size() * sizeof(DirectionalLight));
-			desc.usage = EBufferUsage::Upload;
-			m_directionalLightBuffer[m_frameIndex] = CreateBuffer(nullptr, desc);
+			GraphicsBufferDesc desc{ EBufferUsage::Upload };
+			dU32 size{ (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)) };
+			m_directionalLightBuffer[m_frameIndex] = CreateBuffer(desc ,nullptr, size);
 		}
 
 		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_directionalLightBuffer[m_frameIndex].get());
@@ -804,12 +798,12 @@ namespace Dune
 				// Initialize the vertex buffer view.
 				vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
 				vertexBufferView.StrideInBytes = sizeof(Vertex);
-				vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
+				vertexBufferView.SizeInBytes = vertexBuffer->GetSize();
 
 				D3D12_INDEX_BUFFER_VIEW indexBufferView;
 				indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
 				indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-				indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
+				indexBufferView.SizeInBytes = indexBuffer->GetSize();
 
 				m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
@@ -827,7 +821,7 @@ namespace Dune
 
 				m_commandList->SetGraphicsRoot32BitConstants(0, instanceConstantBufferSize, &instanceConstantBuffer, 0);
 
-				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
+				dU32 indexCount = indexBuffer->GetSize() / (sizeof(dU32));
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 			}
 
@@ -892,12 +886,12 @@ namespace Dune
 				// Initialize the vertex buffer view.
 				vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
 				vertexBufferView.StrideInBytes = sizeof(Vertex);
-				vertexBufferView.SizeInBytes = vertexBuffer->GetDescription().size;
+				vertexBufferView.SizeInBytes = vertexBuffer->GetSize();
 
 				D3D12_INDEX_BUFFER_VIEW indexBufferView;
 				indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
 				indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-				indexBufferView.SizeInBytes = indexBuffer->GetDescription().size;
+				indexBufferView.SizeInBytes = indexBuffer->GetSize();
 
 				m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
@@ -915,7 +909,7 @@ namespace Dune
 
 				m_commandList->SetGraphicsRoot32BitConstants(0, instanceConstantBufferSize, &instanceConstantBuffer, 0);
 
-				dU32 indexCount = indexBuffer->GetDescription().size / (sizeof(dU32));
+				dU32 indexCount = indexBuffer->GetSize() / (sizeof(dU32));
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 			}
 		}
@@ -997,12 +991,11 @@ namespace Dune
 			return;
 		}
 
-		if (m_pointLights.size() > m_pointLightsBuffer[m_frameIndex]->GetDescription().size / sizeof(PointLight))
+		if (m_pointLights.size() > m_pointLightsBuffer[m_frameIndex]->GetSize() / sizeof(PointLight))
 		{
-			GraphicsBufferDesc desc;
-			desc.size = (dU32)(m_pointLights.size() * sizeof(PointLight));
-			desc.usage = EBufferUsage::Upload;
-			m_pointLightsBuffer[m_frameIndex] = CreateBuffer(nullptr, desc);
+			GraphicsBufferDesc desc { EBufferUsage::Upload };
+			dU32 size = (dU32)(m_pointLights.size() * sizeof(PointLight));
+			m_pointLightsBuffer[m_frameIndex] = CreateBuffer(desc, nullptr, size);
 		}
 
 		DX12GraphicsBuffer* lightBuffer = static_cast<DX12GraphicsBuffer*>(m_pointLightsBuffer[m_frameIndex].get());
