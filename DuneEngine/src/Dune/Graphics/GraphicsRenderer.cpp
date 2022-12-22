@@ -25,7 +25,7 @@ namespace Dune
 		m_graphicsEntities.clear();
 	}
 
-	void GraphicsRenderer::SubmitGraphicsElement(EntityID id, GraphicsElement&& elem)
+	void GraphicsRenderer::SubmitGraphicsElement(EntityID id, std::weak_ptr<Mesh> mesh, const InstanceData& instanceData)
 	{
 		Assert(id != ID::invalidID);
 
@@ -33,13 +33,13 @@ namespace Dune
 		if ( it != m_lookupGraphicsElements.end())
 		{
 			dU32 index = (*it).second;
-			m_graphicsElements[index] = std::move(elem);
+			m_graphicsElements[index].UpdateInstanceData(instanceData);
 			m_graphicsEntities[index] = id;
 		}
 		else
 		{
 			m_lookupGraphicsElements[id] = (dU32) m_graphicsElements.size();
-			m_graphicsElements.emplace_back(elem);
+			m_graphicsElements.emplace_back(mesh.lock(), instanceData);
 			m_graphicsEntities.emplace_back(id);
 		}
 	}

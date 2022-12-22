@@ -1,19 +1,30 @@
 #include "pch.h"
 #include "GraphicsElement.h"
+#include "Dune/Core/EngineCore.h"
 
 namespace Dune
 {
-	GraphicsElement::GraphicsElement(const std::shared_ptr<Mesh> mesh, const std::shared_ptr<Material> material, const dMatrix& transform)
-		: m_mesh(mesh), m_material(material), m_transform(transform)
+	GraphicsElement::GraphicsElement(const std::shared_ptr<Mesh> mesh, const InstanceData& instanceData)
+		: m_mesh{mesh}
+	{
+		GraphicsBufferDesc desc{ EBufferUsage::Upload };
+		m_instanceData = EngineCore::GetGraphicsRenderer().CreateBuffer(desc, &instanceData, InstanceDataSize);
+	}
+
+	GraphicsElement::GraphicsElement(GraphicsElement&& other)
+		: m_mesh{ std::move(other.m_mesh) }
+		, m_instanceData {std::move(other.m_instanceData)}
 	{}
-	GraphicsElement::GraphicsElement(const GraphicsElement & other)
-		: m_mesh(other.m_mesh), m_material(other.m_material), m_transform(other.m_transform)
-	{}
-	GraphicsElement& GraphicsElement::operator=(const GraphicsElement && other)
+
+	GraphicsElement& GraphicsElement::operator=(GraphicsElement && other)
 	{
 		m_mesh = std::move(other.m_mesh);
-		m_material = std::move(other.m_material);
-		m_transform = std::move(other.m_transform);
+		m_instanceData = std::move(other.m_instanceData);
 		return *this;
+	}
+
+	void GraphicsElement::UpdateInstanceData(const InstanceData& data)
+	{
+		EngineCore::GetGraphicsRenderer().UpdateBuffer(m_instanceData.get(), &data, InstanceDataSize);
 	}
 }

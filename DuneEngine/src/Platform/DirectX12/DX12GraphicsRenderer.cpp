@@ -439,7 +439,7 @@ namespace Dune
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[6];
 		// Instance constants (MVP, Normal matrix, BaseColor)
-		rootParameters[0].InitAsConstants(sizeof(InstanceConstantBuffer) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+		rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE, D3D12_SHADER_VISIBILITY_VERTEX);
 		// Global constant (Camera matrices)
 		rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_VERTEX);
 		// Point light buffers
@@ -788,9 +788,6 @@ namespace Dune
 			{
 				const Mesh* mesh = elem.GetMesh();
 
-				// At this point, mesh should be already uploaded.
-				Assert(mesh->IsUploaded());
-
 				const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
 				const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
 
@@ -809,17 +806,8 @@ namespace Dune
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 				m_commandList->IASetIndexBuffer(&indexBufferView);
 
-				const DirectX::XMMATRIX& normalMatrix = elem.GetTransform();
-
-				InstanceConstantBuffer instanceConstantBuffer;
-				DirectX::XMStoreFloat4x4(&instanceConstantBuffer.modelMatrix, normalMatrix);
-				DirectX::XMStoreFloat4x4(&instanceConstantBuffer.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, normalMatrix)));
-				instanceConstantBuffer.baseColor = elem.GetMaterial()->m_baseColor;
-
-				constexpr dU32 instanceConstantBufferSize = sizeof(InstanceConstantBuffer) / 4;
-				constexpr dU32 materialSize = sizeof(dVec4) / 4;
-
-				m_commandList->SetGraphicsRoot32BitConstants(0, instanceConstantBufferSize, &instanceConstantBuffer, 0);
+				const DX12GraphicsBuffer* const instanceDataBuffer = static_cast<const DX12GraphicsBuffer* const>(elem.GetInstanceData());
+				m_commandList->SetGraphicsRootConstantBufferView(0, instanceDataBuffer->m_buffer->GetGPUVirtualAddress());
 
 				dU32 indexCount = indexBuffer->GetSize() / (sizeof(dU32));
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
@@ -876,9 +864,6 @@ namespace Dune
 			{
 				const Mesh* mesh = elem.GetMesh();
 
-				// At this point, mesh should be already uploaded.
-				Assert(mesh->IsUploaded());
-
 				const DX12GraphicsBuffer* const vertexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetVertexBuffer());
 				const DX12GraphicsBuffer* const indexBuffer = static_cast<const DX12GraphicsBuffer* const>(mesh->GetIndexBuffer());
 
@@ -897,17 +882,8 @@ namespace Dune
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 				m_commandList->IASetIndexBuffer(&indexBufferView);
 
-				const DirectX::XMMATRIX& normalMatrix = elem.GetTransform();
-
-				InstanceConstantBuffer instanceConstantBuffer;
-				DirectX::XMStoreFloat4x4(&instanceConstantBuffer.modelMatrix, normalMatrix);
-				DirectX::XMStoreFloat4x4(&instanceConstantBuffer.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, normalMatrix)));
-				instanceConstantBuffer.baseColor = elem.GetMaterial()->m_baseColor;
-
-				constexpr dU32 instanceConstantBufferSize = sizeof(InstanceConstantBuffer) / 4;
-				constexpr dU32 materialSize = sizeof(dVec4) / 4;
-
-				m_commandList->SetGraphicsRoot32BitConstants(0, instanceConstantBufferSize, &instanceConstantBuffer, 0);
+				const DX12GraphicsBuffer* const instanceDataBuffer = static_cast<const DX12GraphicsBuffer* const>(elem.GetInstanceData());
+				m_commandList->SetGraphicsRootConstantBufferView(0, instanceDataBuffer->m_buffer->GetGPUVirtualAddress());
 
 				dU32 indexCount = indexBuffer->GetSize() / (sizeof(dU32));
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);

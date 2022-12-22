@@ -7,7 +7,9 @@ namespace Dune
 {
 	Mesh::Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices)
 		: m_indices(indices), m_vertices(vertices)
-	{}
+	{
+		UploadBuffers();
+	}
 
 	void Mesh::UploadBuffers()
 	{
@@ -21,8 +23,6 @@ namespace Dune
 			m_indexBuffer.release();
 			return;
 		}
-
-		m_isUploaded = true;
 	}
 
 	bool Mesh::UploadVertexBuffer()

@@ -11,14 +11,6 @@ namespace Dune
 	class GraphicsBuffer;
 	struct GraphicsBufferDesc;
 
-	// Change once per draw call
-	struct InstanceConstantBuffer
-	{
-		dMatrix4x4	modelMatrix;
-		dMatrix4x4	normalMatrix;
-		dVec4		baseColor;
-	};
-
 	// Change once per camera
 	struct CameraConstantBuffer
 	{
@@ -40,7 +32,7 @@ namespace Dune
 
 		void ClearGraphicsElements();
 		void RemoveGraphicsElement(EntityID id);
-		void SubmitGraphicsElement(EntityID id, GraphicsElement&& elem);
+		void SubmitGraphicsElement(EntityID id, std::weak_ptr<Mesh> mesh, const InstanceData& instanceData);
 
 		void ClearPointLights();
 		void RemovePointLight(EntityID id);

@@ -580,14 +580,14 @@ namespace Dune
 				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
 				Assert(transformComponent);
 
-				// TODO : Find when we should upload mesh
-				// Once when loaded I guess
-				if (!graphicsComponent->mesh->IsUploaded())
-				{
-					graphicsComponent->mesh->UploadBuffers();
-				}
+				const dMatrix& transformMatrix{ transformComponent->matrix };
 
-				m_graphicsRenderer->SubmitGraphicsElement(entity, GraphicsElement { graphicsComponent->mesh, graphicsComponent->material, transformComponent->matrix });
+				InstanceData instanceData;
+				DirectX::XMStoreFloat4x4(&instanceData.modelMatrix, transformMatrix);
+				DirectX::XMStoreFloat4x4(&instanceData.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transformMatrix)));
+				instanceData.baseColor = graphicsComponent->material->m_baseColor;
+
+				m_graphicsRenderer->SubmitGraphicsElement(entity, graphicsComponent->mesh, instanceData);
 			}
 
 			if (const PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(entity))

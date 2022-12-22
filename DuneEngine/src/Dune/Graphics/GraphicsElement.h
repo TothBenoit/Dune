@@ -6,25 +6,37 @@
 
 namespace Dune
 {
+	// Change once per draw call
+	struct InstanceData
+	{
+		dMatrix4x4	modelMatrix;
+		dMatrix4x4	normalMatrix;
+		dVec4		baseColor;
+	};
+
+	inline constexpr dU32 InstanceDataSize{ sizeof(InstanceData) };
+
 	// Represent an element to draw
 	class GraphicsElement
 	{
 	public:
-		GraphicsElement(const std::shared_ptr<Mesh> mesh, const std::shared_ptr<Material> material, const dMatrix& transform);
+		GraphicsElement(const std::shared_ptr<Mesh> mesh, const InstanceData& instanceData);
+		~GraphicsElement() = default;
 		
-		GraphicsElement(const GraphicsElement& other);
+		GraphicsElement(const GraphicsElement& other) = delete;
+		GraphicsElement& operator=(const GraphicsElement& other) = delete;
 
-		GraphicsElement& operator=(const GraphicsElement&& other);
+		GraphicsElement(GraphicsElement&& other);
+		GraphicsElement& operator=(GraphicsElement&& other);
 
 		inline const Mesh* GetMesh() const { return m_mesh.get(); };
-		inline const Material* GetMaterial() const { return m_material.get(); }
-		inline const dMatrix& GetTransform() const { return m_transform; };
+		inline const GraphicsBuffer* GetInstanceData() const { return m_instanceData.get(); }
+		void UpdateInstanceData(const InstanceData& data);
 
 	private:
 		//TODO: use handle instead of shared_ptr
 		std::shared_ptr<Mesh> m_mesh;
-		std::shared_ptr<Material> m_material;
-		dMatrix m_transform;
+		std::shared_ptr<GraphicsBuffer> m_instanceData;
 	};
 }
 
