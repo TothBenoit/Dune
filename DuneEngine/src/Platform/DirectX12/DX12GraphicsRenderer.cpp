@@ -630,6 +630,9 @@ namespace Dune
 			shadowSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			m_device->CreateShaderResourceView(m_shadowMaps[i].Get(), &shadowSrvDesc, shadowSrvCpuHandle);
 			m_shadowResourceViews[i] = shadowSrvGpuHandle;
+
+			GraphicsBufferDesc desc{ EBufferUsage::Upload };
+			m_shadowCameraBuffers[i] = CreateBuffer(desc, nullptr, sizeof(CameraConstantBuffer));
 		}
 	}
 
@@ -772,12 +775,24 @@ namespace Dune
 		m_commandList->RSSetScissorRects(1, &m_scissorRect);
 		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		if (m_pointLights.size() > 0)
+		if (m_directionalLights.size() > 0)
 		{
+			// Temp
+			// Compute shadow camera matrix and update buffer
+			DirectX::XMVECTOR eye{ 0, 0 ,0 };
+			DirectX::XMVECTOR at{ DirectX::XMLoadFloat3(&m_directionalLights[0].m_dir) };
+			DirectX::XMVECTOR up{ 0, 1, 0, 0 };
+			dMatrix dir{ DirectX::XMMatrixLookToLH(eye, at, up) };
+			dir *= DirectX::XMMatrixTranslationFromVector(DirectX::XMVectorScale(at, -100.f));
+			constexpr float aspectRatio = 1600.f / 900.f;
+			dMatrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), aspectRatio, 0.1f, 1000.0f);;
+			dMatrix viewProjMatrix = dir * projectionMatrix;
+			UpdateBuffer(m_shadowCameraBuffers[0].get(), &viewProjMatrix, sizeof(CameraConstantBuffer));
+
 			D3D12_RESOURCE_BARRIER renderTargetBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_shadowMaps[0].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 			m_commandList->ResourceBarrier(1, &renderTargetBarrier);
 
-			Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
+			Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_shadowCameraBuffers[0].get())->m_buffer.Get();
 			m_commandList->SetGraphicsRootConstantBufferView(1, cameraMatrixBuffer->GetGPUVirtualAddress());
 
 			m_commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowDepthViews[0]);    // No render target needed for the shadow pass.
