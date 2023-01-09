@@ -24,3 +24,6 @@ Submit all graphic elements instead of one by one.
 Clicking on entity in ImGui hierarchy triggers modified entity, why ?
 lights does something if empty ???
 need one Global SRV heap
+dir light doesn't work correctly. Attach dir to camera to see the bug.
+add the posibility to remove component.
+make assert debug only

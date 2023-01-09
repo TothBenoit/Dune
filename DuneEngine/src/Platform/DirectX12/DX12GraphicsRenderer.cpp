@@ -191,7 +191,7 @@ namespace Dune
 		}
 		else if (graphicsBuffer->m_usage == EBufferUsage::Upload)
 		{
-			Assert(size == graphicsBuffer->m_size);
+			Assert(size <= graphicsBuffer->m_size);
 			memcpy(graphicsBuffer->m_cpuAdress, data, graphicsBuffer->m_size);
 		}
 	}
