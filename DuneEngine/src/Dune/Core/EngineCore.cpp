@@ -612,14 +612,14 @@ namespace Dune
 				quat = DirectX::XMQuaternionNormalize(quat);
 				
 				dVec3 dir{ 0.f,0.f,1.f };
-				//Apply camera rotation to translation
-				DirectX::XMStoreFloat3(&dir,
-					DirectX::XMVector3TransformNormal(
-						DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&dir)),
-						DirectX::XMMatrixRotationQuaternion(quat)
+				DirectX::XMStoreFloat3(&dir, 
+					DirectX::XMVector3Normalize(
+						DirectX::XMVector3Rotate(DirectX::XMLoadFloat3(&dir),
+							quat
+						)
 					)
 				);
-
+				
 				m_graphicsRenderer->SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir));
 			}
 

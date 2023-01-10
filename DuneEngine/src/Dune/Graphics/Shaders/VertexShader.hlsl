@@ -25,7 +25,7 @@ struct VS_OUTPUT
 {
     float4 position : SV_Position;
     float4 color : COLOR;
-    float4 normal : NORMAL;
+    float3 normal : NORMAL;
     float4 wPos : WPOS;
 };
 
@@ -38,6 +38,6 @@ VS_OUTPUT VSMain(VS_INPUT input)
     o.wPos = wPos;
     o.position = mul(CameraCB.ViewProjMatrix, wPos);
     o.color = InstanceCB.BaseColor;
-    o.normal = mul(InstanceCB.NormalMatrix, float4(input.vNormal, 1.0f));
+    o.normal = normalize(mul(InstanceCB.NormalMatrix, float4(input.vNormal, 1.0f)).xyz);
 	return o;
 }

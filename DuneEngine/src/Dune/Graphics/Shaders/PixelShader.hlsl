@@ -26,7 +26,7 @@ struct PS_INPUT
 {
 	float4 position : SV_Position;
     float4 color : COLOR0;
-	float4 normal : NORMAL;
+	float3 normal : NORMAL;
 	float4 wPos : WPOS;
 };
 
@@ -77,8 +77,8 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 
 PS_OUTPUT PSMain(PS_INPUT input)
 {
-	float3 accumulatedPointLight = AccumulatePointLight(input.normal.xyz, input.wPos);
-	float3 accumulatedDirectionLight = AccumulateDirectionalLight(input.normal.xyz);
+	float3 accumulatedPointLight = AccumulatePointLight(input.normal, input.wPos);
+	float3 accumulatedDirectionLight = AccumulateDirectionalLight(input.normal);
 	float ambientLight = 0.05f;
 
 	PS_OUTPUT output;
