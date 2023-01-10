@@ -640,6 +640,17 @@ namespace Dune
 	{
 		CreateRootSignature();
 		CreatePipeline();
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = 2;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		heapDesc.NodeMask = 0;
+
+		ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_lightHeap.ReleaseAndGetAddressOf())));
+		NameDXObject(m_lightHeap, L"LightHeap")
+
 		CreatePointLightsBuffer();
 		CreateDirectionalLightsBuffer();
 	}
@@ -667,15 +678,6 @@ namespace Dune
 			GraphicsBufferDesc desc{ EBufferUsage::Upload };
 			m_pointLightsBuffer[i] = CreateBuffer(desc, nullptr, pointLightSize);
 		}
-
-		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
-		ZeroMemory(&heapDesc, sizeof(heapDesc));
-		heapDesc.NumDescriptors = 1;
-		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		heapDesc.NodeMask = 0;
-
-		ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_pointLightsHeap.ReleaseAndGetAddressOf())));
 	}
 
 	void DX12GraphicsRenderer::CreateDirectionalLightsBuffer()
@@ -687,15 +689,6 @@ namespace Dune
 			GraphicsBufferDesc desc{ EBufferUsage::Upload };
 			m_directionalLightBuffer[i] = CreateBuffer(desc ,nullptr, directionalLightSize);
 		}
-
-		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
-		ZeroMemory(&heapDesc, sizeof(heapDesc));
-		heapDesc.NumDescriptors = 1;
-		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		heapDesc.NodeMask = 0;
-
-		ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_directionalLightsHeap.ReleaseAndGetAddressOf())));
 	}
 
 	void DX12GraphicsRenderer::UpdateDirectionalLights()
@@ -703,7 +696,9 @@ namespace Dune
 		if (m_directionalLights.empty())
 		{
 			// TODO : having a single heap for every SRV and having and use offset position for each SRV.
-			D3D12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_directionalLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+			const UINT cbvSrvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			CD3DX12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_lightHeap->GetCPUDescriptorHandleForHeapStart() };
+			heapCpuStartAdress.Offset(cbvSrvDescriptorSize);
 
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
 			ZeroMemory(&srvDesc, sizeof(srvDesc));
@@ -743,7 +738,9 @@ namespace Dune
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(DirectionalLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_directionalLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+		const UINT cbvSrvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_lightHeap->GetCPUDescriptorHandleForHeapStart() };
+		heapCpuStartAdress.Offset(cbvSrvDescriptorSize);
 		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, heapCpuStartAdress);
 	}
 
@@ -777,17 +774,7 @@ namespace Dune
 
 		if (m_directionalLights.size() > 0)
 		{
-			// Temp
-			// Compute shadow camera matrix and update buffer
-			DirectX::XMVECTOR eye{ 0, 0 ,0 };
-			DirectX::XMVECTOR at{ DirectX::XMLoadFloat3(&m_directionalLights[0].m_dir) };
-			DirectX::XMVECTOR up{ 0, 1, 0, 0 };
-			dMatrix dir{ DirectX::XMMatrixLookToLH(eye, at, up) };
-			dir *= DirectX::XMMatrixTranslationFromVector(DirectX::XMVectorScale(at, -100.f));
-			constexpr float aspectRatio = 1600.f / 900.f;
-			dMatrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), aspectRatio, 0.1f, 1000.0f);;
-			dMatrix viewProjMatrix = dir * projectionMatrix;
-			UpdateBuffer(m_shadowCameraBuffers[0].get(), &viewProjMatrix, sizeof(CameraConstantBuffer));
+			UpdateBuffer(m_shadowCameraBuffers[0].get(), &m_directionalLights[0].m_viewProj, sizeof(CameraConstantBuffer));
 
 			D3D12_RESOURCE_BARRIER renderTargetBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_shadowMaps[0].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 			m_commandList->ResourceBarrier(1, &renderTargetBarrier);
@@ -863,13 +850,12 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
 		m_commandList->SetGraphicsRootConstantBufferView(1, cameraMatrixBuffer->GetGPUVirtualAddress());
 
-		ID3D12DescriptorHeap* ppHeaps[] = { m_pointLightsHeap.Get() };
+		ID3D12DescriptorHeap* ppHeaps[] = { m_lightHeap.Get() };
 		m_commandList->SetDescriptorHeaps(1, ppHeaps);
-		m_commandList->SetGraphicsRootDescriptorTable(2, m_pointLightsHeap->GetGPUDescriptorHandleForHeapStart());
-
-		ID3D12DescriptorHeap* ppHeaps2[] = { m_directionalLightsHeap.Get() };
-		m_commandList->SetDescriptorHeaps(1, ppHeaps2);
-		m_commandList->SetGraphicsRootDescriptorTable(3, m_directionalLightsHeap->GetGPUDescriptorHandleForHeapStart());
+		CD3DX12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle(m_lightHeap->GetGPUDescriptorHandleForHeapStart());
+		m_commandList->SetGraphicsRootDescriptorTable(2, cbvSrvGpuHandle);
+		cbvSrvGpuHandle.Offset(m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+		m_commandList->SetGraphicsRootDescriptorTable(3, cbvSrvGpuHandle);
 
 		{
 			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
@@ -967,7 +953,7 @@ namespace Dune
 	{
 		if (m_pointLights.empty())
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_pointLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+			D3D12_CPU_DESCRIPTOR_HANDLE d{ m_lightHeap->GetCPUDescriptorHandleForHeapStart() };
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
 			ZeroMemory(&srvDesc, sizeof(srvDesc));
 			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -1007,7 +993,7 @@ namespace Dune
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_pointLightsHeap->GetCPUDescriptorHandleForHeapStart() };
+		D3D12_CPU_DESCRIPTOR_HANDLE heapCpuStartAdress{ m_lightHeap->GetCPUDescriptorHandleForHeapStart() };
 		m_device->CreateShaderResourceView(lightBuffer->m_buffer.Get(), &srvDesc, heapCpuStartAdress);
 	}
 }

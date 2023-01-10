@@ -156,8 +156,8 @@ namespace Dune
 			// TODO : Camera should be linked to a viewport (TODO : Make viewport)
 			// TODO : Get viewport dimensions
 			constexpr float aspectRatio = 1600.f / 900.f;
-			dMatrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera->verticalFieldOfView), aspectRatio, 0.1f, 1000.0f);;
-			dMatrix viewProjMatrix = camera->viewMatrix * projectionMatrix;
+			dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera->verticalFieldOfView), aspectRatio, 0.1f, 1000.0f) };
+			dMatrix viewProjMatrix{ camera->viewMatrix * projectionMatrix };
 			UpdateBuffer(m_cameraMatrixBuffer.get(), &viewProjMatrix, sizeof(viewProjMatrix));
 		}
 	}

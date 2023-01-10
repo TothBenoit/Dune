@@ -182,20 +182,14 @@ namespace Dune
 		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
 		
 		//Compute quaternion from camera rotation
-		DirectX::XMVECTOR quat = DirectX::XMQuaternionIdentity();
-		DirectX::XMVECTOR x = DirectX::XMQuaternionRotationRollPitchYaw(cameraTransform->rotation.x, 0, 0);
-		DirectX::XMVECTOR y = DirectX::XMQuaternionRotationRollPitchYaw(0, cameraTransform->rotation.y, 0);
-		DirectX::XMVECTOR z = DirectX::XMQuaternionRotationRollPitchYaw(0, 0, cameraTransform->rotation.z);
-		quat = DirectX::XMQuaternionMultiply(y, quat);
-		quat = DirectX::XMQuaternionMultiply(x, quat);
-		quat = DirectX::XMQuaternionMultiply(z, quat);
+		DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(cameraTransform->rotation.x, cameraTransform->rotation.y, cameraTransform->rotation.z) };
 		quat = DirectX::XMQuaternionNormalize(quat);
 
 		//Apply camera rotation to translation
 		DirectX::XMStoreFloat3(&translate, 
-			DirectX::XMVector3TransformNormal(
+			DirectX::XMVector3Rotate(
 				DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&translate)),
-				DirectX::XMMatrixRotationQuaternion(quat)
+				quat
 			)
 		);
 
@@ -209,8 +203,7 @@ namespace Dune
 		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&cameraTransform->position);
 		DirectX::XMVECTOR at{ 0, 0, 1, 0 };
 		DirectX::XMVECTOR up{ 0, 1, 0, 0 };
-		at = DirectX::XMVector3TransformNormal(at, DirectX::XMMatrixRotationQuaternion(quat));
-		up = DirectX::XMVector3TransformNormal(up, DirectX::XMMatrixRotationQuaternion(quat));
+		at = DirectX::XMVector3Rotate(at, quat);
 		camera->viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
 	}
 
@@ -602,25 +595,24 @@ namespace Dune
 			{
 				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
 				
-				DirectX::XMVECTOR quat = DirectX::XMQuaternionIdentity();
-				DirectX::XMVECTOR x = DirectX::XMQuaternionRotationRollPitchYaw(transformComponent->rotation.x, 0, 0);
-				DirectX::XMVECTOR y = DirectX::XMQuaternionRotationRollPitchYaw(0, transformComponent->rotation.y, 0);
-				DirectX::XMVECTOR z = DirectX::XMQuaternionRotationRollPitchYaw(0, 0, transformComponent->rotation.z);
-				quat = DirectX::XMQuaternionMultiply(y, quat);
-				quat = DirectX::XMQuaternionMultiply(x, quat);
-				quat = DirectX::XMQuaternionMultiply(z, quat);
+				DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(transformComponent->rotation.x, transformComponent->rotation.y, transformComponent->rotation.z) };
 				quat = DirectX::XMQuaternionNormalize(quat);
-				
-				dVec3 dir{ 0.f,0.f,1.f };
-				DirectX::XMStoreFloat3(&dir, 
-					DirectX::XMVector3Normalize(
-						DirectX::XMVector3Rotate(DirectX::XMLoadFloat3(&dir),
-							quat
-						)
-					)
-				);
-				
-				m_graphicsRenderer->SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir));
+
+				//Compute camera view matrix
+				DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&transformComponent->position);
+				DirectX::XMVECTOR at{ 0, 0, 1, 0 };
+				DirectX::XMVECTOR up{ 0, 1, 0, 0 };
+				at = DirectX::XMVector3Rotate(at, quat);
+				dMatrix viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
+
+				dVec3 dir{};
+				DirectX::XMStoreFloat3(&dir,DirectX::XMVector3Normalize(at));
+
+				constexpr float aspectRatio = 1600.f / 900.f;
+				dMatrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), aspectRatio, 0.1f, 1000.0f);;
+				viewMatrix*= projectionMatrix;
+
+				m_graphicsRenderer->SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir, viewMatrix));
 			}
 
 
