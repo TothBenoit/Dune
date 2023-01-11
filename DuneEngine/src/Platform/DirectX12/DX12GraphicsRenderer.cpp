@@ -744,6 +744,7 @@ namespace Dune
 		rmt_ScopedCPUSample(BeginFrame, 0);
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(m_frameIndex);
+		m_usedBuffer[m_frameIndex].clear();
 		ImGui::Render();
 		UpdatePointLights();
 		UpdateDirectionalLights();
@@ -798,7 +799,7 @@ namespace Dune
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 				m_commandList->IASetIndexBuffer(&indexBufferView);
 
-				const DX12GraphicsBuffer* const instanceDataBuffer = static_cast<const DX12GraphicsBuffer* const>(elem.GetInstanceData());
+				const DX12GraphicsBuffer* const instanceDataBuffer = static_cast<const DX12GraphicsBuffer* const>(elem.GetInstanceData().lock().get());
 				m_commandList->SetGraphicsRootConstantBufferView(0, instanceDataBuffer->m_buffer->GetGPUVirtualAddress());
 
 				dU32 indexCount = indexBuffer->GetSize() / (sizeof(dU32));
@@ -876,7 +877,8 @@ namespace Dune
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 				m_commandList->IASetIndexBuffer(&indexBufferView);
 
-				const DX12GraphicsBuffer* const instanceDataBuffer = static_cast<const DX12GraphicsBuffer* const>(elem.GetInstanceData());
+				m_usedBuffer[m_frameIndex].push_back(elem.GetInstanceData().lock());
+				const DX12GraphicsBuffer* const instanceDataBuffer = static_cast<const DX12GraphicsBuffer* const>(m_usedBuffer[m_frameIndex].back().get());
 				m_commandList->SetGraphicsRootConstantBufferView(0, instanceDataBuffer->m_buffer->GetGPUVirtualAddress());
 
 				dU32 indexCount = indexBuffer->GetSize() / (sizeof(dU32));

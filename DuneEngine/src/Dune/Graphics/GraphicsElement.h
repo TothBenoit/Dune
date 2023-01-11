@@ -30,7 +30,7 @@ namespace Dune
 		GraphicsElement& operator=(GraphicsElement&& other);
 
 		inline const Mesh* GetMesh() const { return m_mesh.get(); };
-		inline const GraphicsBuffer* GetInstanceData() const { return m_instanceData.get(); }
+		inline const std::weak_ptr<GraphicsBuffer> GetInstanceData() const { return m_instanceData; }
 		void UpdateInstanceData(const InstanceData& data);
 
 	private:

@@ -86,6 +86,8 @@ namespace Dune
 		dHashMap<EntityID, dU32> m_lookupGraphicsElements;
 
 		std::unique_ptr<GraphicsBuffer>	m_cameraMatrixBuffer;
+
+		dVector<std::shared_ptr<GraphicsBuffer>> m_usedBuffer[ms_frameCount];
 	};
 }
 
