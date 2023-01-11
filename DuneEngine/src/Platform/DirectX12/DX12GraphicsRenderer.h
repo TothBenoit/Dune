@@ -75,10 +75,10 @@ namespace Dune
 		// Shadow Pass
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowDsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;
-		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
-		std::unique_ptr<GraphicsBuffer>						m_shadowCameraBuffers[ms_shadowMapCount];
-		D3D12_CPU_DESCRIPTOR_HANDLE							m_shadowDepthViews[ms_shadowMapCount];
-		D3D12_GPU_DESCRIPTOR_HANDLE							m_shadowResourceViews[ms_shadowMapCount];
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount][ms_frameCount];
+		std::unique_ptr<GraphicsBuffer>						m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
+		D3D12_CPU_DESCRIPTOR_HANDLE							m_shadowDepthViews[ms_shadowMapCount][ms_frameCount];
+		D3D12_GPU_DESCRIPTOR_HANDLE							m_shadowResourceViews[ms_shadowMapCount][ms_frameCount];
 
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
