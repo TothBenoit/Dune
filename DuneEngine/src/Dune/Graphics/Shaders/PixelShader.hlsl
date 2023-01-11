@@ -2,7 +2,7 @@ SamplerState sampleClamp : register(s0);
 
 Texture2D shadowMap[8] : register(t2);
 
-#define SHADOW_DEPTH_BIAS 0.00005f
+#define SHADOW_DEPTH_BIAS 0.0005f
 
 struct PointLight
 {
@@ -38,10 +38,10 @@ struct PS_OUTPUT
 	float4 color : SV_TARGET;
 };
 
-float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float4 vPosWorld)
+float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float3 vPosWorld, float3 normal, float nDotL)
 {
 	// Compute pixel position in light space.
-	float4 vLightSpacePos = vPosWorld;
+	float4 vLightSpacePos = float4(vPosWorld + (normal.xyz * (1.0f - abs(nDotL))),1.f);
 	vLightSpacePos = mul(DirectionalLights[lightIndex].viewProjMatrix, vLightSpacePos);
 
 	vLightSpacePos.xyz /= vLightSpacePos.w;
@@ -54,14 +54,14 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float4 vPosWorld)
 	float vLightSpaceDepth = vLightSpacePos.z - SHADOW_DEPTH_BIAS;
 
 	// Find sub-pixel weights.
-	float2 vShadowMapDims = float2(1584.f, 861.f); // need to keep in sync with .cpp file
+	float2 vShadowMapDims = float2(16384.f, 16384.f); // need to keep in sync with .cpp file
 	float4 vSubPixelCoords = float4(1.0f, 1.0f, 1.0f, 1.0f);
 	vSubPixelCoords.xy = frac(vShadowMapDims * vShadowTexCoord);
 	vSubPixelCoords.zw = 1.0f - vSubPixelCoords.xy;
 	float4 vBilinearWeights = vSubPixelCoords.zxzx * vSubPixelCoords.wwyy;
 
-	// 2x2 percentage closer filtering.
 	float2 vTexelUnits = 1.0f / vShadowMapDims;
+	// 2x2 percentage closer filtering.
 	float4 vShadowDepths;
 	vShadowDepths.x = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord);
 	vShadowDepths.y = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(vTexelUnits.x, 0.0f));
@@ -83,10 +83,11 @@ float3 AccumulateDirectionalLight(float3 normal, float4 wPos)
 	for (int i = 0; i < lightCount; i++)
 	{
 		float3 toLight = -DirectionalLights[i].dir;
-		float3 directionalLight = DirectionalLights[i].color * saturate(dot(toLight, normal)) * DirectionalLights[i].intensity;
+		float nDotL = dot(toLight, normal);
+		float3 directionalLight = DirectionalLights[i].color * saturate(nDotL) * DirectionalLights[i].intensity;
 		if (i == 0)
 		{
-			directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos);
+			directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos, normal, nDotL);
 		}
 		accumulatedDirectionalLight += directionalLight;
 	}

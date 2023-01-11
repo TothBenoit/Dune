@@ -574,8 +574,8 @@ namespace Dune
 		CD3DX12_RESOURCE_DESC shadowTextureDesc(
 			D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 			0,
-			static_cast<UINT>(m_viewport.Width),
-			static_cast<UINT>(m_viewport.Height),
+			16384,
+			16384,
 			1,
 			1,
 			DXGI_FORMAT_D32_FLOAT,
@@ -760,8 +760,23 @@ namespace Dune
 
 		m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 
-		m_commandList->RSSetViewports(1, &m_viewport);
-		m_commandList->RSSetScissorRects(1, &m_scissorRect);
+		D3D12_VIEWPORT										viewport;
+		D3D12_RECT											scissorRect;
+
+		scissorRect.left = 0;
+		scissorRect.top = 0;
+		scissorRect.right = static_cast<LONG>(16384);
+		scissorRect.bottom = static_cast<LONG>(16384);
+
+		viewport.TopLeftX = 0.0f;
+		viewport.TopLeftY = 0.0f;
+		viewport.Width = static_cast<float>(16384);
+		viewport.Height = static_cast<float>(16384);
+		viewport.MinDepth = 0.f;
+		viewport.MaxDepth = 1.f;
+
+		m_commandList->RSSetViewports(1, &viewport);
+		m_commandList->RSSetScissorRects(1, &scissorRect);
 		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		if (m_directionalLights.size() > 0)

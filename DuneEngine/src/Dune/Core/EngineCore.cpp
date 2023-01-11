@@ -599,23 +599,19 @@ namespace Dune
 				quat = DirectX::XMQuaternionNormalize(quat);
 
 				//Compute camera view matrix
-				DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&transformComponent->position);
-				DirectX::XMVECTOR at{ 0, 0, 1, 0 };
-				DirectX::XMVECTOR up{ 0, 1, 0, 0 };
-				at = DirectX::XMVector3Rotate(at, quat);
-				dMatrix viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
+				DirectX::XMVECTOR at{ DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 0.f, 0.f, 1.f, 0.f }, quat)) };
+				DirectX::XMVECTOR up{ 0.f, 1.f, 0.f, 0.f};
+				DirectX::XMVECTOR eye {DirectX::XMVectorScale(at, -500.f)};
+				dMatrix viewMatrix{ DirectX::XMMatrixLookAtLH(eye, at, up) };
 
 				dVec3 dir{};
-				DirectX::XMStoreFloat3(&dir,DirectX::XMVector3Normalize(at));
+				DirectX::XMStoreFloat3(&dir,at);
 
-				constexpr float aspectRatio = 1600.f / 900.f;
-				dMatrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), aspectRatio, 1.f, 1000.0f);;
+				dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(500.f, 500.f, 1.f, 1000.0f) };
 				viewMatrix*= projectionMatrix;
 
 				m_graphicsRenderer->SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir, viewMatrix));
 			}
-
-
 		}
 	}
 

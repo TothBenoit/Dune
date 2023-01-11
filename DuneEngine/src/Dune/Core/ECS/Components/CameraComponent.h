@@ -5,6 +5,6 @@ namespace Dune
 	struct CameraComponent
 	{
 		dMatrix viewMatrix;
-		float	verticalFieldOfView = 45.f;
+		float	verticalFieldOfView = 85.f;
 	};
 }
