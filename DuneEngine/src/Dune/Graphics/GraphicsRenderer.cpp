@@ -165,7 +165,7 @@ namespace Dune
 
 	void GraphicsRenderer::Render()
 	{
-		rmt_ScopedCPUSample(Render, 0);
+		Profile(Render);
 		BeginFrame();
 		ExecuteShadowPass();
 		ExecuteMainPass();

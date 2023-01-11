@@ -21,7 +21,17 @@
 #include "DX12/d3dx12.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx12.h"
-#include "Remotery/Remotery.h"
+
+#ifdef _DEBUG
+	//#define PROFILE_ENABLED
+#endif
+
+#ifdef PROFILE_ENABLED
+	#include "Remotery/Remotery.h"
+	#define Profile(msg) rmt_ScopedCPUSample(msg,0)
+#else
+	#define Profile(msg)
+#endif 
 
 #define ThrowIfFailed(hr) if(FAILED(hr)) { __debugbreak(); assert(false);}
 #ifdef _DEBUG

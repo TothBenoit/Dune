@@ -60,7 +60,7 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
-		rmt_ScopedCPUSample(EngineCoreUpdate, 0);
+		Profile(EngineCoreUpdate);
 
 		m_deltaTime = dt;
 		DrawInterface();
@@ -113,7 +113,7 @@ namespace Dune
 
 	void EngineCore::UpdateCamera()
 	{
-		rmt_ScopedCPUSample(UpdateCamera, 0);
+		Profile(UpdateCamera);
 		//TODO: Input and transformation should be decoupled so we can compute new transformation only when it changed
 		if (!m_entityManager->IsValid(m_cameraID))
 			return;
@@ -261,7 +261,7 @@ namespace Dune
 		if (m_showImGuiDemo)
 			ImGui::ShowDemoWindow(&m_showImGuiDemo);
 
-		rmt_ScopedCPUSample(DrawInterface, 0);
+		Profile(DrawInterface);
 
 		DrawMainMenuBar();
 		if(m_showScene)
@@ -559,7 +559,7 @@ namespace Dune
 
 	void EngineCore::UpdateGraphicsData()
 	{
-		rmt_ScopedCPUSample(UpdateGraphicsData, 0);
+		Profile(UpdateGraphicsData);
 
 		if (m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end())
 		{

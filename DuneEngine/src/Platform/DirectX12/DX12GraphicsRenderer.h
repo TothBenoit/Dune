@@ -18,7 +18,7 @@ namespace Dune
 		void UpdateBuffer(GraphicsBuffer * buffer, const void* data, dU32 size) override;
 
 	private:
-		static constexpr dU32 ms_shadowMapCount = 8;
+		static constexpr dU32 ms_shadowMapCount = 1;
 
 		void CreateFactory();
 		void CreateDevice();

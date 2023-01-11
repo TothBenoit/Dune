@@ -63,7 +63,7 @@ namespace Dune
 
 	bool WindowsWindow::Update()
 	{
-		rmt_ScopedCPUSample(WindowUpdate, 0);
+		Profile(WindowUpdate);
 		MSG msg = { };
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) > 0)
 		{

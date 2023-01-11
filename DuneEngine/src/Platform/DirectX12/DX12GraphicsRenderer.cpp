@@ -38,7 +38,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::WaitForFrame(const dU64 frameIndex)
 	{
-		rmt_ScopedCPUSample(WaitForFrame, 0);
+		Profile(WaitForFrame);
 
 		Assert(m_fence && m_fenceEvent.IsValid());
 
@@ -574,8 +574,8 @@ namespace Dune
 		CD3DX12_RESOURCE_DESC shadowTextureDesc(
 			D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 			0,
-			16384,
-			16384,
+			8192,
+			8192,
 			1,
 			1,
 			DXGI_FORMAT_D32_FLOAT,
@@ -741,7 +741,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::BeginFrame()
 	{
-		rmt_ScopedCPUSample(BeginFrame, 0);
+		Profile(BeginFrame);
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(m_frameIndex);
 		m_usedBuffer[m_frameIndex].clear();
@@ -754,7 +754,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::ExecuteShadowPass()
 	{
-		rmt_ScopedCPUSample(ExecuteShadowPass, 0);
+		Profile(ExecuteShadowPass);
 
 		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
 
@@ -765,13 +765,13 @@ namespace Dune
 
 		scissorRect.left = 0;
 		scissorRect.top = 0;
-		scissorRect.right = static_cast<LONG>(16384);
-		scissorRect.bottom = static_cast<LONG>(16384);
+		scissorRect.right = static_cast<LONG>(8192);
+		scissorRect.bottom = static_cast<LONG>(8192);
 
 		viewport.TopLeftX = 0.0f;
 		viewport.TopLeftY = 0.0f;
-		viewport.Width = static_cast<float>(16384);
-		viewport.Height = static_cast<float>(16384);
+		viewport.Width = static_cast<float>(8192);
+		viewport.Height = static_cast<float>(8192);
 		viewport.MinDepth = 0.f;
 		viewport.MaxDepth = 1.f;
 
@@ -833,7 +833,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::ExecuteMainPass()
 	{
-		rmt_ScopedCPUSample(ExecuteMainPass, 0);
+		Profile(ExecuteMainPass);
 
 		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
 
@@ -868,7 +868,7 @@ namespace Dune
 		m_commandList->SetGraphicsRootDescriptorTable(5, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
 		{
-			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);
+			Profile(SubmitGraphicsElements);
 
 			for (const auto& elem : m_graphicsElements)
 			{
@@ -909,7 +909,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::ExecuteImGuiPass()
 	{
-		rmt_ScopedCPUSample(ExecuteImGuiPass, 0);
+		Profile(ExecuteImGuiPass);
 
 		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
 
@@ -929,7 +929,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::Present()
 	{
-		rmt_ScopedCPUSample(Present, 0);
+		Profile(Present);
 
 		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
 
@@ -953,7 +953,7 @@ namespace Dune
 
 	void DX12GraphicsRenderer::EndFrame()
 	{
-		rmt_ScopedCPUSample(EndFrame, 0);
+		Profile(EndFrame);
 		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameNumber));
 		m_fenceValues[m_frameIndex] = m_frameNumber;
 

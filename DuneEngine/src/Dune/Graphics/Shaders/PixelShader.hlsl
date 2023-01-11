@@ -1,6 +1,6 @@
 SamplerState sampleClamp : register(s0);
 
-Texture2D shadowMap[8] : register(t2);
+Texture2D shadowMap[1] : register(t2);
 
 #define SHADOW_DEPTH_BIAS 0.0005f
 
@@ -54,7 +54,7 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float3 vPosWorld, float3 norma
 	float vLightSpaceDepth = vLightSpacePos.z - SHADOW_DEPTH_BIAS;
 
 	// Find sub-pixel weights.
-	float2 vShadowMapDims = float2(16384.f, 16384.f); // need to keep in sync with .cpp file
+	float2 vShadowMapDims = float2(8192.f, 8192.f); // need to keep in sync with .cpp file
 	float4 vSubPixelCoords = float4(1.0f, 1.0f, 1.0f, 1.0f);
 	vSubPixelCoords.xy = frac(vShadowMapDims * vShadowTexCoord);
 	vSubPixelCoords.zw = 1.0f - vSubPixelCoords.xy;
