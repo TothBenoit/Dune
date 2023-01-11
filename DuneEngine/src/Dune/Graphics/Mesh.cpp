@@ -2,6 +2,7 @@
 #include "Mesh.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Core/EngineCore.h"
+#include "Dune/Graphics/GraphicsBuffer.h"
 
 namespace Dune
 {

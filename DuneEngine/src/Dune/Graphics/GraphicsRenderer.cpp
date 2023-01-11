@@ -6,6 +6,7 @@
 #include "Platform/Windows/WindowsWindow.h"
 #endif
 #include "Dune/Core/EngineCore.h"
+#include "Dune/Graphics/GraphicsBuffer.h"
 
 namespace Dune
 {

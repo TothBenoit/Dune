@@ -3,55 +3,29 @@
 
 namespace Dune
 {
-	Logger* Logger::ms_instance = nullptr;
 
-	void Logger::Init()
-	{
-		if (!ms_instance)
-		{
-			ms_instance = new Logger();
-		}
-		else
-		{
-			Logger::Error("Tried to initialize Logger which is already initialized");
-		}
-	}
 
-	void Logger::Shutdown()
+	Logger& Logger::GetInstance()
 	{
-		if (ms_instance)
-		{
-			delete(ms_instance);
-		}
+		static Logger instance{};
+		return instance;
 	}
 
 	void Logger::Info(const char* msg)
 	{
-		if (ms_instance)
-		{
-			ms_instance->PushLog(LogLevel::Info, msg);
-		}
+		GetInstance().PushLog(LogLevel::Info, msg);	
 	}
 	void Logger::Warning(const char* msg)
 	{
-		if (ms_instance)
-		{
-			ms_instance->PushLog(LogLevel::Warning, msg);
-		}
+		GetInstance().PushLog(LogLevel::Warning, msg);
 	}
 	void Logger::Error(const char* msg)
 	{
-		if (ms_instance)
-		{
-			ms_instance->PushLog(LogLevel::Error, msg);
-		}
+		GetInstance().PushLog(LogLevel::Error, msg);
 	}
 	void Logger::Critical(const char* msg)
 	{
-		if (ms_instance)
-		{
-			ms_instance->PushLog( LogLevel::Critical, msg );
-		}
+		GetInstance().PushLog( LogLevel::Critical, msg );
 	}
 
 	Logger::Logger()

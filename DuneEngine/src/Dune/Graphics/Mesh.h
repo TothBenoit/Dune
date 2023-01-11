@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Dune/Graphics/GraphicsBuffer.h"
-
 namespace Dune
 {
+	class GraphicsBuffer;
+
 	struct Vertex
 	{
 		dVec3 position;

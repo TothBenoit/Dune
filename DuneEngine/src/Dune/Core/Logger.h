@@ -5,15 +5,13 @@ namespace Dune
 	class Logger
 	{
 	public:
-		static void Init();
-		static void Shutdown();
-
 		static void Info(const char* msg);
 		static void Warning(const char* msg);
 		static void Error(const char* msg);
 		static void Critical(const char* msg);
 
 	private:
+		static Logger& GetInstance();
 		Logger();
 		~Logger();
 
@@ -31,7 +29,6 @@ namespace Dune
 		void Update();
 
 	private:
-		static Logger* ms_instance;
 		std::thread m_logThread;
 		std::mutex m_logMutex;
 		//TODO : Lock free queue

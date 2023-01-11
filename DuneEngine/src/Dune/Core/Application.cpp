@@ -16,7 +16,6 @@ namespace Dune
 		Remotery* rmt;
 		rmt_CreateGlobalInstance(&rmt);
 
-		Logger::Init();
 		std::unique_ptr<Window> window = Window::Create();
 		EngineCore::Init(window.get());
 
@@ -42,7 +41,6 @@ namespace Dune
 
 		EngineCore::Shutdown();
 		ImGui::DestroyContext();
-		Logger::Shutdown();
 
 		// Destroy the main instance of Remotery.
 		rmt_DestroyGlobalInstance(rmt);
