@@ -74,7 +74,6 @@ namespace Dune
 
 		// Shadow Pass
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowDsvHeap;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowSrvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
 		std::unique_ptr<GraphicsBuffer>						m_shadowCameraBuffers[ms_shadowMapCount];
@@ -86,7 +85,7 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 		std::unique_ptr<GraphicsBuffer>						m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
 		std::unique_ptr<GraphicsBuffer>						m_directionalLightBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightHeap;					// TEMP
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightHeap;								// TEMP
 
 		// ImGui Pass
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;

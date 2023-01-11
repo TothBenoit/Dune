@@ -22,8 +22,8 @@ namespace Dune
 		CreateFences();
 		CreateCamera();
 
-		InitShadowPass();
 		InitMainPass();
+		InitShadowPass();
 		InitImGuiPass();
 	}
 
@@ -561,15 +561,8 @@ namespace Dune
 	void DX12GraphicsRenderer::InitShadowPass()
 	{
 		CreateSamplers();
-		// Create Dsv descriptor
-		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc = {};
-		cbvSrvHeapDesc.NumDescriptors = ms_shadowMapCount;
-		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		ThrowIfFailed(m_device->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(&m_shadowSrvHeap)));
-		NameDXObject(m_shadowSrvHeap, L"ShadowSRVHeap");
 
-		// Create Srv descriptor
+		// Create Dsv descriptor
 		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
 		dsvHeapDesc.NumDescriptors = ms_shadowMapCount;
 		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
@@ -621,8 +614,10 @@ namespace Dune
 			m_shadowDepthViews[i] = shadowDepthHandle;
 
 			const UINT cbvSrvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			CD3DX12_CPU_DESCRIPTOR_HANDLE shadowSrvCpuHandle(m_shadowSrvHeap->GetCPUDescriptorHandleForHeapStart(), i, cbvSrvDescriptorSize);
-			CD3DX12_GPU_DESCRIPTOR_HANDLE shadowSrvGpuHandle(m_shadowSrvHeap->GetGPUDescriptorHandleForHeapStart(), i, cbvSrvDescriptorSize);
+			CD3DX12_CPU_DESCRIPTOR_HANDLE shadowSrvCpuHandle(m_lightHeap->GetCPUDescriptorHandleForHeapStart(), i, cbvSrvDescriptorSize);
+			CD3DX12_GPU_DESCRIPTOR_HANDLE shadowSrvGpuHandle(m_lightHeap->GetGPUDescriptorHandleForHeapStart(), i, cbvSrvDescriptorSize);
+			shadowSrvCpuHandle.Offset(m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 2);
+			shadowSrvGpuHandle.Offset(m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 2);
 			D3D12_SHADER_RESOURCE_VIEW_DESC shadowSrvDesc = {};
 			shadowSrvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 			shadowSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -643,7 +638,7 @@ namespace Dune
 
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
 		ZeroMemory(&heapDesc, sizeof(heapDesc));
-		heapDesc.NumDescriptors = 2;
+		heapDesc.NumDescriptors = 2 + ms_shadowMapCount;
 		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		heapDesc.NodeMask = 0;
@@ -764,10 +759,6 @@ namespace Dune
 
 		m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 
-		ID3D12DescriptorHeap* ppHeaps[] = { m_samplerHeap.Get() };
-		m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		m_commandList->SetGraphicsRootDescriptorTable(5, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
-
 		m_commandList->RSSetViewports(1, &m_viewport);
 		m_commandList->RSSetScissorRects(1, &m_scissorRect);
 		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -850,12 +841,15 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<DX12GraphicsBuffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
 		m_commandList->SetGraphicsRootConstantBufferView(1, cameraMatrixBuffer->GetGPUVirtualAddress());
 
-		ID3D12DescriptorHeap* ppHeaps[] = { m_lightHeap.Get() };
-		m_commandList->SetDescriptorHeaps(1, ppHeaps);
+		ID3D12DescriptorHeap* ppHeaps[] = { m_lightHeap.Get(), m_samplerHeap.Get() };
+		m_commandList->SetDescriptorHeaps(2, ppHeaps);
 		CD3DX12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle(m_lightHeap->GetGPUDescriptorHandleForHeapStart());
 		m_commandList->SetGraphicsRootDescriptorTable(2, cbvSrvGpuHandle);
 		cbvSrvGpuHandle.Offset(m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 		m_commandList->SetGraphicsRootDescriptorTable(3, cbvSrvGpuHandle);
+		cbvSrvGpuHandle.Offset(m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+		m_commandList->SetGraphicsRootDescriptorTable(4, cbvSrvGpuHandle);
+		m_commandList->SetGraphicsRootDescriptorTable(5, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
 		{
 			rmt_ScopedCPUSample(SubmitGraphicsElements, 0);

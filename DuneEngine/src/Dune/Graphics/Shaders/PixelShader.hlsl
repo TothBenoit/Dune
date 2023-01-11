@@ -42,7 +42,7 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float4 vPosWorld)
 {
 	// Compute pixel position in light space.
 	float4 vLightSpacePos = vPosWorld;
-	vLightSpacePos = mul(vLightSpacePos, DirectionalLights[lightIndex].viewProjMatrix);
+	vLightSpacePos = mul(DirectionalLights[lightIndex].viewProjMatrix, vLightSpacePos);
 
 	vLightSpacePos.xyz /= vLightSpacePos.w;
 
@@ -54,7 +54,7 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float4 vPosWorld)
 	float vLightSpaceDepth = vLightSpacePos.z - SHADOW_DEPTH_BIAS;
 
 	// Find sub-pixel weights.
-	float2 vShadowMapDims = float2(1280.0f, 720.0f); // need to keep in sync with .cpp file
+	float2 vShadowMapDims = float2(1584.f, 861.f); // need to keep in sync with .cpp file
 	float4 vSubPixelCoords = float4(1.0f, 1.0f, 1.0f, 1.0f);
 	vSubPixelCoords.xy = frac(vShadowMapDims * vShadowTexCoord);
 	vSubPixelCoords.zw = 1.0f - vSubPixelCoords.xy;
@@ -63,10 +63,10 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float4 vPosWorld)
 	// 2x2 percentage closer filtering.
 	float2 vTexelUnits = 1.0f / vShadowMapDims;
 	float4 vShadowDepths;
-	vShadowDepths.x = shadowMap[0].Sample(sampleClamp, vShadowTexCoord);
-	vShadowDepths.y = shadowMap[0].Sample(sampleClamp, vShadowTexCoord + float2(vTexelUnits.x, 0.0f));
-	vShadowDepths.z = shadowMap[0].Sample(sampleClamp, vShadowTexCoord + float2(0.0f, vTexelUnits.y));
-	vShadowDepths.w = shadowMap[0].Sample(sampleClamp, vShadowTexCoord + vTexelUnits);
+	vShadowDepths.x = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord);
+	vShadowDepths.y = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(vTexelUnits.x, 0.0f));
+	vShadowDepths.z = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(0.0f, vTexelUnits.y));
+	vShadowDepths.w = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + vTexelUnits);
 
 	// What weighted fraction of the 4 samples are nearer to the light than this pixel?
 	float4 vShadowTests = (vShadowDepths >= vLightSpaceDepth) ? 1.0f : 0.0f;
@@ -86,7 +86,7 @@ float3 AccumulateDirectionalLight(float3 normal, float4 wPos)
 		float3 directionalLight = DirectionalLights[i].color * saturate(dot(toLight, normal)) * DirectionalLights[i].intensity;
 		if (i == 0)
 		{
-			//directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos);
+			directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos);
 		}
 		accumulatedDirectionalLight += directionalLight;
 	}

@@ -609,7 +609,7 @@ namespace Dune
 				DirectX::XMStoreFloat3(&dir,DirectX::XMVector3Normalize(at));
 
 				constexpr float aspectRatio = 1600.f / 900.f;
-				dMatrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), aspectRatio, 0.1f, 1000.0f);;
+				dMatrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), aspectRatio, 1.f, 1000.0f);;
 				viewMatrix*= projectionMatrix;
 
 				m_graphicsRenderer->SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir, viewMatrix));
