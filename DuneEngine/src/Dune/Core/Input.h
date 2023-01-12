@@ -245,19 +245,19 @@ namespace Dune
 
 
 	private:
-		static bool m_keyState[256];
-		static bool m_keyDown[256];
-		static bool m_keyUp[256];
+		inline static bool m_keyState[256]{};
+		inline static bool m_keyDown[256]{};
+		inline static bool m_keyUp[256]{};
 
-		static bool m_mouseState[3];
-		static bool m_mouseDown[3];
-		static bool m_mouseUp[3];
+		inline static bool m_mouseState[3]{};
+		inline static bool m_mouseDown[3]{};
+		inline static bool m_mouseUp[3]{};
 
-		static float m_mousePosX;
-		static float m_mousePosY;
-		static float m_mouseDeltaX;
-		static float m_mouseDeltaY;
-		static float m_mouseWheelDelta;
+		inline static float m_mousePosX{};
+		inline static float m_mousePosY{};
+		inline static float m_mouseDeltaX{};
+		inline static float m_mouseDeltaY{};
+		inline static float m_mouseWheelDelta{};
 	};
 }
 

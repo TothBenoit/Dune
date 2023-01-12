@@ -23,8 +23,7 @@ namespace Dune
 		GraphicsElement(const std::shared_ptr<Mesh> mesh, const InstanceData& instanceData);
 		~GraphicsElement() = default;
 		
-		GraphicsElement(const GraphicsElement& other) = delete;
-		GraphicsElement& operator=(const GraphicsElement& other) = delete;
+		DISABLE_COPY(GraphicsElement);
 
 		GraphicsElement(GraphicsElement&& other);
 		GraphicsElement& operator=(GraphicsElement&& other);

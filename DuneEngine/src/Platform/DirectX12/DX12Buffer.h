@@ -7,23 +7,6 @@ namespace Dune
 	{
 		~DX12Buffer() = default;
 
-		DX12Buffer(const DX12Buffer& other) = delete;
-		DX12Buffer& operator=(const DX12Buffer& other) = delete;
-
-		DX12Buffer(DX12Buffer&& other)
-			: m_cpuAdress {other.m_cpuAdress}
-			, m_buffer {std::move(other.m_buffer)}
-		{}
-
-		DX12Buffer& operator=(DX12Buffer&& other)
-		{
-			m_cpuAdress = other.m_cpuAdress;
-			m_buffer = std::move(other.m_buffer);
-
-			return *this;
-		}
-
-
 	private:
 		DX12Buffer() = default;
 	

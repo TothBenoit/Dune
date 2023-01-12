@@ -6,8 +6,9 @@ namespace Dune
 	{
 	public:
 		EntityManager();
-		EntityManager(const EntityManager&) = delete;
-		EntityManager& operator=(const EntityManager&) = delete;
+		~EntityManager() = default;
+		DISABLE_COPY_AND_MOVE(EntityManager);
+
 		EntityID CreateEntity();
 		void RemoveEntity(EntityID entity);
 		bool IsValid(EntityID entity) const;

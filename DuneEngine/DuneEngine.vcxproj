@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="include\DX12\d3dx12.h" />
     <ClInclude Include="include\Remotery\Remotery.h" />
+    <ClInclude Include="src\Dune\Common\Macro.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\BindingComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\CameraComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
@@ -45,13 +46,14 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="src\Platform\DirectX12\DX12Renderer.h" />
     <ClInclude Include="src\Dune\Graphics\Renderer.h" />
-    <ClInclude Include="src\Dune\Utilities\NonCopyable.h" />
     <ClInclude Include="src\Dune.h" />
     <ClInclude Include="src\Dune\Core\Application.h" />
     <ClInclude Include="src\Dune\Core\Input.h" />
     <ClInclude Include="src\Dune\Core\Logger.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Dune\Core\Window.h" />
+    <ClInclude Include="src\Platform\DirectX12\DX12Pch.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsPch.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
   </ItemGroup>
   <ItemGroup>

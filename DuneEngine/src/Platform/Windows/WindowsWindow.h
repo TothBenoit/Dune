@@ -6,9 +6,9 @@ namespace Dune
 	class WindowsWindow : public Window
 	{
 	public:
-
 		WindowsWindow(WindowData data);
 		~WindowsWindow() override;
+		
 		bool Update();
 
 		HWND		GetHandle()	const;

@@ -12,6 +12,9 @@ namespace Dune
 	DX12Renderer::DX12Renderer(const WindowsWindow* window)
 	{
 		CreateFactory();
+#ifdef _DEBUG
+		EnableDebugLayer();
+#endif
 		CreateDevice();
 		CreateCommandQueues();
 		CreateSwapChain(window->GetHandle());
@@ -30,8 +33,8 @@ namespace Dune
 	DX12Renderer::~DX12Renderer()
 	{
 #ifdef _DEBUG
-		Microsoft::WRL::ComPtr<ID3D12DebugDevice2> debugDevice;
-		m_device->QueryInterface(IID_PPV_ARGS(&debugDevice));
+		Microsoft::WRL::ComPtr<ID3D12DebugDevice2> debugDevice{nullptr};
+		ThrowIfFailed(m_device->QueryInterface(IID_PPV_ARGS(&debugDevice)));
 		debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
 #endif
 	}
@@ -225,7 +228,7 @@ namespace Dune
 		// Create Adapter
 		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
 
-		for (UINT adapterIndex = 0;
+		for (UINT adapterIndex{ 0 };
 			DXGI_ERROR_NOT_FOUND != m_factory->EnumAdapters1(adapterIndex, &adapter);
 			++adapterIndex)
 		{

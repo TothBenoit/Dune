@@ -16,7 +16,9 @@ namespace Dune
 			WindowData(dU32 width = 1600, dU32 height = 900, const dString & = "Dune engine");
 		};
 
+		Window() = default;
 		virtual ~Window() = default;
+		DISABLE_COPY_AND_MOVE(Window);
 
 		dU32 GetWidth() const
 		{

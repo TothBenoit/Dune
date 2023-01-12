@@ -21,11 +21,8 @@ namespace Dune
 	{
 	public:
 		virtual ~Renderer() = default;
-		Renderer(const Renderer&) = delete;
-		Renderer& operator=(const Renderer&) = delete;
-		Renderer(Renderer&&) = delete;
-		Renderer& operator=(Renderer&&) = delete;
-
+		DISABLE_COPY_AND_MOVE(Renderer);
+		
 		static std::unique_ptr<Renderer> Create(const Window * window);
 
 		// TODO : Generalize Clear/Remove/Submit pattern 

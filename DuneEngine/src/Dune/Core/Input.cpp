@@ -3,21 +3,6 @@
 
 namespace Dune
 {
-	bool	Input::m_keyState[256];
-	bool	Input::m_keyDown[256];
-	bool	Input::m_keyUp[256];
-
-	bool	Input::m_mouseState[3];
-	bool	Input::m_mouseDown[3];
-	bool	Input::m_mouseUp[3];
-
-	float	Input::m_mousePosX;
-	float	Input::m_mousePosY;
-	float	Input::m_mouseDeltaX;
-	float	Input::m_mouseDeltaY;
-	float	Input::m_mouseWheelDelta;
-
-
 	void Input::SetKeyDown(KeyCode key)
 	{
 		m_keyDown[(int)key] = true;

@@ -8,8 +8,6 @@ namespace Dune
 	class ComponentManager
 	{
 	private:
-		friend class EngineCore;
-
 		static Component& Create(EntityID entity)
 		{
 			Assert(entity != ID::invalidID);
@@ -86,18 +84,9 @@ namespace Dune
 
 	private:
 		friend class EngineCore;
-		static dVector<Component> m_components;
-		static dVector<EntityID> m_entities;
-		static dHashMap<EntityID, size_t> m_lookup;
-		static bool m_isInitialized;
+		inline static dVector<Component> m_components;
+		inline static dVector<EntityID> m_entities;
+		inline static dHashMap<EntityID, size_t> m_lookup;
+		inline static bool m_isInitialized{false};
 	};
-
-	template<typename Component>
-	dVector<Component>	ComponentManager<Component>::m_components;
-	template<typename Component>
-	dVector<EntityID> ComponentManager<Component>::m_entities;
-	template<typename Component>
-	dHashMap<EntityID, size_t> ComponentManager<Component>::m_lookup;
-	template<typename Component>
-	bool ComponentManager<Component>::m_isInitialized = false;
 }

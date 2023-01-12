@@ -7,7 +7,7 @@ namespace Dune
 	GraphicsComponent::GraphicsComponent()
 		: material{ std::make_shared<Material>() }
 	{
-		static const dVector<dU32> defaultCubeIndices =
+		static const dVector<dU32> defaultCubeIndices
 		{
 			0, 1, 2, 0, 2, 3,			//Face
 			4, 6, 5, 4, 7, 6,			//Back
@@ -17,7 +17,7 @@ namespace Dune
 			22, 20, 21, 22, 21, 23		//Bottom
 		};
 
-		static const dVector<Vertex> defaultCubeVertices =
+		static const dVector<Vertex> defaultCubeVertices
 		{
 			{ {-0.5f, -0.5f, -0.5f},	{0.0f, 0.0f, 0.0f, 1.0f},	{ 0.0f, 0.0f, -1.0f } }, // 0
 			{ {-0.5f,  0.5f, -0.5f},	{0.0f, 1.0f, 0.0f, 1.0f},	{ 0.0f, 0.0f, -1.0f } }, // 1
@@ -50,7 +50,7 @@ namespace Dune
 			{ { 0.5f, -0.5f,  0.5f},	{1.0f, 0.0f, 1.0f, 1.0f},	{ 0.0f, -1.0f, 0.0f } }, // 23
 		};
 
-		static const std::shared_ptr<Mesh> defaultMesh = std::make_shared<Mesh>(Mesh(defaultCubeIndices, defaultCubeVertices));
+		static const std::shared_ptr<Mesh> defaultMesh{new Mesh(defaultCubeIndices, defaultCubeVertices) };
 
 		mesh = defaultMesh;
 	}
