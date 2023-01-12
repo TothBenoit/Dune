@@ -8,7 +8,7 @@ namespace Dune
 		Upload,
 	};
 
-	struct GraphicsBufferDesc
+	struct BufferDesc
 	{
 		EBufferUsage usage = EBufferUsage::Default;
 	};

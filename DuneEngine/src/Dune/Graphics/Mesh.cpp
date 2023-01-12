@@ -2,7 +2,7 @@
 #include "Mesh.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Core/EngineCore.h"
-#include "Dune/Graphics/GraphicsBuffer.h"
+#include "Dune/Graphics/Buffer.h"
 
 namespace Dune
 {
@@ -28,7 +28,7 @@ namespace Dune
 
 	bool Mesh::UploadVertexBuffer()
 	{
-		GraphicsBufferDesc desc{ EBufferUsage::Default};
+		BufferDesc desc{ EBufferUsage::Default};
 		dU32 size{ (dU32)m_vertices.size() * sizeof(Vertex) };
 		if (size == 0)
 		{
@@ -42,7 +42,7 @@ namespace Dune
 
 	bool Mesh::UploadIndexBuffer()
 	{
-		GraphicsBufferDesc desc{ EBufferUsage::Default };
+		BufferDesc desc{ EBufferUsage::Default };
 		dU32 size{ (dU32)m_indices.size() * sizeof(dU32) };
 		if (size == 0)
 		{

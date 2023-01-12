@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "GraphicsComponent.h"
-#include "Dune/Graphics/GraphicsBuffer.h"
+#include "Dune/Graphics/Buffer.h"
 
 namespace Dune
 {

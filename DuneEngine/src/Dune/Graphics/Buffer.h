@@ -1,19 +1,19 @@
 #pragma once
 
-#include "Dune/Graphics/GraphicsBufferDesc.h"
+#include "Dune/Graphics/BufferDesc.h"
 
 namespace Dune
 {
-	class GraphicsBuffer
+	class Buffer
 	{
 	public:
-		virtual ~GraphicsBuffer() = default;
+		virtual ~Buffer() = default;
 
 		inline dU32 GetSize() const { return m_size; };
 		inline EBufferUsage GetUsage() const { return m_usage; };
 
 	protected:
-		GraphicsBuffer() = default;
+		Buffer() = default;
 
 	protected:
 		dU32 m_size;

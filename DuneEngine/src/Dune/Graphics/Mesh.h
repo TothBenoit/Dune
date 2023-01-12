@@ -2,7 +2,7 @@
 
 namespace Dune
 {
-	class GraphicsBuffer;
+	class Buffer;
 
 	struct Vertex
 	{
@@ -16,8 +16,8 @@ namespace Dune
 	public:
 		Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
 
-		const GraphicsBuffer* const GetIndexBuffer() const { return m_indexBuffer.get(); }
-		const GraphicsBuffer* const GetVertexBuffer() const { return m_vertexBuffer.get(); }
+		const Buffer* const GetIndexBuffer() const { return m_indexBuffer.get(); }
+		const Buffer* const GetVertexBuffer() const { return m_vertexBuffer.get(); }
 
 	private:
 		void UploadBuffers();
@@ -27,7 +27,7 @@ namespace Dune
 		dVector<dU32> m_indices;
 		dVector<Vertex> m_vertices;
 
-		std::unique_ptr<GraphicsBuffer> m_indexBuffer = nullptr;
-		std::unique_ptr<GraphicsBuffer> m_vertexBuffer = nullptr;
+		std::unique_ptr<Buffer> m_indexBuffer = nullptr;
+		std::unique_ptr<Buffer> m_vertexBuffer = nullptr;
 	};
 }

@@ -1,32 +1,32 @@
 #include "pch.h"
-#include "GraphicsRenderer.h"
+#include "Renderer.h"
 
 #ifdef DUNE_PLATFORM_WINDOWS
-#include "Platform/DirectX12/DX12GraphicsRenderer.h"
+#include "Platform/DirectX12/DX12Renderer.h"
 #include "Platform/Windows/WindowsWindow.h"
 #endif
 #include "Dune/Core/EngineCore.h"
-#include "Dune/Graphics/GraphicsBuffer.h"
+#include "Dune/Graphics/Buffer.h"
 
 namespace Dune
 {
-	std::unique_ptr<GraphicsRenderer> GraphicsRenderer::Create(const Window * window)
+	std::unique_ptr<Renderer> Renderer::Create(const Window * window)
 	{
 #ifdef DUNE_PLATFORM_WINDOWS
-		return std::make_unique<DX12GraphicsRenderer>(static_cast<const WindowsWindow*>(window));
+		return std::make_unique<DX12Renderer>(static_cast<const WindowsWindow*>(window));
 #else
 #error Platform not supported
 #endif
 	}
 
-	void GraphicsRenderer::ClearGraphicsElements()
+	void Renderer::ClearGraphicsElements()
 	{
 		m_graphicsElements.clear();
 		m_lookupGraphicsElements.clear();
 		m_graphicsEntities.clear();
 	}
 
-	void GraphicsRenderer::SubmitGraphicsElement(EntityID id, std::weak_ptr<Mesh> mesh, const InstanceData& instanceData)
+	void Renderer::SubmitGraphicsElement(EntityID id, std::weak_ptr<Mesh> mesh, const InstanceData& instanceData)
 	{
 		Assert(id != ID::invalidID);
 
@@ -45,14 +45,14 @@ namespace Dune
 		}
 	}
 
-	void GraphicsRenderer::ClearPointLights()
+	void Renderer::ClearPointLights()
 	{
 		m_pointLights.clear();
 		m_pointLightEntities.clear();
 		m_lookupPointLights.clear();
 	}
 
-	void GraphicsRenderer::RemovePointLight(EntityID id)
+	void Renderer::RemovePointLight(EntityID id)
 	{
 		auto it = m_lookupPointLights.find(id);
 		if (it == m_lookupPointLights.end())
@@ -74,7 +74,7 @@ namespace Dune
 		m_lookupPointLights.erase(id);
 	}
 
-	void GraphicsRenderer::SubmitPointLight(EntityID id, const PointLight& light)
+	void Renderer::SubmitPointLight(EntityID id, const PointLight& light)
 	{
 		Assert(id != ID::invalidID);
 
@@ -93,14 +93,14 @@ namespace Dune
 		}
 	}
 
-	void GraphicsRenderer::ClearDirectionalLights()
+	void Renderer::ClearDirectionalLights()
 	{
 		m_directionalLights.clear();
 		m_directionalLightEntities.clear();
 		m_lookupDirectionalLights.clear();
 	}
 
-	void GraphicsRenderer::RemoveDirectionalLight(EntityID id)
+	void Renderer::RemoveDirectionalLight(EntityID id)
 	{
 		auto it = m_lookupDirectionalLights.find(id);
 		if (it == m_lookupDirectionalLights.end())
@@ -122,7 +122,7 @@ namespace Dune
 		m_lookupDirectionalLights.erase(id);
 	}
 
-	void GraphicsRenderer::SubmitDirectionalLight(EntityID id, const DirectionalLight& light)
+	void Renderer::SubmitDirectionalLight(EntityID id, const DirectionalLight& light)
 	{
 		Assert(id != ID::invalidID);
 
@@ -141,15 +141,15 @@ namespace Dune
 		}
 	}
 
-	void GraphicsRenderer::CreateCamera()
+	void Renderer::CreateCamera()
 	{
 		dMatrix identity;
-		GraphicsBufferDesc camBufferDesc{EBufferUsage::Upload};
+		BufferDesc camBufferDesc{EBufferUsage::Upload};
 		dU32 size{ sizeof(CameraConstantBuffer) };
 		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc, &identity, size);
 	}
 
-	void GraphicsRenderer::UpdateCamera()
+	void Renderer::UpdateCamera()
 	{
 		const CameraComponent* camera = EngineCore::GetCamera();
 		if (camera)
@@ -163,7 +163,7 @@ namespace Dune
 		}
 	}
 
-	void GraphicsRenderer::Render()
+	void Renderer::Render()
 	{
 		Profile(Render);
 		BeginFrame();
@@ -174,7 +174,7 @@ namespace Dune
 		EndFrame();
 	}
 
-	void GraphicsRenderer::RemoveGraphicsElement(EntityID id)
+	void Renderer::RemoveGraphicsElement(EntityID id)
 	{
 		auto it = m_lookupGraphicsElements.find(id);
 		if (it == m_lookupGraphicsElements.end())

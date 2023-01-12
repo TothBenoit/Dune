@@ -30,13 +30,13 @@ namespace Dune
 		GraphicsElement& operator=(GraphicsElement&& other);
 
 		inline const Mesh* GetMesh() const { return m_mesh.get(); };
-		inline const std::weak_ptr<GraphicsBuffer> GetInstanceData() const { return m_instanceData; }
+		inline const std::weak_ptr<Buffer> GetInstanceData() const { return m_instanceData; }
 		void UpdateInstanceData(const InstanceData& data);
 
 	private:
 		//TODO: use handle instead of shared_ptr
 		std::shared_ptr<Mesh> m_mesh;
-		std::shared_ptr<GraphicsBuffer> m_instanceData;
+		std::shared_ptr<Buffer> m_instanceData;
 	};
 }
 

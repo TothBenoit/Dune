@@ -4,7 +4,7 @@
 #include "Dune/Core/ECS/EntityManager.h"
 #include "Dune/Core/ECS/Components/ComponentManager.h"
 #include "Dune/Core/ECS/Components/CameraComponent.h"
-#include "Dune/Graphics/GraphicsRenderer.h"
+#include "Dune/Graphics/Renderer.h"
 
 namespace Dune
 {
@@ -71,7 +71,7 @@ namespace Dune
 			return m_cameraID;
 		}
 		
-		static GraphicsRenderer& GetGraphicsRenderer()
+		static Renderer& GetGraphicsRenderer()
 		{
 			Assert(m_graphicsRenderer.get());
 			return *m_graphicsRenderer;
@@ -101,7 +101,7 @@ namespace Dune
 		static inline EntityID m_cameraID = ID::invalidID;
 		static inline float m_deltaTime = 0.f;
 		static inline dHashSet<EntityID> m_modifiedEntities;
-		static inline std::unique_ptr<GraphicsRenderer> m_graphicsRenderer = nullptr;
+		static inline std::unique_ptr<Renderer> m_graphicsRenderer = nullptr;
 	};
 }
 

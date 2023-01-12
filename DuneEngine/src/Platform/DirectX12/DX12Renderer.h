@@ -1,21 +1,21 @@
 #pragma once
-#include "Dune/Graphics/GraphicsRenderer.h"
+#include "Dune/Graphics/Renderer.h"
 
 namespace Dune
 {
 	class WindowsWindow;
 
-	class DX12GraphicsRenderer final : public GraphicsRenderer
+	class DX12Renderer final : public Renderer
 	{
 	public:
-		DX12GraphicsRenderer(const WindowsWindow * window);
-		~DX12GraphicsRenderer() override;
+		DX12Renderer(const WindowsWindow * window);
+		~DX12Renderer() override;
 
 		void OnShutdown() override;
 		void OnResize(int width, int height) override;
 
-		std::unique_ptr<GraphicsBuffer> CreateBuffer(const GraphicsBufferDesc& desc, const void* data, dU32 size) override;
-		void UpdateBuffer(GraphicsBuffer * buffer, const void* data, dU32 size) override;
+		std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* data, dU32 size) override;
+		void UpdateBuffer(Buffer * buffer, const void* data, dU32 size) override;
 
 	private:
 		static constexpr dU32 ms_shadowMapCount = 1;
@@ -76,15 +76,15 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowDsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
-		std::unique_ptr<GraphicsBuffer>						m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
+		std::unique_ptr<Buffer>						m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
 		D3D12_CPU_DESCRIPTOR_HANDLE							m_shadowDepthViews[ms_shadowMapCount];
 		D3D12_GPU_DESCRIPTOR_HANDLE							m_shadowResourceViews[ms_shadowMapCount];
 
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-		std::unique_ptr<GraphicsBuffer>						m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
-		std::unique_ptr<GraphicsBuffer>						m_directionalLightBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
+		std::unique_ptr<Buffer>						m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
+		std::unique_ptr<Buffer>						m_directionalLightBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightHeap;								// TEMP
 
 		// ImGui Pass

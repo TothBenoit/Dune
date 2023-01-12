@@ -1,14 +1,14 @@
 #include "pch.h"
 #include "GraphicsElement.h"
 #include "Dune/Core/EngineCore.h"
-#include "Dune/Graphics/GraphicsBuffer.h"
+#include "Dune/Graphics/Buffer.h"
 
 namespace Dune
 {
 	GraphicsElement::GraphicsElement(const std::shared_ptr<Mesh> mesh, const InstanceData& instanceData)
 		: m_mesh{mesh}
 	{
-		GraphicsBufferDesc desc{ EBufferUsage::Upload };
+		BufferDesc desc{ EBufferUsage::Upload };
 		m_instanceData = EngineCore::GetGraphicsRenderer().CreateBuffer(desc, &instanceData, InstanceDataSize);
 	}
 

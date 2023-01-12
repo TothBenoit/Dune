@@ -30,9 +30,9 @@
     <ClInclude Include="src\Dune\Graphics\PointLight.h" />
     <ClInclude Include="src\Dune\Graphics\Shader.h" />
     <ClInclude Include="src\Dune\Utilities\StringUtils.h" />
-    <ClInclude Include="src\Platform\DirectX12\DX12GraphicsBuffer.h" />
-    <ClInclude Include="src\Dune\Graphics\GraphicsBuffer.h" />
-    <ClInclude Include="src\Dune\Graphics\GraphicsBufferDesc.h" />
+    <ClInclude Include="src\Platform\DirectX12\DX12Buffer.h" />
+    <ClInclude Include="src\Dune\Graphics\Buffer.h" />
+    <ClInclude Include="src\Dune\Graphics\BufferDesc.h" />
     <ClInclude Include="src\Dune\Common\Types.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsElement.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
@@ -43,8 +43,8 @@
     <ClInclude Include="include\imgui\imstb_rectpack.h" />
     <ClInclude Include="include\imgui\imstb_textedit.h" />
     <ClInclude Include="include\imgui\imstb_truetype.h" />
-    <ClInclude Include="src\Platform\DirectX12\DX12GraphicsRenderer.h" />
-    <ClInclude Include="src\Dune\Graphics\GraphicsRenderer.h" />
+    <ClInclude Include="src\Platform\DirectX12\DX12Renderer.h" />
+    <ClInclude Include="src\Dune\Graphics\Renderer.h" />
     <ClInclude Include="src\Dune\Utilities\NonCopyable.h" />
     <ClInclude Include="src\Dune.h" />
     <ClInclude Include="src\Dune\Core\Application.h" />
@@ -94,8 +94,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\Platform\DirectX12\DX12GraphicsRenderer.cpp" />
-    <ClCompile Include="src\Dune\Graphics\GraphicsRenderer.cpp" />
+    <ClCompile Include="src\Platform\DirectX12\DX12Renderer.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
     <ClCompile Include="src\Dune\Core\Application.cpp" />
     <ClCompile Include="src\Dune\Core\Input.cpp" />
     <ClCompile Include="src\Dune\Core\Logger.cpp" />

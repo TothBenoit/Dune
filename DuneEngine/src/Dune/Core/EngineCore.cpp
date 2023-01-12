@@ -31,7 +31,7 @@ namespace Dune
 		ComponentManager<PointLightComponent>::Init();
 		ComponentManager<DirectionalLightComponent>::Init();
 
-		m_graphicsRenderer = GraphicsRenderer::Create(pWindow);
+		m_graphicsRenderer = Renderer::Create(pWindow);
 
 		m_isInitialized = true;
 

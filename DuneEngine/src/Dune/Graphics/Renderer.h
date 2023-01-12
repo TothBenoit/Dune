@@ -8,8 +8,8 @@
 namespace Dune
 {
 	class Window;
-	class GraphicsBuffer;
-	struct GraphicsBufferDesc;
+	class Buffer;
+	struct BufferDesc;
 
 	// Change once per camera
 	struct CameraConstantBuffer
@@ -17,16 +17,16 @@ namespace Dune
 		dMatrix4x4	viewProjMatrix;
 	};
 
-	class GraphicsRenderer
+	class Renderer
 	{
 	public:
-		virtual ~GraphicsRenderer() = default;
-		GraphicsRenderer(const GraphicsRenderer&) = delete;
-		GraphicsRenderer& operator=(const GraphicsRenderer&) = delete;
-		GraphicsRenderer(GraphicsRenderer&&) = delete;
-		GraphicsRenderer& operator=(GraphicsRenderer&&) = delete;
+		virtual ~Renderer() = default;
+		Renderer(const Renderer&) = delete;
+		Renderer& operator=(const Renderer&) = delete;
+		Renderer(Renderer&&) = delete;
+		Renderer& operator=(Renderer&&) = delete;
 
-		static std::unique_ptr<GraphicsRenderer> Create(const Window * window);
+		static std::unique_ptr<Renderer> Create(const Window * window);
 
 		// TODO : Generalize Clear/Remove/Submit pattern 
 
@@ -51,11 +51,11 @@ namespace Dune
 		virtual void OnResize(int width, int height) = 0;
 
 		//TODO : Get rid of const void* data
-		virtual std::unique_ptr<GraphicsBuffer> CreateBuffer(const GraphicsBufferDesc& desc, const void* data, dU32 size) = 0;
-		virtual void UpdateBuffer(GraphicsBuffer * buffer, const void* data, dU32 size) = 0;
+		virtual std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* data, dU32 size) = 0;
+		virtual void UpdateBuffer(Buffer * buffer, const void* data, dU32 size) = 0;
 
 	protected:
-		GraphicsRenderer() = default;
+		Renderer() = default;
 		
 	private:
 
@@ -85,9 +85,9 @@ namespace Dune
 		dVector<EntityID> m_graphicsEntities;
 		dHashMap<EntityID, dU32> m_lookupGraphicsElements;
 
-		std::unique_ptr<GraphicsBuffer>	m_cameraMatrixBuffer;
+		std::unique_ptr<Buffer>	m_cameraMatrixBuffer;
 
-		dVector<std::shared_ptr<GraphicsBuffer>> m_usedBuffer[ms_frameCount];
+		dVector<std::shared_ptr<Buffer>> m_usedBuffer[ms_frameCount];
 	};
 }
 
