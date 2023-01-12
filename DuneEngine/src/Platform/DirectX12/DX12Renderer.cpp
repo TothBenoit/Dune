@@ -198,22 +198,26 @@ namespace Dune
 
 	void DX12Renderer::CreateFactory()
 	{
-		UINT dxgiFactoryFlags = 0;
-
+		UINT dxgiFactoryFlags{ 0 };
 #if defined(_DEBUG)
 		{
-			// Create a Debug Controller to track errors
-			Microsoft::WRL::ComPtr<ID3D12Debug> dc;
-			Microsoft::WRL::ComPtr<ID3D12Debug1> debugController;
-			ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&dc)));
-			ThrowIfFailed(dc->QueryInterface(IID_PPV_ARGS(&debugController)));
-			debugController->EnableDebugLayer();
 			dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 		}
 #endif
-		// Create Factory
 		ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_factory)));
+	}
 
+	void DX12Renderer::EnableDebugLayer() const
+	{
+#ifdef _DEBUG
+		ID3D12Debug* pDebugInterface{ nullptr };
+		ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugInterface)));
+		ID3D12Debug1* pDebugController{ nullptr };
+		ThrowIfFailed(pDebugInterface->QueryInterface(IID_PPV_ARGS(&pDebugController)));
+		pDebugController->EnableDebugLayer();
+		pDebugController->Release();
+		pDebugInterface->Release();
+#endif
 	}
 
 	void DX12Renderer::CreateDevice()
@@ -255,7 +259,7 @@ namespace Dune
 	void DX12Renderer::CreateCommandQueues()
 	{
 		// Describe and create the command queue.
-		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+		D3D12_COMMAND_QUEUE_DESC queueDesc {};
 		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
@@ -286,7 +290,7 @@ namespace Dune
 		m_viewport.MinDepth = 0.f;
 		m_viewport.MaxDepth = 1.f;
 
-		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+		DXGI_SWAP_CHAIN_DESC swapChainDesc {};
 		swapChainDesc.BufferCount = ms_frameCount;
 		swapChainDesc.BufferDesc.Width = 0;
 		swapChainDesc.BufferDesc.Height = 0;
@@ -312,7 +316,7 @@ namespace Dune
 		// Create descriptor heaps.
 		{
 			// Describe and create a render target view (RTV) descriptor heap.
-			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc {};
 			rtvHeapDesc.NumDescriptors = ms_frameCount;
 			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -340,11 +344,11 @@ namespace Dune
 	{
 		// Resize screen dependent resources.
 		// Create a depth buffer.
-		D3D12_CLEAR_VALUE optimizedClearValue = {};
+		D3D12_CLEAR_VALUE optimizedClearValue {};
 		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 		optimizedClearValue.DepthStencil = { 1.0f, 0 };
 
-		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc {};
 		dsvHeapDesc.NumDescriptors = 1;
 		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -353,14 +357,14 @@ namespace Dune
 		ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
 		NameDXObject(m_dsvHeap, L"DsvHeap");
 
-		D3D12_HEAP_PROPERTIES heapProps;
+		D3D12_HEAP_PROPERTIES heapProps{};
 		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
 		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 		heapProps.CreationNodeMask = 0;
 		heapProps.VisibleNodeMask = 0;
 
-		D3D12_RESOURCE_DESC dsDesc = {};
+		D3D12_RESOURCE_DESC dsDesc {};
 		dsDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 		dsDesc.Format = DXGI_FORMAT_D32_FLOAT;
 		dsDesc.Width = width;
@@ -384,7 +388,7 @@ namespace Dune
 		NameDXObject(m_depthStencilBuffer, L"DepthStencilBuffer");
 
 		// Update the depth-stencil view.
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
 		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Texture2D.MipSlice = 0;
@@ -408,7 +412,7 @@ namespace Dune
 
 	void DX12Renderer::CreateSamplers()
 	{
-		D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {};
+		D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc {};
 		samplerHeapDesc.NumDescriptors = 1;        // One clamp sampler.
 		samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -416,7 +420,7 @@ namespace Dune
 
 		// Describe and create the point clamping sampler, which is 
 		// used for the shadow map.
-		D3D12_SAMPLER_DESC clampSamplerDesc = {};
+		D3D12_SAMPLER_DESC clampSamplerDesc {};
 		clampSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 		clampSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		clampSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -452,7 +456,7 @@ namespace Dune
 		// Sampler
 		rootParameters[5].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_PIXEL);
 
-		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
 		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, 
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -460,8 +464,8 @@ namespace Dune
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
 		);
 
-		Microsoft::WRL::ComPtr<ID3DBlob> signature;
-		Microsoft::WRL::ComPtr<ID3DBlob> error;
+		Microsoft::WRL::ComPtr<ID3DBlob> signature{nullptr};
+		Microsoft::WRL::ComPtr<ID3DBlob> error{ nullptr };
 		if (FAILED(D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error)))
 		{
 			OutputDebugStringA((const char*)error->GetBufferPointer());
@@ -472,8 +476,8 @@ namespace Dune
 
 	void DX12Renderer::CreatePipeline()
 	{
-		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
-		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
+		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader{ nullptr };
+		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader{ nullptr };
 #if defined(_DEBUG)
 		// Enable better shader debugging with the graphics debugging tools.
 		UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -496,7 +500,7 @@ namespace Dune
 		};
 
 		// Describe and create the graphics pipeline state object (PSO).
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc {};
 		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 		psoDesc.pRootSignature = m_rootSignature.Get();
         psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());

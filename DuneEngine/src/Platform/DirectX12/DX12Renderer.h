@@ -21,6 +21,7 @@ namespace Dune
 		static constexpr dU32 ms_shadowMapCount = 1;
 
 		void CreateFactory();
+		void EnableDebugLayer() const;
 		void CreateDevice();
 		void CreateCommandQueues();
 		void CreateSwapChain(HWND handle);
@@ -76,15 +77,15 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowDsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
-		std::unique_ptr<Buffer>						m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
+		std::unique_ptr<Buffer>								m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
 		D3D12_CPU_DESCRIPTOR_HANDLE							m_shadowDepthViews[ms_shadowMapCount];
 		D3D12_GPU_DESCRIPTOR_HANDLE							m_shadowResourceViews[ms_shadowMapCount];
 
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-		std::unique_ptr<Buffer>						m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
-		std::unique_ptr<Buffer>						m_directionalLightBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
+		std::unique_ptr<Buffer>								m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
+		std::unique_ptr<Buffer>								m_directionalLightBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightHeap;								// TEMP
 
 		// ImGui Pass

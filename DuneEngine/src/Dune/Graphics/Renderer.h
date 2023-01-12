@@ -71,7 +71,7 @@ namespace Dune
 		virtual void EndFrame() = 0;
 
 	protected:
-		static constexpr dU32 ms_frameCount = 2;
+		inline static constexpr dU32 ms_frameCount = 2;
 
 		dVector<DirectionalLight> m_directionalLights;
 		dVector<EntityID> m_directionalLightEntities;
