@@ -47,8 +47,7 @@ namespace Dune
 		virtual void OnShutdown() = 0;
 		virtual void OnResize(int width, int height) = 0;
 
-		//TODO : Get rid of const void* data
-		virtual std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* data, dU32 size) = 0;
+		virtual std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size) = 0;
 		virtual void UpdateBuffer(Buffer * buffer, const void* data, dU32 size) = 0;
 
 	protected:

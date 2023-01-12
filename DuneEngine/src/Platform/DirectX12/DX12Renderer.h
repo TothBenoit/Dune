@@ -14,11 +14,11 @@ namespace Dune
 		void OnShutdown() override;
 		void OnResize(int width, int height) override;
 
-		std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* data, dU32 size) override;
-		void UpdateBuffer(Buffer * buffer, const void* data, dU32 size) override;
+		std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size) override;
+		void UpdateBuffer(Buffer * buffer, const void* pData, dU32 size) override;
 
 	private:
-		static constexpr dU32 ms_shadowMapCount = 1;
+		inline static constexpr dU32 ms_shadowMapCount = 1;
 
 		void CreateFactory();
 		void EnableDebugLayer() const;
@@ -100,7 +100,6 @@ namespace Dune
 		Microsoft::WRL::Wrappers::Event						m_copyFenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
 		dU64												m_copyFenceValue;
-
 	};
 }
 

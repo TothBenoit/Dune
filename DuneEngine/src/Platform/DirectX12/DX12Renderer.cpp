@@ -122,7 +122,7 @@ namespace Dune
 		m_scissorRect.bottom = static_cast<LONG>(y);
 	}
 
-	std::unique_ptr<Buffer> DX12Renderer::CreateBuffer(const BufferDesc& desc, const void* data, dU32 size)
+	std::unique_ptr<Buffer> DX12Renderer::CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size)
 	{
 		D3D12_HEAP_PROPERTIES heapProps;
 		D3D12_RESOURCE_STATES resourceState;
@@ -140,7 +140,7 @@ namespace Dune
 
 		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(size) };
 
-		DX12Buffer* buffer = new DX12Buffer();
+		DX12Buffer* buffer{ new DX12Buffer() };
 		buffer->m_size = size;
 		buffer->m_usage = desc.usage;
 
@@ -160,21 +160,21 @@ namespace Dune
 			ThrowIfFailed(buffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&buffer->m_cpuAdress)));
 		}
 
-		if (data)
+		if (pData)
 		{
-			UpdateBuffer(buffer, data, size);
+			UpdateBuffer(buffer, pData, size);
 		}
 
 		return std::unique_ptr<Buffer>(buffer);
 	}
 
-	void DX12Renderer::UpdateBuffer(Buffer* buffer, const void* data, dU32 size)
+	void DX12Renderer::UpdateBuffer(Buffer* buffer, const void* pData, dU32 size)
 	{
 		DX12Buffer* graphicsBuffer = static_cast<DX12Buffer*>(buffer);
 
 		if (graphicsBuffer->m_usage == EBufferUsage::Default)
 		{
-			std::unique_ptr<Buffer> uploadBuffer{ CreateBuffer(BufferDesc{EBufferUsage::Upload}, data, size) };
+			std::unique_ptr<Buffer> uploadBuffer{ CreateBuffer(BufferDesc{EBufferUsage::Upload}, pData, size) };
 			DX12Buffer& graphicsUploadBuffer = *static_cast<DX12Buffer*>(uploadBuffer.get());
 
 			WaitForCopy();
@@ -195,7 +195,7 @@ namespace Dune
 		else if (graphicsBuffer->m_usage == EBufferUsage::Upload)
 		{
 			Assert(size <= graphicsBuffer->m_size);
-			memcpy(graphicsBuffer->m_cpuAdress, data, graphicsBuffer->m_size);
+			memcpy(graphicsBuffer->m_cpuAdress, pData, graphicsBuffer->m_size);
 		}
 	}
 

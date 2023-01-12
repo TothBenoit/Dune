@@ -6,6 +6,7 @@ namespace Dune
 	class DX12Buffer : public Buffer
 	{
 		~DX12Buffer() = default;
+		DISABLE_COPY_AND_MOVE(DX12Buffer)
 
 	private:
 		DX12Buffer() = default;
