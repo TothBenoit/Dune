@@ -7,7 +7,6 @@ namespace Dune
 {
 	SceneGraph::SceneGraph()
 	{
-		//m_lookup.reserve((size_t)(ID::GetMaximumIndex())+1);
 		m_root = &m_lookup[ID::invalidID];
 
 		m_root->m_parent = nullptr;

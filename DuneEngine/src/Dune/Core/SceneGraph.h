@@ -22,6 +22,9 @@ namespace Dune
 		};
 
 		SceneGraph();
+		~SceneGraph() = default;
+		DISABLE_COPY_AND_MOVE(SceneGraph);
+
 		void AddNode(EntityID id, const dString& name = "New Node", EntityID m_parent = ID::invalidID);
 		void DeleteNode(EntityID id);
 		bool HasNode(EntityID id) const;
@@ -31,6 +34,5 @@ namespace Dune
 	private:
 		Node* m_root;
 		dHashMap<EntityID, Node> m_lookup;
-
 	};
 }
