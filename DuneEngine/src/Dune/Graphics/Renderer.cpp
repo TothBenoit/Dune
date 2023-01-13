@@ -2,14 +2,14 @@
 
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Buffer.h"
-#include "Platform/Windows/WindowsWindow.h"
+#include "Dune/Core/Window.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Utilities/StringUtils.h"
 #include "Dune/Core/EngineCore.h"
 
 namespace Dune
 {
-	Renderer::Renderer(const WindowsWindow* window)
+	Renderer::Renderer(const Window* window)
 	{
 		CreateFactory();
 #ifdef _DEBUG
@@ -41,11 +41,7 @@ namespace Dune
 
 	std::unique_ptr<Renderer> Renderer::Create(const Window* window)
 	{
-#ifdef DUNE_PLATFORM_WINDOWS
-		return std::make_unique<Renderer>(static_cast<const WindowsWindow*>(window));
-#else
-#error Platform not supported
-#endif
+		return std::make_unique<Renderer>(window);
 	}
 
 	void Renderer::ClearGraphicsElements()

@@ -7,10 +7,7 @@
 	//#define PROFILE_ENABLED
 #endif
 
-#ifdef DUNE_PLATFORM_WINDOWS
-	#include "Platform/Windows/WindowsPch.h"
-#endif // DUNE_PLATFORM_WINDOWS
-
+#include "Dune/Core/WindowPch.h"
 #include "Dune/Graphics/GraphicsPch.h"
 
 #ifndef PROFILE_ENABLED

@@ -5,37 +5,25 @@ namespace Dune
 	class Window
 	{
 	public:
-
-		struct WindowData
-		{
-			dU32 m_width;
-			dU32 m_height;
-
-			dString m_title;
-
-			WindowData(dU32 width = 1600, dU32 height = 900, const dString & = "Dune engine");
-		};
-
-		Window() = default;
-		virtual ~Window() = default;
+		~Window() = default;
 		DISABLE_COPY_AND_MOVE(Window);
 
-		dU32 GetWidth() const
-		{
-			return m_data.m_width;
-		}
+		inline dU32 GetWidth() const{ return m_width;}
+		inline dU32 GetHeight() const { return m_height; }
 
-		dU32 GetHeight() const
-		{
-			return m_data.m_height;
-		}
+		bool Update();
 
-		virtual bool Update() = 0;
+		static std::unique_ptr<Window> Create();
+		HWND		GetHandle()	const;
+	
+	private:
+		Window();
 
-		static std::unique_ptr<Window> Create(WindowData data = WindowData());
-
-	protected:
-		WindowData m_data;
+	private:
+		HWND m_handle = NULL;
+		dU32 m_width{1600};
+		dU32 m_height{900};
+		dString m_title{ "Dune Engine" };
 	};
 
 }

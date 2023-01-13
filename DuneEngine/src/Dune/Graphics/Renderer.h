@@ -8,8 +8,7 @@
 namespace Dune
 {
 	class Window;
-	class WindowsWindow;
-	class BufferDesc;
+	struct BufferDesc;
 
 	// Change once per camera
 	struct CameraConstantBuffer
@@ -21,7 +20,7 @@ namespace Dune
 	class Renderer
 	{
 	public:
-		Renderer(const WindowsWindow * window);
+		Renderer(const Window * window);
 		~Renderer();
 		DISABLE_COPY_AND_MOVE(Renderer);
 
