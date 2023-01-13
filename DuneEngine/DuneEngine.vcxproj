@@ -25,6 +25,7 @@
     <ClInclude Include="src\Dune\Core\ECS\ID.h" />
     <ClInclude Include="src\Dune\Core\EngineCore.h" />
     <ClInclude Include="src\Dune\Core\SceneGraph.h" />
+    <ClInclude Include="src\Dune\Graphics\DescriptorHeap.h" />
     <ClInclude Include="src\Dune\Graphics\DirectionalLight.h" />
     <ClInclude Include="src\Dune\Graphics\Material.h" />
     <ClInclude Include="src\Dune\Graphics\Mesh.h" />
@@ -62,6 +63,7 @@
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
+    <ClCompile Include="src\Dune\Graphics\DescriptorHeap.cpp" />
     <ClCompile Include="src\Dune\Graphics\GraphicsElement.cpp" />
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Graphics\Shader.cpp" />

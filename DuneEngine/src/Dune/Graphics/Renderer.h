@@ -4,6 +4,7 @@
 #include "Dune/Graphics/GraphicsElement.h"
 #include "Dune/Graphics/PointLight.h"
 #include "Dune/Graphics/DirectionalLight.h"
+#include "Dune/Graphics/DescriptorHeap.h"
 
 namespace Dune
 {
@@ -49,7 +50,7 @@ namespace Dune
 		std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
 		void UpdateBuffer(Buffer* buffer, const void* pData, dU32 size);
 
-		ID3D12Device* GetDevice() { Assert(!m_device.Get()); return m_device.Get(); }
+		ID3D12Device* GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
 
 	private:
 		Renderer() = default;
@@ -101,16 +102,18 @@ namespace Dune
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_renderTargets[ms_frameCount];
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_depthStencilBuffer;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_rtvHeap;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_dsvHeap;
+		DescriptorHeap										m_rtvHeap;
+		DescriptorHeap										m_dsvHeap;
+		DescriptorHandle									m_rtvHandles[ms_frameCount];
+		DescriptorHandle									m_dsvHandle;
+
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[ms_frameCount];
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_copyCommandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_copyCommandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
-		dU32												m_rtvDescriptorSize;
-
+		
 		// Shadow Pass
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowDsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;

@@ -31,6 +31,8 @@ namespace Dune
 		EnableDebugLayer();
 #endif
 		CreateDevice();
+		m_rtvHeap.Initialize(64, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		m_dsvHeap.Initialize(64, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		CreateCommandQueues();
 		CreateSwapChain(window->GetHandle());
 		CreateRenderTargets();
@@ -499,29 +501,15 @@ namespace Dune
 
 	void Renderer::CreateRenderTargets()
 	{
-		// Create descriptor heaps.
-		{
-			// Describe and create a render target view (RTV) descriptor heap.
-			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc {};
-			rtvHeapDesc.NumDescriptors = ms_frameCount;
-			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
-			NameDXObject(m_rtvHeap, L"RtvHeap");
-			m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		}
-
 		// Create frame resources.
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-
 			// Create a RTV for each frame.
 			for (UINT i = 0; i < ms_frameCount; i++)
 			{
+				m_rtvHandles[i] = m_rtvHeap.Allocate();
 				ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_renderTargets[i])));
-				m_device->CreateRenderTargetView(m_renderTargets[i].Get(), nullptr, rtvHandle);
+				m_device->CreateRenderTargetView(m_renderTargets[i].Get(), nullptr, m_rtvHandles[i].cpuAdress);
 				NameDXObjectIndexed(m_renderTargets[i], i, L"RenderTarget");
-				rtvHandle.ptr += (1 * m_rtvDescriptorSize);
 			}
 		}
 	}
@@ -533,15 +521,6 @@ namespace Dune
 		D3D12_CLEAR_VALUE optimizedClearValue {};
 		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 		optimizedClearValue.DepthStencil = { 1.0f, 0 };
-
-		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc {};
-		dsvHeapDesc.NumDescriptors = 1;
-		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		dsvHeapDesc.NodeMask = 0;
-
-		ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
-		NameDXObject(m_dsvHeap, L"DsvHeap");
 
 		D3D12_HEAP_PROPERTIES heapProps{};
 		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -579,9 +558,10 @@ namespace Dune
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Texture2D.MipSlice = 0;
 		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-
+		
+		m_dsvHandle = m_dsvHeap.Allocate();
 		m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), &dsvDesc,
-			m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+			m_dsvHandle.cpuAdress);
 	}
 
 	void Renderer::CreateCommandAllocators()
@@ -1034,14 +1014,11 @@ namespace Dune
 		D3D12_RESOURCE_BARRIER renderTargetBarrier{ CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET) };
 		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-		rtvHandle.ptr = rtvHandle.ptr + (m_frameIndex * m_rtvDescriptorSize);
-		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
-		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+		m_commandList->OMSetRenderTargets(1, &m_rtvHandles[m_frameIndex].cpuAdress, FALSE, &m_dsvHandle.cpuAdress);
 
 		const float clearColor[] = { 0.05f, 0.05f, 0.075f, 1.0f };
-		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		m_commandList->ClearRenderTargetView(m_rtvHandles[m_frameIndex].cpuAdress, clearColor, 0, nullptr);
+		m_commandList->ClearDepthStencilView(m_dsvHandle.cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> cameraMatrixBuffer = static_cast<Buffer*>(m_cameraMatrixBuffer.get())->m_buffer.Get();
 		m_commandList->SetGraphicsRootConstantBufferView(1, cameraMatrixBuffer->GetGPUVirtualAddress());
@@ -1101,9 +1078,7 @@ namespace Dune
 
 		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
 
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-		rtvHandle.ptr = rtvHandle.ptr + (m_frameIndex * m_rtvDescriptorSize);
-		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+		m_commandList->OMSetRenderTargets(1, &m_rtvHandles[m_frameIndex].cpuAdress, FALSE, nullptr);
 
 		m_commandList->SetDescriptorHeaps(1, m_imguiHeap.GetAddressOf());
 

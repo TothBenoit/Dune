@@ -42,6 +42,7 @@
     <ClInclude Include="src\Dune\Graphics\GraphicsPch.h" />
     <ClInclude Include="src\Dune\Core\WindowPch.h" />
     <ClInclude Include="src\Dune\Common\Macro.h" />
+    <ClInclude Include="src\Dune\Graphics\DescriptorHeap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />
@@ -65,6 +66,7 @@
     <ClCompile Include="include\Remotery\Remotery.c" />
     <ClCompile Include="src\Dune\Graphics\GraphicsElement.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
+    <ClCompile Include="src\Dune\Graphics\DescriptorHeap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Dune\Graphics\Shaders\PixelShader.hlsl" />
