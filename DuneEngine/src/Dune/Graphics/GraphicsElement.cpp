@@ -9,7 +9,7 @@ namespace Dune
 		: m_mesh{mesh}
 	{
 		BufferDesc desc{ EBufferUsage::Upload };
-		m_instanceData = EngineCore::GetGraphicsRenderer().CreateBuffer(desc, &instanceData, InstanceDataSize);
+		m_instanceData = Renderer::GetInstance().CreateBuffer(desc, &instanceData, InstanceDataSize);
 	}
 
 	GraphicsElement::GraphicsElement(GraphicsElement&& other)
@@ -26,6 +26,6 @@ namespace Dune
 
 	void GraphicsElement::UpdateInstanceData(const InstanceData& data)
 	{
-		EngineCore::GetGraphicsRenderer().UpdateBuffer(m_instanceData.get(), &data, InstanceDataSize);
+		Renderer::GetInstance().UpdateBuffer(m_instanceData.get(), &data, InstanceDataSize);
 	}
 }

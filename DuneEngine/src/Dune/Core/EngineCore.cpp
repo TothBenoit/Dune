@@ -31,7 +31,7 @@ namespace Dune
 		ComponentManager<PointLightComponent>::Init();
 		ComponentManager<DirectionalLightComponent>::Init();
 
-		m_graphicsRenderer = Renderer::Create(pWindow);
+		Renderer::GetInstance().Initialize(pWindow);
 
 		m_isInitialized = true;
 
@@ -48,7 +48,7 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
-		m_graphicsRenderer->OnShutdown();
+		Renderer::GetInstance().OnShutdown();
 	}
 
 	void EngineCore::Update(float dt)
@@ -69,7 +69,7 @@ namespace Dune
 		UpdateGraphicsData();
 		ClearModifiedEntities();
 
-		m_graphicsRenderer->Render();
+		Renderer::GetInstance().Render();
 	}
 
 	EntityID EngineCore::CreateEntity(const dString& name)
@@ -106,9 +106,11 @@ namespace Dune
 		m_entityManager->RemoveEntity(id);
 		m_modifiedEntities.erase(id);
 		m_sceneGraph.DeleteNode(id);
-		m_graphicsRenderer->RemoveGraphicsElement(id);
-		m_graphicsRenderer->RemovePointLight(id);
-		m_graphicsRenderer->RemoveDirectionalLight(id);
+		
+		Renderer& renderer{ Renderer::GetInstance() };
+		renderer.RemoveGraphicsElement(id);
+		renderer.RemovePointLight(id);
+		renderer.RemoveDirectionalLight(id);
 	}
 
 	void EngineCore::UpdateCamera()
@@ -552,7 +554,6 @@ namespace Dune
 				}
 			}
 		}
-
 		
 		ImGui::End();
 	}
@@ -561,9 +562,11 @@ namespace Dune
 	{
 		Profile(UpdateGraphicsData);
 
+		Renderer& renderer{ Renderer::GetInstance() };
+
 		if (m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end())
 		{
-			m_graphicsRenderer->UpdateCamera();
+			renderer.UpdateCamera();
 		}
 
 		// should we track modified component instead of modified entities ?
@@ -581,14 +584,14 @@ namespace Dune
 				DirectX::XMStoreFloat4x4(&instanceData.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transformMatrix)));
 				instanceData.baseColor = graphicsComponent->material->m_baseColor;
 
-				m_graphicsRenderer->SubmitGraphicsElement(entity, graphicsComponent->mesh, instanceData);
+				renderer.SubmitGraphicsElement(entity, graphicsComponent->mesh, instanceData);
 			}
 
 			if (const PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(entity))
 			{
 				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
 				
-				m_graphicsRenderer->SubmitPointLight(entity, PointLight(pointLightComponent->color, pointLightComponent->intensity, pointLightComponent->radius, transformComponent->position));
+				renderer.SubmitPointLight(entity, PointLight(pointLightComponent->color, pointLightComponent->intensity, pointLightComponent->radius, transformComponent->position));
 			}
 
 			if (const DirectionalLightComponent* directionalLightComponent = GetComponent<DirectionalLightComponent>(entity))
@@ -610,7 +613,7 @@ namespace Dune
 				dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(500.f, 500.f, 1.f, 1000.0f) };
 				viewMatrix*= projectionMatrix;
 
-				m_graphicsRenderer->SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir, viewMatrix));
+				renderer.SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir, viewMatrix));
 			}
 		}
 	}

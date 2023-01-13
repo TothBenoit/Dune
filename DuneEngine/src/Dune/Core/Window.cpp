@@ -100,7 +100,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		if (Dune::EngineCore::IsInitialized() && wParam != SIZE_MINIMIZED)
 		{
-			Dune::EngineCore::GetGraphicsRenderer().OnResize(LOWORD(lParam), HIWORD(lParam));
+			Dune::Renderer::GetInstance().OnResize(LOWORD(lParam), HIWORD(lParam));
 		}
 		break;
 

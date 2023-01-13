@@ -36,7 +36,7 @@ namespace Dune
 			return false;
 		}
 
-		m_vertexBuffer = EngineCore::GetGraphicsRenderer().CreateBuffer(desc, m_vertices.data(), size);
+		m_vertexBuffer = Renderer::GetInstance().CreateBuffer(desc, m_vertices.data(), size);
 		return true;
 	}
 
@@ -50,7 +50,7 @@ namespace Dune
 			return false;
 		}
 
-		m_indexBuffer = EngineCore::GetGraphicsRenderer().CreateBuffer(desc, m_indices.data(), size);
+		m_indexBuffer = Renderer::GetInstance().CreateBuffer(desc, m_indices.data(), size);
 		return true;
 	}
 

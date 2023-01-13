@@ -20,14 +20,12 @@ namespace Dune
 	class Renderer
 	{
 	public:
-		Renderer(const Window * window);
-		~Renderer();
 		DISABLE_COPY_AND_MOVE(Renderer);
 
-		static std::unique_ptr<Renderer> Create(const Window* window);
+		static Renderer& GetInstance();
+		void Initialize(const Window * window);
 
 		// TODO : Generalize Clear/Remove/Submit pattern 
-
 		void ClearGraphicsElements();
 		void RemoveGraphicsElement(EntityID id);
 		void SubmitGraphicsElement(EntityID id, std::weak_ptr<Mesh> mesh, const InstanceData& instanceData);
@@ -51,10 +49,12 @@ namespace Dune
 		std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
 		void UpdateBuffer(Buffer* buffer, const void* pData, dU32 size);
 
-	private:
-		inline static constexpr dU32 ms_frameCount = 2;
-		inline static constexpr dU32 ms_shadowMapCount = 1;
+		ID3D12Device* GetDevice() { Assert(!m_device.Get()); return m_device.Get(); }
 
+	private:
+		Renderer() = default;
+		~Renderer();
+		
 		void CreateFactory();
 		void EnableDebugLayer() const;
 		void CreateDevice();
@@ -91,6 +91,9 @@ namespace Dune
 		void UpdateDirectionalLights();
 
 	private:
+		inline static constexpr dU32						ms_frameCount{ 2 };
+		inline static constexpr dU32						ms_shadowMapCount{ 1 };
+
 		D3D12_VIEWPORT										m_viewport;
 		D3D12_RECT											m_scissorRect;
 		Microsoft::WRL::ComPtr<IDXGIFactory4>				m_factory;
@@ -112,15 +115,15 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_shadowDsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
-		std::unique_ptr<Buffer>							m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
+		std::unique_ptr<Buffer>								m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
 		D3D12_CPU_DESCRIPTOR_HANDLE							m_shadowDepthViews[ms_shadowMapCount];
 		D3D12_GPU_DESCRIPTOR_HANDLE							m_shadowResourceViews[ms_shadowMapCount];
 
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-		std::unique_ptr<Buffer>							m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
-		std::unique_ptr<Buffer>							m_directionalLightBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
+		std::unique_ptr<Buffer>								m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
+		std::unique_ptr<Buffer>								m_directionalLightBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightHeap;								// TEMP
 
 		// ImGui Pass
@@ -137,21 +140,21 @@ namespace Dune
 		dU64												m_copyFenceValue;
 
 
-		dVector<DirectionalLight> m_directionalLights;
-		dVector<EntityID> m_directionalLightEntities;
-		dHashMap<EntityID, dU32> m_lookupDirectionalLights;
+		dVector<DirectionalLight>							m_directionalLights;
+		dVector<EntityID>									m_directionalLightEntities;
+		dHashMap<EntityID, dU32>							m_lookupDirectionalLights;
 
-		dVector<PointLight> m_pointLights;
-		dVector<EntityID> m_pointLightEntities;
-		dHashMap<EntityID, dU32> m_lookupPointLights;
+		dVector<PointLight>									m_pointLights;
+		dVector<EntityID>									m_pointLightEntities;
+		dHashMap<EntityID, dU32>							m_lookupPointLights;
 
-		dVector<GraphicsElement> m_graphicsElements;
-		dVector<EntityID> m_graphicsEntities;
-		dHashMap<EntityID, dU32> m_lookupGraphicsElements;
+		dVector<GraphicsElement>							m_graphicsElements;
+		dVector<EntityID>									m_graphicsEntities;
+		dHashMap<EntityID, dU32>							m_lookupGraphicsElements;
 
-		std::unique_ptr<Buffer>	m_cameraMatrixBuffer;
+		std::unique_ptr<Buffer>								m_cameraMatrixBuffer;
 
-		dVector<std::shared_ptr<Buffer>> m_usedBuffer[ms_frameCount];
+		dVector<std::shared_ptr<Buffer>>					m_usedBuffer[ms_frameCount];
 	};
 }
 

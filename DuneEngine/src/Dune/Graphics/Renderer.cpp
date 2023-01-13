@@ -9,7 +9,22 @@
 
 namespace Dune
 {
-	Renderer::Renderer(const Window* window)
+	Renderer::~Renderer()
+	{
+#ifdef _DEBUG
+		Microsoft::WRL::ComPtr<ID3D12DebugDevice2> debugDevice{nullptr};
+		ThrowIfFailed(m_device->QueryInterface(IID_PPV_ARGS(&debugDevice)));
+		debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+#endif
+	}
+
+	Renderer& Renderer::GetInstance()
+	{
+		static Renderer instance;
+		return instance;
+	}
+
+	void Renderer::Initialize(const Window* window)
 	{
 		CreateFactory();
 #ifdef _DEBUG
@@ -28,20 +43,6 @@ namespace Dune
 		InitMainPass();
 		InitShadowPass();
 		InitImGuiPass();
-	}
-
-	Renderer::~Renderer()
-	{
-#ifdef _DEBUG
-		Microsoft::WRL::ComPtr<ID3D12DebugDevice2> debugDevice{nullptr};
-		ThrowIfFailed(m_device->QueryInterface(IID_PPV_ARGS(&debugDevice)));
-		debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_SUMMARY | D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-#endif
-	}
-
-	std::unique_ptr<Renderer> Renderer::Create(const Window* window)
-	{
-		return std::make_unique<Renderer>(window);
 	}
 
 	void Renderer::ClearGraphicsElements()

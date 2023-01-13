@@ -70,12 +70,6 @@ namespace Dune
 		{
 			return m_cameraID;
 		}
-		
-		static Renderer& GetGraphicsRenderer()
-		{
-			Assert(m_graphicsRenderer.get());
-			return *m_graphicsRenderer;
-		}
 
 		inline static bool IsInitialized() { return m_isInitialized; }
 
@@ -101,7 +95,6 @@ namespace Dune
 		static inline EntityID m_cameraID = ID::invalidID;
 		static inline float m_deltaTime = 0.f;
 		static inline dHashSet<EntityID> m_modifiedEntities;
-		static inline std::unique_ptr<Renderer> m_graphicsRenderer = nullptr;
 	};
 }
 
