@@ -9,8 +9,9 @@
 
 #ifdef DUNE_PLATFORM_WINDOWS
 	#include "Platform/Windows/WindowsPch.h"
-	#include "Platform/DirectX12/DX12Pch.h"
 #endif // DUNE_PLATFORM_WINDOWS
+
+#include "Dune/Graphics/GraphicsPch.h"
 
 #ifndef PROFILE_ENABLED
 	#define Profile(msg)

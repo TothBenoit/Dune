@@ -9,7 +9,6 @@
     <ClInclude Include="src\Dune\Core\Window.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Dune\Graphics\Renderer.h" />
-    <ClInclude Include="src\Platform\DirectX12\DX12Renderer.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
     <ClInclude Include="include\imgui\imgui.h" />
     <ClInclude Include="include\imgui\imgui_impl_dx12.h" />
@@ -22,7 +21,6 @@
     <ClInclude Include="src\Dune\Common\Types.h" />
     <ClInclude Include="src\Dune\Graphics\BufferDesc.h" />
     <ClInclude Include="src\Dune\Graphics\Buffer.h" />
-    <ClInclude Include="src\Platform\DirectX12\DX12Buffer.h" />
     <ClInclude Include="src\Dune\Graphics\Mesh.h" />
     <ClInclude Include="src\Dune\Graphics\Shader.h" />
     <ClInclude Include="src\Dune\Core\ECS\EntityManager.h" />
@@ -42,7 +40,7 @@
     <ClInclude Include="include\DX12\d3dx12.h" />
     <ClInclude Include="src\Dune\Graphics\DirectionalLight.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\DirectionalLightComponent.h" />
-    <ClInclude Include="src\Platform\DirectX12\DX12Pch.h" />
+    <ClInclude Include="src\Dune\Graphics\GraphicsPch.h" />
     <ClInclude Include="src\Platform\Windows\WindowsPch.h" />
     <ClInclude Include="src\Dune\Common\Macro.h" />
   </ItemGroup>
@@ -54,7 +52,6 @@
     <ClCompile Include="src\Dune\Core\Window.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
-    <ClCompile Include="src\Platform\DirectX12\DX12Renderer.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
     <ClCompile Include="include\imgui\imgui_draw.cpp" />
