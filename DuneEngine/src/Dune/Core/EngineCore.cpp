@@ -48,7 +48,7 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
-		Renderer::GetInstance().OnShutdown();
+		Renderer::GetInstance().Shutdown();
 	}
 
 	void EngineCore::Update(float dt)

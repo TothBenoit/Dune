@@ -25,6 +25,8 @@ namespace Dune
 		void Free(DescriptorHandle handle);
 
 	private:
+		ID3D12DescriptorHeap* Get() { return m_pDescriptorHeap; }
+
 		DescriptorHeap() = default;
 		void Initialize(dU32 capacity, D3D12_DESCRIPTOR_HEAP_TYPE type);
 		void Release();

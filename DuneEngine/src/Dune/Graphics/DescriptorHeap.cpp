@@ -11,7 +11,7 @@ namespace Dune
         dU32 slot{ m_freeSlots.back() };
         m_freeSlots.pop_back();
         handle.cpuAdress = D3D12_CPU_DESCRIPTOR_HANDLE{ m_cpuStartAdress.ptr + m_descriptorSize * (dU64)slot };
-        handle.gpuAdress = D3D12_GPU_DESCRIPTOR_HANDLE{ m_gpuStartAdress.ptr + m_descriptorSize * (dU64)slot };
+        handle.gpuAdress = (m_bIsShaderVisible) ? D3D12_GPU_DESCRIPTOR_HANDLE{ m_gpuStartAdress.ptr + m_descriptorSize * (dU64)slot } : D3D12_GPU_DESCRIPTOR_HANDLE{ 0 };
 #ifdef _DEBUG
         handle.heap = m_pDescriptorHeap;
         handle.slot = slot;
@@ -73,7 +73,7 @@ namespace Dune
 
     void DescriptorHeap::Release()
     {
-        Assert(m_freeSlots.size() != m_capacity);
+        Assert(m_freeSlots.size() == m_capacity);
         m_pDescriptorHeap->Release();
         
         m_capacity = 0;
