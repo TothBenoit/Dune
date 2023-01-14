@@ -7,48 +7,66 @@ namespace Dune
 	class Pool
 	{
 	public:
-		Pool() = default;
-		~Pool() = default;
+		Pool(dSizeT initialSize)
+			: m_size(initialSize)
+		{
+			Assert(initialSize != 0);
+			m_datas = reinterpret_cast<T*>(::operator new (m_size * sizeof(T)));
+			m_generations = new ID::GenerationType[initialSize];
+			m_freeHandles = new ID::IDType[initialSize];
+
+			memset(m_generations, 0, sizeof(ID::GenerationType) * m_size);
+
+			for (size_t i{ 0 }; i < m_size; i++)
+			{
+				m_freeHandles[i] = ID::IDType(i);
+			}
+
+			m_nextFreeHandlePosition = m_size - 1;
+		}
+		~Pool()
+		{
+			Assert(m_nextFreeHandlePosition == (m_size - 1));
+			::operator delete[](m_datas);
+			delete[] m_freeHandles;
+			delete[] m_generations;
+		}
 		DISABLE_COPY_AND_MOVE(Pool);
 
 		template <typename... Args>
 		Handle<H> Create(Args&&... args)
 		{
-			ID::IDType id{};
-			
-			if (m_freeHandles.size() > 0)
+			if (m_nextFreeHandlePosition >= m_size)
 			{
-				id = m_freeHandles.front();
-				m_freeHandles.pop();
+				Resize();
 			}
-			else
-			{
-				Assert(m_generations.size() < ID::GetMaximumIndex());
-				id = (ID::IDType)m_generations.size();
-				m_generations.push_back(ID::GenerationType{ 0 });
-				m_datas.push_back(T{});
-			}
-			
-			m_datas[ID::GetIndex(id)].Initialize(std::forward<Args>(args)...);
 
-			return Handle<H>{id};
+			Handle<H> handle{};
+			handle.m_id = m_freeHandles[m_nextFreeHandlePosition];
+			m_nextFreeHandlePosition--;
+
+			new (m_datas + ID::GetIndex(handle.m_id)) T(std::forward<Args>(args)...);
+
+			return handle;
 		}
 
 		void Remove(Handle<H> handle)
 		{
+			Assert(m_nextFreeHandlePosition != (m_size - 1));
 			Assert(IsValid(handle));
 
 			ID::IDType index{ ID::GetIndex(handle.m_id) };
-
-			// Generate new ID
 			ID::IDType newID = ID::NextGeneration(handle.m_id);
-			m_freeHandles.push(newID);
+			
+			// Add handle
+			m_nextFreeHandlePosition++;
+			m_freeHandles[m_nextFreeHandlePosition] = newID;
 
-			// Invalidate previous ID
+			// Invalidate previous handle
 			m_generations[index] = ID::GetGeneration(newID);
 			
-			// Release T
-			m_datas[index].Release();
+			// Destroy T
+			m_datas[index].~T();
 		}
 
 		bool IsValid(Handle<H> handle) const
@@ -56,7 +74,7 @@ namespace Dune
 			ID::IDType index{ ID::GetIndex(handle.m_id) };
 			ID::GenerationType generation{ ID::GetGeneration(handle.m_id) };
 
-			return handle.IsValid() && (index < m_generations.size() ) && (m_generations[index] == generation);
+			return handle.IsValid() && index < m_size && (m_generations[index] == generation);
 		}
 
 		T& Get(Handle<H> handle)
@@ -67,8 +85,40 @@ namespace Dune
 		}
 
 	private:
-		dVector<T>					m_datas;
-		dVector<ID::GenerationType> m_generations;
-		dQueue<ID::IDType>			m_freeHandles;
+		void Resize()
+		{
+			dSizeT newSize{ m_size * 2 };
+
+			T* newData{ reinterpret_cast<T*>(::operator new (newSize * sizeof(T))) };
+			memcpy(newData, m_datas, sizeof(T) * m_size);
+			::operator delete[](m_datas);
+			m_datas = newData;
+
+			ID::IDType* newFreeHandles{ new ID::IDType[newSize] };
+			memcpy(&newFreeHandles[m_size], m_freeHandles, sizeof(ID::IDType) * m_size);
+			for (dSizeT i{ 0 }; i < m_size; i++)
+			{
+				newFreeHandles[i] = ID::IDType(i + m_size);
+			}
+			delete[] m_freeHandles;
+			m_freeHandles = newFreeHandles;
+
+			ID::GenerationType* newGenerations{ new ID::GenerationType[newSize] };
+			memcpy(newGenerations, m_generations, sizeof(ID::GenerationType) * (m_size));
+			memset(&newGenerations[m_size], 0, sizeof(ID::GenerationType) * (m_size));
+			delete[] m_generations;
+			m_generations = newGenerations;
+
+			m_nextFreeHandlePosition = m_size - 1;
+			m_size = newSize;
+		}
+
+	private:
+		dSizeT						m_size;
+		dSizeT						m_nextFreeHandlePosition;
+		ID::IDType*					m_freeHandles;
+		ID::GenerationType*			m_generations;
+		T*							m_datas;
+		
 	};
 }

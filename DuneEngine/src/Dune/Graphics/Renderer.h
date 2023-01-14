@@ -103,12 +103,10 @@ namespace Dune
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_renderTargets[ms_frameCount];
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_depthStencilBuffer;
-		Handle<DescriptorHeap>								m_rtvHeapHandle;
-		Handle<DescriptorHeap>								m_dsvHeapHandle;
+		DescriptorHeap										m_rtvHeap;
+		DescriptorHeap										m_dsvHeap;
 		DescriptorHandle									m_rtvHandles[ms_frameCount];
 		DescriptorHandle									m_dsvHandle;
-
-		Pool<DescriptorHeap>								m_descriptorHeapPool;
 
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[ms_frameCount];
@@ -131,6 +129,7 @@ namespace Dune
 		std::unique_ptr<Buffer>								m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
 		std::unique_ptr<Buffer>								m_directionalLightBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_lightHeap;								// TEMP
+		Handle<DescriptorHeap>								m_lightHeapHandle;
 
 		// ImGui Pass
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_imguiHeap;

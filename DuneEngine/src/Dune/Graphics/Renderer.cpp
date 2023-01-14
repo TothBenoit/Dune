@@ -11,6 +11,15 @@ namespace Dune
 {
 	Renderer::~Renderer()
 	{
+		for (dSizeT i{ 0 }; i < ms_frameCount; i++)
+		{
+			m_rtvHeap.Free(m_rtvHandles[i]);
+		}
+		m_rtvHeap.Release();
+
+		m_dsvHeap.Free(m_dsvHandle);
+		m_dsvHeap.Release();
+
 #ifdef _DEBUG
 		Microsoft::WRL::ComPtr<ID3D12DebugDevice2> debugDevice{nullptr};
 		ThrowIfFailed(m_device->QueryInterface(IID_PPV_ARGS(&debugDevice)));
@@ -31,8 +40,8 @@ namespace Dune
 		EnableDebugLayer();
 #endif
 		CreateDevice();
-		m_rtvHeapHandle = m_descriptorHeapPool.Create(64, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		m_dsvHeapHandle = m_descriptorHeapPool.Create(64, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		m_rtvHeap.Initialize(64, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		m_dsvHeap.Initialize(64, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		CreateCommandQueues();
 		CreateSwapChain(window->GetHandle());
 		CreateRenderTargets();
@@ -506,7 +515,7 @@ namespace Dune
 			// Create a RTV for each frame.
 			for (UINT i = 0; i < ms_frameCount; i++)
 			{
-				m_rtvHandles[i] = m_descriptorHeapPool.Get(m_rtvHeapHandle).Allocate();
+				m_rtvHandles[i] =m_rtvHeap.Allocate();
 				ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_renderTargets[i])));
 				m_device->CreateRenderTargetView(m_renderTargets[i].Get(), nullptr, m_rtvHandles[i].cpuAdress);
 				NameDXObjectIndexed(m_renderTargets[i], i, L"RenderTarget");
@@ -559,7 +568,7 @@ namespace Dune
 		dsvDesc.Texture2D.MipSlice = 0;
 		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 		
-		m_dsvHandle = m_descriptorHeapPool.Get(m_dsvHeapHandle).Allocate();
+		m_dsvHandle = m_dsvHeap.Allocate();
 		m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), &dsvDesc,
 			m_dsvHandle.cpuAdress);
 	}

@@ -2,8 +2,6 @@
 
 namespace Dune
 {
-	class Renderer;
-
 	struct DescriptorHandle
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuAdress{ 0 };
@@ -32,7 +30,7 @@ namespace Dune
 		void Release();
 	
 	private:
-		template<typename T, typename H> friend class Pool;
+		friend class Renderer;
 	
 		dU32 m_capacity{ 0 };
 		dVector<dU32> m_freeSlots{};
