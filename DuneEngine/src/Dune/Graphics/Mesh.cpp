@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Mesh.h"
 #include "Dune/Core/Logger.h"
-#include "Dune/Core/EngineCore.h"
+#include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Buffer.h"
 
 namespace Dune

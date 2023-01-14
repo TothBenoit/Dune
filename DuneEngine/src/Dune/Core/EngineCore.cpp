@@ -8,8 +8,7 @@
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
 #include "Dune/Core/ECS/Components/DirectionalLightComponent.h"
-
-#include <DirectXMath.h>
+#include "Dune/Graphics/Renderer.h"
 
 namespace Dune
 {

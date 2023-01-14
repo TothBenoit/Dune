@@ -4,7 +4,6 @@
 #include "Dune/Core/ECS/EntityManager.h"
 #include "Dune/Core/ECS/Components/ComponentManager.h"
 #include "Dune/Core/ECS/Components/CameraComponent.h"
-#include "Dune/Graphics/Renderer.h"
 
 namespace Dune
 {

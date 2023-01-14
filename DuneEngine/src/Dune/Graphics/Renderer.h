@@ -28,6 +28,8 @@ namespace Dune
 		void Initialize(const Window * window);
 		void Shutdown();
 
+		bool IsInitialized() const { return m_bIsInitialized; }
+
 		// TODO : Generalize Clear/Remove/Submit pattern 
 		void ClearGraphicsElements();
 		void RemoveGraphicsElement(EntityID id);
@@ -95,6 +97,8 @@ namespace Dune
 	private:
 		inline static constexpr dU32						ms_frameCount{ 2 };
 		inline static constexpr dU32						ms_shadowMapCount{ 1 };
+
+		bool												m_bIsInitialized{ false };
 
 		// Descriptor Heaps
 		DescriptorHeap										m_rtvHeap;

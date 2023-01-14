@@ -2,7 +2,7 @@
 #include "Window.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Core/Input.h"
-#include "Dune/Core/EngineCore.h"
+#include "Dune/Graphics/Renderer.h"
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -98,7 +98,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		break;
 	case WM_SIZE:
-		if (Dune::EngineCore::IsInitialized() && wParam != SIZE_MINIMIZED)
+		if (Dune::Renderer::GetInstance().IsInitialized() && wParam != SIZE_MINIMIZED)
 		{
 			Dune::Renderer::GetInstance().OnResize(LOWORD(lParam), HIWORD(lParam));
 		}
