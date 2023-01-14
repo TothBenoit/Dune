@@ -11,11 +11,6 @@
 
 namespace Dune
 {
-	EntityManager::EntityManager()
-	{
-		m_generationIDs.reserve(RESERVED_ENTITIES);
-	}
-
 	EntityID EntityManager::CreateEntity()
 	{
 		EntityID id;
@@ -24,17 +19,12 @@ namespace Dune
 		{
 			id = m_freeEntityIDs.front();
 			m_freeEntityIDs.pop();
-			id = EntityID(id);
-		}
-		else if (m_generationIDs.size() < ID::GetMaximumIndex())
-		{
-			id = EntityID((ID::IDType)m_generationIDs.size());
-			m_generationIDs.push_back(ID::GenerationType(0));
 		}
 		else
 		{
-			LOG_CRITICAL("Maximum entities count reached");
-			return EntityID(ID::invalidID);
+			Assert(m_generationIDs.size() < ID::GetMaximumIndex());
+			id = EntityID((ID::IDType)m_generationIDs.size());
+			m_generationIDs.push_back(ID::GenerationType(0));
 		}
 
 		LOG_INFO(dStringUtils::printf("Entity %u has been created", id).c_str());

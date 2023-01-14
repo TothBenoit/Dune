@@ -5,11 +5,11 @@ namespace Dune
 	class EntityManager
 	{
 	public:
-		EntityManager();
+		EntityManager() = default;
 		~EntityManager() = default;
 		DISABLE_COPY_AND_MOVE(EntityManager);
 
-		EntityID CreateEntity();
+		[[nodiscard]] EntityID CreateEntity();
 		void RemoveEntity(EntityID entity);
 		bool IsValid(EntityID entity) const;
 

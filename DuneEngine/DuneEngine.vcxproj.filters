@@ -43,6 +43,9 @@
     <ClInclude Include="src\Dune\Core\WindowPch.h" />
     <ClInclude Include="src\Dune\Common\Macro.h" />
     <ClInclude Include="src\Dune\Graphics\DescriptorHeap.h" />
+    <ClInclude Include="src\Dune\Common\ID.h" />
+    <ClInclude Include="src\Dune\Common\Handle.h" />
+    <ClInclude Include="src\Dune\Common\Pool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />

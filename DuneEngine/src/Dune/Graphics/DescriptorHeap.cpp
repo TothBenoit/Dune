@@ -19,7 +19,7 @@ namespace Dune
         return handle;
     }
 
-    void DescriptorHeap::Release(DescriptorHandle handle)
+    void DescriptorHeap::Free(DescriptorHandle handle)
     {
         Assert(handle.IsValid());
         Assert(handle.IsShaderVisible() == m_bIsShaderVisible);
@@ -61,7 +61,7 @@ namespace Dune
         NameDXObject(m_pDescriptorHeap, L"DescriptorHeap");
         
         m_cpuStartAdress = m_pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        m_gpuStartAdress = m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+        m_gpuStartAdress = (m_bIsShaderVisible) ? m_pDescriptorHeap->GetGPUDescriptorHandleForHeapStart() : D3D12_GPU_DESCRIPTOR_HANDLE{0};
         m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(m_type);
 
         m_freeSlots.reserve(m_capacity);
@@ -69,5 +69,14 @@ namespace Dune
         {
             m_freeSlots.push_back(i);
         }
+    }
+
+    void DescriptorHeap::Release()
+    {
+        Assert(m_freeSlots.size() != m_capacity);
+        m_pDescriptorHeap->Release();
+        
+        m_capacity = 0;
+        m_freeSlots.clear();
     }
 }

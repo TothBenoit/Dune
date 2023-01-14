@@ -27,4 +27,4 @@
 #include "imgui/imgui.h"
 #include "Dune/Common/Macro.h"
 #include "Dune/Common/Types.h"
-#include "Dune/Core/ECS/ID.h"
+#include "Dune/Common/ID.h"

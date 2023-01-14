@@ -5,6 +5,7 @@
 #include "Dune/Graphics/PointLight.h"
 #include "Dune/Graphics/DirectionalLight.h"
 #include "Dune/Graphics/DescriptorHeap.h"
+#include "Dune/Common/Pool.h"
 
 namespace Dune
 {
@@ -102,10 +103,12 @@ namespace Dune
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_renderTargets[ms_frameCount];
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_depthStencilBuffer;
-		DescriptorHeap										m_rtvHeap;
-		DescriptorHeap										m_dsvHeap;
+		Handle<DescriptorHeap>								m_rtvHeapHandle;
+		Handle<DescriptorHeap>								m_dsvHeapHandle;
 		DescriptorHandle									m_rtvHandles[ms_frameCount];
 		DescriptorHandle									m_dsvHandle;
+
+		Pool<DescriptorHeap>								m_descriptorHeapPool;
 
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[ms_frameCount];

@@ -25,6 +25,8 @@ namespace Dune
 	using dS16 =			int16_t;
 	using dS8 =				int8_t;
 	using dInt =			int32_t;
+	
+	using dSizeT =			size_t;
 
 	using dString =			std::string;
 	using dWString =		std::wstring;

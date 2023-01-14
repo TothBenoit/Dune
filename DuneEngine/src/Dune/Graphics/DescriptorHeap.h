@@ -24,13 +24,16 @@ namespace Dune
 		inline dU32 GetCapacity() { return m_capacity; }
 		inline dU32 GetSize() { return (dU32)m_freeSlots.size(); }
 		DescriptorHandle Allocate();
-		void Release(DescriptorHandle handle);
+		void Free(DescriptorHandle handle);
 
 	private:
 		DescriptorHeap() = default;
 		void Initialize(dU32 capacity, D3D12_DESCRIPTOR_HEAP_TYPE type);
+		void Release();
+	
 	private:
-		friend Renderer;
+		template<typename T, typename H> friend class Pool;
+	
 		dU32 m_capacity{ 0 };
 		dVector<dU32> m_freeSlots{};
 		D3D12_DESCRIPTOR_HEAP_TYPE m_type{};

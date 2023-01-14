@@ -13,7 +13,10 @@
   <ItemGroup>
     <ClInclude Include="include\DX12\d3dx12.h" />
     <ClInclude Include="include\Remotery\Remotery.h" />
+    <ClInclude Include="src\Dune\Common\Handle.h" />
+    <ClInclude Include="src\Dune\Common\ID.h" />
     <ClInclude Include="src\Dune\Common\Macro.h" />
+    <ClInclude Include="src\Dune\Common\Pool.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\BindingComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\CameraComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
