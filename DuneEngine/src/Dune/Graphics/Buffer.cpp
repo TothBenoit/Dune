@@ -34,7 +34,7 @@ namespace Dune
 			resourceState,
 			nullptr,
 			IID_PPV_ARGS(&m_buffer)));
-		NameDXObject(m_buffer, L"Buffer");
+		m_buffer->SetName(L"Buffer");
 
 		if (m_usage == EBufferUsage::Upload)
 		{
@@ -55,7 +55,7 @@ namespace Dune
 				resourceState,
 				nullptr,
 				IID_PPV_ARGS(&m_uploadBuffer)));
-			NameDXObject(m_buffer, L"UploadBuffer");
+			m_buffer->SetName(L"UploadBuffer");
 
 			D3D12_RANGE readRange;
 			readRange.Begin = 0;

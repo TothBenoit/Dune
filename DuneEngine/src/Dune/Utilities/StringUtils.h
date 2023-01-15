@@ -4,7 +4,7 @@ namespace Dune
 {
 	namespace dStringUtils
 	{
-		inline const dString printf(const char* fmt, ...)
+		[[nodiscard]] inline const dString printf(const char* fmt, ...)
 		{
 			char tempStr[4096];
 
@@ -16,7 +16,7 @@ namespace Dune
 			return dString(tempStr);
 		}
 
-		inline const dWString wprintf(const wchar_t* fmt, ...)
+		[[nodiscard]] inline const dWString wprintf(const wchar_t* fmt, ...)
 		{
 			wchar_t tempStr[4096];
 

@@ -28,11 +28,11 @@ namespace Dune
 	public:
 		DISABLE_COPY_AND_MOVE(Renderer);
 
-		static Renderer& GetInstance();
+		[[nodiscard]] static Renderer& GetInstance();
 		void Initialize(const Window * window);
 		void Shutdown();
 
-		bool IsInitialized() const { return m_bIsInitialized; }
+		[[nodiscard]] bool IsInitialized() const { return m_bIsInitialized; }
 
 		// TODO : Generalize graphics data submission
 		void			ClearGraphicsElements();
@@ -54,16 +54,18 @@ namespace Dune
 
 		void			OnResize(int width, int height);
 
-		Handle<Buffer>	CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
+		[[nodiscard]] Handle<Buffer>	CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
 		void			UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
 		void			ReleaseBuffer(Handle<Buffer> handle);
-		Buffer&			GetBuffer(Handle<Buffer> handle);
+		[[nodiscard]] Buffer&			GetBuffer(Handle<Buffer> handle);
 
-		Handle<Mesh>	CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
+		[[nodiscard]] Handle<Mesh>	CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
 		void			ReleaseMesh(Handle<Mesh> handle);
-		const Mesh&		GetMesh(Handle<Mesh> handle) const;
+		[[nodiscard]] const Mesh&		GetMesh(Handle<Mesh> handle) const;
+		// Temp until I can load Mesh correctly
+		[[nodiscard]] Handle<Mesh>	CreateDefaultMesh(); 
 		
-		ID3D12Device*	GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
+		[[nodiscard]] ID3D12Device*	GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
 
 
 	private:

@@ -7,9 +7,9 @@ namespace Dune
 	class Buffer
 	{
 	public:
-		inline dU32 GetSize() const { return m_size; }
-		inline EBufferUsage GetUsage() const { return m_usage; }
-		ID3D12Resource* GetResource() { return m_buffer; }
+		[[nodiscard]] inline dU32 GetSize() const { return m_size; }
+		[[nodiscard]] inline EBufferUsage GetUsage() const { return m_usage; }
+		[[nodiscard]] ID3D12Resource* GetResource() { return m_buffer; }
 
 		void UploadData(const void* pData, dU32 size);
 	private:

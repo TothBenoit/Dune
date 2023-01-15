@@ -19,16 +19,16 @@ namespace Dune
 
 		static constexpr IDType GetMaximumIndex() { return maxIndex; }
 
-		inline bool				IsValid(IDType id) { return id != invalidID; }
-		inline IDType			GetIndex(IDType id) { return id & indexMask; }
-		inline GenerationType	GetGeneration(IDType id) { return (id >> indexBits) & generationMask; }
-		inline IDType			NextIndex(IDType id)
+		[[nodiscard]] inline bool				IsValid(IDType id) { return id != invalidID; }
+		[[nodiscard]] inline IDType			GetIndex(IDType id) { return id & indexMask; }
+		[[nodiscard]] inline GenerationType	GetGeneration(IDType id) { return (id >> indexBits) & generationMask; }
+		[[nodiscard]] inline IDType			NextIndex(IDType id)
 		{
 			const IDType index = GetIndex(id) + 1;
 			Assert(index < maxIndex);
 			return GetGeneration(id) | index;
 		}
-		inline static IDType		NextGeneration(IDType id)
+		[[nodiscard]] inline static IDType		NextGeneration(IDType id)
 		{
 			const IDType generation = GetGeneration(id) + 1;
 			Assert(generation < lastGeneration);

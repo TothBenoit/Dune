@@ -7,11 +7,11 @@ namespace Dune
 	public:
 		struct Node
 		{
-			inline EntityID GetSelf() const { return m_self; }
-			inline const Node* GetParent() const { return m_parent; }
-			inline const dString& GetName() const { return m_name; }
-			inline size_t GetChildCount() const { return m_children.size(); }
-			inline const dList<Node*>& GetChildren() const { return m_children; }
+			[[nodiscard]] inline EntityID GetSelf() const { return m_self; }
+			[[nodiscard]] inline const Node* GetParent() const { return m_parent; }
+			[[nodiscard]] inline const dString& GetName() const { return m_name; }
+			[[nodiscard]] inline size_t GetChildCount() const { return m_children.size(); }
+			[[nodiscard]] inline const dList<Node*>& GetChildren() const { return m_children; }
 
 		private:
 			friend class SceneGraph;

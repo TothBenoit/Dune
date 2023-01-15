@@ -7,8 +7,8 @@ namespace Dune
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuAdress{ 0 };
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuAdress{ 0 };
 
-		bool IsValid() { return cpuAdress.ptr != 0; }
-		bool IsShaderVisible() { return gpuAdress.ptr != 0; }
+		[[nodiscard]] bool IsValid() { return cpuAdress.ptr != 0; }
+		[[nodiscard]] bool IsShaderVisible() { return gpuAdress.ptr != 0; }
 
 #ifdef _DEBUG
 		dU32 slot{0};
@@ -19,9 +19,9 @@ namespace Dune
 	class DescriptorHeap
 	{
 	public:
-		inline dU32 GetCapacity() { return m_capacity; }
-		inline dU32 GetSize() { return (dU32)m_freeSlots.size(); }
-		DescriptorHandle Allocate();
+		[[nodiscard]] inline dU32 GetCapacity() { return m_capacity; }
+		[[nodiscard]] inline dU32 GetSize() { return (dU32)m_freeSlots.size(); }
+		[[nodiscard]] DescriptorHandle Allocate();
 		void Free(DescriptorHandle handle);
 
 	private:

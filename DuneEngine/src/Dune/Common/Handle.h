@@ -33,7 +33,7 @@ namespace Dune
 			return *this; 
 		}
 
-		bool IsValid() const { return ID::IsValid(m_id); }
+		[[nodiscard]] bool IsValid() const { return ID::IsValid(m_id); }
 
 	private:
 		Handle(ID::IDType id) : m_id(id) {}

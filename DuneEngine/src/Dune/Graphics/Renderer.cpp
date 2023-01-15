@@ -398,7 +398,7 @@ namespace Dune
 	Handle<Mesh> Renderer::CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices)
 	{
 		return m_meshPool.Create(indices, vertices);
-}
+	}
 
 	void Renderer::ReleaseMesh(Handle<Mesh> handle)
 	{
@@ -408,6 +408,11 @@ namespace Dune
 	const Mesh& Renderer::GetMesh(Handle<Mesh> handle) const
 	{
 		return m_meshPool.Get(handle);
+	}
+
+	Handle<Mesh> Renderer::CreateDefaultMesh()
+	{
+		return m_meshPool.Create();
 	}
 
 	void Renderer::CreateFactory()
@@ -614,7 +619,7 @@ namespace Dune
 		clampSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		clampSamplerDesc.MipLODBias = 0.0f;
 		clampSamplerDesc.MaxAnisotropy = 1;
-		clampSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		clampSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NONE;
 		clampSamplerDesc.BorderColor[0] = clampSamplerDesc.BorderColor[1] = clampSamplerDesc.BorderColor[2] = clampSamplerDesc.BorderColor[3] = 0;
 		clampSamplerDesc.MinLOD = 0;
 		clampSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;

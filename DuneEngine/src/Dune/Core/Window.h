@@ -8,8 +8,8 @@ namespace Dune
 		~Window() = default;
 		DISABLE_COPY_AND_MOVE(Window);
 
-		inline dU32 GetWidth() const{ return m_width;}
-		inline dU32 GetHeight() const { return m_height; }
+		[[nodiscard]] inline dU32 GetWidth() const{ return m_width;}
+		[[nodiscard]] inline dU32 GetHeight() const { return m_height; }
 
 		bool Update();
 

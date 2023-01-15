@@ -34,7 +34,7 @@ namespace Dune
 		DISABLE_COPY_AND_MOVE(Pool);
 
 		template <typename... Args>
-		Handle<H> Create(Args&&... args)
+		[[nodiscard]] Handle<H> Create(Args&&... args)
 		{
 			if (m_nextFreeHandlePosition >= m_size)
 			{
@@ -69,7 +69,7 @@ namespace Dune
 			m_datas[index].~T();
 		}
 
-		bool IsValid(Handle<H> handle) const
+		[[nodiscard]] bool IsValid(Handle<H> handle) const
 		{
 			ID::IDType index{ ID::GetIndex(handle.m_id) };
 			ID::GenerationType generation{ ID::GetGeneration(handle.m_id) };
@@ -77,14 +77,14 @@ namespace Dune
 			return handle.IsValid() && index < m_size && (m_generations[index] == generation);
 		}
 
-		T& Get(Handle<H> handle)
+		[[nodiscard]] T& Get(Handle<H> handle)
 		{
 			Assert(IsValid(handle));
 
 			return m_datas[ID::GetIndex(handle.m_id)];
 		}
 
-		const T& Get(Handle<H> handle) const
+		[[nodiscard]] const T& Get(Handle<H> handle) const
 		{
 			Assert(IsValid(handle));
 

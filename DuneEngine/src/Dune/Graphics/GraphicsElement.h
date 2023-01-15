@@ -29,8 +29,8 @@ namespace Dune
 		GraphicsElement(GraphicsElement&& other);
 		GraphicsElement& operator=(GraphicsElement&& other);
 
-		Handle<Mesh> GetMeshHandle() const { return m_mesh; };
-		Handle<Buffer> GetInstanceData() const { return m_instanceData; }
+		[[nodiscard]] Handle<Mesh> GetMeshHandle() const { return m_mesh; };
+		[[nodiscard]] Handle<Buffer> GetInstanceData() const { return m_instanceData; }
 		void UpdateInstanceData(const InstanceData& data);
 
 	private:

@@ -21,28 +21,28 @@ namespace Dune
 		static void Shutdown();
 		static void Update(float dt);
 
-		static EntityID CreateEntity(const dString& name);
+		[[nodiscard]] static EntityID CreateEntity(const dString& name);
 		static void RemoveEntity(EntityID);
 
-		static bool IsAlive(EntityID entity) { return m_entityManager.IsValid(entity); }
+		[[nodiscard]] static bool IsAlive(EntityID entity) { return m_entityManager.IsValid(entity); }
 
 		template<typename Component>
 		static void AddComponent(EntityID id)
 		{
-			Assert(m_entityManager->IsValid(id));
+			Assert(m_entityManager.IsValid(id));
 			m_modifiedEntities.insert(id);
 			ComponentManager<Component>::Create(id);
 		}
 
 		template<typename Component>
-		static const Component* GetComponent(EntityID id)
+		[[nodiscard]] static const Component* GetComponent(EntityID id)
 		{
 			Assert(m_entityManager.IsValid(id));
 			return ComponentManager<Component>::GetComponent(id);
 		}
 
 		template<typename Component>
-		static Component* ModifyComponent(EntityID id)
+		[[nodiscard]] static Component* ModifyComponent(EntityID id)
 		{
 			Assert(m_entityManager.IsValid(id));
 			m_modifiedEntities.insert(id);
@@ -57,15 +57,12 @@ namespace Dune
 			ComponentManager<Component>::Remove(id);
 		}
 
-		static const CameraComponent* GetCamera();
-		static CameraComponent* ModifyCamera();
+		[[nodiscard]] static const CameraComponent* GetCamera();
+		[[nodiscard]] static CameraComponent* ModifyCamera();
 
-		static EntityID GetCameraID()
-		{
-			return m_cameraID;
-		}
+		[[nodiscard]] static EntityID GetCameraID() { return m_cameraID; }
 
-		inline static bool IsInitialized() { return m_isInitialized; }
+		[[nodiscard]] inline static bool IsInitialized() { return m_isInitialized; }
 
 	private:
 		static void UpdateCamera();
@@ -78,14 +75,11 @@ namespace Dune
 		static void DrawInspector();
 		static void UpdateGraphicsData();
 		static void ClearModifiedEntities();
-		
-		// Temp until I can load mesh
-		static void CreateCubeMesh();
 	private:
 		static inline bool m_isInitialized = false;
 		static inline EntityManager m_entityManager;
 		static inline SceneGraph m_sceneGraph;
-		static inline EntityID m_selectedEntity = ID::invalidID;
+		static inline EntityID m_selectedEntity{ ID::invalidID };
 		static inline bool m_showScene = true;
 		static inline bool m_showInspector = true;
 		static inline bool m_showImGuiDemo = false;
