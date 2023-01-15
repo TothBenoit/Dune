@@ -191,7 +191,7 @@ namespace Dune
 			constexpr float aspectRatio = 1600.f / 900.f;
 			dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera->verticalFieldOfView), aspectRatio, 1.f, 1000.0f) };
 			dMatrix viewProjMatrix{ camera->viewMatrix * projectionMatrix };
-			UpdateBuffer(m_cameraMatrixBuffer.get(), &viewProjMatrix, sizeof(viewProjMatrix));
+			UpdateBuffer(m_cameraMatrixBuffer, &viewProjMatrix, sizeof(viewProjMatrix));
 		}
 	}
 
@@ -286,15 +286,14 @@ namespace Dune
 		m_copyCommandList.Reset();
 
 		m_graphicsElements.clear();
-		m_cameraMatrixBuffer.reset();
+		ReleaseBuffer(m_cameraMatrixBuffer);
 		for (dSizeT i{ 0 }; i < ms_frameCount; i++)
 		{
 			m_commandAllocators[i].Reset();
-			m_usedBuffer[i].clear();
 			m_backBuffers[i].Reset();
 			m_rtvHeap.Free(m_backBufferViews[i]);
-			m_directionalLightsBuffer[i].reset();
-			m_pointLightsBuffer[i].reset();
+			ReleaseBuffer(m_directionalLightsBuffer[i]);
+			ReleaseBuffer(m_pointLightsBuffer[i]);
 			m_srvHeap.Free(m_pointLightsViews[i]);
 			m_srvHeap.Free(m_directionalLightsViews[i]);
 			m_backBuffers[i].Reset();
@@ -308,7 +307,7 @@ namespace Dune
 		{
 			for (dSizeT j{ 0 }; j < ms_frameCount; j++)
 			{
-				m_shadowCameraBuffers[i][j].reset();
+				ReleaseBuffer(m_shadowCameraBuffers[i][j]);
 			}
 			m_shadowMaps->Reset();
 			m_dsvHeap.Free(m_shadowDepthViews[i]);
@@ -327,6 +326,11 @@ namespace Dune
 
 		m_rootSignature.Reset();
 		m_pipelineState.Reset();
+
+		for (dU64 i{ 0 }; i < ms_frameCount; i++)
+		{
+			ReleaseDyingBuffer(i);
+		}
 
 		m_swapChain.Reset();
 		m_device.Reset();
@@ -368,80 +372,24 @@ namespace Dune
 		m_scissorRect.bottom = static_cast<LONG>(y);
 	}
 
-	std::unique_ptr<Buffer> Renderer::CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size)
+	Handle<Buffer> Renderer::CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size)
 	{
-		D3D12_HEAP_PROPERTIES heapProps;
-		D3D12_RESOURCE_STATES resourceState;
-
-		if (desc.usage == EBufferUsage::Upload)
-		{
-			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-			resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
-		}
-		else
-		{
-			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT); 
-			resourceState = D3D12_RESOURCE_STATE_COMMON;
-		}
-
-		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(size) };
-
-		Buffer* buffer{ new Buffer() };
-		buffer->m_size = size;
-		buffer->m_usage = desc.usage;
-
-		ThrowIfFailed(m_device->CreateCommittedResource(
-			&heapProps,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			resourceState,
-			nullptr,
-			IID_PPV_ARGS(&buffer->m_buffer)));
-
-		if (desc.usage == EBufferUsage::Upload)
-		{
-			D3D12_RANGE readRange;
-			readRange.Begin = 0;
-			readRange.End = 0;
-			ThrowIfFailed(buffer->m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&buffer->m_cpuAdress)));
-		}
-
-		if (pData)
-		{
-			UpdateBuffer(buffer, pData, size);
-		}
-
-		return std::unique_ptr<Buffer>(buffer);
+		return m_bufferPool.Create(desc, pData, size);
 	}
 
-	void Renderer::UpdateBuffer(Buffer* buffer, const void* pData, dU32 size)
+	void Renderer::UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size)
 	{
+		m_bufferPool.Get(handle).UploadData(pData, size);
+	}
 
-		if (buffer->m_usage == EBufferUsage::Default)
-		{
-			std::unique_ptr<Buffer> uploadBuffer{ CreateBuffer(BufferDesc{EBufferUsage::Upload}, pData, size) };
-			Buffer& graphicsUploadBuffer = *uploadBuffer.get();
+	void Renderer::ReleaseBuffer(Handle<Buffer> handle)
+	{
+		m_bufferPool.Remove(handle);
+	}
 
-			WaitForCopy();
-			ThrowIfFailed(m_copyCommandAllocator->Reset());
-			ThrowIfFailed(m_copyCommandList->Reset(m_copyCommandAllocator.Get(), nullptr));
-
-			m_copyCommandList->CopyBufferRegion(buffer->m_buffer.Get(), 0, graphicsUploadBuffer.m_buffer.Get(), 0, buffer->m_size);
-			m_copyCommandList->Close();
-			dVector<ID3D12CommandList*> ppCommandLists{ m_copyCommandList.Get() };
-			m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-
-			ThrowIfFailed(m_copyCommandQueue->Signal(m_copyFence.Get(), m_copyFenceValue + 1));
-			m_copyFenceValue += 1;
-
-			//TODO : Store somewhere the temp upload buffer so we don't have to wait so it doesn't release too soon
-			WaitForCopy();
-		}
-		else if (buffer->m_usage == EBufferUsage::Upload)
-		{
-			Assert(size <= buffer->m_size);
-			memcpy(buffer->m_cpuAdress, pData, buffer->m_size);
-		}
+	Buffer& Renderer::GetBuffer(Handle<Buffer> handle) 
+	{
+		return m_bufferPool.Get(handle);
 	}
 
 	void Renderer::CreateFactory()
@@ -908,17 +856,18 @@ namespace Dune
 			return;
 		}
 
-		Buffer* directionalLightBuffer{ m_directionalLightsBuffer[m_frameIndex].get() };
+		Handle<Buffer> directionalLightHandle{ m_directionalLightsBuffer[m_frameIndex] };
 
-		if ( ( m_directionalLights.size() * sizeof(DirectionalLight) ) > directionalLightBuffer->GetSize())
+		if ( ( m_directionalLights.size() * sizeof(DirectionalLight) ) > GetBuffer(directionalLightHandle).GetSize())
 		{
 			BufferDesc desc{ EBufferUsage::Upload };
 			dU32 size{ (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)) };
+			ReleaseBuffer(directionalLightHandle);
 			m_directionalLightsBuffer[m_frameIndex] = CreateBuffer(desc ,nullptr, size);
 		}
 		else
 		{
-			UpdateBuffer(directionalLightBuffer, m_directionalLights.data(), (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)));
+			UpdateBuffer(directionalLightHandle, m_directionalLights.data(), (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)));
 		}
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -930,15 +879,24 @@ namespace Dune
 		srvDesc.Buffer.NumElements = static_cast<UINT>(m_directionalLights.size());
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(DirectionalLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-		m_device->CreateShaderResourceView(directionalLightBuffer->m_buffer.Get(), &srvDesc, m_directionalLightsViews[m_frameIndex].cpuAdress);
+		m_device->CreateShaderResourceView(GetBuffer(directionalLightHandle).GetResource(), &srvDesc, m_directionalLightsViews[m_frameIndex].cpuAdress);
 	}
+
+	void Renderer::ReleaseDyingBuffer(dU64 frameIndex)
+	{
+		for (ID3D12Resource* buffer : m_dyingBuffer[frameIndex])
+		{
+			buffer->Release();
+		}
+	}
+
 
 	void Renderer::BeginFrame()
 	{
 		Profile(BeginFrame);
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(m_frameIndex);
-		m_usedBuffer[m_frameIndex].clear();
+		m_dyingBuffer[m_frameIndex].clear();
 		ImGui::Render();
 		UpdatePointLights();
 		UpdateDirectionalLights();
@@ -975,12 +933,12 @@ namespace Dune
 
 		if (m_directionalLights.size() > 0)
 		{
-			UpdateBuffer(m_shadowCameraBuffers[0][m_frameIndex].get(), &m_directionalLights[0].m_viewProj, sizeof(CameraConstantBuffer));
+			UpdateBuffer(m_shadowCameraBuffers[0][m_frameIndex], &m_directionalLights[0].m_viewProj, sizeof(CameraConstantBuffer));
 
 			D3D12_RESOURCE_BARRIER shadowMapBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_shadowMaps[0].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 			m_commandList->ResourceBarrier(1, &shadowMapBarrier);
 
-			ID3D12Resource* pCameraMatrixBuffer{ m_shadowCameraBuffers[0][m_frameIndex].get()->m_buffer.Get() };
+			ID3D12Resource* pCameraMatrixBuffer{ GetBuffer(m_shadowCameraBuffers[0][m_frameIndex]).GetResource() };
 			m_commandList->SetGraphicsRootConstantBufferView(1, pCameraMatrixBuffer->GetGPUVirtualAddress());
 
 			m_commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowDepthViews[0].cpuAdress);    // No render target needed for the shadow pass.
@@ -990,28 +948,28 @@ namespace Dune
 			{
 				const Mesh* mesh = elem.GetMesh();
 
-				const Buffer* const vertexBuffer = static_cast<const Buffer* const>(mesh->GetVertexBuffer());
-				const Buffer* const indexBuffer = static_cast<const Buffer* const>(mesh->GetIndexBuffer());
+				Buffer& vertexBuffer{ GetBuffer(mesh->GeVertexBufferHandle()) };
+				Buffer& indexBuffer{ GetBuffer(mesh->GetIndexBufferHandle()) };
 
 				D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 				// Initialize the vertex buffer view.
-				vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
+				vertexBufferView.BufferLocation = vertexBuffer.GetResource()->GetGPUVirtualAddress();
 				vertexBufferView.StrideInBytes = sizeof(Vertex);
-				vertexBufferView.SizeInBytes = vertexBuffer->GetSize();
+				vertexBufferView.SizeInBytes = vertexBuffer.GetSize();
 
 				D3D12_INDEX_BUFFER_VIEW indexBufferView;
-				indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
+				indexBufferView.BufferLocation = indexBuffer.GetResource()->GetGPUVirtualAddress();
 				indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-				indexBufferView.SizeInBytes = indexBuffer->GetSize();
+				indexBufferView.SizeInBytes = indexBuffer.GetSize();
 
 				m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 				m_commandList->IASetIndexBuffer(&indexBufferView);
 
-				const Buffer* const instanceDataBuffer = static_cast<const Buffer* const>(elem.GetInstanceData().lock().get());
-				m_commandList->SetGraphicsRootConstantBufferView(0, instanceDataBuffer->m_buffer->GetGPUVirtualAddress());
+				Buffer& instanceDataBuffer{ GetBuffer(elem.GetInstanceData()) };
+				m_commandList->SetGraphicsRootConstantBufferView(0, instanceDataBuffer.GetResource()->GetGPUVirtualAddress());
 
-				dU32 indexCount = indexBuffer->GetSize() / (sizeof(dU32));
+				dU32 indexCount{ indexBuffer.GetSize() / (sizeof(dU32)) };
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 			}
 			shadowMapBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_shadowMaps[0].Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -1043,7 +1001,7 @@ namespace Dune
 		m_commandList->ClearRenderTargetView(m_backBufferViews[m_frameIndex].cpuAdress, clearColor, 0, nullptr);
 		m_commandList->ClearDepthStencilView(m_depthBufferView.cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-		ID3D12Resource* pCameraMatrixBuffer{ m_cameraMatrixBuffer.get()->m_buffer.Get() };
+		ID3D12Resource* pCameraMatrixBuffer{ GetBuffer(m_cameraMatrixBuffer).GetResource()};
 		m_commandList->SetGraphicsRootConstantBufferView(1, pCameraMatrixBuffer->GetGPUVirtualAddress());
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_srvHeap.Get(), m_samplerHeap.Get() };
@@ -1060,29 +1018,28 @@ namespace Dune
 			{
 				const Mesh* mesh = elem.GetMesh();
 
-				const Buffer* const vertexBuffer = static_cast<const Buffer* const>(mesh->GetVertexBuffer());
-				const Buffer* const indexBuffer = static_cast<const Buffer* const>(mesh->GetIndexBuffer());
+				Buffer& vertexBuffer{ GetBuffer(mesh->GeVertexBufferHandle()) };
+				Buffer& indexBuffer{ GetBuffer(mesh->GetIndexBufferHandle()) };
 
 				D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 				// Initialize the vertex buffer view.
-				vertexBufferView.BufferLocation = vertexBuffer->m_buffer->GetGPUVirtualAddress();
+				vertexBufferView.BufferLocation = vertexBuffer.GetResource()->GetGPUVirtualAddress();
 				vertexBufferView.StrideInBytes = sizeof(Vertex);
-				vertexBufferView.SizeInBytes = vertexBuffer->GetSize();
+				vertexBufferView.SizeInBytes = vertexBuffer.GetSize();
 
 				D3D12_INDEX_BUFFER_VIEW indexBufferView;
-				indexBufferView.BufferLocation = indexBuffer->m_buffer->GetGPUVirtualAddress();
+				indexBufferView.BufferLocation = indexBuffer.GetResource()->GetGPUVirtualAddress();
 				indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-				indexBufferView.SizeInBytes = indexBuffer->GetSize();
+				indexBufferView.SizeInBytes = indexBuffer.GetSize();
 
 				m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 				m_commandList->IASetIndexBuffer(&indexBufferView);
 
-				m_usedBuffer[m_frameIndex].push_back(elem.GetInstanceData().lock());
-				const Buffer* const instanceDataBuffer = static_cast<const Buffer* const>(m_usedBuffer[m_frameIndex].back().get());
-				m_commandList->SetGraphicsRootConstantBufferView(0, instanceDataBuffer->m_buffer->GetGPUVirtualAddress());
+				Buffer& instanceDataBuffer{ GetBuffer(elem.GetInstanceData()) };
+				m_commandList->SetGraphicsRootConstantBufferView(0, instanceDataBuffer.GetResource()->GetGPUVirtualAddress());
 
-				dU32 indexCount = indexBuffer->GetSize() / (sizeof(dU32));
+				dU32 indexCount{ indexBuffer.GetSize() / (sizeof(dU32)) };
 				m_commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
 			}
 		}
@@ -1153,18 +1110,18 @@ namespace Dune
 			return;
 		}
 		
-		Buffer* pointLightBuffer{ m_pointLightsBuffer[m_frameIndex].get() };
+		Handle<Buffer> pointLightHandle{ m_pointLightsBuffer[m_frameIndex] };
 
-		if (m_pointLights.size() > pointLightBuffer->GetSize() / sizeof(PointLight))
+		if (m_pointLights.size() > GetBuffer(pointLightHandle).GetSize() / sizeof(PointLight))
 		{
 			BufferDesc desc { EBufferUsage::Upload };
 			dU32 size = (dU32)(m_pointLights.size() * sizeof(PointLight));
+			ReleaseBuffer(m_pointLightsBuffer[m_frameIndex]);
 			m_pointLightsBuffer[m_frameIndex] = CreateBuffer(desc, m_pointLights.data(), size);
-			pointLightBuffer = m_pointLightsBuffer[m_frameIndex].get();
 		}
 		else
 		{
-			UpdateBuffer(pointLightBuffer, m_pointLights.data(), (dU32)(m_pointLights.size() * sizeof(PointLight)));
+			UpdateBuffer(pointLightHandle, m_pointLights.data(), (dU32)(m_pointLights.size() * sizeof(PointLight)));
 		}
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -1176,6 +1133,6 @@ namespace Dune
 		srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointLights.size());
 		srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-		m_device->CreateShaderResourceView(pointLightBuffer->m_buffer.Get(), &srvDesc, m_pointLightsViews[m_frameIndex].cpuAdress);
+		m_device->CreateShaderResourceView(GetBuffer(pointLightHandle).GetResource(), &srvDesc, m_pointLightsViews[m_frameIndex].cpuAdress);
 	}
 }

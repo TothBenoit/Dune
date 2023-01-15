@@ -67,6 +67,7 @@
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Buffer.cpp" />
     <ClCompile Include="src\Dune\Graphics\DescriptorHeap.cpp" />
     <ClCompile Include="src\Dune\Graphics\GraphicsElement.cpp" />
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />

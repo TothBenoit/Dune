@@ -70,6 +70,7 @@
     <ClCompile Include="src\Dune\Graphics\GraphicsElement.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
     <ClCompile Include="src\Dune\Graphics\DescriptorHeap.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Buffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Dune\Graphics\Shaders\PixelShader.hlsl" />

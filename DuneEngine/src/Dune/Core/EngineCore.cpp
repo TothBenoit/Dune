@@ -47,6 +47,13 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
+		ComponentManager<TransformComponent>::Shutdown();
+		ComponentManager<BindingComponent>::Shutdown();
+		ComponentManager<GraphicsComponent>::Shutdown();
+		ComponentManager<CameraComponent>::Shutdown();
+		ComponentManager<PointLightComponent>::Shutdown();
+		ComponentManager<DirectionalLightComponent>::Shutdown();
+
 		Renderer::GetInstance().Shutdown();
 	}
 

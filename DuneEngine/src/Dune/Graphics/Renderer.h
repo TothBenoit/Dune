@@ -21,6 +21,7 @@ namespace Dune
 
 	class Renderer
 	{
+		friend Buffer;
 	public:
 		DISABLE_COPY_AND_MOVE(Renderer);
 
@@ -50,10 +51,13 @@ namespace Dune
 
 		void OnResize(int width, int height);
 
-		std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
-		void UpdateBuffer(Buffer* buffer, const void* pData, dU32 size);
+		Handle<Buffer> CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
+		void UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
+		void ReleaseBuffer(Handle<Buffer> handle);
+		Buffer& GetBuffer(Handle<Buffer> handle);
 
 		ID3D12Device* GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
+
 
 	private:
 		Renderer() = default;
@@ -94,11 +98,15 @@ namespace Dune
 		void CreateDirectionalLightsBuffer();
 		void UpdateDirectionalLights();
 
+		void ReleaseDyingBuffer(dU64 frameIndex);
+
 	private:
 		inline static constexpr dU32						ms_frameCount{ 2 };
 		inline static constexpr dU32						ms_shadowMapCount{ 1 };
 
 		bool												m_bIsInitialized{ false };
+
+		Pool<Buffer>										m_bufferPool{4096};
 
 		// Descriptor Heaps
 		DescriptorHeap										m_rtvHeap;
@@ -127,7 +135,7 @@ namespace Dune
 		
 		// Shadow Pass
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
-		std::unique_ptr<Buffer>								m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
+		Handle<Buffer>										m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
 		DescriptorHandle									m_shadowDepthViews[ms_shadowMapCount];
 		DescriptorHandle									m_shadowResourceViews[ms_shadowMapCount];
 		DescriptorHandle									m_shadowMapSamplerView;
@@ -135,8 +143,8 @@ namespace Dune
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-		std::unique_ptr<Buffer>								m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
-		std::unique_ptr<Buffer>								m_directionalLightsBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
+		Handle<Buffer>										m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
+		Handle<Buffer>										m_directionalLightsBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
 		DescriptorHandle									m_pointLightsViews[ms_frameCount];
 		DescriptorHandle									m_directionalLightsViews[ms_frameCount];
 
@@ -152,7 +160,7 @@ namespace Dune
 		dVector<EntityID>									m_graphicsEntities;
 		dHashMap<EntityID, dU32>							m_lookupGraphicsElements;
 
-		std::unique_ptr<Buffer>								m_cameraMatrixBuffer;
+		Handle<Buffer>										m_cameraMatrixBuffer;
 
 		// ImGui Pass
 		ID3D12DescriptorHeap*								m_imguiHeap{nullptr};
@@ -166,7 +174,7 @@ namespace Dune
 		Microsoft::WRL::Wrappers::Event						m_copyFenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
 		dU64												m_copyFenceValue{0};
-		dVector<std::shared_ptr<Buffer>>					m_usedBuffer[ms_frameCount];
+		dVector<ID3D12Resource*>							m_dyingBuffer[ms_frameCount];
 
 		// Device
 		Microsoft::WRL::ComPtr<ID3D12Device>				m_device;

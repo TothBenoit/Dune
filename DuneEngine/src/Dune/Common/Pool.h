@@ -84,6 +84,13 @@ namespace Dune
 			return m_datas[ID::GetIndex(handle.m_id)];
 		}
 
+		const T& Get(Handle<H> handle) const
+		{
+			Assert(IsValid(handle));
+
+			return m_datas[ID::GetIndex(handle.m_id)];
+		}
+
 	private:
 		void Resize()
 		{

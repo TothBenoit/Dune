@@ -82,6 +82,14 @@ namespace Dune
 			m_isInitialized = true;
 		}
 
+		static void Shutdown()
+		{
+			m_components.clear();
+			m_entities.clear();
+			m_lookup.clear();
+			m_isInitialized = false;
+		}
+
 	private:
 		friend class EngineCore;
 		inline static dVector<Component> m_components;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Dune/Common/Handle.h"
+
 namespace Dune
 {
 	class Buffer;
@@ -15,20 +17,21 @@ namespace Dune
 	{
 	public:
 		Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
+		~Mesh();
 		DISABLE_COPY_AND_MOVE(Mesh);
 
-		const Buffer* const GetIndexBuffer() const { return m_indexBuffer.get(); }
-		const Buffer* const GetVertexBuffer() const { return m_vertexBuffer.get(); }
+		Handle<Buffer> GetIndexBufferHandle() const { return m_indexBufferHandle; }
+		Handle<Buffer> GeVertexBufferHandle() const { return m_vertexBufferHandle; }
 
 	private:
 		void UploadBuffers();
-		bool UploadVertexBuffer();
-		bool UploadIndexBuffer();
+		void UploadVertexBuffer();
+		void UploadIndexBuffer();
 
 		dVector<dU32> m_indices;
 		dVector<Vertex> m_vertices;
 
-		std::unique_ptr<Buffer> m_indexBuffer = nullptr;
-		std::unique_ptr<Buffer> m_vertexBuffer = nullptr;
+		Handle<Buffer> m_indexBufferHandle;
+		Handle<Buffer> m_vertexBufferHandle;
 	};
 }

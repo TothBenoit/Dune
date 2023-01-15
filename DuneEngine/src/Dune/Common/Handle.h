@@ -8,6 +8,7 @@ namespace Dune
 	public:
 		Handle() : m_id(ID::invalidID) {}
 		bool IsValid() const { return ID::IsValid(m_id); }
+		void Invalidate() { m_id = ID::invalidID; }
 
 	private:
 		Handle(ID::IDType id) : m_id(id) {}

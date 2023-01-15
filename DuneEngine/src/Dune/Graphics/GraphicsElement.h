@@ -3,6 +3,7 @@
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/Shader.h"
 #include "Dune/Graphics/Material.h"
+#include "Dune/Common/Handle.h"
 
 namespace Dune
 {
@@ -21,7 +22,7 @@ namespace Dune
 	{
 	public:
 		GraphicsElement(const std::shared_ptr<Mesh> mesh, const InstanceData& instanceData);
-		~GraphicsElement() = default;
+		~GraphicsElement();
 		
 		DISABLE_COPY(GraphicsElement);
 
@@ -29,13 +30,13 @@ namespace Dune
 		GraphicsElement& operator=(GraphicsElement&& other);
 
 		inline const Mesh* GetMesh() const { return m_mesh.get(); };
-		inline const std::weak_ptr<Buffer> GetInstanceData() const { return m_instanceData; }
+		Handle<Buffer> GetInstanceData() const { return m_instanceData; }
 		void UpdateInstanceData(const InstanceData& data);
 
 	private:
 		//TODO: use handle instead of shared_ptr
 		std::shared_ptr<Mesh> m_mesh;
-		std::shared_ptr<Buffer> m_instanceData;
+		Handle<Buffer> m_instanceData;
 	};
 }
 

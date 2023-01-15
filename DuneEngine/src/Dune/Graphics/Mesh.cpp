@@ -12,46 +12,35 @@ namespace Dune
 		UploadBuffers();
 	}
 
-	void Mesh::UploadBuffers()
+	Mesh::~Mesh()
 	{
-		if (!UploadIndexBuffer())
-		{
-			return;
-		}
-
-		if (!UploadVertexBuffer())
-		{
-			m_indexBuffer.release();
-			return;
-		}
+		Renderer& renderer{ Renderer::GetInstance() };
+		renderer.ReleaseBuffer(m_vertexBufferHandle);
+		renderer.ReleaseBuffer(m_indexBufferHandle);
 	}
 
-	bool Mesh::UploadVertexBuffer()
+	void Mesh::UploadBuffers()
+	{
+		UploadIndexBuffer();
+		UploadVertexBuffer();
+	}
+
+	void Mesh::UploadVertexBuffer()
 	{
 		BufferDesc desc{ EBufferUsage::Default};
 		dU32 size{ (dU32)m_vertices.size() * sizeof(Vertex) };
-		if (size == 0)
-		{
-			LOG_ERROR("Vertex buffer is empty");
-			return false;
-		}
-
-		m_vertexBuffer = Renderer::GetInstance().CreateBuffer(desc, m_vertices.data(), size);
-		return true;
+		Assert(size != 0);
+		m_vertexBufferHandle = Renderer::GetInstance().CreateBuffer(desc, m_vertices.data(), size);
+		Assert(m_vertexBufferHandle.IsValid());
 	}
 
-	bool Mesh::UploadIndexBuffer()
+	void Mesh::UploadIndexBuffer()
 	{
 		BufferDesc desc{ EBufferUsage::Default };
 		dU32 size{ (dU32)m_indices.size() * sizeof(dU32) };
-		if (size == 0)
-		{
-			LOG_ERROR("Vertex buffer is empty");
-			return false;
-		}
-
-		m_indexBuffer = Renderer::GetInstance().CreateBuffer(desc, m_indices.data(), size);
-		return true;
+		Assert(size != 0);
+		m_indexBufferHandle = Renderer::GetInstance().CreateBuffer(desc, m_indices.data(), size);
+		Assert(m_indexBufferHandle.IsValid());
 	}
 
 }
