@@ -6,9 +6,14 @@
 #include "Dune/Core/ECS/Components/TransformComponent.h"
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
+#include "Dune/Core/ECS/Components/CameraComponent.h"
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
 #include "Dune/Core/ECS/Components/DirectionalLightComponent.h"
+#include "Dune/Graphics/PointLight.h"
+#include "Dune/Graphics/DirectionalLight.h"
 #include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/Material.h"
+#include "Dune/Graphics/GraphicsElement.h"
 
 namespace Dune
 {
@@ -20,8 +25,6 @@ namespace Dune
 			LOG_CRITICAL("Tried to initialize EngineCore which was already initialized");
 			return;
 		}
-
-		m_entityManager = std::make_unique<EntityManager>();
 
 		ComponentManager<TransformComponent>::Init();
 		ComponentManager<BindingComponent>::Init();
@@ -88,7 +91,7 @@ namespace Dune
 		}
 #endif // _DEBUG
 
-		EntityID id = m_entityManager->CreateEntity();
+		EntityID id = m_entityManager.CreateEntity();
 
 		//Add mandatory components
 		AddComponent<TransformComponent>(id);
@@ -109,7 +112,7 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
-		m_entityManager->RemoveEntity(id);
+		m_entityManager.RemoveEntity(id);
 		m_modifiedEntities.erase(id);
 		m_sceneGraph.DeleteNode(id);
 		
@@ -119,11 +122,21 @@ namespace Dune
 		renderer.RemoveDirectionalLight(id);
 	}
 
+	const CameraComponent* EngineCore::GetCamera()
+	{
+		return GetComponent<CameraComponent>(m_cameraID);
+	}
+
+	CameraComponent* EngineCore::ModifyCamera()
+	{
+		return ModifyComponent<CameraComponent>(m_cameraID);
+	}
+
 	void EngineCore::UpdateCamera()
 	{
 		Profile(UpdateCamera);
 		//TODO: Input and transformation should be decoupled so we can compute new transformation only when it changed
-		if (!m_entityManager->IsValid(m_cameraID))
+		if (!m_entityManager.IsValid(m_cameraID))
 			return;
 
 		dVec3 translate{ 0.f,0.f,0.f };
@@ -448,7 +461,6 @@ namespace Dune
 						pos.z = imGuiPos[2];
 					}
 
-
 					dVec3& rot = transform->rotation;
 					float imGuiRot[3] = { DirectX::XMConvertToDegrees(rot.x),DirectX::XMConvertToDegrees(rot.y), DirectX::XMConvertToDegrees(rot.z) };
 					if (ImGui::DragFloat3("Rotation", imGuiRot, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f"))
@@ -572,7 +584,7 @@ namespace Dune
 
 		if (m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end())
 		{
-			renderer.UpdateCamera();
+			renderer.UpdateCamera(GetComponent<CameraComponent>(m_cameraID));
 		}
 
 		// should we track modified component instead of modified entities ?

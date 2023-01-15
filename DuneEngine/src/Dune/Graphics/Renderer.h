@@ -1,23 +1,25 @@
 #pragma once
 
-#include "Dune/Core/ECS/Components/PointLightComponent.h"
-#include "Dune/Graphics/GraphicsElement.h"
-#include "Dune/Graphics/PointLight.h"
-#include "Dune/Graphics/DirectionalLight.h"
 #include "Dune/Graphics/DescriptorHeap.h"
 #include "Dune/Common/Pool.h"
 
 namespace Dune
 {
 	class Window;
+	struct CameraComponent;
 	struct BufferDesc;
+	struct DirectionalLight;
+	struct PointLight;
+	class GraphicsElement;
+	struct InstanceData;
+	class Buffer;
+	class Mesh;
 
 	// Change once per camera
 	struct CameraConstantBuffer
 	{
 		dMatrix4x4	viewProjMatrix;
 	};
-
 
 	class Renderer
 	{
@@ -45,7 +47,7 @@ namespace Dune
 		void SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
 
 		void CreateCamera();
-		void UpdateCamera();
+		void UpdateCamera(const CameraComponent* pCamera);
 
 		void Render();
 

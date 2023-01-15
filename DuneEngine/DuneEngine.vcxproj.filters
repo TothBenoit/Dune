@@ -18,7 +18,6 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="src\Dune\Graphics\GraphicsElement.h" />
     <ClInclude Include="src\Dune\Common\Types.h" />
-    <ClInclude Include="src\Dune\Graphics\BufferDesc.h" />
     <ClInclude Include="src\Dune\Graphics\Buffer.h" />
     <ClInclude Include="src\Dune\Graphics\Mesh.h" />
     <ClInclude Include="src\Dune\Graphics\Shader.h" />
@@ -46,6 +45,7 @@
     <ClInclude Include="src\Dune\Common\ID.h" />
     <ClInclude Include="src\Dune\Common\Handle.h" />
     <ClInclude Include="src\Dune\Common\Pool.h" />
+    <ClInclude Include="src\Dune\Graphics\BufferDesc.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Application.cpp" />

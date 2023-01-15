@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Dune/Graphics/Mesh.h"
-#include "Dune/Graphics/Shader.h"
-#include "Dune/Graphics/Material.h"
 #include "Dune/Common/Handle.h"
 
 namespace Dune
 {
+	class Mesh;
+	class Buffer;
+
 	// Change once per draw call
 	struct InstanceData
 	{

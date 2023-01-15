@@ -2,6 +2,7 @@
 #include "GraphicsElement.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Buffer.h"
+#include "Dune/Graphics/Mesh.h"
 
 namespace Dune
 {

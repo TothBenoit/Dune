@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Dune/Graphics/Mesh.h"
-#include "Dune/Graphics/Material.h"
-
 namespace Dune
 {
+	class Mesh;
+	struct Material;
+
 	// TODO : Do a mesh manager and a material manager
 	struct GraphicsComponent
 	{

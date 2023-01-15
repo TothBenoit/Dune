@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "GraphicsComponent.h"
 #include "Dune/Graphics/Buffer.h"
+#include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/Material.h"
 
 namespace Dune
 {
 	GraphicsComponent::GraphicsComponent()
-		: material{ std::make_shared<Material>() }
+		: material{ new Material{} }
 	{
 		static const dVector<dU32> defaultCubeIndices
 		{

@@ -5,7 +5,11 @@
 #include "Dune/Core/Window.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Utilities/StringUtils.h"
-#include "Dune/Core/EngineCore.h"
+#include "Dune/Core/ECS/Components/CameraComponent.h"
+#include "Dune/Graphics/PointLight.h"
+#include "Dune/Graphics/DirectionalLight.h"
+#include "Dune/Graphics/GraphicsElement.h"
+#include "Dune/Graphics/Mesh.h"
 
 namespace Dune
 {
@@ -181,16 +185,15 @@ namespace Dune
 		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc, &identity, size);
 	}
 
-	void Renderer::UpdateCamera()
+	void Renderer::UpdateCamera(const CameraComponent* pCamera)
 	{
-		const CameraComponent* camera = EngineCore::GetCamera();
-		if (camera)
+		if (pCamera)
 		{
 			// TODO : Camera should be linked to a viewport (TODO : Make viewport)
 			// TODO : Get viewport dimensions
 			constexpr float aspectRatio = 1600.f / 900.f;
-			dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(camera->verticalFieldOfView), aspectRatio, 1.f, 1000.0f) };
-			dMatrix viewProjMatrix{ camera->viewMatrix * projectionMatrix };
+			dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(pCamera->verticalFieldOfView), aspectRatio, 1.f, 1000.0f) };
+			dMatrix viewProjMatrix{ pCamera->viewMatrix * projectionMatrix };
 			UpdateBuffer(m_cameraMatrixBuffer, &viewProjMatrix, sizeof(viewProjMatrix));
 		}
 	}
