@@ -3,11 +3,12 @@
 #include "Dune/Core/SceneGraph.h"
 #include "Dune/Core/ECS/EntityManager.h"
 #include "Dune/Core/ECS/Components/ComponentManager.h"
+#include "Dune/Common/Handle.h"
 
 namespace Dune
 {
 	class Window;
-
+	class Mesh;
 	struct CameraComponent;
 
 	class EngineCore
@@ -77,6 +78,9 @@ namespace Dune
 		static void DrawInspector();
 		static void UpdateGraphicsData();
 		static void ClearModifiedEntities();
+		
+		// Temp until I can load mesh
+		static void CreateCubeMesh();
 	private:
 		static inline bool m_isInitialized = false;
 		static inline EntityManager m_entityManager;
@@ -88,6 +92,7 @@ namespace Dune
 		static inline EntityID m_cameraID = ID::invalidID;
 		static inline float m_deltaTime = 0.f;
 		static inline dHashSet<EntityID> m_modifiedEntities;
+		static inline Handle<Mesh> m_cubeMesh;
 	};
 }
 

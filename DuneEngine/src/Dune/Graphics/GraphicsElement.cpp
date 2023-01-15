@@ -6,7 +6,7 @@
 
 namespace Dune
 {
-	GraphicsElement::GraphicsElement(const std::shared_ptr<Mesh> mesh, const InstanceData& instanceData)
+	GraphicsElement::GraphicsElement(Handle<Mesh> mesh, const InstanceData& instanceData)
 		: m_mesh{mesh}
 	{
 		BufferDesc desc{ EBufferUsage::Upload };
@@ -21,16 +21,13 @@ namespace Dune
 
 	GraphicsElement::GraphicsElement(GraphicsElement&& other)
 		: m_mesh{ std::move(other.m_mesh) }
-		, m_instanceData {other.m_instanceData}
-	{
-		other.m_instanceData.Invalidate();
-	}
+		, m_instanceData {std::move(other.m_instanceData)}
+	{}
 
 	GraphicsElement& GraphicsElement::operator=(GraphicsElement && other)
 	{
 		m_mesh = std::move(other.m_mesh);
-		m_instanceData = other.m_instanceData;
-		other.m_instanceData.Invalidate();
+		m_instanceData = std::move(other.m_instanceData);
 		return *this;
 	}
 

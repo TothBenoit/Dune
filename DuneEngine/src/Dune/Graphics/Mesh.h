@@ -15,18 +15,22 @@ namespace Dune
 
 	class Mesh
 	{
-	public:
-		Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
-		~Mesh();
 		DISABLE_COPY_AND_MOVE(Mesh);
+	public:
 
 		Handle<Buffer> GetIndexBufferHandle() const { return m_indexBufferHandle; }
 		Handle<Buffer> GeVertexBufferHandle() const { return m_vertexBufferHandle; }
 
 	private:
+		Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
+		~Mesh();
+
 		void UploadBuffers();
 		void UploadVertexBuffer();
 		void UploadIndexBuffer();
+
+	private:
+		template <typename T, typename H> friend class Pool;
 
 		dVector<dU32> m_indices;
 		dVector<Vertex> m_vertices;

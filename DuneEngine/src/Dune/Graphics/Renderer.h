@@ -14,6 +14,7 @@ namespace Dune
 	struct InstanceData;
 	class Buffer;
 	class Mesh;
+	struct Vertex;
 
 	// Change once per camera
 	struct CameraConstantBuffer
@@ -33,32 +34,36 @@ namespace Dune
 
 		bool IsInitialized() const { return m_bIsInitialized; }
 
-		// TODO : Generalize Clear/Remove/Submit pattern 
-		void ClearGraphicsElements();
-		void RemoveGraphicsElement(EntityID id);
-		void SubmitGraphicsElement(EntityID id, std::weak_ptr<Mesh> mesh, const InstanceData& instanceData);
+		// TODO : Generalize graphics data submission
+		void			ClearGraphicsElements();
+		void			RemoveGraphicsElement(EntityID id);
+		void			SubmitGraphicsElement(EntityID id, Handle<Mesh> mesh, const InstanceData& instanceData);
 
-		void ClearPointLights();
-		void RemovePointLight(EntityID id);
-		void SubmitPointLight(EntityID id, const PointLight& light);
+		void			ClearPointLights();
+		void			RemovePointLight(EntityID id);
+		void			SubmitPointLight(EntityID id, const PointLight& light);
 
-		void ClearDirectionalLights();
-		void RemoveDirectionalLight(EntityID id);
-		void SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
+		void			ClearDirectionalLights();
+		void			RemoveDirectionalLight(EntityID id);
+		void			SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
 
-		void CreateCamera();
-		void UpdateCamera(const CameraComponent* pCamera);
+		void			CreateCamera();
+		void			UpdateCamera(const CameraComponent* pCamera);
 
-		void Render();
+		void			Render();
 
-		void OnResize(int width, int height);
+		void			OnResize(int width, int height);
 
-		Handle<Buffer> CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
-		void UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
-		void ReleaseBuffer(Handle<Buffer> handle);
-		Buffer& GetBuffer(Handle<Buffer> handle);
+		Handle<Buffer>	CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
+		void			UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
+		void			ReleaseBuffer(Handle<Buffer> handle);
+		Buffer&			GetBuffer(Handle<Buffer> handle);
 
-		ID3D12Device* GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
+		Handle<Mesh>	CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
+		void			ReleaseMesh(Handle<Mesh> handle);
+		const Mesh&		GetMesh(Handle<Mesh> handle) const;
+		
+		ID3D12Device*	GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
 
 
 	private:
@@ -109,6 +114,7 @@ namespace Dune
 		bool												m_bIsInitialized{ false };
 
 		Pool<Buffer>										m_bufferPool{4096};
+		Pool<Mesh>											m_meshPool{64};
 
 		// Descriptor Heaps
 		DescriptorHeap										m_rtvHeap;

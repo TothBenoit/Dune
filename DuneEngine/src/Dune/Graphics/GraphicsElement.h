@@ -21,7 +21,7 @@ namespace Dune
 	class GraphicsElement
 	{
 	public:
-		GraphicsElement(const std::shared_ptr<Mesh> mesh, const InstanceData& instanceData);
+		GraphicsElement(Handle<Mesh> mesh, const InstanceData& instanceData);
 		~GraphicsElement();
 		
 		DISABLE_COPY(GraphicsElement);
@@ -29,13 +29,13 @@ namespace Dune
 		GraphicsElement(GraphicsElement&& other);
 		GraphicsElement& operator=(GraphicsElement&& other);
 
-		inline const Mesh* GetMesh() const { return m_mesh.get(); };
+		Handle<Mesh> GetMeshHandle() const { return m_mesh; };
 		Handle<Buffer> GetInstanceData() const { return m_instanceData; }
 		void UpdateInstanceData(const InstanceData& data);
 
 	private:
-		//TODO: use handle instead of shared_ptr
-		std::shared_ptr<Mesh> m_mesh;
+
+		Handle<Mesh> m_mesh;
 		Handle<Buffer> m_instanceData;
 	};
 }

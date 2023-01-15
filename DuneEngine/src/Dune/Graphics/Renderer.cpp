@@ -62,7 +62,7 @@ namespace Dune
 		m_graphicsEntities.clear();
 	}
 
-	void Renderer::SubmitGraphicsElement(EntityID id, std::weak_ptr<Mesh> mesh, const InstanceData& instanceData)
+	void Renderer::SubmitGraphicsElement(EntityID id, Handle<Mesh> mesh, const InstanceData& instanceData)
 	{
 		Assert(id != ID::invalidID);
 
@@ -76,7 +76,7 @@ namespace Dune
 		else
 		{
 			m_lookupGraphicsElements[id] = (dU32)m_graphicsElements.size();
-			m_graphicsElements.emplace_back(mesh.lock(), instanceData);
+			m_graphicsElements.emplace_back(mesh, instanceData);
 			m_graphicsEntities.emplace_back(id);
 		}
 	}
@@ -393,6 +393,21 @@ namespace Dune
 	Buffer& Renderer::GetBuffer(Handle<Buffer> handle) 
 	{
 		return m_bufferPool.Get(handle);
+	}
+
+	Handle<Mesh> Renderer::CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices)
+	{
+		return m_meshPool.Create(indices, vertices);
+}
+
+	void Renderer::ReleaseMesh(Handle<Mesh> handle)
+	{
+		m_meshPool.Remove(handle);
+	}
+
+	const Mesh& Renderer::GetMesh(Handle<Mesh> handle) const
+	{
+		return m_meshPool.Get(handle);
 	}
 
 	void Renderer::CreateFactory()
@@ -949,10 +964,10 @@ namespace Dune
 
 			for (const auto& elem : m_graphicsElements)
 			{
-				const Mesh* mesh = elem.GetMesh();
+				const Mesh& mesh{ GetMesh(elem.GetMeshHandle()) };
 
-				Buffer& vertexBuffer{ GetBuffer(mesh->GeVertexBufferHandle()) };
-				Buffer& indexBuffer{ GetBuffer(mesh->GetIndexBufferHandle()) };
+				Buffer& vertexBuffer{ GetBuffer(mesh.GeVertexBufferHandle()) };
+				Buffer& indexBuffer{ GetBuffer(mesh.GetIndexBufferHandle()) };
 
 				D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 				// Initialize the vertex buffer view.
@@ -1019,10 +1034,10 @@ namespace Dune
 
 			for (const auto& elem : m_graphicsElements)
 			{
-				const Mesh* mesh = elem.GetMesh();
+				const Mesh& mesh{ GetMesh(elem.GetMeshHandle()) };
 
-				Buffer& vertexBuffer{ GetBuffer(mesh->GeVertexBufferHandle()) };
-				Buffer& indexBuffer{ GetBuffer(mesh->GetIndexBufferHandle()) };
+				Buffer& vertexBuffer{ GetBuffer(mesh.GeVertexBufferHandle()) };
+				Buffer& indexBuffer{ GetBuffer(mesh.GetIndexBufferHandle()) };
 
 				D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 				// Initialize the vertex buffer view.

@@ -14,6 +14,7 @@
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Material.h"
 #include "Dune/Graphics/GraphicsElement.h"
+#include "Dune/Graphics/Mesh.h"
 
 namespace Dune
 {
@@ -34,6 +35,8 @@ namespace Dune
 		ComponentManager<DirectionalLightComponent>::Init();
 
 		Renderer::GetInstance().Initialize(pWindow);
+
+		CreateCubeMesh();
 
 		m_isInitialized = true;
 
@@ -56,6 +59,8 @@ namespace Dune
 		ComponentManager<CameraComponent>::Shutdown();
 		ComponentManager<PointLightComponent>::Shutdown();
 		ComponentManager<DirectionalLightComponent>::Shutdown();
+
+		Renderer::GetInstance().ReleaseMesh(m_cubeMesh);
 
 		Renderer::GetInstance().Shutdown();
 	}
@@ -328,6 +333,7 @@ namespace Dune
 			{
 				EntityID id = CreateEntity("Cube");
 				AddComponent<GraphicsComponent>(id);
+				ModifyComponent<GraphicsComponent>(id)->mesh = m_cubeMesh;
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -340,6 +346,8 @@ namespace Dune
 			{
 				EntityID id = CreateEntity("New entity");
 				AddComponent<GraphicsComponent>(id);
+				ModifyComponent<GraphicsComponent>(id)->mesh = m_cubeMesh;
+
 				TransformComponent* transform = ModifyComponent<TransformComponent>(id);
 				float LO = -spawnRadius;
 				float HI = spawnRadius;
@@ -514,6 +522,7 @@ namespace Dune
 				if (ImGui::Button("Add GraphicsComponent"))
 				{
 					AddComponent<GraphicsComponent>(m_selectedEntity);
+					ModifyComponent<GraphicsComponent>(m_selectedEntity)->mesh = m_cubeMesh;
 				}
 			}
 
@@ -639,6 +648,54 @@ namespace Dune
 	void EngineCore::ClearModifiedEntities()
 	{
 		m_modifiedEntities.clear();
+	}
+
+	void EngineCore::CreateCubeMesh()
+	{
+		static const dVector<dU32> defaultCubeIndices
+		{
+			0, 1, 2, 0, 2, 3,			//Face
+			4, 6, 5, 4, 7, 6,			//Back
+			10, 11, 9, 10, 9, 8,		//Left
+			13, 12, 14, 13, 14, 15,		//Right
+			16, 18, 19, 16, 19, 17,		//Top
+			22, 20, 21, 22, 21, 23		//Bottom
+		};
+
+		static const dVector<Vertex> defaultCubeVertices
+		{
+			{ {-0.5f, -0.5f, -0.5f},	{0.0f, 0.0f, 0.0f, 1.0f},	{ 0.0f, 0.0f, -1.0f } }, // 0
+			{ {-0.5f,  0.5f, -0.5f},	{0.0f, 1.0f, 0.0f, 1.0f},	{ 0.0f, 0.0f, -1.0f } }, // 1
+			{ { 0.5f,  0.5f, -0.5f},	{1.0f, 1.0f, 0.0f, 1.0f},	{ 0.0f, 0.0f, -1.0f } }, // 2
+			{ { 0.5f, -0.5f, -0.5f},	{1.0f, 0.0f, 0.0f, 1.0f},	{ 0.0f, 0.0f, -1.0f } }, // 3
+
+			{ {-0.5f, -0.5f,  0.5f},	{0.0f, 0.0f, 1.0f, 1.0f},	{ 0.0f, 0.0f,  1.0f } }, // 4
+			{ {-0.5f,  0.5f,  0.5f},	{0.0f, 1.0f, 1.0f, 1.0f},	{ 0.0f, 0.0f,  1.0f } }, // 5
+			{ { 0.5f,  0.5f,  0.5f},	{1.0f, 1.0f, 1.0f, 1.0f},	{ 0.0f, 0.0f,  1.0f } }, // 6
+			{ { 0.5f, -0.5f,  0.5f},	{1.0f, 0.0f, 1.0f, 1.0f},	{ 0.0f, 0.0f,  1.0f } }, // 7
+
+			{ {-0.5f, -0.5f, -0.5f},	{0.0f, 0.0f, 0.0f, 1.0f},	{-1.0f, 0.0f,  0.0f } }, // 8
+			{ {-0.5f,  0.5f, -0.5f},	{0.0f, 1.0f, 0.0f, 1.0f},	{-1.0f, 0.0f,  0.0f } }, // 9
+			{ {-0.5f, -0.5f,  0.5f},	{0.0f, 0.0f, 1.0f, 1.0f},	{-1.0f, 0.0f,  0.0f } }, // 10
+			{ {-0.5f,  0.5f,  0.5f},	{0.0f, 1.0f, 1.0f, 1.0f},	{-1.0f, 0.0f,  0.0f } }, // 11
+
+			{ { 0.5f,  0.5f, -0.5f},	{1.0f, 1.0f, 0.0f, 1.0f},	{ 1.0f, 0.0f,  0.0f } }, // 12
+			{ { 0.5f, -0.5f, -0.5f},	{1.0f, 0.0f, 0.0f, 1.0f},	{ 1.0f, 0.0f,  0.0f } }, // 13
+			{ { 0.5f,  0.5f,  0.5f},	{1.0f, 1.0f, 1.0f, 1.0f},	{ 1.0f, 0.0f,  0.0f } }, // 14
+			{ { 0.5f, -0.5f,  0.5f},	{1.0f, 0.0f, 1.0f, 1.0f},	{ 1.0f, 0.0f,  0.0f } }, // 15
+
+			{ {-0.5f,  0.5f, -0.5f},	{0.0f, 1.0f, 0.0f, 1.0f},	{ 0.0f, 1.0f, 0.0f } }, // 16
+			{ { 0.5f,  0.5f, -0.5f},	{1.0f, 1.0f, 0.0f, 1.0f},	{ 0.0f, 1.0f, 0.0f } }, // 17
+			{ {-0.5f,  0.5f,  0.5f},	{0.0f, 1.0f, 1.0f, 1.0f},	{ 0.0f, 1.0f, 0.0f } }, // 18
+			{ { 0.5f,  0.5f,  0.5f},	{1.0f, 1.0f, 1.0f, 1.0f},	{ 0.0f, 1.0f, 0.0f } }, // 19
+
+			{ {-0.5f, -0.5f, -0.5f},	{0.0f, 0.0f, 0.0f, 1.0f},	{ 0.0f, -1.0f, 0.0f } }, // 20
+			{ { 0.5f, -0.5f, -0.5f},	{1.0f, 0.0f, 0.0f, 1.0f},	{ 0.0f, -1.0f, 0.0f } }, // 21
+			{ {-0.5f, -0.5f,  0.5f},	{0.0f, 0.0f, 1.0f, 1.0f},	{ 0.0f, -1.0f, 0.0f } }, // 22
+			{ { 0.5f, -0.5f,  0.5f},	{1.0f, 0.0f, 1.0f, 1.0f},	{ 0.0f, -1.0f, 0.0f } }, // 23
+		};
+
+		m_cubeMesh = Renderer::GetInstance().CreateMesh(defaultCubeIndices, defaultCubeVertices);
 	}
 
 }

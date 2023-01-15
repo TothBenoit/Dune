@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Dune/Common/Handle.h"
+
 namespace Dune
 {
 	class Mesh;
@@ -10,7 +12,7 @@ namespace Dune
 	{
 		GraphicsComponent();
 
-		std::shared_ptr<Mesh> mesh;
+		Handle<Mesh> mesh;
 		std::shared_ptr<Material> material;
 	};
 }
