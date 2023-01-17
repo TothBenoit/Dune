@@ -12,7 +12,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\DX12\d3dx12.h" />
     <ClInclude Include="include\Remotery\Remotery.h" />
     <ClInclude Include="src\Dune\Common\Handle.h" />
     <ClInclude Include="src\Dune\Common\ID.h" />
