@@ -13,15 +13,9 @@ namespace Dune
 		m_instanceData = Renderer::GetInstance().CreateBuffer(desc, &instanceData, InstanceDataSize);
 	}
 
-	GraphicsElement::~GraphicsElement()
-	{
-		if (m_instanceData.IsValid())
-			Renderer::GetInstance().ReleaseBuffer(m_instanceData);
-	}
-
 	GraphicsElement::GraphicsElement(GraphicsElement&& other)
 		: m_mesh{ std::move(other.m_mesh) }
-		, m_instanceData {std::move(other.m_instanceData)}
+		, m_instanceData { std::move(other.m_instanceData) }
 	{}
 
 	GraphicsElement& GraphicsElement::operator=(GraphicsElement && other)
@@ -29,6 +23,11 @@ namespace Dune
 		m_mesh = std::move(other.m_mesh);
 		m_instanceData = std::move(other.m_instanceData);
 		return *this;
+	}
+
+	void GraphicsElement::Release()
+	{
+		Renderer::GetInstance().ReleaseBuffer(m_instanceData);
 	}
 
 	void GraphicsElement::UpdateInstanceData(const InstanceData& data)

@@ -72,7 +72,7 @@ namespace Dune
 	Buffer::~Buffer()
 	{
 		Renderer& renderer{ Renderer::GetInstance() };
-		renderer.m_dyingBuffer[renderer.m_frameIndex].emplace_back(m_buffer);
+		renderer.ReleaseResource(m_buffer);
 		if (m_usage == EBufferUsage::Default)
 		{
 			m_uploadBuffer->Release();

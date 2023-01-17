@@ -9,6 +9,7 @@ namespace Dune
 	public:
 		[[nodiscard]] inline dU32 GetSize() const { return m_size; }
 		[[nodiscard]] inline EBufferUsage GetUsage() const { return m_usage; }
+		[[nodiscard]] const ID3D12Resource* GetResource() const { return m_buffer; }
 		[[nodiscard]] ID3D12Resource* GetResource() { return m_buffer; }
 
 		void UploadData(const void* pData, dU32 size);

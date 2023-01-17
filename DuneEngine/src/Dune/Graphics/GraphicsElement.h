@@ -22,12 +22,12 @@ namespace Dune
 	{
 	public:
 		GraphicsElement(Handle<Mesh> mesh, const InstanceData& instanceData);
-		~GraphicsElement();
-		
 		DISABLE_COPY(GraphicsElement);
 
 		GraphicsElement(GraphicsElement&& other);
 		GraphicsElement& operator=(GraphicsElement&& other);
+
+		void Release();
 
 		[[nodiscard]] Handle<Mesh> GetMeshHandle() const { return m_mesh; };
 		[[nodiscard]] Handle<Buffer> GetInstanceData() const { return m_instanceData; }

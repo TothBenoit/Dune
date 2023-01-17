@@ -74,7 +74,7 @@ namespace Dune
     void DescriptorHeap::Release()
     {
         Assert(m_freeSlots.size() == m_capacity);
-        m_pDescriptorHeap->Release();
+        Renderer::GetInstance().ReleaseResource(m_pDescriptorHeap);
         
         m_capacity = 0;
         m_freeSlots.clear();

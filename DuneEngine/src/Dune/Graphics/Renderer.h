@@ -35,37 +35,37 @@ namespace Dune
 		[[nodiscard]] bool IsInitialized() const { return m_bIsInitialized; }
 
 		// TODO : Generalize graphics data submission
-		void			ClearGraphicsElements();
-		void			RemoveGraphicsElement(EntityID id);
-		void			SubmitGraphicsElement(EntityID id, Handle<Mesh> mesh, const InstanceData& instanceData);
+		void							ClearGraphicsElements();
+		void							RemoveGraphicsElement(EntityID id);
+		void							SubmitGraphicsElement(EntityID id, Handle<Mesh> mesh, const InstanceData& instanceData);
 
-		void			ClearPointLights();
-		void			RemovePointLight(EntityID id);
-		void			SubmitPointLight(EntityID id, const PointLight& light);
+		void							ClearPointLights();
+		void							RemovePointLight(EntityID id);
+		void							SubmitPointLight(EntityID id, const PointLight& light);
 
-		void			ClearDirectionalLights();
-		void			RemoveDirectionalLight(EntityID id);
-		void			SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
+		void							ClearDirectionalLights();
+		void							RemoveDirectionalLight(EntityID id);
+		void							SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
 
-		void			CreateCamera();
-		void			UpdateCamera(const CameraComponent* pCamera);
+		void							CreateCamera();
+		void							UpdateCamera(const CameraComponent* pCamera);
 
-		void			Render();
+		void							Render();
 
-		void			OnResize(int width, int height);
+		void							OnResize(int width, int height);
 
 		[[nodiscard]] Handle<Buffer>	CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size);
-		void			UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
-		void			ReleaseBuffer(Handle<Buffer> handle);
-		[[nodiscard]] Buffer&			GetBuffer(Handle<Buffer> handle);
+		void							UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
+		void							ReleaseBuffer(Handle<Buffer> handle);
 
-		[[nodiscard]] Handle<Mesh>	CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
-		void			ReleaseMesh(Handle<Mesh> handle);
-		[[nodiscard]] const Mesh&		GetMesh(Handle<Mesh> handle) const;
+		[[nodiscard]] Handle<Mesh>		CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
+		void							ReleaseMesh(Handle<Mesh> handle);
 		// Temp until I can load Mesh correctly
-		[[nodiscard]] Handle<Mesh>	CreateDefaultMesh(); 
+		[[nodiscard]] Handle<Mesh>		CreateDefaultMesh(); 
+
+		void							ReleaseResource(IUnknown* resource);
 		
-		[[nodiscard]] ID3D12Device*	GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
+		[[nodiscard]] ID3D12Device*		GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
 
 
 	private:
@@ -85,6 +85,10 @@ namespace Dune
 		void CreatePipeline();
 		void CreateCommandLists();
 		void CreateFences();
+
+		[[nodiscard]] Buffer&			GetBuffer(Handle<Buffer> handle);
+		[[nodiscard]] Mesh&				GetMesh(Handle<Mesh> handle);
+		void							ReleaseDyingResources(dU64 frameIndex);
 
 		void InitShadowPass();
 		void InitMainPass();
@@ -107,7 +111,6 @@ namespace Dune
 		void CreateDirectionalLightsBuffer();
 		void UpdateDirectionalLights();
 
-		void ReleaseDyingBuffer(dU64 frameIndex);
 
 	private:
 		inline static constexpr dU32						ms_frameCount{ 2 };
@@ -115,8 +118,8 @@ namespace Dune
 
 		bool												m_bIsInitialized{ false };
 
-		Pool<Buffer>										m_bufferPool{4096};
-		Pool<Mesh>											m_meshPool{64};
+		Pool<Buffer>										m_bufferPool;
+		Pool<Mesh>											m_meshPool;
 
 		// Descriptor Heaps
 		DescriptorHeap										m_rtvHeap;
@@ -183,7 +186,7 @@ namespace Dune
 		dU64												m_fenceValues[ms_frameCount];
 		Microsoft::WRL::Wrappers::Event						m_copyFenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
-		dVector<ID3D12Resource*>							m_dyingBuffer[ms_frameCount];
+		dVector<IUnknown*>									m_dyingResources[ms_frameCount];
 
 		// Device
 		Microsoft::WRL::ComPtr<ID3D12Device>				m_device;

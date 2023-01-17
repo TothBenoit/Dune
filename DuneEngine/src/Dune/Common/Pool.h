@@ -7,10 +7,21 @@ namespace Dune
 	class Pool
 	{
 	public:
-		Pool(dSizeT initialSize)
-			: m_size(initialSize)
+		Pool() = default;
+		~Pool()
 		{
+			Assert(m_size == 0);
+		}
+
+		DISABLE_COPY_AND_MOVE(Pool);
+
+		void Initialize(dSizeT initialSize)
+		{
+			Assert(m_size == 0 && !m_generations && !m_datas && !m_freeHandles);
 			Assert(initialSize != 0);
+
+			m_size = initialSize;
+
 			m_datas = reinterpret_cast<T*>(::operator new (m_size * sizeof(T)));
 			m_generations = new ID::GenerationType[initialSize];
 			m_freeHandles = new ID::IDType[initialSize];
@@ -24,18 +35,26 @@ namespace Dune
 
 			m_nextFreeHandlePosition = m_size - 1;
 		}
-		~Pool()
+
+		void Release()
 		{
 			Assert(m_nextFreeHandlePosition == (m_size - 1));
 			::operator delete[](m_datas);
 			delete[] m_freeHandles;
 			delete[] m_generations;
+
+			m_size = 0;
+			m_nextFreeHandlePosition = 0;
+			m_datas = nullptr;
+			m_freeHandles = nullptr;
+			m_generations = nullptr;
 		}
-		DISABLE_COPY_AND_MOVE(Pool);
 
 		template <typename... Args>
 		[[nodiscard]] Handle<H> Create(Args&&... args)
 		{
+			Assert(m_size != 0);
+
 			if (m_nextFreeHandlePosition >= m_size)
 			{
 				Resize();
@@ -52,6 +71,7 @@ namespace Dune
 
 		void Remove(Handle<H> handle)
 		{
+			Assert(m_size != 0);
 			Assert(m_nextFreeHandlePosition != (m_size - 1));
 			Assert(IsValid(handle));
 
@@ -71,6 +91,8 @@ namespace Dune
 
 		[[nodiscard]] bool IsValid(Handle<H> handle) const
 		{
+			Assert(m_size != 0);
+
 			ID::IDType index{ ID::GetIndex(handle.m_id) };
 			ID::GenerationType generation{ ID::GetGeneration(handle.m_id) };
 
@@ -94,6 +116,8 @@ namespace Dune
 	private:
 		void Resize()
 		{
+			Assert(m_size != 0);
+
 			dSizeT newSize{ m_size * 2 };
 
 			T* newData{ reinterpret_cast<T*>(::operator new (newSize * sizeof(T))) };
@@ -121,11 +145,11 @@ namespace Dune
 		}
 
 	private:
-		dSizeT						m_size;
-		dSizeT						m_nextFreeHandlePosition;
-		ID::IDType*					m_freeHandles;
-		ID::GenerationType*			m_generations;
-		T*							m_datas;
+		dSizeT						m_size{0};
+		dSizeT						m_nextFreeHandlePosition{0};
+		ID::IDType*					m_freeHandles{nullptr};
+		ID::GenerationType*			m_generations{nullptr};
+		T*							m_datas{nullptr};
 		
 	};
 }

@@ -43,6 +43,9 @@ namespace Dune
 		m_samplerHeap.Initialize(64, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		m_srvHeap.Initialize(512, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
+		m_bufferPool.Initialize(4096);
+		m_meshPool.Initialize(32);
+
 		CreateCommandQueues();
 		CreateSwapChain(window->GetHandle());
 		CreateRenderTargets();
@@ -221,6 +224,7 @@ namespace Dune
 
 		if (index < m_graphicsElements.size() - 1)
 		{
+			m_graphicsElements[index].Release();
 			m_graphicsElements[index] = std::move(m_graphicsElements.back());
 			m_graphicsEntities[index] = m_graphicsEntities.back();
 
@@ -285,7 +289,13 @@ namespace Dune
 		m_copyCommandAllocator.Reset();
 		m_copyCommandList.Reset();
 
+
+		for (GraphicsElement& elem : m_graphicsElements)
+		{
+			elem.Release();
+		}
 		m_graphicsElements.clear();
+
 		ReleaseBuffer(m_cameraMatrixBuffer);
 		for (dSizeT i{ 0 }; i < ms_frameCount; i++)
 		{
@@ -329,8 +339,11 @@ namespace Dune
 
 		for (dU64 i{ 0 }; i < ms_frameCount; i++)
 		{
-			ReleaseDyingBuffer(i);
+			ReleaseDyingResources(i);
 		}
+
+		m_bufferPool.Release();
+		m_meshPool.Release();
 
 		m_swapChain.Reset();
 		m_device.Reset();
@@ -402,7 +415,7 @@ namespace Dune
 		m_meshPool.Remove(handle);
 	}
 
-	const Mesh& Renderer::GetMesh(Handle<Mesh> handle) const
+	Mesh& Renderer::GetMesh(Handle<Mesh> handle)
 	{
 		return m_meshPool.Get(handle);
 	}
@@ -410,6 +423,11 @@ namespace Dune
 	Handle<Mesh> Renderer::CreateDefaultMesh()
 	{
 		return m_meshPool.Create();
+	}
+
+	void Renderer::ReleaseResource(IUnknown* resource)
+	{
+		m_dyingResources[m_frameIndex].emplace_back(resource);
 	}
 
 	void Renderer::CreateFactory()
@@ -901,13 +919,13 @@ namespace Dune
 		m_device->CreateShaderResourceView(GetBuffer(directionalLightHandle).GetResource(), &srvDesc, m_directionalLightsViews[m_frameIndex].cpuAdress);
 	}
 
-	void Renderer::ReleaseDyingBuffer(dU64 frameIndex)
+	void Renderer::ReleaseDyingResources(dU64 frameIndex)
 	{
-		for (ID3D12Resource* buffer : m_dyingBuffer[frameIndex])
+		for (IUnknown* buffer : m_dyingResources[frameIndex])
 		{
 			buffer->Release();
 		}
-		m_dyingBuffer[frameIndex].clear();
+		m_dyingResources[frameIndex].clear();
 	}
 
 
@@ -916,7 +934,7 @@ namespace Dune
 		Profile(BeginFrame);
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(m_frameIndex);
-		ReleaseDyingBuffer(m_frameIndex);
+		ReleaseDyingResources(m_frameIndex);
 		ImGui::Render();
 		UpdatePointLights();
 		UpdateDirectionalLights();
