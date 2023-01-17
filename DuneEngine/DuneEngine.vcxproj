@@ -25,7 +25,6 @@
     <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\EntityManager.h" />
-    <ClInclude Include="src\Dune\Core\ECS\ID.h" />
     <ClInclude Include="src\Dune\Core\EngineCore.h" />
     <ClInclude Include="src\Dune\Core\SceneGraph.h" />
     <ClInclude Include="src\Dune\Graphics\BufferDesc.h" />
