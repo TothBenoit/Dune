@@ -11,11 +11,6 @@ namespace Dune
 {
 	void Application::Start()
 	{
-#ifdef PROFILE_ENABLED
-		Remotery* rmt;
-		rmt_CreateGlobalInstance(&rmt);
-#endif
-
 		std::unique_ptr<Window> window = Window::Create();
 		EngineCore::Init(window.get());
 
@@ -28,7 +23,7 @@ namespace Dune
 
 		while (window->Update())
 		{
-			Profile(Frame);
+			ProfileBeginFrame();
 
 			auto timer = std::chrono::high_resolution_clock::now();
 			float dt = (float)std::chrono::duration<float>(timer - lastFrameTimer).count();
@@ -41,10 +36,6 @@ namespace Dune
 
 		EngineCore::Shutdown();
 		ImGui::DestroyContext();
-
-#ifdef PROFILE_ENABLED
-		rmt_DestroyGlobalInstance(rmt);
-#endif
 	}
 }
 

@@ -3,14 +3,16 @@
 // Disable exception warning
 #pragma warning(disable:4530)
 
-#ifdef _DEBUG
-	//#define PROFILE_ENABLED
-#endif
+#define PROFILE_ENABLED
 
 #include "Dune/Core/WindowPch.h"
 #include "Dune/Graphics/GraphicsPch.h"
 
-#ifndef PROFILE_ENABLED
+#ifdef PROFILE_ENABLED
+	#include "Optick/optick.h"
+	#define ProfileBeginFrame() OPTICK_FRAME("MainThread");
+	#define Profile(msg) OPTICK_EVENT(#msg)
+#else
 	#define Profile(msg)
 #endif
 

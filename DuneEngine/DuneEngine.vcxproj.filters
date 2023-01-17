@@ -123,8 +123,53 @@
     <ClInclude Include="src\Dune\Core\WindowPch.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="include\Remotery\Remotery.h">
-      <Filter>ThirdParty\Remotery</Filter>
+    <ClInclude Include="include\Optick\optick.config.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_capi.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_common.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_core.freebsd.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_core.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_core.linux.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_core.macos.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_core.platform.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_core.win.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_gpu.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_memory.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_message.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_miniz.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_serialization.h">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Optick\optick_server.h">
+      <Filter>ThirdParty\Optick</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -192,8 +237,32 @@
     <ClCompile Include="src\Dune\Core\Window.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
-    <ClCompile Include="include\Remotery\Remotery.c">
-      <Filter>ThirdParty\Remotery</Filter>
+    <ClCompile Include="include\Optick\optick_capi.cpp">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Optick\optick_core.cpp">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Optick\optick_gpu.cpp">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Optick\optick_gpu.d3d12.cpp">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Optick\optick_gpu.vulkan.cpp">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Optick\optick_message.cpp">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Optick\optick_miniz.cpp">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Optick\optick_serialization.cpp">
+      <Filter>ThirdParty\Optick</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Optick\optick_server.cpp">
+      <Filter>ThirdParty\Optick</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -238,8 +307,8 @@
     <Filter Include="ThirdParty\ImGui">
       <UniqueIdentifier>{cf992147-3f78-44a8-8323-4b4f2f31e8ac}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ThirdParty\Remotery">
-      <UniqueIdentifier>{2fd43901-b27c-4357-be00-66ce48fb6a67}</UniqueIdentifier>
+    <Filter Include="ThirdParty\Optick">
+      <UniqueIdentifier>{683a57f2-db88-4389-a4b5-5e131007cfd5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
