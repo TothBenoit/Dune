@@ -239,9 +239,10 @@ namespace Dune
 
 		Assert(m_fence && m_fenceEvent.IsValid());
 
-		if (m_fence->GetCompletedValue() < frameIndex)
+		const UINT64 frameFenceValue{ m_fenceValues[frameIndex] };
+		if (m_fence->GetCompletedValue() < frameFenceValue)
 		{
-			ThrowIfFailed(m_fence->SetEventOnCompletion(frameIndex, NULL));
+			ThrowIfFailed(m_fence->SetEventOnCompletion(frameFenceValue, NULL))
 		}
 
 		WaitForCopy();
@@ -734,6 +735,10 @@ namespace Dune
 		{
 			ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 		}
+		for (dU32 i{ 0 }; i < ms_frameCount; i++)
+		{
+			m_fenceValues[i] = 0;
+		}
 
 		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_copyFence)));
 		NameDXObject(m_copyFence, L"CopyFence");
@@ -1102,8 +1107,8 @@ namespace Dune
 	{
 		Profile(EndFrame);
 		Present();
-		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameIndex));
-
+		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameNumber));
+		m_fenceValues[m_frameIndex] = m_frameNumber;
 		m_frameNumber++;
 	}
 

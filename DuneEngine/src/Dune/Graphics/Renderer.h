@@ -180,6 +180,7 @@ namespace Dune
 		dU64												m_frameNumber{0};
 		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;
+		dU64												m_fenceValues[ms_frameCount];
 		Microsoft::WRL::Wrappers::Event						m_copyFenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_copyFence;
 		dVector<ID3D12Resource*>							m_dyingBuffer[ms_frameCount];
