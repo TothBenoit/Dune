@@ -24,6 +24,8 @@ namespace Dune
 
 	Renderer& Renderer::GetInstance()
 	{
+		// The compiler adds additionnal check with this kind of lazy init singleton.
+		// Should I fall back to a more traditionnal singleton ?
 		static Renderer instance;
 		return instance;
 	}
@@ -205,7 +207,6 @@ namespace Dune
 		ExecuteShadowPass();
 		ExecuteMainPass();
 		ExecuteImGuiPass();
-		Present();
 		EndFrame();
 	}
 
@@ -238,29 +239,24 @@ namespace Dune
 
 		Assert(m_fence && m_fenceEvent.IsValid());
 
-
-		const UINT64 frameFenceValue = m_fenceValues[frameIndex];
-		if (m_fence->GetCompletedValue() < frameFenceValue)
+		if (m_fence->GetCompletedValue() < frameIndex)
 		{
-			ThrowIfFailed(m_fence->SetEventOnCompletion(frameFenceValue, m_fenceEvent.Get()))
-				std::ignore = WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
+			ThrowIfFailed(m_fence->SetEventOnCompletion(frameIndex, NULL));
 		}
 
-		//Temp since we assume that mesh get instantly uploaded
 		WaitForCopy();
-
 	}
 
 	void Renderer::WaitForCopy()
 	{
 		Assert(m_copyFence && m_copyFenceEvent.IsValid());
 
-		const UINT64 copyFenceValue = m_copyFenceValue;
-		if (m_copyFence->GetCompletedValue() < copyFenceValue)
+		m_copyCommandQueue->Signal(m_copyFence.Get(), 1);
+		if (m_copyFence->GetCompletedValue() < 1)
 		{
-			ThrowIfFailed(m_copyFence->SetEventOnCompletion(copyFenceValue, m_copyFenceEvent.Get()))
-				std::ignore = WaitForSingleObjectEx(m_copyFenceEvent.Get(), INFINITE, FALSE);
+			ThrowIfFailed(m_copyFence->SetEventOnCompletion(1, NULL))
 		}
+		m_copyFence->Signal(0);
 	}
 
 	void Renderer::PrepareShadowPass()
@@ -732,10 +728,6 @@ namespace Dune
 		// Create synchronization objects and wait until assets have been uploaded to the GPU.
 		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
 		NameDXObject(m_fence, L"Fence");
-		for (dU32 i = 0; i < ms_frameCount; i++)
-		{
-			m_fenceValues[i] = 0;
-		}
 
 		m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
 		if (!m_fenceEvent.IsValid())
@@ -745,7 +737,6 @@ namespace Dune
 
 		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_copyFence)));
 		NameDXObject(m_copyFence, L"CopyFence");
-		m_copyFenceValue = 0;
 
 		m_copyFenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
 		if (!m_copyFenceEvent.IsValid())
@@ -879,14 +870,14 @@ namespace Dune
 			return;
 		}
 
-		Handle<Buffer> directionalLightHandle{ m_directionalLightsBuffer[m_frameIndex] };
+		Handle<Buffer>& directionalLightHandle{ m_directionalLightsBuffer[m_frameIndex] };
 
 		if ( ( m_directionalLights.size() * sizeof(DirectionalLight) ) > GetBuffer(directionalLightHandle).GetSize())
 		{
 			BufferDesc desc{ EBufferUsage::Upload };
 			dU32 size{ (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)) };
 			ReleaseBuffer(directionalLightHandle);
-			m_directionalLightsBuffer[m_frameIndex] = CreateBuffer(desc ,nullptr, size);
+			directionalLightHandle = CreateBuffer(desc ,nullptr, size);
 		}
 		else
 		{
@@ -1101,7 +1092,7 @@ namespace Dune
 
 		ThrowIfFailed(m_commandList->Close());
 
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+		ID3D12CommandList* ppCommandLists[] { m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 		ThrowIfFailed(m_swapChain->Present(1, 0));
@@ -1110,8 +1101,8 @@ namespace Dune
 	void Renderer::EndFrame()
 	{
 		Profile(EndFrame);
-		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameNumber));
-		m_fenceValues[m_frameIndex] = m_frameNumber;
+		Present();
+		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_frameIndex));
 
 		m_frameNumber++;
 	}
@@ -1133,14 +1124,14 @@ namespace Dune
 			return;
 		}
 		
-		Handle<Buffer> pointLightHandle{ m_pointLightsBuffer[m_frameIndex] };
+		Handle<Buffer>& pointLightHandle{ m_pointLightsBuffer[m_frameIndex] };
 
 		if (m_pointLights.size() > GetBuffer(pointLightHandle).GetSize() / sizeof(PointLight))
 		{
 			BufferDesc desc { EBufferUsage::Upload };
 			dU32 size = (dU32)(m_pointLights.size() * sizeof(PointLight));
-			ReleaseBuffer(m_pointLightsBuffer[m_frameIndex]);
-			m_pointLightsBuffer[m_frameIndex] = CreateBuffer(desc, m_pointLights.data(), size);
+			ReleaseBuffer(pointLightHandle);
+			pointLightHandle = CreateBuffer(desc, m_pointLights.data(), size);
 		}
 		else
 		{

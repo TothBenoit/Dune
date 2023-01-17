@@ -99,10 +99,6 @@ namespace Dune
 			renderer.m_copyCommandList->Close();
 			dVector<ID3D12CommandList*> ppCommandLists{ renderer.m_copyCommandList.Get() };
 			renderer.m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-
-			ThrowIfFailed(renderer.m_copyCommandQueue->Signal(renderer.m_copyFence.Get(), renderer.m_copyFenceValue + 1));
-			renderer.m_copyFenceValue += 1;
-
 			renderer.WaitForCopy();
 		}
 	}
