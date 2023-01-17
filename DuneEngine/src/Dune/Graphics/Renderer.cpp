@@ -907,6 +907,7 @@ namespace Dune
 		{
 			buffer->Release();
 		}
+		m_dyingBuffer[frameIndex].clear();
 	}
 
 
@@ -915,7 +916,7 @@ namespace Dune
 		Profile(BeginFrame);
 		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(m_frameIndex);
-		m_dyingBuffer[m_frameIndex].clear();
+		ReleaseDyingBuffer(m_frameIndex);
 		ImGui::Render();
 		UpdatePointLights();
 		UpdateDirectionalLights();
