@@ -21,9 +21,9 @@ Submit all graphic elements instead of one by one.
 		And then I have a helper function for constant buffers that takes a struct, grabs a piece of temp buffer memory, copies the struct data into the buffer, and then binds it as a root CBV using the 64-bit GPU virtual address: 
 		https://github.com/TheRealMJP/DXRPathTracer/blob/master/SampleFramework12/v1.02/Graphics/DX12_Helpers.h#L188
 		
-Clicking on entity in ImGui hierarchy triggers modified entity, why ?
-lights does something if empty ???
-need one Global SRV heap
-dir light doesn't work correctly. Attach dir to camera to see the bug.
-add the posibility to remove component.
-make assert debug only
+Lights views are updated at every frame even when empty. bad.
+Add the posibility to remove component.
+Add depth stencil / render target / texture creation.
+Add view(a.k.a descriptor?) creation. 
+Add shader creation : Handle<Shader> CreateShader(const dString& path); at first it just creates shader without asking anything, but in the long run I would like to have some kind of system that verify if the shader has already been compiled.
+Add pipeline creation. Ultimately I would like to have precached pipeline.
