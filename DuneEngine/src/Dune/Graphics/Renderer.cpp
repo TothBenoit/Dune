@@ -925,6 +925,7 @@ namespace Dune
 
 	void Renderer::UpdateDirectionalLights()
 	{
+		Profile(UpdateDirectionalLights);
 		if (m_directionalLights.empty())
 		{
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -933,7 +934,7 @@ namespace Dune
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Buffer.FirstElement = 0;
-			srvDesc.Buffer.NumElements = static_cast<UINT>(m_directionalLights.size());
+			srvDesc.Buffer.NumElements = 0;
 			srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(DirectionalLight));
 			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 			m_device->CreateShaderResourceView(0, &srvDesc, m_directionalLightsViews[m_frameIndex].cpuAdress);
@@ -947,7 +948,7 @@ namespace Dune
 			BufferDesc desc{ EBufferUsage::Upload };
 			dU32 size{ (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)) };
 			ReleaseBuffer(directionalLightHandle);
-			directionalLightHandle = CreateBuffer(desc ,nullptr, size);
+			directionalLightHandle = CreateBuffer(desc , m_directionalLights.data(), size);
 		}
 		else
 		{
@@ -980,6 +981,7 @@ namespace Dune
 
 	void Renderer::UpdateInstancesData()
 	{
+		Profile(UpdateInstancesData);
 		if (m_instancesData.empty())
 		{
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -988,7 +990,7 @@ namespace Dune
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Buffer.FirstElement = 0;
-			srvDesc.Buffer.NumElements = static_cast<UINT>(m_instancesData.size());
+			srvDesc.Buffer.NumElements = 0;
 			srvDesc.Buffer.StructureByteStride = gs_instanceDataSize;
 			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 			m_device->CreateShaderResourceView(0, &srvDesc, m_instancesDataViews[m_frameIndex].cpuAdress);
@@ -1002,7 +1004,7 @@ namespace Dune
 			BufferDesc desc{ EBufferUsage::Upload };
 			dU32 size{ (dU32)(m_instancesData.size() * gs_instanceDataSize) };
 			ReleaseBuffer(instancesDataHandle);
-			instancesDataHandle = CreateBuffer(desc, nullptr, size);
+			instancesDataHandle = CreateBuffer(desc, m_instancesData.data(), size);
 		}
 		else
 		{
@@ -1236,6 +1238,7 @@ namespace Dune
 
 	void Renderer::UpdatePointLights()
 	{
+		Profile(UpdatePointLights);
 		if (m_pointLights.empty())
 		{
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -1244,7 +1247,7 @@ namespace Dune
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Buffer.FirstElement = 0;
-			srvDesc.Buffer.NumElements = static_cast<UINT>(m_pointLights.size());
+			srvDesc.Buffer.NumElements = 0;
 			srvDesc.Buffer.StructureByteStride = static_cast<UINT>(sizeof(PointLight));
 			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 			m_device->CreateShaderResourceView(0, &srvDesc, m_pointLightsViews[m_frameIndex].cpuAdress);

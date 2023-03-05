@@ -291,7 +291,7 @@ namespace Dune
 
 	void EngineCore::DrawScene()
 	{
-		static float spawnRadius = 100.f;
+		static float spawnRadius = 500.f;
 		ImGui::Begin("Scene", &m_showScene);
 		ImGui::Text("Scene graph");
 		ImGui::SameLine();
@@ -332,9 +332,9 @@ namespace Dune
 		}
 
 		ImGui::SameLine();
-		if (ImGui::Button("Add 1000 GraphicsEntity"))
+		if (ImGui::Button("Add 5000 GraphicsEntity"))
 		{
-			for (int i = 0; i < 1000; i++)
+			for (int i = 0; i < 5000; i++)
 			{
 				EntityID id = CreateEntity("New entity");
 				AddComponent<GraphicsComponent>(id);
