@@ -13,11 +13,9 @@
 #include "Dune/Graphics/DirectionalLight.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Material.h"
-#include "Dune/Graphics/GraphicsElement.h"
 
 namespace Dune
 {
-
 	void EngineCore::Init(const Window* pWindow)
 	{
 		if (m_isInitialized)
@@ -34,7 +32,6 @@ namespace Dune
 		ComponentManager<DirectionalLightComponent>::Init();
 
 		Renderer::GetInstance().Initialize(pWindow);
-		m_cubeMesh = Renderer::GetInstance().CreateDefaultMesh();
 
 		m_isInitialized = true;
 
@@ -57,8 +54,6 @@ namespace Dune
 		ComponentManager<CameraComponent>::Shutdown();
 		ComponentManager<PointLightComponent>::Shutdown();
 		ComponentManager<DirectionalLightComponent>::Shutdown();
-
-		Renderer::GetInstance().ReleaseMesh(m_cubeMesh);
 
 		Renderer::GetInstance().Shutdown();
 	}
@@ -331,7 +326,6 @@ namespace Dune
 			{
 				EntityID id = CreateEntity("Cube");
 				AddComponent<GraphicsComponent>(id);
-				ModifyComponent<GraphicsComponent>(id)->mesh = m_cubeMesh;
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -344,7 +338,6 @@ namespace Dune
 			{
 				EntityID id = CreateEntity("New entity");
 				AddComponent<GraphicsComponent>(id);
-				ModifyComponent<GraphicsComponent>(id)->mesh = m_cubeMesh;
 
 				TransformComponent* transform = ModifyComponent<TransformComponent>(id);
 				float LO = -spawnRadius;
@@ -520,7 +513,6 @@ namespace Dune
 				if (ImGui::Button("Add GraphicsComponent"))
 				{
 					AddComponent<GraphicsComponent>(m_selectedEntity);
-					ModifyComponent<GraphicsComponent>(m_selectedEntity)->mesh = m_cubeMesh;
 				}
 			}
 
@@ -599,17 +591,20 @@ namespace Dune
 		{
 			if (const GraphicsComponent* graphicsComponent = GetComponent<GraphicsComponent>(entity))
 			{
-				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
-				Assert(transformComponent);
+				if (graphicsComponent->mesh.IsValid() || true /* Temp until I use GraphicsComponent mesh again */)
+				{
+					const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
+					Assert(transformComponent);
 
-				const dMatrix& transformMatrix{ transformComponent->matrix };
+					const dMatrix& transformMatrix{ transformComponent->matrix };
 
-				InstanceData instanceData;
-				DirectX::XMStoreFloat4x4(&instanceData.modelMatrix, transformMatrix);
-				DirectX::XMStoreFloat4x4(&instanceData.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transformMatrix)));
-				instanceData.baseColor = graphicsComponent->material->m_baseColor;
+					InstanceData instanceData;
+					DirectX::XMStoreFloat4x4(&instanceData.modelMatrix, transformMatrix);
+					DirectX::XMStoreFloat4x4(&instanceData.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transformMatrix)));
+					instanceData.baseColor = graphicsComponent->material->m_baseColor;
 
-				renderer.SubmitGraphicsElement(entity, graphicsComponent->mesh, instanceData);
+					renderer.SubmitGraphicsElement(entity, graphicsComponent->mesh, instanceData);
+				}
 			}
 
 			if (const PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(entity))

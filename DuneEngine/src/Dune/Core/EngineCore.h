@@ -86,7 +86,6 @@ namespace Dune
 		static inline EntityID m_cameraID = ID::invalidID;
 		static inline float m_deltaTime = 0.f;
 		static inline dHashSet<EntityID> m_modifiedEntities;
-		static inline Handle<Mesh> m_cubeMesh;
 	};
 }
 

@@ -33,9 +33,6 @@
     <ClInclude Include="src\Dune\Graphics\Buffer.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\GraphicsElement.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="src\Dune\Core\EngineCore.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
@@ -187,9 +184,6 @@
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Buffer.cpp">
-      <Filter>Dune\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\GraphicsElement.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\EngineCore.cpp">

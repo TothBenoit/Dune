@@ -16,6 +16,16 @@ namespace Dune
 	class Mesh;
 	struct Vertex;
 
+	// Change once per draw call
+	struct InstanceData
+	{
+		dMatrix4x4	modelMatrix;
+		dMatrix4x4	normalMatrix;
+		dVec4		baseColor;
+	};
+
+	inline constexpr dU32 gs_instanceDataSize{ sizeof(InstanceData) };
+
 	// Change once per camera
 	struct CameraConstantBuffer
 	{
@@ -61,7 +71,7 @@ namespace Dune
 		[[nodiscard]] Handle<Mesh>		CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
 		void							ReleaseMesh(Handle<Mesh> handle);
 		// Temp until I can load Mesh correctly
-		[[nodiscard]] Handle<Mesh>		CreateDefaultMesh(); 
+		void							CreateDefaultMesh(); 
 
 		void							ReleaseResource(IUnknown* resource);
 		
@@ -110,13 +120,15 @@ namespace Dune
 		void UpdatePointLights();
 		void CreateDirectionalLightsBuffer();
 		void UpdateDirectionalLights();
-
+		void CreateInstancesDataBuffer();
+		void UpdateInstancesData();
 
 	private:
 		inline static constexpr dU32						ms_frameCount{ 2 };
 		inline static constexpr dU32						ms_shadowMapCount{ 1 };
 
 		bool												m_bIsInitialized{ false };
+		Handle<Mesh>										m_cubeMesh;
 
 		Pool<Buffer>										m_bufferPool;
 		Pool<Mesh>											m_meshPool;
@@ -145,7 +157,7 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_copyCommandQueue;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_copyCommandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
-		
+
 		// Shadow Pass
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
 		Handle<Buffer>										m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
@@ -156,10 +168,12 @@ namespace Dune
 		// Main Pass
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-		Handle<Buffer>										m_pointLightsBuffer[ms_frameCount]; 		// TEMP Should not be hardcoded in the renderer
-		Handle<Buffer>										m_directionalLightsBuffer[ms_frameCount]; 	// TEMP Should not be hardcoded in the renderer
+		Handle<Buffer>										m_pointLightsBuffer[ms_frameCount]; 		
+		Handle<Buffer>										m_directionalLightsBuffer[ms_frameCount]; 	
+		Handle<Buffer>										m_instancesDataBuffer[ms_frameCount];
 		DescriptorHandle									m_pointLightsViews[ms_frameCount];
 		DescriptorHandle									m_directionalLightsViews[ms_frameCount];
+		DescriptorHandle									m_instancesDataViews[ms_frameCount];
 
 		dVector<DirectionalLight>							m_directionalLights;
 		dVector<EntityID>									m_directionalLightEntities;
@@ -169,7 +183,7 @@ namespace Dune
 		dVector<EntityID>									m_pointLightEntities;
 		dHashMap<EntityID, dU32>							m_lookupPointLights;
 
-		dVector<GraphicsElement>							m_graphicsElements;
+		dVector<InstanceData>								m_instancesData;
 		dVector<EntityID>									m_graphicsEntities;
 		dHashMap<EntityID, dU32>							m_lookupGraphicsElements;
 
