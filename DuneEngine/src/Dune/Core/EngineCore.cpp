@@ -392,29 +392,51 @@ namespace Dune
 
 	void EngineCore::DrawGraph()
 	{
+		ImGui::BeginChild("##Graph");
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+
 		if (ImGui::TreeNodeEx((void*)(uintptr_t)ID::invalidID, flags, "Root"))
 		{
-			for (const SceneGraph::Node* child : m_sceneGraph.GetRoot()->GetChildren())
+			ImGuiListClipper clipper;
+			const dList<SceneGraph::Node*>& nodes = m_sceneGraph.GetRoot()->GetChildren();
+			clipper.Begin((int)nodes.size());
+			while (clipper.Step())
 			{
-				DrawNode(child);
+				dList<SceneGraph::Node*>::const_iterator it = m_sceneGraph.GetRoot()->GetChildren().begin();
+				for (int i = 0; i < clipper.DisplayStart; i++)
+				{
+					it++;
+				}
+
+				for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
+				{
+					const SceneGraph::Node* child = *it;
+					DrawNode(child);
+					it++;
+				}
 			}
+
+
 			ImGui::TreePop();
 		}
+		ImGui::EndChild();
 	}
 
 	void EngineCore::DrawNode(const SceneGraph::Node* node)
 	{
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-
-		//if selected, highlight it
-		if (node->GetSelf() == m_selectedEntity)
-		{
-			flags |= ImGuiTreeNodeFlags_Selected;
-		}
+		bool isSelected{ node->GetSelf() == m_selectedEntity };
+		bool isOpen { false };
 
 		//Create tree node
-		bool isOpen = ImGui::TreeNodeEx((void*)(uintptr_t)node->GetSelf(), flags, node->GetName().c_str());
+		if (!node->GetChildren().empty())
+		{
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | (isSelected)? ImGuiTreeNodeFlags_Selected : 0;
+			isOpen = ImGui::TreeNodeEx((void*)(uintptr_t)node->GetSelf(), flags, node->GetName().c_str());
+		}
+		else
+		{
+			ImGui::Selectable(node->GetName().c_str(), isSelected);
+		}
 
 		//Select on click
 		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
