@@ -611,21 +611,21 @@ namespace Dune
 		// should we track modified component instead of modified entities ?
 		for (const EntityID entity : m_modifiedEntities)
 		{
-			if (const GraphicsComponent* graphicsComponent = GetComponent<GraphicsComponent>(entity))
+			if (const GraphicsComponent* pGraphicsComponent = GetComponent<GraphicsComponent>(entity))
 			{
-				if (graphicsComponent->mesh.IsValid() || true /* Temp until I use GraphicsComponent mesh again */)
+				if (pGraphicsComponent->mesh.IsValid() || true /* Temp until I use GraphicsComponent mesh again */)
 				{
-					const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
-					Assert(transformComponent);
+					const TransformComponent* pTransformComponent{ GetComponent<TransformComponent>(entity) };
+					Assert(pTransformComponent);
 
-					const dMatrix& transformMatrix{ transformComponent->matrix };
+					const dMatrix& transformMatrix{ pTransformComponent->matrix };
 
 					InstanceData instanceData;
 					DirectX::XMStoreFloat4x4(&instanceData.modelMatrix, transformMatrix);
 					DirectX::XMStoreFloat4x4(&instanceData.normalMatrix, XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, transformMatrix)));
-					instanceData.baseColor = graphicsComponent->material->m_baseColor;
+					instanceData.baseColor = pGraphicsComponent->material->m_baseColor;
 
-					renderer.SubmitGraphicsElement(entity, graphicsComponent->mesh, instanceData);
+					renderer.SubmitGraphicsElement(entity, pGraphicsComponent->mesh, instanceData);
 				}
 			}
 
@@ -636,14 +636,15 @@ namespace Dune
 				renderer.SubmitPointLight(entity, PointLight(pointLightComponent->color, pointLightComponent->intensity, pointLightComponent->radius, transformComponent->position));
 			}
 
-			if (const DirectionalLightComponent* directionalLightComponent = GetComponent<DirectionalLightComponent>(entity))
+			if (const DirectionalLightComponent* pDirectionalLightComponent = GetComponent<DirectionalLightComponent>(entity))
 			{
-				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
+				const TransformComponent* pTransformComponent = GetComponent<TransformComponent>(entity);
 				
-				DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(transformComponent->rotation.x, transformComponent->rotation.y, transformComponent->rotation.z) };
+				DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(pTransformComponent->rotation.x, pTransformComponent->rotation.y, pTransformComponent->rotation.z) };
 				quat = DirectX::XMQuaternionNormalize(quat);
 
-				//Compute camera view matrix
+				// Compute camera view matrix
+				// TODO : The directional light should moved with the camera to center the shadow map on the camera position
 				DirectX::XMVECTOR at{ DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 0.f, 0.f, 1.f, 0.f }, quat)) };
 				DirectX::XMVECTOR up{ 0.f, 1.f, 0.f, 0.f};
 				DirectX::XMVECTOR eye {DirectX::XMVectorScale(at, -500.f)};
@@ -655,7 +656,7 @@ namespace Dune
 				dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(500.f, 500.f, 1.f, 1000.0f) };
 				viewMatrix*= projectionMatrix;
 
-				renderer.SubmitDirectionalLight(entity, DirectionalLight(directionalLightComponent->color, directionalLightComponent->intensity, dir, viewMatrix));
+				renderer.SubmitDirectionalLight(entity, DirectionalLight(pDirectionalLightComponent->color, pDirectionalLightComponent->intensity, dir, viewMatrix));
 			}
 		}
 	}

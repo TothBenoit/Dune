@@ -1055,20 +1055,8 @@ namespace Dune
 
 		m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 
-		D3D12_VIEWPORT										viewport;
-		D3D12_RECT											scissorRect;
-
-		scissorRect.left = 0;
-		scissorRect.top = 0;
-		scissorRect.right = static_cast<LONG>(8192);
-		scissorRect.bottom = static_cast<LONG>(8192);
-
-		viewport.TopLeftX = 0.0f;
-		viewport.TopLeftY = 0.0f;
-		viewport.Width = static_cast<float>(8192);
-		viewport.Height = static_cast<float>(8192);
-		viewport.MinDepth = 0.f;
-		viewport.MaxDepth = 1.f;
+		constexpr D3D12_VIEWPORT viewport{0.f, 0.f, 8192.f, 8192.f, 0.f, 1.f};
+		constexpr D3D12_RECT scissorRect{ 0, 0, 8192, 8192};
 
 		m_commandList->RSSetViewports(1, &viewport);
 		m_commandList->RSSetScissorRects(1, &scissorRect);
@@ -1142,26 +1130,24 @@ namespace Dune
 
 		m_commandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, FALSE, &m_depthBufferView.cpuAdress);
 
-		const float clearColor[] = { 0.05f, 0.05f, 0.075f, 1.0f };
+		constexpr float clearColor[] = { 0.05f, 0.05f, 0.075f, 1.0f };
 		m_commandList->ClearRenderTargetView(m_backBufferViews[m_frameIndex].cpuAdress, clearColor, 0, nullptr);
 		m_commandList->ClearDepthStencilView(m_depthBufferView.cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-		ID3D12Resource* pCameraMatrixBuffer{ GetBuffer(m_cameraMatrixBuffer).GetResource()};
-		m_commandList->SetGraphicsRootConstantBufferView(0, pCameraMatrixBuffer->GetGPUVirtualAddress());
-
-		ID3D12DescriptorHeap* ppHeaps[] = { m_srvHeap.Get(), m_samplerHeap.Get() };
-		m_commandList->SetDescriptorHeaps(2, ppHeaps);
-		m_commandList->SetGraphicsRootDescriptorTable(1, m_instancesDataViews[m_frameIndex].gpuAdress);
-		m_commandList->SetGraphicsRootDescriptorTable(2, m_pointLightsViews[m_frameIndex].gpuAdress);
-		m_commandList->SetGraphicsRootDescriptorTable(3, m_directionalLightsViews[m_frameIndex].gpuAdress);
-		m_commandList->SetGraphicsRootDescriptorTable(4, m_shadowResourceViews[0].gpuAdress);
-		m_commandList->SetGraphicsRootDescriptorTable(5, m_shadowMapSamplerView.gpuAdress);
-
 		{
-			Profile(SubmitGraphicsElements);
-
 			if (m_instancesData.size() > 0)
 			{
+				ID3D12Resource* pCameraMatrixBuffer{ GetBuffer(m_cameraMatrixBuffer).GetResource() };
+				m_commandList->SetGraphicsRootConstantBufferView(0, pCameraMatrixBuffer->GetGPUVirtualAddress());
+
+				ID3D12DescriptorHeap* ppHeaps[] = { m_srvHeap.Get(), m_samplerHeap.Get() };
+				m_commandList->SetDescriptorHeaps(2, ppHeaps);
+				m_commandList->SetGraphicsRootDescriptorTable(1, m_instancesDataViews[m_frameIndex].gpuAdress);
+				m_commandList->SetGraphicsRootDescriptorTable(2, m_pointLightsViews[m_frameIndex].gpuAdress);
+				m_commandList->SetGraphicsRootDescriptorTable(3, m_directionalLightsViews[m_frameIndex].gpuAdress);
+				m_commandList->SetGraphicsRootDescriptorTable(4, m_shadowResourceViews[0].gpuAdress);
+				m_commandList->SetGraphicsRootDescriptorTable(5, m_shadowMapSamplerView.gpuAdress);
+
 				const Mesh& mesh{ GetMesh(m_cubeMesh) };
 
 				Buffer& vertexBuffer{ GetBuffer(mesh.GeVertexBufferHandle()) };
