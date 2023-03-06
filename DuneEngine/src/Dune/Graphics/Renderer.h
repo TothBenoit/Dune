@@ -45,6 +45,8 @@ namespace Dune
 		[[nodiscard]] bool IsInitialized() const { return m_bIsInitialized; }
 
 		// TODO : Generalize graphics data submission
+		// Hint : Double buffered graphics objects. One is used by the Engine the other by the Renderer.
+
 		void							ClearGraphicsElements();
 		void							RemoveGraphicsElement(EntityID id);
 		void							SubmitGraphicsElement(EntityID id, Handle<Mesh> mesh, const InstanceData& instanceData);
@@ -114,8 +116,8 @@ namespace Dune
 		void WaitForFrame(const dU64 frameIndex);
 		void WaitForCopy();
 
-		//TEMP
-		void PrepareShadowPass();
+		// TODO : Find a nice form for this case.
+		// Update is called each frame. Not good.
 		void CreatePointLightsBuffer();
 		void UpdatePointLights();
 		void CreateDirectionalLightsBuffer();

@@ -263,16 +263,6 @@ namespace Dune
 		m_copyFence->Signal(0);
 	}
 
-	void Renderer::PrepareShadowPass()
-	{
-		for (int i = 0; i < ms_shadowMapCount && i < m_directionalLights.size(); i++)
-		{
-			dMatrix projectionMatrix = DirectX::XMMatrixOrthographicLH(1600, 900, 0.1f, 1000.0f);;
-			// dMatrix viewMatrix = dir ?
-		}
-
-	}
-
 	void Renderer::Shutdown()
 	{
 		m_bIsInitialized = false;
