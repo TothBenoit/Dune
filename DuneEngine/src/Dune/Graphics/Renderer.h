@@ -35,6 +35,7 @@ namespace Dune
 	class Renderer
 	{
 		friend Buffer;
+		struct InstancedBatch;
 	public:
 		DISABLE_COPY_AND_MOVE(Renderer);
 
@@ -48,7 +49,7 @@ namespace Dune
 		// Hint : Double buffered graphics objects. One is used by the Engine the other by the Renderer.
 
 		void							ClearGraphicsElements();
-		void							RemoveGraphicsElement(EntityID id);
+		void							RemoveGraphicsElement(EntityID id, Handle<Mesh> mesh);
 		void							SubmitGraphicsElement(EntityID id, Handle<Mesh> mesh, const InstanceData& instanceData);
 
 		void							ClearPointLights();
@@ -78,9 +79,24 @@ namespace Dune
 		void							ReleaseResource(IUnknown* resource);
 		
 		[[nodiscard]] ID3D12Device*		GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
+		[[nodiscard]] Handle<Mesh>		GetDefaultMesh() const { Assert(m_device.Get()); return m_cubeMesh; }
 
 
 	private:
+
+		inline static constexpr dU32 ms_frameCount{ 2 };
+		inline static constexpr dU32 ms_shadowMapCount{ 1 };
+
+		struct InstancedBatch
+		{
+			dVector<InstanceData>		instancesData;
+			dVector<EntityID>			graphicsEntities;
+			dHashMap<EntityID, dU32>	lookupGraphicsElements;
+
+			Handle<Buffer>				instancesDataBuffer[ms_frameCount];
+			DescriptorHandle			instancesDataViews[ms_frameCount];
+		};
+
 		Renderer() = default;
 		~Renderer();
 		
@@ -122,13 +138,9 @@ namespace Dune
 		void UpdatePointLights();
 		void CreateDirectionalLightsBuffer();
 		void UpdateDirectionalLights();
-		void CreateInstancesDataBuffer();
 		void UpdateInstancesData();
 
 	private:
-		inline static constexpr dU32						ms_frameCount{ 2 };
-		inline static constexpr dU32						ms_shadowMapCount{ 1 };
-
 		bool												m_bIsInitialized{ false };
 		Handle<Mesh>										m_cubeMesh;
 
@@ -172,10 +184,8 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 		Handle<Buffer>										m_pointLightsBuffer[ms_frameCount]; 		
 		Handle<Buffer>										m_directionalLightsBuffer[ms_frameCount]; 	
-		Handle<Buffer>										m_instancesDataBuffer[ms_frameCount];
 		DescriptorHandle									m_pointLightsViews[ms_frameCount];
 		DescriptorHandle									m_directionalLightsViews[ms_frameCount];
-		DescriptorHandle									m_instancesDataViews[ms_frameCount];
 
 		dVector<DirectionalLight>							m_directionalLights;
 		dVector<EntityID>									m_directionalLightEntities;
@@ -185,9 +195,7 @@ namespace Dune
 		dVector<EntityID>									m_pointLightEntities;
 		dHashMap<EntityID, dU32>							m_lookupPointLights;
 
-		dVector<InstanceData>								m_instancesData;
-		dVector<EntityID>									m_graphicsEntities;
-		dHashMap<EntityID, dU32>							m_lookupGraphicsElements;
+		dHashMap<ID::IDType, InstancedBatch>				m_batches;
 
 		Handle<Buffer>										m_cameraMatrixBuffer;
 

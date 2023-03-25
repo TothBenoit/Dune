@@ -33,10 +33,11 @@ namespace Dune
 			return *this; 
 		}
 
+		[[nodiscard]] ID::IDType GetID() const { return m_id; }
 		[[nodiscard]] bool IsValid() const { return ID::IsValid(m_id); }
 
+		Handle(ID::IDType id) : m_id(id) {} // Back to private ASAP. I need a hash function asap
 	private:
-		Handle(ID::IDType id) : m_id(id) {}
 
 		ID::IDType m_id;
 

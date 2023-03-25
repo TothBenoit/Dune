@@ -13,6 +13,7 @@
 #include "Dune/Graphics/DirectionalLight.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Material.h"
+#include "Dune/Utilities/MeshLoader.h"
 
 namespace Dune
 {
@@ -110,14 +111,20 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
+		Renderer& renderer{ Renderer::GetInstance() };
+
+		if (const GraphicsComponent * pGraphicsComponent{ GetComponent<GraphicsComponent>(id) })
+			renderer.RemoveGraphicsElement(id, pGraphicsComponent->mesh);
+
+		if (const PointLightComponent* pPointComponent{ GetComponent<PointLightComponent>(id) })
+			renderer.RemovePointLight(id);
+
+		if (const DirectionalLightComponent * pDirectionalLight{ GetComponent<DirectionalLightComponent>(id) })
+			renderer.RemoveDirectionalLight(id);
+
 		m_entityManager.RemoveEntity(id);
 		m_modifiedEntities.erase(id);
 		m_sceneGraph.DeleteNode(id);
-		
-		Renderer& renderer{ Renderer::GetInstance() };
-		renderer.RemoveGraphicsElement(id);
-		renderer.RemovePointLight(id);
-		renderer.RemoveDirectionalLight(id);
 	}
 
 	const CameraComponent* EngineCore::GetCamera()
@@ -128,6 +135,11 @@ namespace Dune
 	CameraComponent* EngineCore::ModifyCamera()
 	{
 		return ModifyComponent<CameraComponent>(m_cameraID);
+	}
+
+	Handle<Mesh> EngineCore::GetDefaultMesh()
+	{
+		return Renderer::GetInstance().GetDefaultMesh();
 	}
 
 	void EngineCore::UpdateCamera()
@@ -325,7 +337,7 @@ namespace Dune
 			if (ImGui::Button("Cube"))
 			{
 				EntityID id = CreateEntity("Cube");
-				AddComponent<GraphicsComponent>(id);
+				AddComponent<GraphicsComponent>(id).mesh = Renderer::GetInstance().GetDefaultMesh();
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -337,7 +349,7 @@ namespace Dune
 			for (int i = 0; i < 5000; i++)
 			{
 				EntityID id = CreateEntity("New entity");
-				AddComponent<GraphicsComponent>(id);
+				AddComponent<GraphicsComponent>(id).mesh = Renderer::GetInstance().GetDefaultMesh();
 
 				TransformComponent* transform = ModifyComponent<TransformComponent>(id);
 				float LO = -spawnRadius;
@@ -384,6 +396,18 @@ namespace Dune
 		}
 
 		ImGui::DragFloat("Spawn Radius", &spawnRadius, 1.f, 0, FLT_MAX, "%.0f", 1);
+		
+		static char path[512];
+		ImGui::InputText("Mesh path", path, 512);
+		if (ImGui::Button("Load and spawn mesh"))
+		{
+			dVector<Handle<Mesh>> sponzeMeshes { MeshLoader::Load(path)};
+			for (auto meshHandle : sponzeMeshes)
+			{
+				EntityID id = CreateEntity("Mesh");
+				AddComponent<GraphicsComponent>(id).mesh = meshHandle;
+			}
+		}
 
 		ImGui::Separator();
 		DrawGraph();
@@ -534,7 +558,7 @@ namespace Dune
 			{
 				if (ImGui::Button("Add GraphicsComponent"))
 				{
-					AddComponent<GraphicsComponent>(m_selectedEntity);
+					AddComponent<GraphicsComponent>(m_selectedEntity).mesh = Renderer::GetInstance().GetDefaultMesh();
 				}
 			}
 
@@ -613,7 +637,7 @@ namespace Dune
 		{
 			if (const GraphicsComponent* pGraphicsComponent = GetComponent<GraphicsComponent>(entity))
 			{
-				if (pGraphicsComponent->mesh.IsValid() || true /* Temp until I use GraphicsComponent mesh again */)
+				if (pGraphicsComponent->mesh.IsValid())
 				{
 					const TransformComponent* pTransformComponent{ GetComponent<TransformComponent>(entity) };
 					Assert(pTransformComponent);

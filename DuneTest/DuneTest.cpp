@@ -21,7 +21,7 @@ public:
 		if (!didTestOnce)
 		{
 			Dune::EntityID entity = Dune::EngineCore::CreateEntity("My cube");
-			Dune::EngineCore::AddComponent<Dune::GraphicsComponent>(entity);
+			Dune::EngineCore::AddComponent<Dune::GraphicsComponent>(entity).mesh = Dune::EngineCore::GetDefaultMesh();
 			if (Dune::TransformComponent* cubeTransform = Dune::EngineCore::ModifyComponent<Dune::TransformComponent>(entity))
 			{
 				cubeTransform->position.z = 3.f;

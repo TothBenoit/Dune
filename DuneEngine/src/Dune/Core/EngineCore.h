@@ -27,11 +27,11 @@ namespace Dune
 		[[nodiscard]] static bool IsAlive(EntityID entity) { return m_entityManager.IsValid(entity); }
 
 		template<typename Component>
-		static void AddComponent(EntityID id)
+		static Component& AddComponent(EntityID id)
 		{
 			Assert(m_entityManager.IsValid(id));
 			m_modifiedEntities.insert(id);
-			ComponentManager<Component>::Create(id);
+			return ComponentManager<Component>::Create(id);
 		}
 
 		template<typename Component>
@@ -61,6 +61,7 @@ namespace Dune
 		[[nodiscard]] static CameraComponent* ModifyCamera();
 
 		[[nodiscard]] static EntityID GetCameraID() { return m_cameraID; }
+		[[nodiscard]] static Handle<Mesh> GetDefaultMesh();
 
 		[[nodiscard]] inline static bool IsInitialized() { return m_isInitialized; }
 
