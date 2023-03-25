@@ -12,35 +12,44 @@ namespace Dune
 {
 	void ProcessMesh(const aiMesh* pMesh, dVector<Vertex>& vertices, dVector<dU32>& indices, const aiMatrix4x4& transform)
 	{
-		for (dU32 i = 0; i < pMesh->mNumVertices; i++) {
-			dVec3 normal{ (pMesh->HasNormals()) ? dVec3{pMesh->mNormals[i].x, pMesh->mNormals[i].y, pMesh->mNormals[i].z} : dVec3{1.f,0.f,0.f} };
+		for (dU32 i = 0; i < pMesh->mNumVertices; i++) 
+		{
+			dVec3 normal{ (pMesh->HasNormals()) ? dVec3{pMesh->mNormals[i].x, pMesh->mNormals[i].y, pMesh->mNormals[i].z} : dVec3{0.f,0.f,0.f} };
 			aiVector3D& pos = pMesh->mVertices[i];
 			pos *= transform;
-			Vertex vertex
-			{
-				{ pos.x, pos.y, pos.z },
-				normal
-			};
 
-			vertices.push_back(vertex);
+			vertices.emplace_back(dVec3{ pos.x, pos.y, pos.z }, normal);
 		}
 
-		for (dU32 i = 0; i < pMesh->mNumFaces; i++) {
+		for (dU32 i = 0; i < pMesh->mNumFaces; i++) 
+		{
 			aiFace& face = pMesh->mFaces[i];
-
 			for (dU32 j = 0; j < face.mNumIndices; j++)
+			{
 				indices.push_back(face.mIndices[j]);
+			}
 		}
 	}
 
 	void ProcessNode(const aiNode* pNode, const aiScene* pScene, dVector<Handle<Mesh>>& meshes)
 	{
+		dVector<Vertex> vertices;
+		dVector<dU32> indices;
+
 		for (dSizeT i = 0; i < pNode->mNumMeshes; i++)
 		{
-			aiMesh* pMesh{ pScene->mMeshes[pNode->mMeshes[i]] };
+			vertices.clear();
+			indices.clear();
 
-			dVector<Vertex> vertices(pMesh->mNumVertices);
-			dVector<dU32> indices;
+			aiMesh* pMesh{ pScene->mMeshes[pNode->mMeshes[i]] };
+			vertices.reserve(pMesh->mNumVertices);
+
+			dSizeT indexCount = 0;
+			for (dU32 i = 0; i < pMesh->mNumFaces; i++)
+			{
+				indexCount += pMesh->mFaces[i].mNumIndices;
+			}
+			indices.reserve(indexCount);
 
 			ProcessMesh(pMesh, vertices, indices, pNode->mTransformation);
 			Handle<Mesh> meshHandle{ Renderer::GetInstance().CreateMesh(indices, vertices) };
