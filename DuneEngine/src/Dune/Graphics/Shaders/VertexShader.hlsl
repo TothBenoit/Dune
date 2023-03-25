@@ -16,8 +16,7 @@ StructuredBuffer<InstanceConstantBuffer> InstanceDatas: register(t0);
 
 struct VS_INPUT
 {
-    float3 vPos : POSITION;
-    float4 vColor : COLOR;
+    float3 vPos : POSITION; 
     float3 vNormal  : NORMAL;
 };
 

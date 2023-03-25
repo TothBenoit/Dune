@@ -19,7 +19,6 @@ namespace Dune
 			Vertex vertex
 			{
 				{ pos.x, pos.y, pos.z },
-				{ 1.f, 1.f, 1.f, 1.f},
 				normal
 			};
 
@@ -38,10 +37,12 @@ namespace Dune
 	{
 		for (dSizeT i = 0; i < pNode->mNumMeshes; i++)
 		{
-			dVector<Vertex> vertices;
+			aiMesh* pMesh{ pScene->mMeshes[pNode->mMeshes[i]] };
+
+			dVector<Vertex> vertices(pMesh->mNumVertices);
 			dVector<dU32> indices;
 
-			ProcessMesh(pScene->mMeshes[pNode->mMeshes[i]], vertices, indices, pNode->mTransformation);
+			ProcessMesh(pMesh, vertices, indices, pNode->mTransformation);
 			Handle<Mesh> meshHandle{ Renderer::GetInstance().CreateMesh(indices, vertices) };
 
 			if (meshHandle.IsValid())
