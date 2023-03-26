@@ -454,7 +454,7 @@ namespace Dune
 		//Create tree node
 		if (!node->GetChildren().empty())
 		{
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | (isSelected)? ImGuiTreeNodeFlags_Selected : 0;
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ((isSelected) ? ImGuiTreeNodeFlags_Selected : 0);
 			isOpen = ImGui::TreeNodeEx((void*)(uintptr_t)node->GetSelf(), flags, node->GetName().c_str());
 		}
 		else
