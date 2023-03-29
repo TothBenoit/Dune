@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuneTest", "DuneTest\DuneTe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DuneEditor", "DuneEditor\DuneEditor.csproj", "{0E7B7201-0C98-4551-9924-1570D8B25322}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuneEngineDLL", "DuneEngineDLL\DuneEngineDLL.vcxproj", "{F4790DAF-1A22-4602-AD48-B670254A0DF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,6 +35,10 @@ Global
 		{0E7B7201-0C98-4551-9924-1570D8B25322}.Debug|x64.Build.0 = Debug|Any CPU
 		{0E7B7201-0C98-4551-9924-1570D8B25322}.Release|x64.ActiveCfg = Release|Any CPU
 		{0E7B7201-0C98-4551-9924-1570D8B25322}.Release|x64.Build.0 = Release|Any CPU
+		{F4790DAF-1A22-4602-AD48-B670254A0DF5}.Debug|x64.ActiveCfg = Debug|x64
+		{F4790DAF-1A22-4602-AD48-B670254A0DF5}.Debug|x64.Build.0 = Debug|x64
+		{F4790DAF-1A22-4602-AD48-B670254A0DF5}.Release|x64.ActiveCfg = Release|x64
+		{F4790DAF-1A22-4602-AD48-B670254A0DF5}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

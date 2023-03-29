@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "SceneGraph.h"
+#include "Dune/Core/SceneGraph.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Utilities/StringUtils.h"
 
