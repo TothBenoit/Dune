@@ -13,14 +13,11 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace DuneEditor.GameProject
+namespace DuneEditor.Editors
 {
-    /// <summary>
-    /// Interaction logic for CreateProjectView.xaml
-    /// </summary>
-    public partial class CreateProjectView : UserControl
+    public partial class WorldEditorView : UserControl
     {
-        public CreateProjectView()
+        public WorldEditorView()
         {
             InitializeComponent();
         }

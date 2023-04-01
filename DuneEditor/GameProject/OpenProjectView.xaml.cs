@@ -23,6 +23,37 @@ namespace DuneEditor.GameProject
         public OpenProjectView()
         {
             InitializeComponent();
+
+            Loaded += (s, e) =>
+            {
+                var item = projectListBox.ItemContainerGenerator
+                .ContainerFromIndex(projectListBox.SelectedIndex) as ListBoxItem;
+                item?.Focus();
+            };
+        }
+
+        private void OnOpenButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSelectedProject();
+        }
+
+        private void OnProjectListItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            OpenSelectedProject();
+        }
+
+        private void OpenSelectedProject()
+        {
+            var project = OpenProject.Open(projectListBox.SelectedItem as ProjectData);
+            var win = Window.GetWindow(this);
+            bool dialogResult = false;
+            if (project != null)
+            {
+                dialogResult = true;
+                win.DataContext = project;
+            }
+            win.DialogResult = dialogResult;
+            win.Close();
         }
     }
 }
