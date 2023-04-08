@@ -11,7 +11,7 @@
 #include <d3dcompiler.h>
 #include <dxgidebug.h>
 #include <d3dx12/d3dx12.h>
-#include "imgui/imgui_impl_dx12.h"
+#include <imgui/imgui_impl_dx12.h>
 
 #ifdef _DEBUG
 #define NameDXObject(obj, name) obj->SetName(name); OutputDebugString(name); OutputDebugString(L" has been created \n");

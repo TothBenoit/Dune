@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "MeshLoader.h"
 
-#include "assimp/Importer.hpp"
-#include "assimp/postprocess.h"
-#include "assimp/scene.h"
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Mesh.h"

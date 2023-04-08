@@ -63,10 +63,10 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float3 vPosWorld, float3 norma
 	float2 vTexelUnits = 1.0f / vShadowMapDims;
 	// 2x2 percentage closer filtering.
 	float4 vShadowDepths;
-	vShadowDepths.x = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord);
-	vShadowDepths.y = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(vTexelUnits.x, 0.0f));
-	vShadowDepths.z = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(0.0f, vTexelUnits.y));
-	vShadowDepths.w = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + vTexelUnits);
+	vShadowDepths.x = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord).x;
+	vShadowDepths.y = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(vTexelUnits.x, 0.0f)).x;
+	vShadowDepths.z = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(0.0f, vTexelUnits.y)).x;
+	vShadowDepths.w = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + vTexelUnits).x;
 
 	// What weighted fraction of the 4 samples are nearer to the light than this pixel?
 	float4 vShadowTests = (vShadowDepths >= vLightSpaceDepth) ? 1.0f : 0.0f;
@@ -80,14 +80,14 @@ float3 AccumulateDirectionalLight(float3 normal, float4 wPos)
 	DirectionalLights.GetDimensions(lightCount, stride);
 
 	float3 accumulatedDirectionalLight = { 0,0,0 };
-	for (int i = 0; i < lightCount; i++)
+	for (uint i = 0; i < lightCount; i++)
 	{
 		float3 toLight = -DirectionalLights[i].dir;
 		float nDotL = dot(toLight, normal);
 		float3 directionalLight = DirectionalLights[i].color * saturate(nDotL) * DirectionalLights[i].intensity;
 		if (i == 0)
 		{
-			directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos, normal, nDotL);
+			directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos.xyz, normal, nDotL).xyz;
 		}
 		accumulatedDirectionalLight += directionalLight;
 	}
@@ -101,7 +101,7 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 	PointLights.GetDimensions(lightCount, stride);
 
 	float3 accumulatedPointLight = { 0,0,0 };
-	for (int i = 0; i < lightCount; i++)
+	for (uint i = 0; i < lightCount; i++)
 	{
 		float3 toLight = PointLights[i].wPos - wPos;
 		float distToLight = length(toLight);
@@ -119,7 +119,7 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 
 PS_OUTPUT PSMain(PS_INPUT input)
 {
-	float3 accumulatedPointLight = AccumulatePointLight(input.normal, input.wPos);
+	float3 accumulatedPointLight = AccumulatePointLight(input.normal, input.wPos.xyz);
 	float3 accumulatedDirectionLight = AccumulateDirectionalLight(input.normal, input.wPos);
 	float ambientLight = 0.05f;
 

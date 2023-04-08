@@ -9,7 +9,7 @@
 #include "Dune/Graphics/GraphicsPch.h"
 
 #ifdef PROFILE_ENABLED
-	#include "Optick/optick.h"
+	#include <Optick/optick.h>
 	#define ProfileBeginFrame() OPTICK_FRAME("MainThread");
 	#define Profile(msg) OPTICK_EVENT(#msg)
 #else
@@ -26,7 +26,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
-#include "imgui/imgui.h"
+#include <imgui/imgui.h>
 #include "Dune/Common/Macro.h"
 #include "Dune/Common/Types.h"
 #include "Dune/Common/ID.h"
