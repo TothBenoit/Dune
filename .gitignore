@@ -3,6 +3,8 @@
 bin/
 bin-int/
 obj/
+ThirdParties/lib/*/*
+!ThirdParties/lib/*/assimp*
 
 # Files
 
