@@ -197,13 +197,12 @@ namespace Dune
 
 	void Renderer::CreateCamera()
 	{
-		dMatrix identity;
 		BufferDesc camBufferDesc{ EBufferUsage::Upload };
 		dU32 size{ sizeof(CameraConstantBuffer) };
-		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc, &identity, size);
+		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc, nullptr, size);
 	}
 
-	void Renderer::UpdateCamera(const CameraComponent* pCamera)
+	void Renderer::UpdateCamera(const CameraComponent* pCamera, const dVec3& pos)
 	{
 		if (pCamera)
 		{
@@ -211,8 +210,12 @@ namespace Dune
 			// TODO : Get viewport dimensions
 			constexpr float aspectRatio = 1600.f / 900.f;
 			dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(pCamera->verticalFieldOfView), aspectRatio, 0.1f, 1000.0f) };
-			dMatrix viewProjMatrix{ pCamera->viewMatrix * projectionMatrix };
-			UpdateBuffer(m_cameraMatrixBuffer, &viewProjMatrix, sizeof(viewProjMatrix));
+			CameraConstantBuffer cameraData
+			{
+				 pCamera->viewMatrix * projectionMatrix,
+				 dVec4{ pos.x, pos.y, pos.z , 0.f }
+			};
+			UpdateBuffer(m_cameraMatrixBuffer, &cameraData, sizeof(CameraConstantBuffer));
 		}
 	}
 
@@ -715,7 +718,7 @@ namespace Dune
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[6];
 		// Global constant (Camera matrices)
-		rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE, D3D12_SHADER_VISIBILITY_VERTEX);
+		rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE, D3D12_SHADER_VISIBILITY_ALL);
 		// Instances Data
 		rootParameters[1].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_VERTEX);
 		// Point light buffers

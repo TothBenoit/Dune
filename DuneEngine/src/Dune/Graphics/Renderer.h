@@ -29,7 +29,8 @@ namespace Dune
 	// Change once per camera
 	struct CameraConstantBuffer
 	{
-		dMatrix4x4	viewProjMatrix;
+		dMatrix		viewProjMatrix;
+		dVec4		cameraWorldPos;
 	};
 
 	class Renderer
@@ -61,7 +62,7 @@ namespace Dune
 		void							SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
 
 		void							CreateCamera();
-		void							UpdateCamera(const CameraComponent* pCamera);
+		void							UpdateCamera(const CameraComponent* pCamera, const dVec3& pos);
 
 		void							Render();
 

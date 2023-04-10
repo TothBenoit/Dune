@@ -1,6 +1,7 @@
 struct CameraConstantBuffer
 {
     float4x4 ViewProjMatrix;
+    float4 cameraPos;
 };
 
 ConstantBuffer<CameraConstantBuffer> CameraCB : register(b0);

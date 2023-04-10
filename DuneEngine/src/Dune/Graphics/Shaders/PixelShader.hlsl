@@ -4,6 +4,15 @@ Texture2D shadowMap[1] : register(t2);
 
 #define SHADOW_DEPTH_BIAS 0.0005f
 
+struct CameraConstantBuffer
+{
+	float4x4 ViewProjMatrix;
+	float4 cameraWorldPos;
+};
+
+
+ConstantBuffer<CameraConstantBuffer> CameraCB : register(b0);
+
 struct PointLight
 {
 	float3 color;
@@ -79,16 +88,24 @@ float3 AccumulateDirectionalLight(float3 normal, float4 wPos)
 	uint stride;
 	DirectionalLights.GetDimensions(lightCount, stride);
 
+	float3 cameraDir = normalize(CameraCB.cameraWorldPos.xyz - wPos);
+
 	float3 accumulatedDirectionalLight = { 0,0,0 };
 	for (uint i = 0; i < lightCount; i++)
 	{
 		float3 toLight = -DirectionalLights[i].dir;
-		float nDotL = dot(toLight, normal);
-		float3 directionalLight = DirectionalLights[i].color * saturate(nDotL) * DirectionalLights[i].intensity;
+
+		float diffuse = max(dot(toLight, normal), 0.f);
+		float3 reflection = reflect(DirectionalLights[i].dir, normal);
+		float specular = pow(max(dot(cameraDir, reflection), 0.f), 8.f);
+
+		float3 directionalLight = (diffuse + specular) * DirectionalLights[i].color * DirectionalLights[i].intensity;
+
 		if (i == 0)
 		{
-			directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos.xyz, normal, nDotL).xyz;
+			directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos.xyz, normal, diffuse).xyz;
 		}
+
 		accumulatedDirectionalLight += directionalLight;
 	}
 	return accumulatedDirectionalLight;
@@ -100,30 +117,37 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 	uint stride;
 	PointLights.GetDimensions(lightCount, stride);
 
-	float3 accumulatedPointLight = { 0,0,0 };
+	float3 cameraDir = normalize(CameraCB.cameraWorldPos.xyz - wPos);
+
+	float3 accumulatedPointLight = { 0.f, 0.f, 0.f };
 	for (uint i = 0; i < lightCount; i++)
 	{
 		float3 toLight = PointLights[i].wPos - wPos;
 		float distToLight = length(toLight);
+		toLight /= distToLight;
+
+		float diffuse = max(dot(toLight, normal), 0.f);
+		float3 reflection = reflect(-toLight, normal);
+		float specular = pow(max(dot(cameraDir, reflection), 0.f), 8.f);
 
 		float distToLightNorm = 1 - saturate(distToLight / PointLights[i].radius);
 		float attenuation = distToLightNorm * distToLightNorm;
 
-		toLight /= distToLight;
-		float3 pointLight = PointLights[i].color * saturate(dot(toLight, normal)) * attenuation * PointLights[i].intensity;
+		float3 pointLight = (diffuse + specular) * PointLights[i].color * attenuation * PointLights[i].intensity;
 
 		accumulatedPointLight += pointLight;
 	}
+
 	return accumulatedPointLight;
 }
 
 PS_OUTPUT PSMain(PS_INPUT input)
 {
-	float3 accumulatedPointLight = AccumulatePointLight(input.normal, input.wPos.xyz);
+	float3 accumulatedPointLight = AccumulatePointLight(input.normal, input.wPos);
 	float3 accumulatedDirectionLight = AccumulateDirectionalLight(input.normal, input.wPos);
-	float ambientLight = 0.05f;
+	float3 ambientLight = 0.05f;
 
 	PS_OUTPUT output;
-	output.color = input.color * float4(saturate(ambientLight + accumulatedPointLight + accumulatedDirectionLight), 1.0f);
+	output.color = input.color * saturate(float4(ambientLight + accumulatedPointLight + accumulatedDirectionLight, 1.0f));
 	return output;
 }

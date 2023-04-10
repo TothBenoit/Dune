@@ -629,7 +629,7 @@ namespace Dune
 
 		if (m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end())
 		{
-			renderer.UpdateCamera(GetComponent<CameraComponent>(m_cameraID));
+			renderer.UpdateCamera(GetComponent<CameraComponent>(m_cameraID), GetComponent<TransformComponent>(m_cameraID)->position);
 		}
 
 		// should we track modified component instead of modified entities ?
