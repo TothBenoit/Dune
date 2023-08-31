@@ -55,11 +55,11 @@ namespace Dune
 
 		void							ClearPointLights();
 		void							RemovePointLight(EntityID id);
-		void							SubmitPointLight(EntityID id, const PointLight& light);
+		void							SubmitPointLight(EntityID id, const dVec3& color, float intensity, const dVec3& pos, float radius);
 
 		void							ClearDirectionalLights();
 		void							RemoveDirectionalLight(EntityID id);
-		void							SubmitDirectionalLight(EntityID id, const DirectionalLight& light);
+		void							SubmitDirectionalLight(EntityID id, const dVec3& color, const dVec3& direction, float intensity, const dMatrix4x4& viewProj);
 
 		void							CreateCamera();
 		void							UpdateCamera(const CameraComponent* pCamera, const dVec3& pos);

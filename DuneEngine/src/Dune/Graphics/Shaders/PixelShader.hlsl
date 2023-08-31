@@ -1,3 +1,6 @@
+#include "DirectionalLight.h"
+#include "PointLight.h"
+
 SamplerState sampleClamp : register(s0);
 
 Texture2D shadowMap[1] : register(t2);
@@ -13,24 +16,7 @@ struct CameraConstantBuffer
 
 ConstantBuffer<CameraConstantBuffer> CameraCB : register(b0);
 
-struct PointLight
-{
-	float3 color;
-	float intensity;
-	float radius;
-	float3 wPos;
-};
-
 StructuredBuffer<PointLight> PointLights: register(t0);
-
-struct DirectionalLight
-{
-	float3 color;
-	float intensity;
-	float3 dir;
-	float _padding1;
-	float4x4 viewProjMatrix;
-};
 
 StructuredBuffer<DirectionalLight> DirectionalLights: register(t1);
 
@@ -51,7 +37,7 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float3 vPosWorld, float3 norma
 {
 	// Compute pixel position in light space.
 	float4 vLightSpacePos = float4(vPosWorld + (normal.xyz * (1.0f - abs(nDotL))),1.f);
-	vLightSpacePos = mul(DirectionalLights[lightIndex].viewProjMatrix, vLightSpacePos);
+	vLightSpacePos = mul(DirectionalLights[lightIndex].m_viewProj, vLightSpacePos);
 
 	vLightSpacePos.xyz /= vLightSpacePos.w;
 
@@ -93,13 +79,13 @@ float3 AccumulateDirectionalLight(float3 normal, float4 wPos)
 	float3 accumulatedDirectionalLight = { 0,0,0 };
 	for (uint i = 0; i < lightCount; i++)
 	{
-		float3 toLight = -DirectionalLights[i].dir;
+		float3 toLight = -DirectionalLights[i].m_dir;
 
 		float diffuse = max(dot(toLight, normal), 0.f);
-		float3 reflection = reflect(DirectionalLights[i].dir, normal);
+		float3 reflection = reflect(DirectionalLights[i].m_dir, normal);
 		float specular = pow(max(dot(cameraDir, reflection), 0.f), 8.f);
 
-		float3 directionalLight = (diffuse + specular) * DirectionalLights[i].color * DirectionalLights[i].intensity;
+		float3 directionalLight = (diffuse + specular) * DirectionalLights[i].m_color * DirectionalLights[i].m_intensity;
 
 		if (i == 0)
 		{
@@ -122,7 +108,7 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 	float3 accumulatedPointLight = { 0.f, 0.f, 0.f };
 	for (uint i = 0; i < lightCount; i++)
 	{
-		float3 toLight = PointLights[i].wPos - wPos;
+		float3 toLight = PointLights[i].m_pos - wPos;
 		float distToLight = length(toLight);
 		toLight /= distToLight;
 
@@ -130,10 +116,10 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 		float3 reflection = reflect(-toLight, normal);
 		float specular = pow(max(dot(cameraDir, reflection), 0.f), 8.f);
 
-		float distToLightNorm = 1 - saturate(distToLight / PointLights[i].radius);
+		float distToLightNorm = 1 - saturate(distToLight / PointLights[i].m_radius);
 		float attenuation = distToLightNorm * distToLightNorm;
 
-		float3 pointLight = (diffuse + specular) * PointLights[i].color * attenuation * PointLights[i].intensity;
+		float3 pointLight = (diffuse + specular) * PointLights[i].m_color * attenuation * PointLights[i].m_intensity;
 
 		accumulatedPointLight += pointLight;
 	}

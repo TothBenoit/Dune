@@ -9,8 +9,6 @@
 #include "Dune/Core/ECS/Components/CameraComponent.h"
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
 #include "Dune/Core/ECS/Components/DirectionalLightComponent.h"
-#include "Dune/Graphics/PointLight.h"
-#include "Dune/Graphics/DirectionalLight.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Material.h"
 #include "Dune/Utilities/MeshLoader.h"
@@ -653,11 +651,11 @@ namespace Dune
 				}
 			}
 
-			if (const PointLightComponent* pointLightComponent = GetComponent<PointLightComponent>(entity))
+			if (const PointLightComponent* pPointLightComponent = GetComponent<PointLightComponent>(entity))
 			{
-				const TransformComponent* transformComponent = GetComponent<TransformComponent>(entity);
+				const TransformComponent* pTransformComponent = GetComponent<TransformComponent>(entity);
 				
-				renderer.SubmitPointLight(entity, PointLight(pointLightComponent->color, pointLightComponent->intensity, pointLightComponent->radius, transformComponent->position));
+				renderer.SubmitPointLight(entity, pPointLightComponent->color, pPointLightComponent->intensity, pTransformComponent->position, pPointLightComponent->radius);
 			}
 
 			if (const DirectionalLightComponent* pDirectionalLightComponent = GetComponent<DirectionalLightComponent>(entity))
@@ -674,13 +672,15 @@ namespace Dune
 				DirectX::XMVECTOR eye {DirectX::XMVectorScale(at, -500.f)};
 				dMatrix viewMatrix{ DirectX::XMMatrixLookAtLH(eye, at, up) };
 
-				dVec3 dir{};
-				DirectX::XMStoreFloat3(&dir,at);
-
 				dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(500.f, 500.f, 1.f, 1000.0f) };
-				viewMatrix*= projectionMatrix;
 
-				renderer.SubmitDirectionalLight(entity, DirectionalLight(pDirectionalLightComponent->color, pDirectionalLightComponent->intensity, dir, viewMatrix));
+				dMatrix4x4 viewProj; 
+				DirectX::XMStoreFloat4x4(&viewProj, viewMatrix * projectionMatrix);
+
+				dVec3 dir{};
+				DirectX::XMStoreFloat3(&dir, at);
+
+				renderer.SubmitDirectionalLight(entity, pDirectionalLightComponent->color, dir, pDirectionalLightComponent->intensity, viewProj);
 			}
 		}
 	}

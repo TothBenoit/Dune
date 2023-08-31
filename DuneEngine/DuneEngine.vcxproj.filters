@@ -34,9 +34,6 @@
     <ClInclude Include="src\Dune\Core\EngineCore.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\DirectionalLight.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="src\Dune\Graphics\GraphicsPch.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
@@ -59,9 +56,6 @@
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Graphics\Mesh.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\PointLight.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h">
@@ -102,6 +96,15 @@
     </ClInclude>
     <ClInclude Include="src\Dune\Utilities\MeshLoader.h">
       <Filter>Dune\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dune\Graphics\Shaders\Common\ShaderTypes.h">
+      <Filter>Dune\Graphics\Shader\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dune\Graphics\Shaders\PointLight.h">
+      <Filter>Dune\Graphics\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dune\Graphics\Shaders\DirectionalLight.h">
+      <Filter>Dune\Graphics\Shader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -192,6 +195,9 @@
     </Filter>
     <Filter Include="ThirdParty\Optick">
       <UniqueIdentifier>{683a57f2-db88-4389-a4b5-5e131007cfd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Graphics\Shader\Common">
+      <UniqueIdentifier>{e5fd42c7-b8de-433a-b0e8-db486a3636dd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

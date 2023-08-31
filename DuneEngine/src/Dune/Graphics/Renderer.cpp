@@ -6,8 +6,8 @@
 #include "Dune/Core/Logger.h"
 #include "Dune/Utilities/StringUtils.h"
 #include "Dune/Core/ECS/Components/CameraComponent.h"
-#include "Dune/Graphics/PointLight.h"
-#include "Dune/Graphics/DirectionalLight.h"
+#include "Dune/Graphics/Shaders/PointLight.h"
+#include "Dune/Graphics/Shaders/DirectionalLight.h"
 #include "Dune/Graphics/Mesh.h"
 
 namespace Dune
@@ -128,9 +128,15 @@ namespace Dune
 		m_lookupPointLights.erase(id);
 	}
 
-	void Renderer::SubmitPointLight(EntityID id, const PointLight& light)
+	void Renderer::SubmitPointLight(EntityID id, const dVec3& color, float intensity, const dVec3& pos, float radius)
 	{
 		Assert(id != ID::invalidID);
+
+		PointLight light;
+		light.m_color = color;
+		light.m_intensity = intensity;
+		light.m_pos = pos;
+		light.m_radius = radius;
 
 		auto it = m_lookupPointLights.find(id);
 		if (it != m_lookupPointLights.end())
@@ -176,9 +182,15 @@ namespace Dune
 		m_lookupDirectionalLights.erase(id);
 	}
 
-	void Renderer::SubmitDirectionalLight(EntityID id, const DirectionalLight& light)
+	void Renderer::SubmitDirectionalLight(EntityID id, const dVec3& color, const dVec3& direction, float intensity, const dMatrix4x4& viewProj)
 	{
 		Assert(id != ID::invalidID);
+
+		DirectionalLight light;
+		light.m_color = color;
+		light.m_dir = direction;
+		light.m_intensity = intensity;
+		light.m_viewProj = viewProj;
 
 		auto it = m_lookupDirectionalLights.find(id);
 		if (it != m_lookupDirectionalLights.end())
