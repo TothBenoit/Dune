@@ -186,8 +186,8 @@ namespace Dune
 		}
 		if (Input::GetMouseButton(2))
 		{
-			rotation.x = (float)Input::GetMouseDeltaY();
-			rotation.y = (float)Input::GetMouseDeltaX();
+			rotation.x = Input::GetMouseDeltaY();
+			rotation.y = Input::GetMouseDeltaX();
 			cameraHasMoved = true;
 		}
 
