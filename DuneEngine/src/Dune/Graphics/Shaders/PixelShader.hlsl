@@ -1,9 +1,11 @@
 #include "DirectionalLight.h"
 #include "PointLight.h"
 
+#define SHADOW_MAP_COUNT 4
+
 SamplerState sampleClamp : register(s0);
 
-Texture2D shadowMap[1] : register(t2);
+Texture2DArray shadowMap : register(t2);
 
 #define SHADOW_DEPTH_BIAS 0.0005f
 
@@ -12,7 +14,6 @@ struct CameraConstantBuffer
 	float4x4 ViewProjMatrix;
 	float4 cameraWorldPos;
 };
-
 
 ConstantBuffer<CameraConstantBuffer> CameraCB : register(b0);
 
@@ -58,10 +59,10 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float3 vPosWorld, float3 norma
 	float2 vTexelUnits = 1.0f / vShadowMapDims;
 	// 2x2 percentage closer filtering.
 	float4 vShadowDepths;
-	vShadowDepths.x = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord).x;
-	vShadowDepths.y = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(vTexelUnits.x, 0.0f)).x;
-	vShadowDepths.z = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + float2(0.0f, vTexelUnits.y)).x;
-	vShadowDepths.w = shadowMap[lightIndex].Sample(sampleClamp, vShadowTexCoord + vTexelUnits).x;
+	vShadowDepths.x = shadowMap.Sample(sampleClamp, float3(vShadowTexCoord,									lightIndex)).x;
+	vShadowDepths.y = shadowMap.Sample(sampleClamp, float3(vShadowTexCoord + float2(vTexelUnits.x, 0.0f),	lightIndex) ).x;
+	vShadowDepths.z = shadowMap.Sample(sampleClamp, float3(vShadowTexCoord + float2(0.0f, vTexelUnits.y),	lightIndex) ).x;
+	vShadowDepths.w = shadowMap.Sample(sampleClamp, float3(vShadowTexCoord + vTexelUnits,					lightIndex)).x;
 
 	// What weighted fraction of the 4 samples are nearer to the light than this pixel?
 	float4 vShadowTests = (vShadowDepths >= vLightSpaceDepth) ? 1.0f : 0.0f;
@@ -87,9 +88,9 @@ float3 AccumulateDirectionalLight(float3 normal, float4 wPos)
 
 		float3 directionalLight = (diffuse + specular) * DirectionalLights[i].m_color * DirectionalLights[i].m_intensity;
 
-		if (i == 0)
+		if (i < SHADOW_MAP_COUNT)
 		{
-			directionalLight *= CalcUnshadowedAmountPCF2x2(0, wPos.xyz, normal, diffuse).xyz;
+			directionalLight *= CalcUnshadowedAmountPCF2x2(i, wPos.xyz, normal, diffuse).xyz;
 		}
 
 		accumulatedDirectionalLight += directionalLight;

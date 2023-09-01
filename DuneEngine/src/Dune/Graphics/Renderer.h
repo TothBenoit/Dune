@@ -14,6 +14,7 @@ namespace Dune
 	struct InstanceData;
 	class Buffer;
 	class Mesh;
+	class Shader;
 	struct Vertex;
 
 	// Change once per draw call
@@ -80,13 +81,14 @@ namespace Dune
 		void							ReleaseResource(IUnknown* resource);
 		
 		[[nodiscard]] ID3D12Device*		GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
-		[[nodiscard]] Handle<Mesh>		GetDefaultMesh() const { Assert(m_device.Get()); return m_cubeMesh; }
+		[[nodiscard]] Handle<Mesh>		GetDefaultMesh() const { Assert(m_device.Get()); return m_defaultMesh; }
+		[[nodiscard]] dU32				GetShadowMapCount() const { Assert(m_device.Get()); return ms_shadowMapCount; }
 
 
 	private:
 
 		inline static constexpr dU32 ms_frameCount{ 2 };
-		inline static constexpr dU32 ms_shadowMapCount{ 1 };
+		inline static constexpr dU32 ms_shadowMapCount{ 4 };
 
 		struct InstancedBatch
 		{
@@ -110,8 +112,6 @@ namespace Dune
 		void CreateDepthStencil(int width, int height);
 		void CreateCommandAllocators();
 		void CreateSamplers();
-		void CreateRootSignature();
-		void CreatePipeline();
 		void CreateCommandLists();
 		void CreateFences();
 
@@ -141,12 +141,16 @@ namespace Dune
 		void UpdateDirectionalLights();
 		void UpdateInstancesData();
 
+		// Temp : Until I use Material component
+		void CreateDefaultShader();
 	private:
 		bool												m_bIsInitialized{ false };
-		Handle<Mesh>										m_cubeMesh;
+		Handle<Mesh>										m_defaultMesh;
+		Handle<Shader>										m_defaultShader;
 
 		Pool<Buffer>										m_bufferPool;
 		Pool<Mesh>											m_meshPool;
+		Pool<Shader>										m_shaderPool;
 
 		// Descriptor Heaps
 		DescriptorHeap										m_rtvHeap;
@@ -174,15 +178,13 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
 
 		// Shadow Pass
-		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps[ms_shadowMapCount];
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps;
 		Handle<Buffer>										m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
-		DescriptorHandle									m_shadowDepthViews[ms_shadowMapCount];
-		DescriptorHandle									m_shadowResourceViews[ms_shadowMapCount];
-		DescriptorHandle									m_shadowMapSamplerView;
+		DescriptorHandle									m_shadowMapsDepthViews[ms_shadowMapCount];
+		DescriptorHandle									m_shadowMapsResourceView;
+		DescriptorHandle									m_shadowMapsSamplerView;
 
 		// Main Pass
-		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 		Handle<Buffer>										m_pointLightsBuffer[ms_frameCount]; 		
 		Handle<Buffer>										m_directionalLightsBuffer[ms_frameCount]; 	
 		DescriptorHandle									m_pointLightsViews[ms_frameCount];

@@ -4,6 +4,8 @@
 
 namespace Dune
 {
+	template <typename T, typename H>
+	class Pool;
 	class Buffer;
 
 	struct Vertex
@@ -29,7 +31,7 @@ namespace Dune
 		void UploadIndexBuffer();
 
 	private:
-		template <typename T, typename H> friend class Pool;
+		friend Pool<Mesh, Mesh>;
 
 		dVector<dU32> m_indices;
 		dVector<Vertex> m_vertices;

@@ -4,6 +4,9 @@
 
 namespace Dune
 {
+	template <typename T, typename H>
+	class Pool;
+
 	class Buffer
 	{
 	public:
@@ -19,12 +22,12 @@ namespace Dune
 		DISABLE_COPY_AND_MOVE(Buffer);
 	
 	private:
+		friend Pool<Buffer, Buffer>;
+
 		dU8*				m_cpuAdress;
 		ID3D12Resource*		m_uploadBuffer;
 		ID3D12Resource*		m_buffer;
 		const EBufferUsage	m_usage;
 		dU32				m_size;
-
-		template <typename T, typename H> friend class Pool;
 	};
 }
