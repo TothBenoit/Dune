@@ -606,8 +606,8 @@ namespace Dune
 
 		m_scissorRect.left = 0;
 		m_scissorRect.top = 0;
-		m_scissorRect.right = static_cast<LONG>(clientRect.right);
-		m_scissorRect.bottom = static_cast<LONG>(clientRect.bottom);
+		m_scissorRect.right = clientRect.right;
+		m_scissorRect.bottom = clientRect.bottom;
 
 		m_viewport.TopLeftX = 0.0f;
 		m_viewport.TopLeftY = 0.0f;
