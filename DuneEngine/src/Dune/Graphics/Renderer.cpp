@@ -82,7 +82,7 @@ namespace Dune
 				batch.instancesDataBuffer[i] = CreateBuffer(desc);
 				batch.instancesDataViews[i] = m_srvHeap.Allocate();
 			}
-			m_batches.emplace(mesh.GetID(), batch );
+			m_batches.emplace(mesh.GetID(), std::move(batch) );
 		}
 
 		InstancedBatch& batch{ m_batches[mesh.GetID()] };
@@ -99,6 +99,41 @@ namespace Dune
 			batch.lookupGraphicsElements[id] = (dU32)batch.instancesData.size();
 			batch.instancesData.emplace_back(instanceData);
 			batch.graphicsEntities.emplace_back(id);
+		}
+	}
+
+	void Renderer::RemoveGraphicsElement(EntityID id, Handle<Mesh> meshHandle)
+	{
+		Assert(m_batches.find(meshHandle.GetID()) != m_batches.end());
+
+		dHashMap<ID::IDType, InstancedBatch>::iterator it{ m_batches.find(meshHandle.GetID()) };
+
+		InstancedBatch& batch{ it->second };
+
+		Assert(batch.lookupGraphicsElements.find(id) != batch.lookupGraphicsElements.end());
+
+		const dU32 index{ batch.lookupGraphicsElements[id] };
+		const EntityID entity{ batch.graphicsEntities[index] };
+
+		if (index < batch.instancesData.size() - 1)
+		{
+			batch.instancesData[index] = batch.instancesData.back();
+			batch.graphicsEntities[index] = batch.graphicsEntities.back();
+			batch.lookupGraphicsElements[batch.graphicsEntities[index]] = index;
+		}
+
+		batch.instancesData.pop_back();
+		batch.graphicsEntities.pop_back();
+		batch.lookupGraphicsElements.erase(id);
+
+		if (batch.instancesData.empty())
+		{
+			for (dU32 i = 0; i < ms_frameCount; i++)
+			{
+				ReleaseBuffer(batch.instancesDataBuffer[i]);
+				m_srvHeap.Free(batch.instancesDataViews[i]);
+			}
+			m_batches.erase(it);
 		}
 	}
 
@@ -243,37 +278,13 @@ namespace Dune
 		EndFrame();
 	}
 
-	void Renderer::RemoveGraphicsElement(EntityID id, Handle<Mesh> meshHandle)
-	{
-		Assert(m_batches.find(meshHandle.GetID()) != m_batches.end());
-
-		InstancedBatch& batch{ m_batches[meshHandle.GetID()] };
-
-		Assert(batch.lookupGraphicsElements.find(id) != batch.lookupGraphicsElements.end());
-
-		const dU32 index = batch.lookupGraphicsElements[id];
-		const EntityID entity = batch.graphicsEntities[index];
-
-		if (index < batch.instancesData.size() - 1)
-		{
-			batch.instancesData[index] = batch.instancesData.back();
-			batch.graphicsEntities[index] = batch.graphicsEntities.back();
-			batch.lookupGraphicsElements[batch.graphicsEntities[index]] = index;
-		}
-
-		batch.instancesData.pop_back();
-		batch.graphicsEntities.pop_back();
-		batch.lookupGraphicsElements.erase(id);
-	}
-
-
 	void Renderer::WaitForFrame(const dU64 frameIndex)
 	{
 		Profile(WaitForFrame);
 
 		Assert(m_fence && m_fenceEvent.IsValid());
 
-		const UINT64 frameFenceValue{ m_fenceValues[frameIndex] };
+		const dU64 frameFenceValue{ m_fenceValues[frameIndex] };
 		if (m_fence->GetCompletedValue() < frameFenceValue)
 		{
 			ThrowIfFailed(m_fence->SetEventOnCompletion(frameFenceValue, NULL))
@@ -315,7 +326,7 @@ namespace Dune
 			batch.instancesData.clear();
 			batch.lookupGraphicsElements.clear();
 
-			for (dSizeT i{ 0 }; i < ms_frameCount; i++)
+			for (dU32 i{ 0 }; i < ms_frameCount; i++)
 			{
 				ReleaseBuffer(batch.instancesDataBuffer[i]);
 				m_srvHeap.Free(batch.instancesDataViews[i]);
@@ -328,7 +339,7 @@ namespace Dune
 			m_meshPool.Remove(m_defaultMesh);
 
 		ReleaseBuffer(m_cameraMatrixBuffer);
-		for (dSizeT i{ 0 }; i < ms_frameCount; i++)
+		for (dU32 i{ 0 }; i < ms_frameCount; i++)
 		{
 			m_commandAllocators[i].Reset();
 			m_backBuffers[i].Reset();
@@ -344,9 +355,9 @@ namespace Dune
 		m_depthStencilBuffer.Reset();
 		m_dsvHeap.Free(m_depthBufferView);
 
-		for (dSizeT i{ 0 }; i < ms_shadowMapCount; i++)
+		for (dU32 i{ 0 }; i < ms_shadowMapCount; i++)
 		{
-			for (dSizeT j{ 0 }; j < ms_frameCount; j++)
+			for (dU32 j{ 0 }; j < ms_frameCount; j++)
 			{
 				ReleaseBuffer(m_shadowCameraBuffers[i][j]);
 			}
@@ -407,7 +418,7 @@ namespace Dune
 			0
 		));
 
-		for (UINT i = 0; i < ms_frameCount; i++)
+		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
 			m_rtvHeap.Free(m_backBufferViews[i]);
 		}
@@ -1044,7 +1055,7 @@ namespace Dune
 			ID3D12DescriptorHeap* ppHeaps[] = { m_srvHeap.Get() };
 			m_commandList->SetDescriptorHeaps(1, ppHeaps);
 
-			for (auto& [meshID, batch] : m_batches)
+			for (const auto& [meshID, batch] : m_batches)
 			{
 				Profile(Batch);
 				if (batch.instancesData.size() > 0)
@@ -1116,7 +1127,7 @@ namespace Dune
 		m_commandList->SetGraphicsRootDescriptorTable(4, m_shadowMapsResourceView.gpuAdress);
 		m_commandList->SetGraphicsRootDescriptorTable(5, m_shadowMapsSamplerView.gpuAdress);
 
-		for (auto& [meshID, batch] : m_batches)
+		for (const auto& [meshID, batch] : m_batches)
 		{
 			if (batch.instancesData.size() > 0)
 			{
