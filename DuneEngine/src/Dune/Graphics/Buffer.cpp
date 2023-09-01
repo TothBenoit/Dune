@@ -4,9 +4,9 @@
 
 namespace Dune
 {
-	Buffer::Buffer(const BufferDesc& desc, const void* pData, dU32 size)
+	Buffer::Buffer(const BufferDesc& desc)
 		: m_usage{ desc.usage }
-		, m_size{ size }
+		, m_size{ desc.byteSize }
 	{
 		D3D12_HEAP_PROPERTIES heapProps{};
 		D3D12_RESOURCE_STATES resourceState{};
@@ -34,7 +34,7 @@ namespace Dune
 			resourceState,
 			nullptr,
 			IID_PPV_ARGS(&m_buffer)));
-		m_buffer->SetName(L"Buffer");
+		m_buffer->SetName(desc.debugName);
 
 		if (m_usage == EBufferUsage::Upload)
 		{
@@ -63,9 +63,9 @@ namespace Dune
 			ThrowIfFailed(m_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_cpuAdress)));
 		}
 
-		if (pData)
+		if (desc.pData)
 		{
-			UploadData(pData, m_size);
+			UploadData(desc.pData, m_size);
 		}
 	}
 

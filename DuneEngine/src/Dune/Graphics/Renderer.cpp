@@ -75,8 +75,8 @@ namespace Dune
 			InstancedBatch batch{};
 			for (dU32 i = 0; i < ms_frameCount; i++)
 			{
-				BufferDesc desc{ EBufferUsage::Upload };
-				batch.instancesDataBuffer[i] = CreateBuffer(desc, nullptr, gs_instanceDataSize);
+				BufferDesc desc{ L"InstanceDatasBuffer", gs_instanceDataSize, EBufferUsage::Upload, nullptr};
+				batch.instancesDataBuffer[i] = CreateBuffer(desc);
 				batch.instancesDataViews[i] = m_srvHeap.Allocate();
 			}
 			m_batches.emplace(mesh.GetID(), batch );
@@ -209,9 +209,8 @@ namespace Dune
 
 	void Renderer::CreateCamera()
 	{
-		BufferDesc camBufferDesc{ EBufferUsage::Upload };
-		dU32 size{ sizeof(CameraConstantBuffer) };
-		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc, nullptr, size);
+		BufferDesc camBufferDesc{ L"CameraConstantBuffer", sizeof(CameraConstantBuffer), EBufferUsage::Upload, nullptr};
+		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc);
 	}
 
 	void Renderer::UpdateCamera(const CameraComponent* pCamera, const dVec3& pos)
@@ -420,9 +419,9 @@ namespace Dune
 		m_scissorRect.bottom = static_cast<LONG>(y);
 	}
 
-	Handle<Buffer> Renderer::CreateBuffer(const BufferDesc& desc, const void* pData, dU32 size)
+	Handle<Buffer> Renderer::CreateBuffer(const BufferDesc& desc)
 	{
-		return m_bufferPool.Create(desc, pData, size);
+		return m_bufferPool.Create(desc);
 	}
 
 	void Renderer::UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size)
@@ -902,8 +901,8 @@ namespace Dune
 
 				for (dU32 j{ 0 }; j < ms_frameCount; j++)
 				{
-					BufferDesc desc{ EBufferUsage::Upload };
-					m_shadowCameraBuffers[i][j] = CreateBuffer(desc, nullptr, sizeof(CameraConstantBuffer));
+					BufferDesc desc{ L"ShadowCameraBuffer", sizeof(CameraConstantBuffer), EBufferUsage::Upload, nullptr };
+					m_shadowCameraBuffers[i][j] = CreateBuffer(desc);
 				}
 		}
 	}
@@ -936,8 +935,8 @@ namespace Dune
 
 		for (int i = 0; i < ms_frameCount; i++)
 		{
-			BufferDesc desc{ EBufferUsage::Upload };
-			m_pointLightsBuffer[i] = CreateBuffer(desc, nullptr, pointLightSize);
+			BufferDesc desc{ L"PointLightsBuffer", pointLightSize, EBufferUsage::Upload, nullptr};
+			m_pointLightsBuffer[i] = CreateBuffer(desc);
 			m_pointLightsViews[i] = m_srvHeap.Allocate();
 		}
 	}
@@ -948,8 +947,8 @@ namespace Dune
 
 		for (int i = 0; i < ms_frameCount; i++)
 		{
-			BufferDesc desc{ EBufferUsage::Upload };
-			m_directionalLightsBuffer[i] = CreateBuffer(desc ,nullptr, directionalLightSize);
+			BufferDesc desc{ L"DirectionalLightsBuffer", directionalLightSize, EBufferUsage::Upload, nullptr};
+			m_directionalLightsBuffer[i] = CreateBuffer(desc);
 			m_directionalLightsViews[i] = m_srvHeap.Allocate();
 		}
 	}
@@ -976,10 +975,10 @@ namespace Dune
 
 		if ( ( m_directionalLights.size() * sizeof(DirectionalLight) ) > GetBuffer(directionalLightHandle).GetSize())
 		{
-			BufferDesc desc{ EBufferUsage::Upload };
-			dU32 size{ (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)) };
 			ReleaseBuffer(directionalLightHandle);
-			directionalLightHandle = CreateBuffer(desc , m_directionalLights.data(), size);
+			dU32 size{ (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)) };
+			BufferDesc desc{ L"DirectionalLightsBuffer", size, EBufferUsage::Upload, m_directionalLights.data() };
+			directionalLightHandle = CreateBuffer(desc);
 		}
 		else
 		{
@@ -1022,10 +1021,10 @@ namespace Dune
 
 			if ((batch.instancesData.size() * gs_instanceDataSize) > GetBuffer(instancesDataHandle).GetSize())
 			{
-				BufferDesc desc{ EBufferUsage::Upload };
-				dU32 size{ (dU32)(batch.instancesData.size() * gs_instanceDataSize) };
 				ReleaseBuffer(instancesDataHandle);
-				instancesDataHandle = CreateBuffer(desc, batch.instancesData.data(), size);
+				dU32 size{ (dU32)(batch.instancesData.size() * gs_instanceDataSize) };
+				BufferDesc desc{ L"InstanceDatasBuffer", size, EBufferUsage::Upload, batch.instancesData.data()};
+				instancesDataHandle = CreateBuffer(desc);
 			}
 			else
 			{
@@ -1272,10 +1271,10 @@ namespace Dune
 
 		if (m_pointLights.size() > GetBuffer(pointLightHandle).GetSize() / sizeof(PointLight))
 		{
-			BufferDesc desc { EBufferUsage::Upload };
-			dU32 size = (dU32)(m_pointLights.size() * sizeof(PointLight));
 			ReleaseBuffer(pointLightHandle);
-			pointLightHandle = CreateBuffer(desc, m_pointLights.data(), size);
+			dU32 size = (dU32)(m_pointLights.size() * sizeof(PointLight));
+			BufferDesc desc { L"PointLightsBuffer", size, EBufferUsage::Upload, m_pointLights.data() };
+			pointLightHandle = CreateBuffer(desc);
 		}
 		else
 		{

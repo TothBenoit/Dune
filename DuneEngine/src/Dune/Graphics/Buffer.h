@@ -14,7 +14,7 @@ namespace Dune
 
 		void UploadData(const void* pData, dU32 size);
 	private:
-		Buffer(const BufferDesc& desc, const void* pData, dU32 size);
+		Buffer(const BufferDesc& desc);
 		~Buffer();
 		DISABLE_COPY_AND_MOVE(Buffer);
 	
