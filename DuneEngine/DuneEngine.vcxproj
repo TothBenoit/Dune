@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.props" Condition="Exists('..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.props')" />
   <Import Project="..\packages\Microsoft.Direct3D.D3D12.1.608.2\build\native\Microsoft.Direct3D.D3D12.props" Condition="Exists('..\packages\Microsoft.Direct3D.D3D12.1.608.2\build\native\Microsoft.Direct3D.D3D12.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -69,24 +70,6 @@
     <ClCompile Include="src\Dune\Core\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\Dune\Graphics\Shaders\PixelShader.hlsl">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PSMain</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PSMain</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="src\Dune\Graphics\Shaders\VertexShader.hlsl">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VSMain</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VSMain</EntryPointName>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -136,7 +119,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>SHADER_DIR=LR"($(TargetDir))";_DEBUG;DUNEENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SHADER_DIR=LR"($(SolutionDir)DuneEngine\src\Dune\Graphics\Shaders\)";_DEBUG;DUNEENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -169,7 +152,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>SHADER_DIR=LR"($(TargetDir))";NDEBUG;DUNEENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SHADER_DIR=LR"($(SolutionDir)DuneEngine\src\Dune\Graphics\Shaders\)";NDEBUG;DUNEENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -201,6 +184,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Direct3D.D3D12.1.608.2\build\native\Microsoft.Direct3D.D3D12.targets" Condition="Exists('..\packages\Microsoft.Direct3D.D3D12.1.608.2\build\native\Microsoft.Direct3D.D3D12.targets')" />
+    <Import Project="..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.targets" Condition="Exists('..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -208,5 +192,7 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.Direct3D.D3D12.1.608.2\build\native\Microsoft.Direct3D.D3D12.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.D3D12.1.608.2\build\native\Microsoft.Direct3D.D3D12.props'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Direct3D.D3D12.1.608.2\build\native\Microsoft.Direct3D.D3D12.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.D3D12.1.608.2\build\native\Microsoft.Direct3D.D3D12.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.targets'))" />
   </Target>
 </Project>

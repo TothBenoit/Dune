@@ -5,12 +5,18 @@ namespace Dune
 	template <typename T, typename H>
 	class Pool;
 
+	struct ShaderCode
+	{
+		const wchar_t* fileName = nullptr;
+		const wchar_t* entryFunc = nullptr;
+	};
+
 	struct ShaderDesc
 	{
 		const char* debugName = nullptr;
 		
-		Microsoft::WRL::ComPtr<ID3DBlob> VS;
-		Microsoft::WRL::ComPtr<ID3DBlob> PS;
+		ShaderCode VS;
+		ShaderCode PS;
 	};
 
 	class Shader

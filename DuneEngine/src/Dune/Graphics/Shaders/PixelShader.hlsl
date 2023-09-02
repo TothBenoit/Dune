@@ -65,11 +65,11 @@ float4 CalcUnshadowedAmountPCF2x2(int lightIndex, float3 vPosWorld, float3 norma
 	vShadowDepths.w = shadowMap.Sample(sampleClamp, float3(vShadowTexCoord + vTexelUnits,					lightIndex)).x;
 
 	// What weighted fraction of the 4 samples are nearer to the light than this pixel?
-	float4 vShadowTests = (vShadowDepths >= vLightSpaceDepth) ? 1.0f : 0.0f;
+	float4 vShadowTests = select(vShadowDepths >= vLightSpaceDepth, 1.0f ,0.0f);
 	return dot(vBilinearWeights, vShadowTests);
 }
 
-float3 AccumulateDirectionalLight(float3 normal, float4 wPos)
+float3 AccumulateDirectionalLight(float3 normal, float3 wPos)
 {
 	uint lightCount;
 	uint stride;
@@ -90,7 +90,7 @@ float3 AccumulateDirectionalLight(float3 normal, float4 wPos)
 
 		if (i < SHADOW_MAP_COUNT)
 		{
-			directionalLight *= CalcUnshadowedAmountPCF2x2(i, wPos.xyz, normal, diffuse).xyz;
+			directionalLight *= CalcUnshadowedAmountPCF2x2(i, wPos, normal, diffuse).xyz;
 		}
 
 		accumulatedDirectionalLight += directionalLight;
@@ -130,8 +130,8 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 
 PS_OUTPUT PSMain(PS_INPUT input)
 {
-	float3 accumulatedPointLight = AccumulatePointLight(input.normal, input.wPos);
-	float3 accumulatedDirectionLight = AccumulateDirectionalLight(input.normal, input.wPos);
+	float3 accumulatedPointLight = AccumulatePointLight(input.normal, input.wPos.xyz);
+	float3 accumulatedDirectionLight = AccumulateDirectionalLight(input.normal, input.wPos.xyz);
 	float3 ambientLight = 0.05f;
 
 	PS_OUTPUT output;

@@ -1,14 +1,14 @@
 #pragma once
 
 #pragma comment(lib,"d3d12.lib") 
-#pragma comment(lib,"d3dcompiler.lib") 
 #pragma comment(lib,"dxgi.lib") 
 #pragma comment(lib,"dxguid.lib")
+#pragma comment(lib,"dxcompiler.lib")
 
 #include <wrl.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
-#include <d3dcompiler.h>
+#include <dxcapi.h>
 #include <dxgidebug.h>
 #include <d3dx12/d3dx12.h>
 #include <imgui/imgui_impl_dx12.h>

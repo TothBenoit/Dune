@@ -978,22 +978,11 @@ namespace Dune
 
 	void Renderer::CreateDefaultShader()
 	{
-		ID3DBlob* pVertexShader{ nullptr };
-		ID3DBlob* pPixelShader{ nullptr };
-
-		dWString vertexPath = SHADER_DIR;
-		vertexPath.append(L"VertexShader.cso");
-		dWString pixelPath = SHADER_DIR;
-		pixelPath.append(L"PixelShader.cso");
-
-		ThrowIfFailed(D3DReadFileToBlob(vertexPath.c_str(), &pVertexShader));
-		ThrowIfFailed(D3DReadFileToBlob(pixelPath.c_str(), &pPixelShader));
-
 		ShaderDesc desc
 		{
 			.debugName = "DefaultShader",
-			.VS = pVertexShader,
-			.PS = pPixelShader,
+			.VS = {.fileName = L"VertexShader.hlsl", .entryFunc = L"VSMain" },
+			.PS = {.fileName = L"PixelShader.hlsl", .entryFunc = L"PSMain" },
 		};
 		m_defaultShader = m_shaderPool.Create(desc);
 	}
