@@ -981,8 +981,8 @@ namespace Dune
 		ShaderDesc desc
 		{
 			.debugName = "DefaultShader",
-			.VS = {.fileName = L"VertexShader.hlsl", .entryFunc = L"VSMain" },
-			.PS = {.fileName = L"PixelShader.hlsl", .entryFunc = L"PSMain" },
+			.VS = {.fileName = L"Default.hlsl", .entryFunc = L"VSMain" },
+			.PS = {.fileName = L"Default.hlsl", .entryFunc = L"PSMain" },
 		};
 		m_defaultShader = m_shaderPool.Create(desc);
 	}

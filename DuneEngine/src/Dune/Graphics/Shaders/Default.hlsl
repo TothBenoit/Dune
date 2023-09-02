@@ -2,24 +2,54 @@
 #include "PointLight.h"
 
 #define SHADOW_MAP_COUNT 4
-
-SamplerState sampleClamp : register(s0);
-
-Texture2DArray shadowMap : register(t2);
-
 #define SHADOW_DEPTH_BIAS 0.0005f
 
 struct CameraConstantBuffer
 {
 	float4x4 ViewProjMatrix;
-	float4 cameraWorldPos;
+	float4 cameraPos;
+};
+
+struct InstanceConstantBuffer
+{
+	float4x4 ModelMatrix;
+	float4x4 NormalMatrix;
+	float4 BaseColor;
 };
 
 ConstantBuffer<CameraConstantBuffer> CameraCB : register(b0);
+StructuredBuffer<PointLight> PointLights : register(t0);
+StructuredBuffer<InstanceConstantBuffer> InstanceDatas : register(t0);
+StructuredBuffer<DirectionalLight> DirectionalLights : register(t1);
+Texture2DArray shadowMap : register(t2);
+SamplerState sampleClamp : register(s0);
 
-StructuredBuffer<PointLight> PointLights: register(t0);
+struct VS_INPUT
+{
+	float3 vPos : POSITION;
+	float3 vNormal  : NORMAL;
+};
 
-StructuredBuffer<DirectionalLight> DirectionalLights: register(t1);
+struct VS_OUTPUT
+{
+	float4 position : SV_Position;
+	float4 color : COLOR;
+	float3 normal : NORMAL;
+	float4 wPos : WPOS;
+};
+
+VS_OUTPUT VSMain(VS_INPUT input, uint instanceID : SV_InstanceID)
+{
+	VS_OUTPUT o;
+
+	float4 wPos = mul(InstanceDatas[instanceID].ModelMatrix, float4(input.vPos, 1.0f));
+
+	o.wPos = wPos;
+	o.position = mul(CameraCB.ViewProjMatrix, wPos);
+	o.color = InstanceDatas[instanceID].BaseColor;
+	o.normal = normalize(mul(InstanceDatas[instanceID].NormalMatrix, float4(input.vNormal, 1.0f)).xyz);
+	return o;
+}
 
 struct PS_INPUT
 {
@@ -75,7 +105,7 @@ float3 AccumulateDirectionalLight(float3 normal, float3 wPos)
 	uint stride;
 	DirectionalLights.GetDimensions(lightCount, stride);
 
-	float3 cameraDir = normalize(CameraCB.cameraWorldPos.xyz - wPos);
+	float3 cameraDir = normalize(CameraCB.cameraPos.xyz - wPos);
 
 	float3 accumulatedDirectionalLight = { 0,0,0 };
 	for (uint i = 0; i < lightCount; i++)
@@ -104,7 +134,7 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 	uint stride;
 	PointLights.GetDimensions(lightCount, stride);
 
-	float3 cameraDir = normalize(CameraCB.cameraWorldPos.xyz - wPos);
+	float3 cameraDir = normalize(CameraCB.cameraPos.xyz - wPos);
 
 	float3 accumulatedPointLight = { 0.f, 0.f, 0.f };
 	for (uint i = 0; i < lightCount; i++)
