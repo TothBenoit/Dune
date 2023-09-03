@@ -1100,9 +1100,6 @@ namespace Dune
 	{
 		Profile(ExecuteMainPass);
 	
-		if (!m_batches.empty())
-			return;
-
 		Shader& shader = m_shaderPool.Get(m_defaultShader);
 
 		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), shader.GetPSO()));
