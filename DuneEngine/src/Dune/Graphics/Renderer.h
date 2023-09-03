@@ -84,7 +84,6 @@ namespace Dune
 		[[nodiscard]] Handle<Mesh>		GetDefaultMesh() const { Assert(m_device.Get()); return m_defaultMesh; }
 		[[nodiscard]] dU32				GetShadowMapCount() const { Assert(m_device.Get()); return ms_shadowMapCount; }
 
-
 	private:
 
 		inline static constexpr dU32 ms_frameCount{ 2 };
