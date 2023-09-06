@@ -3,4 +3,7 @@
   <ItemGroup>
     <ClCompile Include="DuneTest.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>
