@@ -6,6 +6,7 @@ namespace Dune
 {
 	Buffer::Buffer(const BufferDesc& desc)
 		: m_usage{ desc.usage }
+		, m_memory{ desc.memory }
 		, m_size{ desc.byteSize }
 	{
 		D3D12_HEAP_PROPERTIES heapProps{};
@@ -14,7 +15,7 @@ namespace Dune
 		Renderer& renderer{ Renderer::GetInstance() };
 		Assert(renderer.IsInitialized());
 
-		if (m_usage == EBufferUsage::Upload)
+		if (m_memory == EBufferMemory::CPU)
 		{
 			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 			resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -25,7 +26,7 @@ namespace Dune
 			resourceState = D3D12_RESOURCE_STATE_COMMON;
 		}
 
-		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(m_size) };
+		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer( m_size )};
 		
 		ThrowIfFailed(renderer.GetDevice()->CreateCommittedResource(
 			&heapProps,
@@ -36,11 +37,9 @@ namespace Dune
 			IID_PPV_ARGS(&m_buffer)));
 		m_buffer->SetName(desc.debugName);
 
-		if (m_usage == EBufferUsage::Upload)
+		if (m_memory == EBufferMemory::CPU)
 		{
-			D3D12_RANGE readRange;
-			readRange.Begin = 0;
-			readRange.End = 0;
+			D3D12_RANGE readRange{};
 			ThrowIfFailed(m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_cpuAdress)));
 		}
 		else
@@ -57,9 +56,7 @@ namespace Dune
 				IID_PPV_ARGS(&m_uploadBuffer)));
 			m_buffer->SetName(L"UploadBuffer");
 
-			D3D12_RANGE readRange;
-			readRange.Begin = 0;
-			readRange.End = 0;
+			D3D12_RANGE readRange{};
 			ThrowIfFailed(m_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_cpuAdress)));
 		}
 
@@ -73,7 +70,7 @@ namespace Dune
 	{
 		Renderer& renderer{ Renderer::GetInstance() };
 		renderer.ReleaseResource(m_buffer);
-		if (m_usage == EBufferUsage::Default)
+		if (m_memory == EBufferMemory::GPU)
 		{
 			m_uploadBuffer->Release();
 		}
@@ -81,15 +78,12 @@ namespace Dune
 
 	void Buffer::UploadData(const void* pData, dU32 size)
 	{
-		// I don't support resize yet
 		Assert(size <= m_size);
-
 		memcpy(m_cpuAdress, pData, m_size);
 
-		if (m_usage == EBufferUsage::Default)
+		if (m_memory == EBufferMemory::GPU)
 		{
 			Renderer& renderer{ Renderer::GetInstance() };
-			
 			// TODO : Upload system in the renderer.
 			renderer.WaitForCopy();
 			ThrowIfFailed(renderer.m_copyCommandAllocator->Reset());

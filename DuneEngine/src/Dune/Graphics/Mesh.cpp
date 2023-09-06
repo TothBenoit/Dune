@@ -29,7 +29,7 @@ namespace Dune
 	{
 		dU32 size{ (dU32)m_vertices.size() * sizeof(Vertex) };
 		Assert(size != 0);
-		BufferDesc desc{ L"VertexBuffer", size, EBufferUsage::Default, m_vertices.data()};
+		BufferDesc desc{ L"VertexBuffer", size, EBufferUsage::Vertex, EBufferMemory::GPU, m_vertices.data()};
 		m_vertexBufferHandle = Renderer::GetInstance().CreateBuffer(desc);
 		Assert(m_vertexBufferHandle.IsValid());
 	}
@@ -38,7 +38,7 @@ namespace Dune
 	{
 		dU32 size{ (dU32)m_indices.size() * sizeof(dU32) };
 		Assert(size != 0);
-		BufferDesc desc{ L"IndexBuffer", size, EBufferUsage::Default, m_indices.data() };
+		BufferDesc desc{ L"IndexBuffer", size, EBufferUsage::Index, EBufferMemory::GPU, m_indices.data() };
 		m_indexBufferHandle = Renderer::GetInstance().CreateBuffer(desc);
 		Assert(m_indexBufferHandle.IsValid());
 	}

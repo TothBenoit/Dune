@@ -16,11 +16,11 @@ namespace Dune
 		[[nodiscard]] ID3D12Resource* GetResource() { return m_buffer; }
 
 		void UploadData(const void* pData, dU32 size);
+
 	private:
 		Buffer(const BufferDesc& desc);
 		~Buffer();
 		DISABLE_COPY_AND_MOVE(Buffer);
-	
 	private:
 		friend Pool<Buffer, Buffer>;
 
@@ -28,6 +28,7 @@ namespace Dune
 		ID3D12Resource*		m_uploadBuffer;
 		ID3D12Resource*		m_buffer;
 		const EBufferUsage	m_usage;
+		const EBufferMemory m_memory;
 		dU32				m_size;
 	};
 }

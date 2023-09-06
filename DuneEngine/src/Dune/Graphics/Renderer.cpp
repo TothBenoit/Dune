@@ -82,7 +82,7 @@ namespace Dune
 
 			for (dU32 i = 0; i < ms_frameCount; i++)
 			{
-				BufferDesc desc{ L"InstanceDatasBuffer", gs_instanceDataSize, EBufferUsage::Upload, nullptr};
+				BufferDesc desc{ L"InstanceDatasBuffer", gs_instanceDataSize, EBufferUsage::Structured, EBufferMemory::CPU, nullptr};
 				batch.instancesDataBuffer[i] = CreateBuffer(desc);
 				batch.instancesDataViews[i] = m_srvHeap.Allocate();
 
@@ -263,7 +263,7 @@ namespace Dune
 
 	void Renderer::CreateCamera()
 	{
-		BufferDesc camBufferDesc{ L"CameraConstantBuffer", sizeof(CameraConstantBuffer), EBufferUsage::Upload, nullptr};
+		BufferDesc camBufferDesc{ L"CameraConstantBuffer", sizeof(CameraConstantBuffer), EBufferUsage::Constant, EBufferMemory::CPU, nullptr};
 		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc);
 	}
 
@@ -853,7 +853,7 @@ namespace Dune
 		{
 			for (dU32 j{ 0 }; j < ms_frameCount; j++)
 			{
-				BufferDesc desc{ L"ShadowMapCameraBuffer", sizeof(CameraConstantBuffer), EBufferUsage::Upload, nullptr };
+				BufferDesc desc{ L"ShadowMapCameraBuffer", sizeof(CameraConstantBuffer), EBufferUsage::Constant, EBufferMemory::CPU, nullptr };
 				m_shadowCameraBuffers[i][j] = CreateBuffer(desc);
 			}
 		}
@@ -929,7 +929,7 @@ namespace Dune
 				ReleaseBuffer(directionalLightHandle);
 			
 			dU32 size{ (dU32)(m_directionalLights.size() * sizeof(DirectionalLight)) };
-			BufferDesc desc{ L"DirectionalLightsBuffer", size, EBufferUsage::Upload, m_directionalLights.data() };
+			BufferDesc desc{ L"DirectionalLightsBuffer", size, EBufferUsage::Structured, EBufferMemory::CPU, m_directionalLights.data() };
 			directionalLightHandle = CreateBuffer(desc);
 
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -962,7 +962,7 @@ namespace Dune
 			{
 				ReleaseBuffer(instancesDataHandle);
 				dU32 size{ (dU32)(batch.instancesData.size() * gs_instanceDataSize) };
-				BufferDesc desc{ L"InstanceDatasBuffer", size, EBufferUsage::Upload, batch.instancesData.data()};
+				BufferDesc desc{ L"InstanceDatasBuffer", size, EBufferUsage::Structured, EBufferMemory::CPU , batch.instancesData.data() };
 				instancesDataHandle = CreateBuffer(desc);
 
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -1242,7 +1242,7 @@ namespace Dune
 				ReleaseBuffer(pointLightHandle);
 			
 			dU32 size{ (dU32)(m_pointLights.size() * sizeof(PointLight)) };
-			BufferDesc desc { L"PointLightsBuffer", size, EBufferUsage::Upload, m_pointLights.data() };
+			BufferDesc desc { L"PointLightsBuffer", size, EBufferUsage::Structured, EBufferMemory::CPU, m_pointLights.data() };
 			pointLightHandle = CreateBuffer(desc);
 
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;

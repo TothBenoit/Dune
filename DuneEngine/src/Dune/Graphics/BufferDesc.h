@@ -4,16 +4,26 @@ namespace Dune
 {
 	enum class EBufferUsage
 	{
-		Default,
-		Upload,
+		Vertex,
+		Index,
+		Constant,
+		Structured,
 	};
+
+	enum class EBufferMemory
+	{
+		CPU,
+		GPU
+	};
+
 
 	struct BufferDesc
 	{
 		const wchar_t* debugName = nullptr;
 
 		dU32 byteSize = 0;
-		EBufferUsage usage = EBufferUsage::Default;
+		EBufferUsage usage = EBufferUsage::Constant;
+		EBufferMemory memory = EBufferMemory::CPU;
 		const void* pData = nullptr;
 	};
 }
