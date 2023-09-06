@@ -383,6 +383,7 @@ namespace Dune
 		}
 		m_shadowMaps.Reset();
 		m_srvHeap.Free(m_shadowMapsResourceView);
+		m_srvHeap.Free(m_imguiDescriptorHandle);
 
 		m_dsvHeap.Release();
 		m_srvHeap.Release();
@@ -410,7 +411,6 @@ namespace Dune
 		m_device.Reset();
 		m_factory.Reset();
 
-		m_imguiHeap->Release();
 		ImGui_ImplDX12_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 	}
@@ -872,11 +872,11 @@ namespace Dune
 		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		desc.NumDescriptors = 1;
 		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiHeap)));
+		m_imguiDescriptorHandle = m_srvHeap.Allocate();
 		ImGui_ImplDX12_Init(m_device.Get(), ms_frameCount,
-			DXGI_FORMAT_R8G8B8A8_UNORM, m_imguiHeap,
-			m_imguiHeap->GetCPUDescriptorHandleForHeapStart(),
-			m_imguiHeap->GetGPUDescriptorHandleForHeapStart());
+			DXGI_FORMAT_R8G8B8A8_UNORM, m_srvHeap.Get(),
+			m_imguiDescriptorHandle.cpuAdress,
+			m_imguiDescriptorHandle.gpuAdress);
 	}
 
 	void Renderer::CreatePointLightsBuffer()
@@ -1171,7 +1171,8 @@ namespace Dune
 		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
 
 		m_commandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, FALSE, nullptr);
-		m_commandList->SetDescriptorHeaps(1, &m_imguiHeap);
+		ID3D12DescriptorHeap* ppHeaps[] { m_srvHeap.Get() };
+		m_commandList->SetDescriptorHeaps(1, ppHeaps);
 
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 

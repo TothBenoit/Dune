@@ -202,7 +202,7 @@ namespace Dune
 		Handle<Buffer>										m_cameraMatrixBuffer;
 
 		// ImGui Pass
-		ID3D12DescriptorHeap*								m_imguiHeap{nullptr};
+		DescriptorHandle									m_imguiDescriptorHandle;
 
 		// Synchronization
 		dU64												m_frameIndex{0};
