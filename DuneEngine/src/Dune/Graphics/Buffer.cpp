@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Buffer.h"
-#include "Renderer.h"
+#include "Dune/Graphics/Renderer.h"
+#include "Dune/Utilities/Utils.h"
 
 namespace Dune
 {
@@ -8,12 +9,19 @@ namespace Dune
 		: m_usage{ desc.usage }
 		, m_memory{ desc.memory }
 		, m_size{ desc.byteSize }
+		, m_currentBuffer{ 0 }
+		, m_cycleFrame{ (dU64) -1}
 	{
 		D3D12_HEAP_PROPERTIES heapProps{};
 		D3D12_RESOURCE_STATES resourceState{};
 
 		Renderer& renderer{ Renderer::GetInstance() };
 		Assert(renderer.IsInitialized());
+
+		if (m_usage == EBufferUsage::Constant)
+		{
+			m_size = Utils::AlignTo(m_size, 256);
+		}
 
 		if (m_memory == EBufferMemory::CPU)
 		{
@@ -26,7 +34,7 @@ namespace Dune
 			resourceState = D3D12_RESOURCE_STATE_COMMON;
 		}
 
-		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer( m_size )};
+		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer( (m_memory == EBufferMemory::GPUStatic) ? m_size : m_size * Renderer::GetFrameCount() )};
 		
 		ThrowIfFailed(renderer.GetDevice()->CreateCommittedResource(
 			&heapProps,
@@ -47,10 +55,11 @@ namespace Dune
 			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 			resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
 
+			D3D12_RESOURCE_DESC uploadResourceDesc{ CD3DX12_RESOURCE_DESC::Buffer( m_size ) };
 			ThrowIfFailed(renderer.GetDevice()->CreateCommittedResource(
 				&heapProps,
 				D3D12_HEAP_FLAG_NONE,
-				&resourceDesc,
+				&uploadResourceDesc,
 				resourceState,
 				nullptr,
 				IID_PPV_ARGS(&m_uploadBuffer)));
@@ -60,9 +69,27 @@ namespace Dune
 			ThrowIfFailed(m_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_cpuAdress)));
 		}
 
-		if (desc.pData)
+		if (m_memory != EBufferMemory::GPUStatic)
 		{
-			UploadData(desc.pData, m_size);
+			if (desc.pData)
+				UploadData(desc.pData, m_size);
+		}
+		else 
+		{
+			Assert(desc.pData);
+			memcpy(m_cpuAdress, desc.pData, m_size);
+			Renderer& renderer{ Renderer::GetInstance() };
+			// TODO : Upload system in the renderer.
+			renderer.WaitForCopy();
+			ThrowIfFailed(renderer.m_copyCommandAllocator->Reset());
+			ThrowIfFailed(renderer.m_copyCommandList->Reset(renderer.m_copyCommandAllocator.Get(), nullptr));
+
+			renderer.m_copyCommandList->CopyBufferRegion(m_buffer, 0, m_uploadBuffer, 0, m_size);
+			renderer.m_copyCommandList->Close();
+			dVector<ID3D12CommandList*> ppCommandLists{ renderer.m_copyCommandList.Get() };
+			renderer.m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+			renderer.WaitForCopy();
+			m_uploadBuffer->Release();
 		}
 	}
 
@@ -76,24 +103,43 @@ namespace Dune
 		}
 	}
 
+	dU32 Buffer::CycleBuffer()
+	{
+		Assert(m_memory != EBufferMemory::GPUStatic);
+
+		Assert(m_cycleFrame != Renderer::GetInstance().GetElaspedFrame());
+		m_cycleFrame = Renderer::GetInstance().GetElaspedFrame();
+
+		m_currentBuffer = (m_currentBuffer + 1) % Renderer::GetFrameCount();
+		return m_currentBuffer * m_size;
+	}
+
 	void Buffer::UploadData(const void* pData, dU32 size)
 	{
+		Assert(m_memory != EBufferMemory::GPUStatic)
 		Assert(size <= m_size);
-		memcpy(m_cpuAdress, pData, m_size);
+
+		dU32 offset{ CycleBuffer() };
+
 
 		if (m_memory == EBufferMemory::GPU)
 		{
 			Renderer& renderer{ Renderer::GetInstance() };
+			memcpy(m_cpuAdress, pData, m_size);
 			// TODO : Upload system in the renderer.
 			renderer.WaitForCopy();
 			ThrowIfFailed(renderer.m_copyCommandAllocator->Reset());
 			ThrowIfFailed(renderer.m_copyCommandList->Reset(renderer.m_copyCommandAllocator.Get(), nullptr));
 
-			renderer.m_copyCommandList->CopyBufferRegion(m_buffer, 0, m_uploadBuffer, 0, m_size);
+			renderer.m_copyCommandList->CopyBufferRegion(m_buffer, offset, m_uploadBuffer, 0, m_size);
 			renderer.m_copyCommandList->Close();
 			dVector<ID3D12CommandList*> ppCommandLists{ renderer.m_copyCommandList.Get() };
 			renderer.m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 			renderer.WaitForCopy();
+		}
+		else
+		{
+			memcpy(m_cpuAdress + offset, pData, m_size);
 		}
 	}
 }

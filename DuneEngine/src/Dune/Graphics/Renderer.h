@@ -82,7 +82,9 @@ namespace Dune
 		
 		[[nodiscard]] ID3D12Device*		GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
 		[[nodiscard]] Handle<Mesh>		GetDefaultMesh() const { Assert(m_device.Get()); return m_defaultMesh; }
-		[[nodiscard]] dU32				GetShadowMapCount() const { Assert(m_device.Get()); return ms_shadowMapCount; }
+		[[nodiscard]] dU64				GetElaspedFrame() { return m_elapsedFrame; }
+		[[nodiscard]] static dU32		GetShadowMapCount() { return ms_shadowMapCount; }
+		[[nodiscard]] static dU32		GetFrameCount() { return ms_frameCount; }
 
 	private:
 
@@ -178,14 +180,14 @@ namespace Dune
 
 		// Shadow Pass
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps;
-		Handle<Buffer>										m_shadowCameraBuffers[ms_shadowMapCount][ms_frameCount];
+		Handle<Buffer>										m_shadowCameraBuffers[ms_shadowMapCount];
 		DescriptorHandle									m_shadowMapsDepthViews[ms_shadowMapCount];
 		DescriptorHandle									m_shadowMapsResourceView;
 		DescriptorHandle									m_shadowMapsSamplerView;
 
 		// Main Pass
-		Handle<Buffer>										m_pointLightsBuffer[ms_frameCount]; 		
-		Handle<Buffer>										m_directionalLightsBuffer[ms_frameCount]; 	
+		Handle<Buffer>										m_pointLightsBuffer; 		
+		Handle<Buffer>										m_directionalLightsBuffer; 	
 		DescriptorHandle									m_pointLightsViews[ms_frameCount];
 		DescriptorHandle									m_directionalLightsViews[ms_frameCount];
 
@@ -206,7 +208,7 @@ namespace Dune
 
 		// Synchronization
 		dU64												m_frameIndex{0};
-		dU64												m_frameNumber{0};
+		dU64												m_elapsedFrame{0};
 		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;
 		dU64												m_fenceValues[ms_frameCount];

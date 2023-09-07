@@ -106,6 +106,9 @@
     <ClInclude Include="src\Dune\Graphics\Shaders\DirectionalLight.h">
       <Filter>Dune\Graphics\Shader</Filter>
     </ClInclude>
+    <ClInclude Include="src\Dune\Utilities\Utils.h">
+      <Filter>Dune\Utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">

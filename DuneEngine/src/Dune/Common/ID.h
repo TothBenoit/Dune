@@ -19,7 +19,7 @@ namespace Dune
 
 		static constexpr IDType GetMaximumIndex() { return maxIndex; }
 
-		[[nodiscard]] inline bool				IsValid(IDType id) { return id != invalidID; }
+		[[nodiscard]] inline bool			IsValid(IDType id) { return id != invalidID; }
 		[[nodiscard]] inline IDType			GetIndex(IDType id) { return id & indexMask; }
 		[[nodiscard]] inline GenerationType	GetGeneration(IDType id) { return (id >> indexBits) & generationMask; }
 		[[nodiscard]] inline IDType			NextIndex(IDType id)

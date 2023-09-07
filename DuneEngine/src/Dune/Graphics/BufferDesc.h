@@ -13,7 +13,8 @@ namespace Dune
 	enum class EBufferMemory
 	{
 		CPU,
-		GPU
+		GPU,
+		GPUStatic
 	};
 
 
