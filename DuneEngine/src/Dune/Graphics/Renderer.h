@@ -70,7 +70,8 @@ namespace Dune
 		void							OnResize(int width, int height);
 
 		[[nodiscard]] Handle<Buffer>	CreateBuffer(const BufferDesc& desc);
-		void							UpdateBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
+		void							UploadBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
+		void							MapBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
 		void							ReleaseBuffer(Handle<Buffer> handle);
 
 		[[nodiscard]] Handle<Mesh>		CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);

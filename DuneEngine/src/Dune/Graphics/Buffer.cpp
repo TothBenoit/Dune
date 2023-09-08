@@ -67,29 +67,29 @@ namespace Dune
 
 			D3D12_RANGE readRange{};
 			ThrowIfFailed(m_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_cpuAdress)));
-		}
 
-		if (m_memory != EBufferMemory::GPUStatic)
-		{
-			if (desc.pData)
-				UploadData(desc.pData, m_size);
-		}
-		else 
-		{
-			Assert(desc.pData);
-			memcpy(m_cpuAdress, desc.pData, m_size);
-			Renderer& renderer{ Renderer::GetInstance() };
-			// TODO : Upload system in the renderer.
-			renderer.WaitForCopy();
-			ThrowIfFailed(renderer.m_copyCommandAllocator->Reset());
-			ThrowIfFailed(renderer.m_copyCommandList->Reset(renderer.m_copyCommandAllocator.Get(), nullptr));
+			if (m_memory != EBufferMemory::GPUStatic)
+			{
+				if (desc.pData)
+					UploadData(desc.pData, m_size);
+			}
+			else
+			{
+				Assert(desc.pData);
+				memcpy(m_cpuAdress, desc.pData, m_size);
+				Renderer& renderer{ Renderer::GetInstance() };
+				// TODO : Upload system in the renderer.
+				renderer.WaitForCopy();
+				ThrowIfFailed(renderer.m_copyCommandAllocator->Reset());
+				ThrowIfFailed(renderer.m_copyCommandList->Reset(renderer.m_copyCommandAllocator.Get(), nullptr));
 
-			renderer.m_copyCommandList->CopyBufferRegion(m_buffer, 0, m_uploadBuffer, 0, m_size);
-			renderer.m_copyCommandList->Close();
-			dVector<ID3D12CommandList*> ppCommandLists{ renderer.m_copyCommandList.Get() };
-			renderer.m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-			renderer.WaitForCopy();
-			m_uploadBuffer->Release();
+				renderer.m_copyCommandList->CopyBufferRegion(m_buffer, 0, m_uploadBuffer, 0, m_size);
+				renderer.m_copyCommandList->Close();
+				dVector<ID3D12CommandList*> ppCommandLists{ renderer.m_copyCommandList.Get() };
+				renderer.m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+				renderer.WaitForCopy();
+				m_uploadBuffer->Release();
+			}
 		}
 	}
 
@@ -114,33 +114,34 @@ namespace Dune
 		return m_currentBuffer * m_size;
 	}
 
+	void Buffer::MapData(const void* pData, dU32 size)
+	{
+		Assert(m_memory == EBufferMemory::CPU);
+		Assert(size <= m_size);
+
+		dU32 offset{ CycleBuffer() };
+		memcpy(m_cpuAdress + offset, pData, m_size);
+	}
+
 	void Buffer::UploadData(const void* pData, dU32 size)
 	{
-		Assert(m_memory != EBufferMemory::GPUStatic)
+		Assert(m_memory == EBufferMemory::GPU);
 		Assert(size <= m_size);
 
 		dU32 offset{ CycleBuffer() };
 
+		Renderer& renderer{ Renderer::GetInstance() };
+		memcpy(m_cpuAdress, pData, size);
+		// TODO : Upload system in the renderer.
+		renderer.WaitForCopy();
+		ThrowIfFailed(renderer.m_copyCommandAllocator->Reset());
+		ThrowIfFailed(renderer.m_copyCommandList->Reset(renderer.m_copyCommandAllocator.Get(), nullptr));
 
-		if (m_memory == EBufferMemory::GPU)
-		{
-			Renderer& renderer{ Renderer::GetInstance() };
-			memcpy(m_cpuAdress, pData, m_size);
-			// TODO : Upload system in the renderer.
-			renderer.WaitForCopy();
-			ThrowIfFailed(renderer.m_copyCommandAllocator->Reset());
-			ThrowIfFailed(renderer.m_copyCommandList->Reset(renderer.m_copyCommandAllocator.Get(), nullptr));
-
-			renderer.m_copyCommandList->CopyBufferRegion(m_buffer, offset, m_uploadBuffer, 0, m_size);
-			renderer.m_copyCommandList->Close();
-			dVector<ID3D12CommandList*> ppCommandLists{ renderer.m_copyCommandList.Get() };
-			renderer.m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-			renderer.WaitForCopy();
-		}
-		else
-		{
-			memcpy(m_cpuAdress + offset, pData, m_size);
-		}
+		renderer.m_copyCommandList->CopyBufferRegion(m_buffer, offset, m_uploadBuffer, 0, m_size);
+		renderer.m_copyCommandList->Close();
+		dVector<ID3D12CommandList*> ppCommandLists{ renderer.m_copyCommandList.Get() };
+		renderer.m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+		renderer.WaitForCopy();
 	}
 }
 

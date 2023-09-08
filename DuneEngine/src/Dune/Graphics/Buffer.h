@@ -18,6 +18,7 @@ namespace Dune
 		[[nodiscard]] dU32 GetCurrentBufferIndex() const { return m_currentBuffer; }
 		[[nodiscard]] D3D12_GPU_VIRTUAL_ADDRESS GetGPUAdress() const { return m_buffer->GetGPUVirtualAddress() + GetOffset(); }
 
+		void MapData(const void* pData, dU32 size);
 		void UploadData(const void* pData, dU32 size);
 
 	private:
