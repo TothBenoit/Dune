@@ -682,7 +682,7 @@ namespace Dune
 		// Resize screen dependent resources.
 		// Create a depth buffer.
 		D3D12_CLEAR_VALUE optimizedClearValue {};
-		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+		optimizedClearValue.Format = DXGI_FORMAT_D16_UNORM;
 		optimizedClearValue.DepthStencil = { 1.0f, 0 };
 
 		D3D12_HEAP_PROPERTIES heapProps{};
@@ -694,7 +694,7 @@ namespace Dune
 
 		D3D12_RESOURCE_DESC dsDesc {};
 		dsDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		dsDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		dsDesc.Format = DXGI_FORMAT_D16_UNORM;
 		dsDesc.Width = width;
 		dsDesc.Height = height;
 		dsDesc.DepthOrArraySize = 1;
@@ -717,7 +717,7 @@ namespace Dune
 
 		// Update the depth-stencil view.
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
-		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Texture2D.MipSlice = 0;
 		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
@@ -809,14 +809,14 @@ namespace Dune
 			8192,
 			ms_shadowMapCount,
 			1,
-			DXGI_FORMAT_D32_FLOAT,
+			DXGI_FORMAT_D16_UNORM,
 			1,
 			0,
 			D3D12_TEXTURE_LAYOUT_UNKNOWN,
 			D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
 		D3D12_CLEAR_VALUE clearValue;    // Performance tip: Tell the runtime at resource creation the desired clear value.
-		clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+		clearValue.Format = DXGI_FORMAT_D16_UNORM;
 		clearValue.DepthStencil.Depth = 1.0f;
 		clearValue.DepthStencil.Stencil = 0;
 
@@ -833,7 +833,7 @@ namespace Dune
 		NameDXObject(m_shadowMaps, L"ShadowMapsBuffer");
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
-		depthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		depthStencilViewDesc.Format = DXGI_FORMAT_D16_UNORM;
 		depthStencilViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 		depthStencilViewDesc.Texture2DArray.MipSlice = 0;
 		depthStencilViewDesc.Texture2DArray.ArraySize = 1;
@@ -848,7 +848,7 @@ namespace Dune
 
 		DescriptorHandle shadowResourceView{ m_srvHeap.Allocate() };
 		D3D12_SHADER_RESOURCE_VIEW_DESC shadowSrvDesc = {};
-		shadowSrvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		shadowSrvDesc.Format = DXGI_FORMAT_R16_UNORM;
 		shadowSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
 		shadowSrvDesc.Texture2DArray.MipLevels = 1;
 		shadowSrvDesc.Texture2DArray.ArraySize = ms_shadowMapCount;
