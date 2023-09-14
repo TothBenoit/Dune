@@ -208,8 +208,8 @@ namespace Dune
 		DescriptorHandle									m_imguiDescriptorHandle;
 
 		// Synchronization
-		dU64												m_frameIndex{0};
-		dU64												m_elapsedFrame{0};
+		dU64												m_frameIndex{ 0 };
+		dU64												m_elapsedFrame{ 0 };
 		Microsoft::WRL::Wrappers::Event						m_fenceEvent;
 		Microsoft::WRL::ComPtr<ID3D12Fence>					m_fence;
 		dU64												m_fenceValues[ms_frameCount];

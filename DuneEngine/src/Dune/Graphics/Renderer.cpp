@@ -1010,7 +1010,6 @@ namespace Dune
 	void Renderer::BeginFrame()
 	{
 		Profile(BeginFrame);
-		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 		WaitForFrame(m_frameIndex);
 		ReleaseDyingResources(m_frameIndex);
 		ImGui::Render();
@@ -1019,6 +1018,7 @@ namespace Dune
 		UpdateInstancesData();
 
 		ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset())
+		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
 	}
 
 	void Renderer::ExecuteShadowPass()
@@ -1029,9 +1029,7 @@ namespace Dune
 			return;
 
 		Shader& shader = m_shaderPool.Get(m_defaultShader);
-
-		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), shader.GetPSO()));
-
+		m_commandList->SetPipelineState(shader.GetPSO());
 		m_commandList->SetGraphicsRootSignature(shader.GetRootSignature());
 
 		constexpr D3D12_VIEWPORT viewport{0.f, 0.f, 8192.f, 8192.f, 0.f, 1.f};
@@ -1093,10 +1091,6 @@ namespace Dune
 		shadowMapBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_shadowMaps.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		m_commandList->ResourceBarrier(1, &shadowMapBarrier);
 
-		ThrowIfFailed(m_commandList->Close());
-
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
 	void Renderer::ExecuteMainPass()
@@ -1104,9 +1098,7 @@ namespace Dune
 		Profile(ExecuteMainPass);
 	
 		Shader& shader = m_shaderPool.Get(m_defaultShader);
-
-		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), shader.GetPSO()));
-
+		m_commandList->SetPipelineState(shader.GetPSO());
 		m_commandList->SetGraphicsRootSignature(shader.GetRootSignature());
 		m_commandList->RSSetViewports(1, &m_viewport);
 		m_commandList->RSSetScissorRects(1, &m_scissorRect);
@@ -1169,42 +1161,27 @@ namespace Dune
 			dU32 indexCount{ indexBuffer.GetSize() / (sizeof(dU32)) };
 			m_commandList->DrawIndexedInstanced(indexCount, (UINT)batch.instancesData.size(), 0, 0, 0);
 		}
-
-		ThrowIfFailed(m_commandList->Close());
-
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
 	void Renderer::ExecuteImGuiPass()
 	{
 		Profile(ExecuteImGuiPass);
 
-		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
-
 		m_commandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, FALSE, nullptr);
 		ID3D12DescriptorHeap* ppHeaps[] { m_srvHeap.Get() };
 		m_commandList->SetDescriptorHeaps(1, ppHeaps);
 
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
-
-		ThrowIfFailed(m_commandList->Close());
-
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
 	void Renderer::Present()
 	{
 		Profile(Present);
 
-		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
-
 		D3D12_RESOURCE_BARRIER renderTargetBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_backBuffers[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
 
 		ThrowIfFailed(m_commandList->Close());
-
 		ID3D12CommandList* ppCommandLists[] { m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
@@ -1218,6 +1195,7 @@ namespace Dune
 		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_elapsedFrame));
 		m_fenceValues[m_frameIndex] = m_elapsedFrame;
 		m_elapsedFrame++;
+		m_frameIndex = (m_frameIndex + 1) % ms_frameCount;
 	}
 
 	void Renderer::UpdatePointLights()
