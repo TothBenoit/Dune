@@ -49,6 +49,8 @@ namespace Dune
 		{
 			D3D12_RANGE readRange{};
 			ThrowIfFailed(m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_cpuAdress)));
+			if (desc.pData)
+				MapData(desc.pData, desc.byteSize);
 		}
 		else
 		{

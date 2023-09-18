@@ -2,12 +2,14 @@
 
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Buffer.h"
+#include "Dune/Graphics/Texture.h"
 #include "Dune/Core/Window.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Utilities/StringUtils.h"
 #include "Dune/Core/ECS/Components/CameraComponent.h"
 #include "Dune/Graphics/Shaders/PointLight.h"
 #include "Dune/Graphics/Shaders/DirectionalLight.h"
+#include "Dune/Graphics/Shaders/PostProcessGlobals.h"
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/Shader.h"
 
@@ -44,13 +46,14 @@ namespace Dune
 		m_srvHeap.Initialize(4096, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		m_bufferPool.Initialize(4096);
+		m_texturePool.Initialize(64);
 		m_meshPool.Initialize(32);
 		m_shaderPool.Initialize(16);
 
 		CreateCommandQueues();
 		CreateSwapChain(window->GetHandle());
 		CreateRenderTargets();
-		CreateDepthStencil(window->GetWidth(), window->GetHeight());
+		CreateDepthStencil((dU32)m_viewport.Width, (dU32)m_viewport.Height);
 		CreateDefaultShader();
 		CreateCommandAllocators();
 		CreateCommandLists();
@@ -60,6 +63,7 @@ namespace Dune
 
 		InitMainPass();
 		InitShadowPass();
+		InitPostProcessPass();
 		InitImGuiPass();
 	}
 
@@ -271,19 +275,18 @@ namespace Dune
 
 	void Renderer::UpdateCamera(const CameraComponent* pCamera, const dVec3& pos)
 	{
-		if (pCamera)
+		Assert(pCamera);
+		m_FOV = pCamera->verticalFieldOfView;
+		m_viewMatrix = pCamera->viewMatrix;
+		m_cameraPosition = pos;
+
+		dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(m_FOV), m_viewport.Width / m_viewport.Height, m_nearPlane, m_farPlane) };
+		CameraConstantBuffer cameraData
 		{
-			// TODO : Camera should be linked to a viewport (TODO : Make viewport)
-			// TODO : Get viewport dimensions
-			constexpr float aspectRatio = 1600.f / 900.f;
-			dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(pCamera->verticalFieldOfView), aspectRatio, 0.1f, 1000.0f) };
-			CameraConstantBuffer cameraData
-			{
-				 pCamera->viewMatrix * projectionMatrix,
-				 dVec4{ pos.x, pos.y, pos.z , 0.f }
-			};
-			MapBuffer(m_cameraMatrixBuffer, &cameraData, sizeof(CameraConstantBuffer));
-		}
+			 m_viewMatrix* projectionMatrix,
+			 dVec4{ m_cameraPosition.x, m_cameraPosition.y, m_cameraPosition.z , 1.f }
+		};
+		MapBuffer(m_cameraMatrixBuffer, &cameraData, sizeof(CameraConstantBuffer));
 	}
 
 	void Renderer::Render()
@@ -292,6 +295,7 @@ namespace Dune
 		BeginFrame();
 		ExecuteShadowPass();
 		ExecuteMainPass();
+		ExecutePostProcessPass();
 		ExecuteImGuiPass();
 		EndFrame();
 	}
@@ -321,6 +325,68 @@ namespace Dune
 			ThrowIfFailed(m_copyFence->SetEventOnCompletion(1, NULL))
 		}
 		m_copyFence->Signal(0);
+	}
+
+	void Renderer::Resize()
+	{
+		Assert(m_needResize);
+		m_needResize = false;
+
+		// Wait until all previous frames are processed.
+		for (dU32 i = 0; i < ms_frameCount; i++)
+		{
+			WaitForFrame(i);
+		}
+
+		// Release resources that are tied to the swap chain.
+		for (dU32 i = 0; i < ms_frameCount; i++)
+		{
+			m_backBuffers[i].Reset();
+		}
+		ReleaseTexture(m_intermediateRenderTarget);
+		ReleaseTexture(m_depthStencilBuffer);
+
+		ThrowIfFailed(m_swapChain->ResizeBuffers(
+			ms_frameCount,
+			0, 0,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			0
+		));
+
+		for (dU32 i = 0; i < ms_frameCount; i++)
+		{
+			m_rtvHeap.Free(m_backBufferViews[i]);
+		}
+
+		CreateRenderTargets();
+		CreateDepthStencil((dU32)m_viewport.Width, (dU32)m_viewport.Height);
+
+		dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(m_FOV), m_viewport.Width / m_viewport.Height, m_nearPlane, m_farPlane) };
+		CameraConstantBuffer cameraData
+		{
+			 m_viewMatrix * projectionMatrix,
+			 dVec4{ m_cameraPosition.x, m_cameraPosition.y, m_cameraPosition.z , 1.f }
+		};
+		MapBuffer(m_cameraMatrixBuffer, &cameraData, sizeof(CameraConstantBuffer));
+
+		dMatrix invProj = DirectX::XMMatrixInverse(nullptr, projectionMatrix);
+		PostProcessGlobals globals
+		{
+			.m_invProj = invProj,
+			.m_screenResolution = dVec2(m_viewport.Width, m_viewport.Height),
+		};
+		MapBuffer(m_postProcessGlobals, &globals, sizeof(PostProcessGlobals));
+
+		m_intermediateRenderTarget = CreateTexture(
+			{
+				.debugName = L"IntermediateRenderTarget",
+				.usage = ETextureUsage::RTV,
+				.dimensions = { (dU32)m_viewport.Width, (dU32)m_viewport.Height, 1 },
+				.format = DXGI_FORMAT_R8G8B8A8_UNORM,
+				.state = D3D12_RESOURCE_STATE_GENERIC_READ,
+				.clearValue = {.Format = DXGI_FORMAT_R8G8B8A8_UNORM, .Color{ .05f, 0.05f, 0.075f, 1.0f } }
+			}
+		);
 	}
 
 	void Renderer::Shutdown()
@@ -357,6 +423,8 @@ namespace Dune
 			m_meshPool.Remove(m_defaultMesh);
 
 		ReleaseBuffer(m_cameraMatrixBuffer);
+		ReleaseBuffer(m_fullScreenIndices);
+		ReleaseBuffer(m_postProcessGlobals);
 
 		if (m_directionalLightsBuffer.IsValid())
 			ReleaseBuffer(m_directionalLightsBuffer);
@@ -364,10 +432,11 @@ namespace Dune
 		if (m_pointLightsBuffer.IsValid())
 			ReleaseBuffer(m_pointLightsBuffer);
 
+		ReleaseTexture(m_intermediateRenderTarget);
+		
 		for (dU32 i{ 0 }; i < ms_frameCount; i++)
 		{
 			m_commandAllocators[i].Reset();
-			m_backBuffers[i].Reset();
 			m_rtvHeap.Free(m_backBufferViews[i]);
 			m_srvHeap.Free(m_pointLightsViews[i]);
 			m_srvHeap.Free(m_directionalLightsViews[i]);
@@ -375,8 +444,7 @@ namespace Dune
 		}
 		m_rtvHeap.Release();
 
-		m_depthStencilBuffer.Reset();
-		m_dsvHeap.Free(m_depthBufferView);
+		ReleaseTexture(m_depthStencilBuffer);
 
 		for (dU32 i{ 0 }; i < ms_shadowMapCount; i++)
 		{
@@ -393,7 +461,8 @@ namespace Dune
 		m_samplerHeap.Free(m_shadowMapsSamplerView);
 		m_samplerHeap.Release();
 
-		m_shaderPool.Remove(m_defaultShader);
+		ReleaseShader(m_defaultShader);
+		ReleaseShader(m_postProcessShader);
 
 		m_fenceEvent.Close();
 		m_fence.Reset();
@@ -406,6 +475,7 @@ namespace Dune
 		}
 
 		m_bufferPool.Release();
+		m_texturePool.Release();
 		m_meshPool.Release();
 		m_shaderPool.Release();
 
@@ -419,39 +489,14 @@ namespace Dune
 
 	void Renderer::OnResize(int x, int y)
 	{
-		// Wait until all previous frames are processed.
-		for (dU32 i = 0; i < ms_frameCount; i++)
-		{
-			WaitForFrame(i);
-		}
-
-		// Release resources that are tied to the swap chain.
-		for (dU32 i = 0; i < ms_frameCount; i++)
-		{
-			m_backBuffers[i].Reset();
-		}
-
-		ThrowIfFailed(m_swapChain->ResizeBuffers(
-			ms_frameCount,
-			0, 0,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
-			0
-		));
-
-		for (dU32 i = 0; i < ms_frameCount; i++)
-		{
-			m_rtvHeap.Free(m_backBufferViews[i]);
-		}
-		m_dsvHeap.Free(m_depthBufferView);
-
-		CreateRenderTargets();
-		CreateDepthStencil(x, y);
-
 		m_viewport.Width = static_cast<float>(x);
 		m_viewport.Height = static_cast<float>(y);
 
 		m_scissorRect.right = static_cast<LONG>(x);
 		m_scissorRect.bottom = static_cast<LONG>(y);
+
+		// We do not resize immediately because OnResize can be called multiple times in during the frame (due to windows message)
+		m_needResize = true;
 	}
 
 	Handle<Buffer> Renderer::CreateBuffer(const BufferDesc& desc)
@@ -474,9 +519,24 @@ namespace Dune
 		m_bufferPool.Remove(handle);
 	}
 
-	Buffer& Renderer::GetBuffer(Handle<Buffer> handle) 
+	Buffer& Renderer::GetBuffer(Handle<Buffer> handle)
 	{
 		return m_bufferPool.Get(handle);
+	}
+
+	Handle<Texture> Renderer::CreateTexture(const TextureDesc& desc)
+	{
+		return m_texturePool.Create(desc);
+	}
+
+	void Renderer::ReleaseTexture(Handle<Texture> handle)
+	{
+		m_texturePool.Remove(handle);
+	}
+
+	Texture& Renderer::GetTexture(Handle<Texture> handle)
+	{
+		return m_texturePool.Get(handle);
 	}
 
 	Handle<Mesh> Renderer::CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices)
@@ -492,6 +552,21 @@ namespace Dune
 	Mesh& Renderer::GetMesh(Handle<Mesh> handle)
 	{
 		return m_meshPool.Get(handle);
+	}
+
+	Shader& Renderer::GetShader(Handle<Shader> handle)
+	{
+		return m_shaderPool.Get(handle);
+	}
+
+	Handle<Shader> Renderer::CreateShader(const ShaderDesc& desc)
+	{
+		return m_shaderPool.Create(desc);
+	}
+
+	void Renderer::ReleaseShader(Handle<Shader> handle)
+	{
+		m_shaderPool.Remove(handle);
 	}
 
 	void Renderer::CreateDefaultMesh()
@@ -664,67 +739,28 @@ namespace Dune
 
 	void Renderer::CreateRenderTargets()
 	{
-		// Create frame resources.
+		for (UINT i = 0; i < ms_frameCount; i++)
 		{
-			// Create a RTV for each frame.
-			for (UINT i = 0; i < ms_frameCount; i++)
-			{
-				m_backBufferViews[i] = m_rtvHeap.Allocate();
-				ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBuffers[i])));
-				m_device->CreateRenderTargetView(m_backBuffers[i].Get(), nullptr, m_backBufferViews[i].cpuAdress);
-				NameDXObjectIndexed(m_backBuffers[i], i, L"RenderTarget");
-			}
+			m_backBufferViews[i] = m_rtvHeap.Allocate();
+			ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBuffers[i])));
+			m_device->CreateRenderTargetView(m_backBuffers[i].Get(), nullptr, m_backBufferViews[i].cpuAdress);
+			NameDXObjectIndexed(m_backBuffers[i], i, L"BackBuffers");
 		}
+		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 	}
 
-	void Renderer::CreateDepthStencil(int width, int height)
+	void Renderer::CreateDepthStencil(dU32 width, dU32 height)
 	{
-		// Resize screen dependent resources.
-		// Create a depth buffer.
-		D3D12_CLEAR_VALUE optimizedClearValue {};
-		optimizedClearValue.Format = DXGI_FORMAT_D16_UNORM;
-		optimizedClearValue.DepthStencil = { 1.0f, 0 };
-
-		D3D12_HEAP_PROPERTIES heapProps{};
-		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 0;
-		heapProps.VisibleNodeMask = 0;
-
-		D3D12_RESOURCE_DESC dsDesc {};
-		dsDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		dsDesc.Format = DXGI_FORMAT_D16_UNORM;
-		dsDesc.Width = width;
-		dsDesc.Height = height;
-		dsDesc.DepthOrArraySize = 1;
-		dsDesc.MipLevels = 1;
-		dsDesc.SampleDesc.Count = 1;
-		dsDesc.SampleDesc.Quality = 0;
-		dsDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		dsDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		dsDesc.Alignment = 0;
-
-		ThrowIfFailed(m_device->CreateCommittedResource(
-			&heapProps,
-			D3D12_HEAP_FLAG_NONE,
-			&dsDesc,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE,
-			&optimizedClearValue,
-			IID_PPV_ARGS(&m_depthStencilBuffer)
-		));
-		NameDXObject(m_depthStencilBuffer, L"DepthStencilBuffer");
-
-		// Update the depth-stencil view.
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
-		dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
-		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		dsvDesc.Texture2D.MipSlice = 0;
-		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-		
-		m_depthBufferView = m_dsvHeap.Allocate();
-		m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), &dsvDesc,
-			m_depthBufferView.cpuAdress);
+		m_depthStencilBuffer = CreateTexture(
+			{
+				.debugName = L"DepthStencilBuffer",
+				.usage = ETextureUsage::DSV,
+				.dimensions = { width, height, 1 },
+				.format = DXGI_FORMAT_D16_UNORM,
+				.state = D3D12_RESOURCE_STATE_DEPTH_READ,
+				.clearValue = {.Format = DXGI_FORMAT_D16_UNORM, .DepthStencil { 1.0f, 0 } }
+			}
+		);
 	}
 
 	void Renderer::CreateCommandAllocators()
@@ -865,17 +901,61 @@ namespace Dune
 
 	void Renderer::InitMainPass()
 	{
+		m_intermediateRenderTarget = CreateTexture(
+			{ 
+				.debugName = L"IntermediateRenderTarget",
+				.usage = ETextureUsage::RTV,
+				.dimensions = { (dU32)m_viewport.Width, (dU32)m_viewport.Height, 1 },
+				.format = DXGI_FORMAT_R8G8B8A8_UNORM,
+				.state = D3D12_RESOURCE_STATE_GENERIC_READ,
+				.clearValue = { .Format = DXGI_FORMAT_R8G8B8A8_UNORM, .Color{ .05f, 0.05f, 0.075f, 1.0f } }
+			}
+		);
+
 		CreatePointLightsBuffer();
 		CreateDirectionalLightsBuffer();
 	}
 
+	void Renderer::InitPostProcessPass()
+	{
+		CreatePostProcessShader();
+
+		dU32 indices[3]{ 0, 1, 2 };
+		dU32 size{ 3 * sizeof(dU32) };
+		BufferDesc desc{ L"FullScreenIndexBuffer", size, EBufferUsage::Index, EBufferMemory::GPUStatic, indices };
+		m_fullScreenIndices = Renderer::GetInstance().CreateBuffer(
+			{ 
+				.debugName	= L"FullScreenIndexBuffer", 
+				.byteSize	= size, 
+				.usage		= EBufferUsage::Index, 
+				.memory		= EBufferMemory::GPUStatic, 
+				.pData		= indices 
+			}
+		);
+		Assert(m_fullScreenIndices.IsValid());
+
+		dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), m_viewport.Width / m_viewport.Height, 0.1f, 1000.0f) };
+		dMatrix invProj = DirectX::XMMatrixInverse(nullptr, projectionMatrix);
+		PostProcessGlobals globals
+		{ 
+			.m_invProj = invProj,
+			.m_screenResolution = dVec2(m_viewport.Width, m_viewport.Height),
+		};
+
+		m_postProcessGlobals = Renderer::GetInstance().CreateBuffer(
+			{
+				.debugName	= L"PostProcessConstants",
+				.byteSize	= sizeof(PostProcessGlobals),
+				.usage		= EBufferUsage::Constant,
+				.memory		= EBufferMemory::CPU,
+				.pData		= &globals
+			}
+		);
+		Assert(m_postProcessGlobals.IsValid());
+	}
+
 	void Renderer::InitImGuiPass()
 	{
-		//Create ImGui descriptor heap
-		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		desc.NumDescriptors = 1;
-		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		m_imguiDescriptorHandle = m_srvHeap.Allocate();
 		ImGui_ImplDX12_Init(m_device.Get(), ms_frameCount,
 			DXGI_FORMAT_R8G8B8A8_UNORM, m_srvHeap.Get(),
@@ -988,13 +1068,75 @@ namespace Dune
 
 	void Renderer::CreateDefaultShader()
 	{
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[5];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+
+		CD3DX12_ROOT_PARAMETER1 rootParameters[6];
+		// Global constant (Camera matrices)
+		rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE, D3D12_SHADER_VISIBILITY_ALL);
+		// Instances Data
+		rootParameters[1].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_VERTEX);
+		// Point light buffers
+		rootParameters[2].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
+		// Directional light buffers
+		rootParameters[3].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+		// Shadow maps
+		rootParameters[4].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+		// Sampler
+		rootParameters[5].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_PIXEL);
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr,
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
+		);
+
 		ShaderDesc desc
 		{
 			.debugName = "DefaultShader",
 			.VS = {.fileName = L"Default.hlsl", .entryFunc = L"VSMain" },
 			.PS = {.fileName = L"Default.hlsl", .entryFunc = L"PSMain" },
+			.rootSignatureDesc = rootSignatureDesc,
+			.depthStencilDesc = {.depthEnable = true },
 		};
 		m_defaultShader = m_shaderPool.Create(desc);
+	}
+
+	void Renderer::CreatePostProcessShader()
+	{
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+
+		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[2].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE, D3D12_SHADER_VISIBILITY_PIXEL);
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
+		CD3DX12_STATIC_SAMPLER_DESC1 staticSamplerDesc;
+		staticSamplerDesc.Init(0);
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 1, (D3D12_STATIC_SAMPLER_DESC*)&staticSamplerDesc,
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
+		);
+
+		ShaderDesc desc
+		{
+			.debugName = "PostProcessShader",
+			.VS = {.fileName = L"PostProcess.hlsl", .entryFunc = L"VSMain" },
+			.PS = {.fileName = L"PostProcess.hlsl", .entryFunc = L"PSMain" },
+			.rootSignatureDesc = rootSignatureDesc,
+		};
+		m_postProcessShader = m_shaderPool.Create(desc);
 	}
 
 	void Renderer::ReleaseDyingResources(dU64 frameIndex)
@@ -1012,6 +1154,8 @@ namespace Dune
 		Profile(BeginFrame);
 		WaitForFrame(m_frameIndex);
 		ReleaseDyingResources(m_frameIndex);
+		if (m_needResize)
+			Resize();
 		ImGui::Render();
 		UpdatePointLights();
 		UpdateDirectionalLights();
@@ -1103,14 +1247,24 @@ namespace Dune
 		m_commandList->RSSetViewports(1, &m_viewport);
 		m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
-		D3D12_RESOURCE_BARRIER renderTargetBarrier{ CD3DX12_RESOURCE_BARRIER::Transition(m_backBuffers[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET) };
-		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
+		Texture& intermediateRenderTarget{ GetTexture(m_intermediateRenderTarget) };
+		Texture& depthStencilBuffer { GetTexture(m_depthStencilBuffer) };
 
-		m_commandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, FALSE, &m_depthBufferView.cpuAdress);
+		D3D12_RESOURCE_BARRIER barriers[2]
+		{
+			CD3DX12_RESOURCE_BARRIER::Transition(intermediateRenderTarget.GetResource(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET),
+			CD3DX12_RESOURCE_BARRIER::Transition(depthStencilBuffer.GetResource(), D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE),
+		};
+		m_commandList->ResourceBarrier(2, barriers);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE intermediateRenderTargetCPUadress = intermediateRenderTarget.GetRTV().cpuAdress;
+		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilBufferCPUadress = depthStencilBuffer.GetDSV().cpuAdress;
+
+		m_commandList->OMSetRenderTargets(1, &intermediateRenderTargetCPUadress, FALSE, &depthStencilBufferCPUadress);
 
 		constexpr float clearColor[] = { 0.05f, 0.05f, 0.075f, 1.0f };
-		m_commandList->ClearRenderTargetView(m_backBufferViews[m_frameIndex].cpuAdress, clearColor, 0, nullptr);
-		m_commandList->ClearDepthStencilView(m_depthBufferView.cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		m_commandList->ClearRenderTargetView(intermediateRenderTarget.GetRTV().cpuAdress, clearColor, 0, nullptr);
+		m_commandList->ClearDepthStencilView(depthStencilBuffer.GetDSV().cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		Buffer& cameraMatrixBuffer{ GetBuffer(m_cameraMatrixBuffer)};
 		m_commandList->SetGraphicsRootConstantBufferView(0, cameraMatrixBuffer.GetGPUAdress());
@@ -1172,6 +1326,47 @@ namespace Dune
 		m_commandList->SetDescriptorHeaps(1, ppHeaps);
 
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+	}
+
+	void Renderer::ExecutePostProcessPass()
+	{
+		Shader& shader = m_shaderPool.Get(m_postProcessShader);
+		m_commandList->SetPipelineState(shader.GetPSO());
+		m_commandList->SetGraphicsRootSignature(shader.GetRootSignature());
+		m_commandList->RSSetViewports(1, &m_viewport);
+		m_commandList->RSSetScissorRects(1, &m_scissorRect);
+
+		Texture& intermediateRenderTarget{ GetTexture(m_intermediateRenderTarget) };
+		Texture& depthStencilBuffer{ GetTexture(m_depthStencilBuffer) };
+
+		D3D12_RESOURCE_BARRIER barriers[3]
+		{
+			CD3DX12_RESOURCE_BARRIER::Transition(intermediateRenderTarget.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ),
+			CD3DX12_RESOURCE_BARRIER::Transition(m_backBuffers[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET),
+			CD3DX12_RESOURCE_BARRIER::Transition(depthStencilBuffer.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ),
+		};
+
+		m_commandList->ResourceBarrier(3, barriers);
+
+		m_commandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, false, nullptr);
+
+		ID3D12DescriptorHeap* ppHeaps[]{ m_srvHeap.Get() };
+		m_commandList->SetDescriptorHeaps(1, ppHeaps);
+
+		m_commandList->SetGraphicsRootDescriptorTable(0, intermediateRenderTarget.GetSRV().gpuAdress);
+		m_commandList->SetGraphicsRootDescriptorTable(1, depthStencilBuffer.GetSRV().gpuAdress);
+		m_commandList->SetGraphicsRootConstantBufferView(2, GetBuffer(m_postProcessGlobals).GetGPUAdress());
+		
+		Buffer& indexBuffer{ GetBuffer(m_fullScreenIndices) };
+
+		D3D12_INDEX_BUFFER_VIEW indexBufferView;
+		indexBufferView.BufferLocation = indexBuffer.GetGPUAdress();
+		indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		indexBufferView.SizeInBytes = indexBuffer.GetSize();
+
+		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_commandList->IASetIndexBuffer(&indexBufferView);
+		m_commandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
 	}
 
 	void Renderer::Present()

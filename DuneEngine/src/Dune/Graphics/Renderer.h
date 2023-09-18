@@ -7,14 +7,17 @@ namespace Dune
 {
 	class Window;
 	struct CameraComponent;
-	struct BufferDesc;
 	struct DirectionalLight;
 	struct PointLight;
 	class GraphicsElement;
 	struct InstanceData;
 	class Buffer;
-	class Mesh;
+	struct BufferDesc;
+	class Texture;
+	struct TextureDesc;
 	class Shader;
+	struct ShaderDesc;
+	class Mesh;
 	struct Vertex;
 
 	// Change once per draw call
@@ -37,6 +40,8 @@ namespace Dune
 	class Renderer
 	{
 		friend Buffer;
+		friend Texture;
+		friend Shader;
 		struct InstancedBatch;
 	public:
 		DISABLE_COPY_AND_MOVE(Renderer);
@@ -47,8 +52,7 @@ namespace Dune
 
 		[[nodiscard]] bool IsInitialized() const { return m_bIsInitialized; }
 
-		// TODO : Generalize graphics data submission
-		// Hint : Double buffered graphics objects. One is used by the Engine the other by the Renderer.
+		// TODO : Redo API to let the user handle graphics elements on its side
 
 		void							ClearGraphicsElements();
 		void							RemoveGraphicsElement(EntityID id, Handle<Mesh> mesh);
@@ -74,10 +78,16 @@ namespace Dune
 		void							MapBuffer(Handle<Buffer> handle, const void* pData, dU32 size);
 		void							ReleaseBuffer(Handle<Buffer> handle);
 
+		[[nodiscard]] Handle<Texture>	CreateTexture(const TextureDesc& desc);
+		void							ReleaseTexture(Handle<Texture> handle);
+
 		[[nodiscard]] Handle<Mesh>		CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
 		void							ReleaseMesh(Handle<Mesh> handle);
 		// Temp until I can load Mesh correctly
 		void							CreateDefaultMesh(); 
+
+		[[nodiscard]] Handle<Shader>	CreateShader(const ShaderDesc& desc);
+		void							ReleaseShader(Handle<Shader> handle);
 
 		void							ReleaseResource(IUnknown* resource);
 		
@@ -111,29 +121,35 @@ namespace Dune
 		void CreateCommandQueues();
 		void CreateSwapChain(HWND handle);
 		void CreateRenderTargets();
-		void CreateDepthStencil(int width, int height);
+		void CreateDepthStencil(dU32 width, dU32 height);
 		void CreateCommandAllocators();
 		void CreateSamplers();
 		void CreateCommandLists();
 		void CreateFences();
 
 		[[nodiscard]] Buffer&			GetBuffer(Handle<Buffer> handle);
+		[[nodiscard]] Texture&			GetTexture(Handle<Texture> handle);
 		[[nodiscard]] Mesh&				GetMesh(Handle<Mesh> handle);
+		[[nodiscard]] Shader&			GetShader(Handle<Shader> handle);
 		void							ReleaseDyingResources(dU64 frameIndex);
 
 		void InitShadowPass();
 		void InitMainPass();
+		void InitPostProcessPass();
 		void InitImGuiPass();
 
 		void BeginFrame();
 		void ExecuteShadowPass();
 		void ExecuteMainPass();
 		void ExecuteImGuiPass();
+		void ExecutePostProcessPass();
 		void Present();
 		void EndFrame();
 		
 		void WaitForFrame(const dU64 frameIndex);
 		void WaitForCopy();
+
+		void Resize();
 
 		// TODO : Find a nice form for this case.
 		// Update is called each frame. Not good.
@@ -145,12 +161,17 @@ namespace Dune
 
 		// Temp : Until I use Material component
 		void CreateDefaultShader();
+		void CreatePostProcessShader();
 	private:
 		bool												m_bIsInitialized{ false };
+		bool												m_needResize{ false };
+
 		Handle<Mesh>										m_defaultMesh;
 		Handle<Shader>										m_defaultShader;
+		Handle<Shader>										m_postProcessShader;
 
 		Pool<Buffer>										m_bufferPool;
+		Pool<Texture>										m_texturePool;
 		Pool<Mesh>											m_meshPool;
 		Pool<Shader>										m_shaderPool;
 
@@ -163,11 +184,15 @@ namespace Dune
 		// Frame resources
 		D3D12_VIEWPORT										m_viewport{};
 		D3D12_RECT											m_scissorRect{};
+		float												m_FOV{ 85.f };
+		float												m_farPlane{ 1000.f };
+		float												m_nearPlane{ 1.0f };
+		dMatrix												m_viewMatrix{};
+		dVec3												m_cameraPosition{ 0.0f, 0.0f, 0.0f };
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_backBuffers[ms_frameCount];
-		Microsoft::WRL::ComPtr<ID3D12Resource>				m_depthStencilBuffer;
 		DescriptorHandle									m_backBufferViews[ms_frameCount];
-		DescriptorHandle									m_depthBufferView;
+		Handle<Texture>										m_depthStencilBuffer;
 
 		// Direct commands
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
@@ -187,6 +212,7 @@ namespace Dune
 		DescriptorHandle									m_shadowMapsSamplerView;
 
 		// Main Pass
+		Handle<Texture>										m_intermediateRenderTarget;
 		Handle<Buffer>										m_pointLightsBuffer; 		
 		Handle<Buffer>										m_directionalLightsBuffer; 	
 		DescriptorHandle									m_pointLightsViews[ms_frameCount];
@@ -203,6 +229,10 @@ namespace Dune
 		dHashMap<ID::IDType, InstancedBatch>				m_batches;
 
 		Handle<Buffer>										m_cameraMatrixBuffer;
+		
+		// PostProcess pass
+		Handle<Buffer>										m_fullScreenIndices;
+		Handle<Buffer>										m_postProcessGlobals;
 
 		// ImGui Pass
 		DescriptorHandle									m_imguiDescriptorHandle;

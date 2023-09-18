@@ -109,6 +109,15 @@
     <ClInclude Include="src\Dune\Utilities\Utils.h">
       <Filter>Dune\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="src\Dune\Graphics\Texture.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dune\Graphics\TextureDesc.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dune\Graphics\Shaders\PostProcessGlobals.h">
+      <Filter>Dune\Graphics\Shader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">
@@ -155,6 +164,9 @@
     </ClCompile>
     <ClCompile Include="src\Dune\Utilities\MeshLoader.cpp">
       <Filter>Dune\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\Texture.cpp">
+      <Filter>Dune\Graphics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
