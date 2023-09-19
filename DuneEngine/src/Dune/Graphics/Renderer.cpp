@@ -279,14 +279,7 @@ namespace Dune
 		m_FOV = pCamera->verticalFieldOfView;
 		m_viewMatrix = pCamera->viewMatrix;
 		m_cameraPosition = pos;
-
-		dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(m_FOV), m_viewport.Width / m_viewport.Height, m_nearPlane, m_farPlane) };
-		CameraConstantBuffer cameraData
-		{
-			 m_viewMatrix* projectionMatrix,
-			 dVec4{ m_cameraPosition.x, m_cameraPosition.y, m_cameraPosition.z , 1.f }
-		};
-		MapBuffer(m_cameraMatrixBuffer, &cameraData, sizeof(CameraConstantBuffer));
+		m_needCameraUpdate = true;
 	}
 
 	void Renderer::Render()
@@ -361,21 +354,7 @@ namespace Dune
 		CreateRenderTargets();
 		CreateDepthStencil((dU32)m_viewport.Width, (dU32)m_viewport.Height);
 
-		dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(m_FOV), m_viewport.Width / m_viewport.Height, m_nearPlane, m_farPlane) };
-		CameraConstantBuffer cameraData
-		{
-			 m_viewMatrix * projectionMatrix,
-			 dVec4{ m_cameraPosition.x, m_cameraPosition.y, m_cameraPosition.z , 1.f }
-		};
-		MapBuffer(m_cameraMatrixBuffer, &cameraData, sizeof(CameraConstantBuffer));
-
-		dMatrix invProj = DirectX::XMMatrixInverse(nullptr, projectionMatrix);
-		PostProcessGlobals globals
-		{
-			.m_invProj = invProj,
-			.m_screenResolution = dVec2(m_viewport.Width, m_viewport.Height),
-		};
-		MapBuffer(m_postProcessGlobals, &globals, sizeof(PostProcessGlobals));
+		m_needCameraUpdate = true;
 
 		m_intermediateRenderTarget = CreateTexture(
 			{
@@ -934,21 +913,12 @@ namespace Dune
 		);
 		Assert(m_fullScreenIndices.IsValid());
 
-		dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), m_viewport.Width / m_viewport.Height, 0.1f, 1000.0f) };
-		dMatrix invProj = DirectX::XMMatrixInverse(nullptr, projectionMatrix);
-		PostProcessGlobals globals
-		{ 
-			.m_invProj = invProj,
-			.m_screenResolution = dVec2(m_viewport.Width, m_viewport.Height),
-		};
-
 		m_postProcessGlobals = Renderer::GetInstance().CreateBuffer(
 			{
 				.debugName	= L"PostProcessConstants",
 				.byteSize	= sizeof(PostProcessGlobals),
 				.usage		= EBufferUsage::Constant,
 				.memory		= EBufferMemory::CPU,
-				.pData		= &globals
 			}
 		);
 		Assert(m_postProcessGlobals.IsValid());
@@ -1066,6 +1036,30 @@ namespace Dune
 		}
 	}
 
+	void Renderer::UpdateCameraBuffer()
+	{
+		if (!m_needCameraUpdate)
+			return;
+
+		m_needCameraUpdate = false;
+
+		dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(m_FOV), m_viewport.Width / m_viewport.Height, m_nearPlane, m_farPlane) };
+		CameraConstantBuffer cameraData
+		{
+			 m_viewMatrix * projectionMatrix,
+			 dVec4{ m_cameraPosition.x, m_cameraPosition.y, m_cameraPosition.z , 1.f }
+		};
+		MapBuffer(m_cameraMatrixBuffer, &cameraData, sizeof(CameraConstantBuffer));
+
+		dMatrix invProj = DirectX::XMMatrixInverse(nullptr, projectionMatrix);
+		PostProcessGlobals globals
+		{
+			.m_invProj = invProj,
+			.m_screenResolution = dVec2(m_viewport.Width, m_viewport.Height),
+		};
+		MapBuffer(m_postProcessGlobals, &globals, sizeof(PostProcessGlobals));
+	}
+
 	void Renderer::CreateDefaultShader()
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[5];
@@ -1157,6 +1151,7 @@ namespace Dune
 		if (m_needResize)
 			Resize();
 		ImGui::Render();
+		UpdateCameraBuffer();
 		UpdatePointLights();
 		UpdateDirectionalLights();
 		UpdateInstancesData();

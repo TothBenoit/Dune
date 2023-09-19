@@ -158,6 +158,7 @@ namespace Dune
 		void CreateDirectionalLightsBuffer();
 		void UpdateDirectionalLights();
 		void UpdateInstancesData();
+		void UpdateCameraBuffer();
 
 		// Temp : Until I use Material component
 		void CreateDefaultShader();
@@ -165,6 +166,7 @@ namespace Dune
 	private:
 		bool												m_bIsInitialized{ false };
 		bool												m_needResize{ false };
+		bool												m_needCameraUpdate{ false };
 
 		Handle<Mesh>										m_defaultMesh;
 		Handle<Shader>										m_defaultShader;
