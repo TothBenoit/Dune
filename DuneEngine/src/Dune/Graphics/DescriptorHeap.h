@@ -24,6 +24,8 @@ namespace Dune
 		[[nodiscard]] DescriptorHandle Allocate();
 		void Free(DescriptorHandle handle);
 
+		void ReleaseDying(dU64 frameIndex);
+
 	private:
 		ID3D12DescriptorHeap* Get() { return m_pDescriptorHeap; }
 
@@ -36,6 +38,7 @@ namespace Dune
 	
 		dU32 m_capacity{ 0 };
 		dVector<dU32> m_freeSlots{};
+		dVector<dU32>* m_dyingSlots{ nullptr };
 		D3D12_DESCRIPTOR_HEAP_TYPE m_type{};
 		D3D12_CPU_DESCRIPTOR_HANDLE m_cpuStartAdress{ 0 };
 		D3D12_GPU_DESCRIPTOR_HANDLE m_gpuStartAdress{ 0 };

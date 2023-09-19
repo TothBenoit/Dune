@@ -28,7 +28,17 @@ namespace Dune
         dU32 slot{ (dU32)((handle.cpuAdress.ptr - m_cpuStartAdress.ptr) / m_descriptorSize) };
         Assert(handle.slot == slot);
 
-        m_freeSlots.push_back(slot);
+        m_dyingSlots[Renderer::GetInstance().GetFrameIndex()].push_back(slot);
+    }
+
+    void DescriptorHeap::ReleaseDying(dU64 frameIndex)
+    {
+        Assert(frameIndex < Renderer::GetFrameCount());
+        for (dU32 slot : m_dyingSlots[frameIndex])
+        {
+            m_freeSlots.push_back(slot);
+        }
+        m_dyingSlots[frameIndex].clear();
     }
 
     void DescriptorHeap::Initialize(dU32 capacity, D3D12_DESCRIPTOR_HEAP_TYPE type)
@@ -38,6 +48,7 @@ namespace Dune
 
         m_capacity = capacity;
         m_type = type;
+        m_dyingSlots = new dVector<dU32>[Renderer::GetFrameCount()];
 
         D3D12_DESCRIPTOR_HEAP_FLAGS flags{};
         if (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
@@ -74,8 +85,8 @@ namespace Dune
     void DescriptorHeap::Release()
     {
         Assert(m_freeSlots.size() == m_capacity);
-        Renderer::GetInstance().ReleaseResource(m_pDescriptorHeap);
-        
+        m_pDescriptorHeap->Release();
+        delete[] m_dyingSlots;
         m_capacity = 0;
         m_freeSlots.clear();
     }

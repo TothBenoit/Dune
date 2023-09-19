@@ -9,6 +9,7 @@ namespace Dune
 		: m_usage{ desc.usage }
 		, m_memory{ desc.memory }
 		, m_size{ desc.byteSize }
+		, m_byteStride { desc.byteStride }
 		, m_currentBuffer{ 0 }
 		, m_cycleFrame{ (dU64) -1}
 	{
@@ -34,7 +35,9 @@ namespace Dune
 			resourceState = D3D12_RESOURCE_STATE_COMMON;
 		}
 
-		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer( (m_memory == EBufferMemory::GPUStatic) ? m_size : m_size * Renderer::GetFrameCount() )};
+		dU32 bufferCount = (m_memory == EBufferMemory::GPUStatic)? 1 :  Renderer::GetFrameCount();
+
+		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(bufferCount * m_size )};
 		
 		ThrowIfFailed(renderer.GetDevice()->CreateCommittedResource(
 			&heapProps,
@@ -44,6 +47,8 @@ namespace Dune
 			nullptr,
 			IID_PPV_ARGS(&m_buffer)));
 		m_buffer->SetName(desc.debugName);
+
+		CreateView();
 
 		if (m_memory == EBufferMemory::CPU)
 		{
@@ -91,6 +96,7 @@ namespace Dune
 				renderer.m_copyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
 				renderer.WaitForCopy();
 				m_uploadBuffer->Release();
+
 			}
 		}
 	}
@@ -99,6 +105,12 @@ namespace Dune
 	{
 		Renderer& renderer{ Renderer::GetInstance() };
 		renderer.ReleaseResource(m_buffer);
+
+		dU32 viewCount = (m_memory == EBufferMemory::GPUStatic) ? 1 : Renderer::GetFrameCount();
+		for (dU32 i = 0; i < viewCount; i++)
+			renderer.m_srvHeap.Free(m_pViews[i]);
+		delete[] m_pViews;
+
 		if (m_memory == EBufferMemory::GPU)
 		{
 			m_uploadBuffer->Release();
@@ -114,6 +126,54 @@ namespace Dune
 
 		m_currentBuffer = (m_currentBuffer + 1) % Renderer::GetFrameCount();
 		return m_currentBuffer * m_size;
+	}
+
+	void Buffer::CreateView()
+	{
+		dU32 bufferCount = (m_memory == EBufferMemory::GPUStatic) ? 1 : Renderer::GetFrameCount();
+		m_pViews = new DescriptorHandle[bufferCount];
+		for (dU32 i = 0; i < bufferCount; i++)
+			m_pViews[i] = Renderer::GetInstance().m_srvHeap.Allocate();
+
+		switch (m_usage)
+		{
+		case EBufferUsage::Constant:
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC desc
+			{
+				.BufferLocation = m_buffer->GetGPUVirtualAddress(),
+				.SizeInBytes = m_size
+			};
+
+			Renderer::GetInstance().GetDevice()->CreateConstantBufferView(&desc, m_pViews[m_currentBuffer].cpuAdress);
+			break;
+		}
+
+		case EBufferUsage::Structured:
+		{
+			dU32 elementCount = m_size / m_byteStride;
+			D3D12_SHADER_RESOURCE_VIEW_DESC desc
+			{
+				.Format = DXGI_FORMAT_UNKNOWN,
+				.ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
+				.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+				.Buffer
+				{
+					.NumElements = elementCount,
+					.StructureByteStride = m_byteStride,
+					.Flags = D3D12_BUFFER_SRV_FLAG_NONE,
+				}
+			};
+			for (dU32 i = 0; i < bufferCount; i++)
+			{
+				desc.Buffer.FirstElement = elementCount * i;
+				Renderer::GetInstance().GetDevice()->CreateShaderResourceView(m_buffer, &desc, m_pViews[i].cpuAdress);
+			}
+			break;
+		}
+		default:
+			break;
+		}
 	}
 
 	void Buffer::MapData(const void* pData, dU32 size)

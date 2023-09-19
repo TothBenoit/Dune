@@ -94,6 +94,7 @@ namespace Dune
 		[[nodiscard]] ID3D12Device*		GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
 		[[nodiscard]] Handle<Mesh>		GetDefaultMesh() const { Assert(m_device.Get()); return m_defaultMesh; }
 		[[nodiscard]] dU64				GetElaspedFrame() { return m_elapsedFrame; }
+		[[nodiscard]] dU64				GetFrameIndex() { return m_frameIndex; }
 		[[nodiscard]] static dU32		GetShadowMapCount() { return ms_shadowMapCount; }
 		[[nodiscard]] static dU32		GetFrameCount() { return ms_frameCount; }
 
@@ -108,8 +109,7 @@ namespace Dune
 			dVector<EntityID>			graphicsEntities;
 			dHashMap<EntityID, dU32>	lookupGraphicsElements;
 
-			Handle<Buffer>				instancesDataBuffer[ms_frameCount];
-			DescriptorHandle			instancesDataViews[ms_frameCount];
+			Handle<Buffer>				instancesDataBuffer;
 		};
 
 		Renderer() = default;
@@ -153,9 +153,7 @@ namespace Dune
 
 		// TODO : Find a nice form for this case.
 		// Update is called each frame. Not good.
-		void CreatePointLightsBuffer();
 		void UpdatePointLights();
-		void CreateDirectionalLightsBuffer();
 		void UpdateDirectionalLights();
 		void UpdateInstancesData();
 		void UpdateCameraBuffer();
@@ -217,8 +215,6 @@ namespace Dune
 		Handle<Texture>										m_intermediateRenderTarget;
 		Handle<Buffer>										m_pointLightsBuffer; 		
 		Handle<Buffer>										m_directionalLightsBuffer; 	
-		DescriptorHandle									m_pointLightsViews[ms_frameCount];
-		DescriptorHandle									m_directionalLightsViews[ms_frameCount];
 
 		dVector<DirectionalLight>							m_directionalLights;
 		dVector<EntityID>									m_directionalLightEntities;

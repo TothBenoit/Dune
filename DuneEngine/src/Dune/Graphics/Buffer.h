@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Dune/Graphics/BufferDesc.h"
+#include "Dune/Graphics/DescriptorHeap.h"
 
 namespace Dune
 {
@@ -17,6 +18,7 @@ namespace Dune
 		[[nodiscard]] dU32 GetOffset() const { return m_currentBuffer * m_size; }
 		[[nodiscard]] dU32 GetCurrentBufferIndex() const { return m_currentBuffer; }
 		[[nodiscard]] D3D12_GPU_VIRTUAL_ADDRESS GetGPUAdress() const { return m_buffer->GetGPUVirtualAddress() + GetOffset(); }
+		[[nodiscard]] DescriptorHandle GetView() const { return m_pViews[m_currentBuffer]; }
 
 		void MapData(const void* pData, dU32 size);
 		void UploadData(const void* pData, dU32 size);
@@ -27,6 +29,7 @@ namespace Dune
 		DISABLE_COPY_AND_MOVE(Buffer);
 
 		dU32 CycleBuffer();
+		void CreateView();
 	private:
 		friend Pool<Buffer, Buffer>;
 
@@ -36,7 +39,10 @@ namespace Dune
 		const EBufferUsage	m_usage;
 		const EBufferMemory m_memory;
 		dU32				m_size;
+		dU32				m_byteStride;
 		dU32				m_currentBuffer;
 		dU64				m_cycleFrame;
+
+		DescriptorHandle*	m_pViews;
 	};
 }
