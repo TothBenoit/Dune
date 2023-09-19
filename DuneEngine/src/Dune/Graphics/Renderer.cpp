@@ -263,7 +263,7 @@ namespace Dune
 
 	void Renderer::Render()
 	{
-		Profile(Render);
+		ProfileFunc();
 		BeginFrame();
 		ExecuteShadowPass();
 		ExecuteMainPass();
@@ -274,7 +274,7 @@ namespace Dune
 
 	void Renderer::WaitForFrame(const dU64 frameIndex)
 	{
-		Profile(WaitForFrame);
+		ProfileFunc();
 
 		Assert(m_fence && m_fenceEvent.IsValid());
 
@@ -451,21 +451,25 @@ namespace Dune
 
 	Handle<Buffer> Renderer::CreateBuffer(const BufferDesc& desc)
 	{
+		ProfileFunc();
 		return m_bufferPool.Create(desc);
 	}
 
 	void Renderer::UploadBuffer(Handle<Buffer> handle, const void* pData, dU32 size)
 	{
+		ProfileFunc();
 		m_bufferPool.Get(handle).UploadData(pData, size);
 	}
 
 	void Renderer::MapBuffer(Handle<Buffer> handle, const void* pData, dU32 size)
 	{
+		ProfileFunc();
 		m_bufferPool.Get(handle).MapData(pData, size);
 	}
 
 	void Renderer::ReleaseBuffer(Handle<Buffer> handle)
 	{
+		ProfileFunc();
 		m_bufferPool.Remove(handle);
 	}
 
@@ -476,11 +480,13 @@ namespace Dune
 
 	Handle<Texture> Renderer::CreateTexture(const TextureDesc& desc)
 	{
+		ProfileFunc();
 		return m_texturePool.Create(desc);
 	}
 
 	void Renderer::ReleaseTexture(Handle<Texture> handle)
 	{
+		ProfileFunc();
 		m_texturePool.Remove(handle);
 	}
 
@@ -491,11 +497,13 @@ namespace Dune
 
 	Handle<Mesh> Renderer::CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices)
 	{
+		ProfileFunc();
 		return m_meshPool.Create(indices, vertices);
 	}
 
 	void Renderer::ReleaseMesh(Handle<Mesh> handle)
 	{
+		ProfileFunc();
 		m_meshPool.Remove(handle);
 	}
 
@@ -511,11 +519,13 @@ namespace Dune
 
 	Handle<Shader> Renderer::CreateShader(const ShaderDesc& desc)
 	{
+		ProfileFunc();
 		return m_shaderPool.Create(desc);
 	}
 
 	void Renderer::ReleaseShader(Handle<Shader> handle)
 	{
+		ProfileFunc();
 		m_shaderPool.Remove(handle);
 	}
 
@@ -569,6 +579,7 @@ namespace Dune
 
 	void Renderer::ReleaseResource(IUnknown* resource)
 	{
+		ProfileFunc();
 		m_dyingResources[m_frameIndex].emplace_back(resource);
 	}
 
@@ -903,7 +914,7 @@ namespace Dune
 
 	void Renderer::UpdateDirectionalLights()
 	{
-		Profile(UpdateDirectionalLights);
+		ProfileFunc();
 
 		Handle<Buffer>& directionalLightHandle{ m_directionalLightsBuffer };
 
@@ -934,7 +945,7 @@ namespace Dune
 
 	void Renderer::UpdateInstancesData()
 	{
-		Profile(UpdateInstancesData);
+		ProfileFunc();
 		for (auto& [meshID, batch] : m_batches)
 		{
 			Assert(!batch.instancesData.empty());
@@ -1070,7 +1081,7 @@ namespace Dune
 
 	void Renderer::BeginFrame()
 	{
-		Profile(BeginFrame);
+		ProfileFunc();
 		WaitForFrame(m_frameIndex);
 		ReleaseDyingResources(m_frameIndex);
 		if (m_needResize)
@@ -1087,7 +1098,7 @@ namespace Dune
 
 	void Renderer::ExecuteShadowPass()
 	{
-		Profile(ExecuteShadowPass);
+		ProfileFunc();
 
 		if (m_directionalLights.empty())
 			return;
@@ -1121,7 +1132,7 @@ namespace Dune
 
 			for (const auto& [meshID, batch] : m_batches)
 			{
-				Profile(Batch);
+				Profile("Batch");
 				if (batch.instancesData.size() > 0)
 				{
 					Buffer& instanceBuffer{ GetBuffer(batch.instancesDataBuffer)};
@@ -1160,7 +1171,7 @@ namespace Dune
 
 	void Renderer::ExecuteMainPass()
 	{
-		Profile(ExecuteMainPass);
+		ProfileFunc();
 	
 		Shader& shader = m_shaderPool.Get(m_defaultShader);
 		m_commandList->SetPipelineState(shader.GetPSO());
@@ -1207,7 +1218,7 @@ namespace Dune
 
 		for (const auto& [meshID, batch] : m_batches)
 		{
-			Profile(Batch);
+			Profile("Batch");
 
 			Assert(batch.instancesData.size() > 0);
 
@@ -1241,7 +1252,7 @@ namespace Dune
 
 	void Renderer::ExecuteImGuiPass()
 	{
-		Profile(ExecuteImGuiPass);
+		ProfileFunc();
 
 		m_commandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, FALSE, nullptr);
 		ID3D12DescriptorHeap* ppHeaps[] { m_srvHeap.Get() };
@@ -1293,7 +1304,7 @@ namespace Dune
 
 	void Renderer::Present()
 	{
-		Profile(Present);
+		ProfileFunc();
 
 		D3D12_RESOURCE_BARRIER renderTargetBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_backBuffers[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
@@ -1307,7 +1318,7 @@ namespace Dune
 
 	void Renderer::EndFrame()
 	{
-		Profile(EndFrame);
+		ProfileFunc();
 		Present();
 		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_elapsedFrame));
 		m_fenceValues[m_frameIndex] = m_elapsedFrame;
@@ -1317,7 +1328,7 @@ namespace Dune
 
 	void Renderer::UpdatePointLights()
 	{
-		Profile(UpdatePointLights);
+		ProfileFunc();
 		Handle<Buffer>& pointLightHandle{ m_pointLightsBuffer };
 		
 		if (m_pointLights.empty())

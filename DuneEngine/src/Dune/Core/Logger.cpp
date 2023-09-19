@@ -50,6 +50,7 @@ namespace Dune
 
 	void Logger::Log(LogLevel level, const dString& msg)
 	{
+		ProfileFunc();
 		switch (level)
 		{
 		case LogLevel::Info:
@@ -74,16 +75,17 @@ namespace Dune
 	{
 		while (m_shouldProcess)
 		{
-				while (!m_pendingMessages.empty())
+			while (!m_pendingMessages.empty())
+			{
+				std::pair<LogLevel, dString> msg;
 				{
-					std::pair<LogLevel, dString> msg;
-					{
-						std::lock_guard lock(m_logMutex);
-						msg = m_pendingMessages.front();
-						m_pendingMessages.pop();
-					}
-					Log(msg.first, msg.second);
+					std::lock_guard lock(m_logMutex);
+					msg = m_pendingMessages.front();
+					m_pendingMessages.pop();
 				}
+				Log(msg.first, msg.second);
+			}
+			std::this_thread::yield();
 		}
 	}
 

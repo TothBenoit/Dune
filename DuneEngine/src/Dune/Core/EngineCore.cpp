@@ -66,7 +66,7 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
-		Profile(EngineCoreUpdate);
+		Profile("EngineCoreUpdate");
 
 		m_deltaTime = dt;
 		DrawInterface();
@@ -80,6 +80,7 @@ namespace Dune
 
 	EntityID EngineCore::CreateEntity(const dString& name)
 	{
+		ProfileFunc();
 #ifdef _DEBUG
 		if (!m_isInitialized)
 		{
@@ -142,7 +143,7 @@ namespace Dune
 
 	void EngineCore::UpdateCamera()
 	{
-		Profile(UpdateCamera);
+		ProfileFunc();
 		//TODO: Input and transformation should be decoupled so we can compute new transformation only when it changed
 		if (!m_entityManager.IsValid(m_cameraID))
 			return;
@@ -238,6 +239,7 @@ namespace Dune
 
 	void EngineCore::UpdateTransforms()
 	{
+		ProfileFunc();
 		for (const EntityID entity: m_modifiedEntities)
 		{
 			if (TransformComponent* transform = ModifyComponent<TransformComponent>(entity))
@@ -254,6 +256,7 @@ namespace Dune
 
 	void EngineCore::DrawMainMenuBar()
 	{
+		ProfileFunc();
 		if (ImGui::BeginMainMenuBar())
 		{
 			if (ImGui::BeginMenu("Main"))
@@ -287,10 +290,9 @@ namespace Dune
 
 	void EngineCore::DrawInterface()
 	{
+		ProfileFunc();
 		if (m_showImGuiDemo)
 			ImGui::ShowDemoWindow(&m_showImGuiDemo);
-
-		Profile(DrawInterface);
 
 		DrawMainMenuBar();
 		if(m_showScene)
@@ -301,6 +303,7 @@ namespace Dune
 
 	void EngineCore::DrawScene()
 	{
+		ProfileFunc();
 		static float spawnRadius = 500.f;
 		ImGui::Begin("Scene", &m_showScene);
 		ImGui::Text("Scene graph");
@@ -342,8 +345,9 @@ namespace Dune
 		}
 
 		ImGui::SameLine();
-		if (ImGui::Button("Add 5000 GraphicsEntity"))
+		if (ImGui::Button("Add 5000 GraphicsEntities"))
 		{
+			Profile("Add 5000 GraphicsEntities")
 			for (int i = 0; i < 5000; i++)
 			{
 				EntityID id = CreateEntity("New entity");
@@ -479,6 +483,7 @@ namespace Dune
 	}
 	void EngineCore::DrawInspector()
 	{
+		ProfileFunc();
 		ImGui::Begin("Inspector", &m_showInspector);
 
 		if (ID::IsValid(m_selectedEntity))
@@ -621,7 +626,7 @@ namespace Dune
 
 	void EngineCore::UpdateGraphicsData()
 	{
-		Profile(UpdateGraphicsData);
+		ProfileFunc();
 
 		Renderer& renderer{ Renderer::GetInstance() };
 
@@ -687,6 +692,7 @@ namespace Dune
 
 	void EngineCore::ClearModifiedEntities()
 	{
+		ProfileFunc();
 		m_modifiedEntities.clear();
 	}
 

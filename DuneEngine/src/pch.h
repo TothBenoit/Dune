@@ -11,7 +11,8 @@
 #ifdef PROFILE_ENABLED
 	#include <Optick/optick.h>
 	#define ProfileBeginFrame() OPTICK_FRAME("MainThread");
-	#define Profile(msg) OPTICK_EVENT(#msg)
+	#define Profile(msg) OPTICK_EVENT(msg)
+	#define ProfileFunc() OPTICK_EVENT(__func__)
 #else
 	#define Profile(msg)
 #endif
