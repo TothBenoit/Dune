@@ -139,10 +139,10 @@ namespace Dune
 		void InitImGuiPass();
 
 		void BeginFrame();
-		void ExecuteShadowPass();
-		void ExecuteMainPass();
-		void ExecuteImGuiPass();
-		void ExecutePostProcessPass();
+		void ExecuteShadowPass(ID3D12GraphicsCommandList* pCommandList);
+		void ExecuteMainPass(ID3D12GraphicsCommandList* pCommandList);
+		void ExecuteImGuiPass(ID3D12GraphicsCommandList* pCommandList);
+		void ExecutePostProcessPass(ID3D12GraphicsCommandList* pCommandList);
 		void Present();
 		void EndFrame();
 		
@@ -161,14 +161,18 @@ namespace Dune
 		// Temp : Until I use Material component
 		void CreateDefaultShader();
 		void CreatePostProcessShader();
+		void CreateDepthWriteShader();
 	private:
 		bool												m_bIsInitialized{ false };
 		bool												m_needResize{ false };
 		bool												m_needCameraUpdate{ false };
+		
+		dU32												m_renderPassCount{ 4 };
 
 		Handle<Mesh>										m_defaultMesh;
 		Handle<Shader>										m_defaultShader;
 		Handle<Shader>										m_postProcessShader;
+		Handle<Shader>										m_depthWriteShader;
 
 		Pool<Buffer>										m_bufferPool;
 		Pool<Texture>										m_texturePool;
@@ -196,8 +200,8 @@ namespace Dune
 
 		// Direct commands
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_commandQueue;
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		m_commandAllocators[ms_frameCount];
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;
+		dVector<ID3D12CommandAllocator*>					m_commandAllocators[ms_frameCount];
+		dVector<ID3D12GraphicsCommandList*>					m_commandLists;
 
 		// Copy commands
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>			m_copyCommandQueue;

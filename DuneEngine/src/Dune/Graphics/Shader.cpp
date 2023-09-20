@@ -21,6 +21,9 @@ namespace Dune
 		Microsoft::WRL::ComPtr<IDxcIncludeHandler> pIncludeHandler{ nullptr };
 		pUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
 
+		IDxcBlob* pVSBlob{ nullptr };
+		IDxcBlob* pPSBlob{ nullptr };
+
 		dU32 codePage{ CP_UTF8 };
 		const wchar_t* args[] 
 		{  
@@ -29,9 +32,6 @@ namespace Dune
 
 		dWString vertexShaderPath{ SHADER_DIR };
 		vertexShaderPath.append(desc.VS.fileName);
-
-		dWString pixelShaderPath{ SHADER_DIR };
-		pixelShaderPath.append(desc.PS.fileName);
 
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
 		ThrowIfFailed( pLibrary->CreateBlobFromFile(vertexShaderPath.c_str(), &codePage, &pSourceBlob));
@@ -52,30 +52,35 @@ namespace Dune
 			OutputDebugStringA((const char*)pErrorsBlob->GetBufferPointer());
 		}
 
-		Microsoft::WRL::ComPtr<IDxcBlob> VSBlob{ nullptr };
-		pResult->GetResult(&VSBlob);
+		pResult->GetResult(&pVSBlob);
 
-		pSourceBlob->Release();
-		pResult->Release();
-		ThrowIfFailed(pLibrary->CreateBlobFromFile(pixelShaderPath.c_str(), &codePage, &pSourceBlob));
-		ThrowIfFailed(pCompiler->Compile(
-			pSourceBlob.Get(),		// pSource
-			desc.PS.fileName,		// pSourceName
-			desc.PS.entryFunc,		// pEntryPoint
-			L"ps_6_6",				// pTargetProfile
-			args, _countof(args),	// pArguments, argCount
-			NULL, 0,				// pDefines, defineCount
-			pIncludeHandler.Get(),	// pIncludeHandler
-			&pResult));			// ppResult
-
-		pErrorsBlob->Release();
-		if (SUCCEEDED(pResult->GetErrorBuffer(&pErrorsBlob)) && pErrorsBlob.Get())
+		if (desc.PS.fileName)
 		{
-			OutputDebugStringA((const char*)pErrorsBlob->GetBufferPointer());
-		}
+			pSourceBlob->Release();
+			pResult->Release();
 
-		Microsoft::WRL::ComPtr<IDxcBlob> PSBlob{ nullptr };
-		pResult->GetResult(&PSBlob);
+			dWString pixelShaderPath{ SHADER_DIR };
+			pixelShaderPath.append(desc.PS.fileName);
+
+			ThrowIfFailed(pLibrary->CreateBlobFromFile(pixelShaderPath.c_str(), &codePage, &pSourceBlob));
+			ThrowIfFailed(pCompiler->Compile(
+				pSourceBlob.Get(),		// pSource
+				desc.PS.fileName,		// pSourceName
+				desc.PS.entryFunc,		// pEntryPoint
+				L"ps_6_6",				// pTargetProfile
+				args, _countof(args),	// pArguments, argCount
+				NULL, 0,				// pDefines, defineCount
+				pIncludeHandler.Get(),	// pIncludeHandler
+				&pResult));			// ppResult
+
+			pErrorsBlob->Release();
+			if (SUCCEEDED(pResult->GetErrorBuffer(&pErrorsBlob)) && pErrorsBlob.Get())
+			{
+				OutputDebugStringA((const char*)pErrorsBlob->GetBufferPointer());
+			}
+
+			pResult->GetResult(&pPSBlob);
+		}
 
 		Microsoft::WRL::ComPtr<ID3DBlob> signature{ nullptr };
 		Microsoft::WRL::ComPtr<ID3DBlob> error{ nullptr };
@@ -97,10 +102,10 @@ namespace Dune
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 		psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 		psoDesc.pRootSignature = m_pRootSignature;
-		psoDesc.VS.BytecodeLength = VSBlob->GetBufferSize();
-		psoDesc.VS.pShaderBytecode = VSBlob->GetBufferPointer();
-		psoDesc.PS.BytecodeLength = PSBlob->GetBufferSize();
-		psoDesc.PS.pShaderBytecode = PSBlob->GetBufferPointer();
+		psoDesc.VS.BytecodeLength = pVSBlob->GetBufferSize();
+		psoDesc.VS.pShaderBytecode = pVSBlob->GetBufferPointer();
+		psoDesc.PS.BytecodeLength = (pPSBlob) ? pPSBlob->GetBufferSize() : 0;
+		psoDesc.PS.pShaderBytecode = (pPSBlob) ? pPSBlob->GetBufferPointer() : nullptr;
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -115,6 +120,10 @@ namespace Dune
 		psoDesc.DSVFormat = DXGI_FORMAT_D16_UNORM;
 		psoDesc.SampleDesc.Count = 1;
 		ThrowIfFailed(pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPipelineState)));
+
+		pVSBlob->Release();
+		if (pPSBlob)
+			pPSBlob->Release();
 	}
 
 	Shader::~Shader()

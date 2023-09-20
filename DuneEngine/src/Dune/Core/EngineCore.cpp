@@ -12,6 +12,7 @@
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Material.h"
 #include "Dune/Utilities/MeshLoader.h"
+#include "Dune/Core/JobSystem.h"
 
 namespace Dune
 {
@@ -22,6 +23,8 @@ namespace Dune
 			LOG_CRITICAL("Tried to initialize EngineCore which was already initialized");
 			return;
 		}
+
+		Job::Initialize();
 
 		ComponentManager<TransformComponent>::Init();
 		ComponentManager<BindingComponent>::Init();
@@ -47,6 +50,10 @@ namespace Dune
 			return;
 		}
 #endif // _DEBUG
+
+		Job::Wait();
+		Job::Shutdown();
+
 		ComponentManager<TransformComponent>::Shutdown();
 		ComponentManager<BindingComponent>::Shutdown();
 		ComponentManager<GraphicsComponent>::Shutdown();
@@ -348,6 +355,7 @@ namespace Dune
 		if (ImGui::Button("Add 5000 GraphicsEntities"))
 		{
 			Profile("Add 5000 GraphicsEntities")
+
 			for (int i = 0; i < 5000; i++)
 			{
 				EntityID id = CreateEntity("New entity");
@@ -370,19 +378,21 @@ namespace Dune
 				transform->position.y = spawnRadius * r * sinPhi * sinTheta;
 				transform->position.z = spawnRadius * r * cosPhi;
 
-				LO = -180.f;
-				HI = 180.f;
+				constexpr float maxRotation = 180;
+				constexpr float minRotation = -180;
+				constexpr float rotationRatio{ RAND_MAX / (maxRotation - minRotation) };
+				
+				transform->rotation.x = minRotation + static_cast <float> (rand()) / rotationRatio;
+				transform->rotation.y = minRotation + static_cast <float> (rand()) / rotationRatio;
+				transform->rotation.z = minRotation + static_cast <float> (rand()) / rotationRatio;
 
-				transform->rotation.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
-				transform->rotation.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
-				transform->rotation.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+				constexpr float maxScale = 1.5;
+				constexpr float minScale = 0.5;
+				constexpr float scaleRatio{ RAND_MAX / (maxScale - minScale)};
 
-				LO = 0.5f;
-				HI = 1.5f;
-
-				transform->scale.x = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));;
-				transform->scale.y = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
-				transform->scale.z = LO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (HI - LO)));
+				transform->scale.x = minScale + static_cast <float> (rand()) / scaleRatio;
+				transform->scale.y = minScale + static_cast <float> (rand()) / scaleRatio;
+				transform->scale.z = minScale + static_cast <float> (rand()) / scaleRatio;
 			}
 		}
 

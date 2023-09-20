@@ -67,6 +67,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)DuneEngine\src\;$(SolutionDir)DuneEngine\include\;</AdditionalIncludeDirectories>
       <ExceptionHandling>false</ExceptionHandling>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

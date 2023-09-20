@@ -13,6 +13,7 @@
 	#define ProfileBeginFrame() OPTICK_FRAME("MainThread");
 	#define Profile(msg) OPTICK_EVENT(msg)
 	#define ProfileFunc() OPTICK_EVENT(__func__)
+	#define ProfileBeginThread(threadName) OPTICK_START_THREAD(threadName)
 #else
 	#define Profile(msg)
 #endif
@@ -27,6 +28,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <functional>
 #include <imgui/imgui.h>
 #include "Dune/Common/Macro.h"
 #include "Dune/Common/Types.h"

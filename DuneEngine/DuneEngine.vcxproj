@@ -26,6 +26,7 @@
     <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />
     <ClInclude Include="src\Dune\Core\ECS\EntityManager.h" />
     <ClInclude Include="src\Dune\Core\EngineCore.h" />
+    <ClInclude Include="src\Dune\Core\JobSystem.h" />
     <ClInclude Include="src\Dune\Core\SceneGraph.h" />
     <ClInclude Include="src\Dune\Graphics\BufferDesc.h" />
     <ClInclude Include="src\Dune\Graphics\DescriptorHeap.h" />
@@ -57,6 +58,7 @@
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
+    <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
     <ClCompile Include="src\Dune\Graphics\Buffer.cpp" />
     <ClCompile Include="src\Dune\Graphics\DescriptorHeap.cpp" />

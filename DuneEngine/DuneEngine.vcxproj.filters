@@ -118,6 +118,9 @@
     <ClInclude Include="src\Dune\Graphics\Shaders\PostProcessGlobals.h">
       <Filter>Dune\Graphics\Shader</Filter>
     </ClInclude>
+    <ClInclude Include="src\Dune\Core\JobSystem.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">
@@ -167,6 +170,9 @@
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Texture.cpp">
       <Filter>Dune\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Core\JobSystem.cpp">
+      <Filter>Dune\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

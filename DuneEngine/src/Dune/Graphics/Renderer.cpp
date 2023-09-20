@@ -12,6 +12,7 @@
 #include "Dune/Graphics/Shaders/PostProcessGlobals.h"
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/Shader.h"
+#include "Dune/Core/JobSystem.h"
 
 namespace Dune
 {
@@ -265,10 +266,12 @@ namespace Dune
 	{
 		ProfileFunc();
 		BeginFrame();
-		ExecuteShadowPass();
-		ExecuteMainPass();
-		ExecutePostProcessPass();
-		ExecuteImGuiPass();
+		Job::JobBuilder jobBuilder;
+		jobBuilder.DispatchJob<Job::Fence::None>([&]() { ExecuteShadowPass(m_commandLists[0]);		});
+		jobBuilder.DispatchJob<Job::Fence::None>([&]() { ExecuteMainPass(m_commandLists[1]);		});
+		jobBuilder.DispatchJob<Job::Fence::None>([&]() { ExecutePostProcessPass(m_commandLists[2]); });
+		jobBuilder.DispatchJob<Job::Fence::None>([&]() { ExecuteImGuiPass(m_commandLists[3]);		});
+		Job::WaitForCounter(jobBuilder.ExtractWaitCounter());
 		EndFrame();
 	}
 
@@ -354,13 +357,23 @@ namespace Dune
 		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
 			WaitForFrame(i);
+
+			for (ID3D12CommandAllocator* pCommandAllocator : m_commandAllocators[i])
+			{
+				pCommandAllocator->Release();
+			}
+		}
+
+		for (ID3D12CommandList* pCommandList : m_commandLists)
+		{
+			pCommandList->Release();
 		}
 
 		m_commandQueue.Reset();
-		m_commandList.Reset();
-		m_copyCommandQueue.Reset();
+
 		m_copyCommandAllocator.Reset();
 		m_copyCommandList.Reset();
+		m_copyCommandQueue.Reset();
 
 		for (auto& [meshID, batch] : m_batches)
 		{
@@ -388,7 +401,6 @@ namespace Dune
 		
 		for (dU32 i{ 0 }; i < ms_frameCount; i++)
 		{
-			m_commandAllocators[i].Reset();
 			m_rtvHeap.Free(m_backBufferViews[i]);
 			m_backBuffers[i].Reset();
 		}
@@ -406,6 +418,7 @@ namespace Dune
 
 		m_samplerHeap.Free(m_shadowMapsSamplerView);
 
+		ReleaseShader(m_depthWriteShader);
 		ReleaseShader(m_defaultShader);
 		ReleaseShader(m_postProcessShader);
 
@@ -728,8 +741,14 @@ namespace Dune
 	{
 		for (dU32 i = 0; i < ms_frameCount; i++)
 		{
-			ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
-			NameDXObjectIndexed(m_commandAllocators[i], i, L"CommandAllocators");
+			m_commandAllocators[i].reserve(m_renderPassCount);
+			for (dU32 j = 0; j < m_renderPassCount; j++)
+			{
+				ID3D12CommandAllocator* pCommandAllocator{ nullptr };
+				ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCommandAllocator)));
+				NameDXObjectIndexed(pCommandAllocator, i + m_renderPassCount * j, L"CommandAllocator");
+				m_commandAllocators[i].push_back(pCommandAllocator);
+			}
 		}
 
 		ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&m_copyCommandAllocator)));
@@ -757,12 +776,15 @@ namespace Dune
 
 	void Renderer::CreateCommandLists()
 	{
-		// Create the command list.
-		// Command lists are created in the recording state, but there is nothing
-		// to record yet. The main loop expects it to be closed, so close it now.
-		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
-		ThrowIfFailed(m_commandList->Close());
-		NameDXObject(m_commandList, L"CommandList");
+		m_commandLists.reserve(m_renderPassCount);
+		for (dU32 i = 0; i < m_renderPassCount; i++)
+		{
+			ID3D12GraphicsCommandList* pCommandList{ nullptr };
+			ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[m_frameIndex][i], nullptr, IID_PPV_ARGS(&pCommandList)));
+			ThrowIfFailed(pCommandList->Close());
+			NameDXObjectIndexed(pCommandList, i, L"CommandList");
+			m_commandLists.push_back(pCommandList);
+		}
 
 		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, m_copyCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_copyCommandList)));
 		ThrowIfFailed(m_copyCommandList->Close());
@@ -771,7 +793,6 @@ namespace Dune
 
 	void Renderer::CreateFences()
 	{
-		// Create synchronization objects and wait until assets have been uploaded to the GPU.
 		ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
 		NameDXObject(m_fence, L"Fence");
 
@@ -798,6 +819,7 @@ namespace Dune
 	void Renderer::InitShadowPass()
 	{
 		CreateSamplers();
+		CreateDepthWriteShader();
 
 		CD3DX12_RESOURCE_DESC shadowTextureDesc(
 			D3D12_RESOURCE_DIMENSION_TEXTURE2D,
@@ -855,7 +877,7 @@ namespace Dune
 
 		for (dU32 i{ 0 }; i < ms_shadowMapCount; i++)
 		{
-			BufferDesc desc{ L"ShadowMapCameraBuffer", sizeof(CameraConstantBuffer), EBufferUsage::Constant, EBufferMemory::CPU, nullptr };
+			BufferDesc desc{ L"ShadowMapCameraBuffer", sizeof(dMatrix), EBufferUsage::Constant, EBufferMemory::CPU, nullptr };
 			m_shadowCameraBuffers[i] = CreateBuffer(desc);
 		}
 	}
@@ -1063,6 +1085,36 @@ namespace Dune
 		m_postProcessShader = m_shaderPool.Create(desc);
 	}
 
+	void Renderer::CreateDepthWriteShader()
+	{
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+
+		CD3DX12_ROOT_PARAMETER1 rootParameters[2];
+		// ViewProj matrix
+		rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE, D3D12_SHADER_VISIBILITY_VERTEX);
+		// Instances Data
+		rootParameters[1].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr,
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS
+		);
+
+		ShaderDesc desc
+		{
+			.debugName = "DepthWriteShader",
+			.VS = {.fileName = L"DepthWrite.hlsl", .entryFunc = L"VSMain" },
+			.rootSignatureDesc = rootSignatureDesc,
+			.depthStencilDesc = { .depthEnable = true },
+		};
+		m_depthWriteShader = m_shaderPool.Create(desc);
+	}
+
 	void Renderer::ReleaseDyingResources(dU64 frameIndex)
 	{
 		m_dsvHeap.ReleaseDying(frameIndex);
@@ -1092,43 +1144,44 @@ namespace Dune
 		UpdateDirectionalLights();
 		UpdateInstancesData();
 
-		ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset())
-		ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
+		ID3D12DescriptorHeap* ppHeaps[] = { m_srvHeap.Get(), m_samplerHeap.Get() };
+		for (dU32 i = 0; i < m_renderPassCount; i++)
+		{
+			ThrowIfFailed(m_commandAllocators[m_frameIndex][i]->Reset());
+			ThrowIfFailed(m_commandLists[i]->Reset(m_commandAllocators[m_frameIndex][i], nullptr));
+			m_commandLists[i]->SetDescriptorHeaps(2, ppHeaps);
+		}
 	}
 
-	void Renderer::ExecuteShadowPass()
+	void Renderer::ExecuteShadowPass(ID3D12GraphicsCommandList* pCommandList)
 	{
 		ProfileFunc();
 
 		if (m_directionalLights.empty())
 			return;
 
-		Shader& shader = m_shaderPool.Get(m_defaultShader);
-		m_commandList->SetPipelineState(shader.GetPSO());
-		m_commandList->SetGraphicsRootSignature(shader.GetRootSignature());
+		Shader& shader = m_shaderPool.Get(m_depthWriteShader);
+		pCommandList->SetPipelineState(shader.GetPSO());
+		pCommandList->SetGraphicsRootSignature(shader.GetRootSignature());
 
 		constexpr D3D12_VIEWPORT viewport{0.f, 0.f, 8192.f, 8192.f, 0.f, 1.f};
 		constexpr D3D12_RECT scissorRect{ 0, 0, 8192, 8192};
 
-		m_commandList->RSSetViewports(1, &viewport);
-		m_commandList->RSSetScissorRects(1, &scissorRect);
-		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		pCommandList->RSSetViewports(1, &viewport);
+		pCommandList->RSSetScissorRects(1, &scissorRect);
+		pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		D3D12_RESOURCE_BARRIER shadowMapBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_shadowMaps.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		m_commandList->ResourceBarrier(1, &shadowMapBarrier);
+		pCommandList->ResourceBarrier(1, &shadowMapBarrier);
 
 		for (dU32 i{ 0 }; i < ms_shadowMapCount && i < m_directionalLights.size() ; i++)
 		{
-			MapBuffer(m_shadowCameraBuffers[i], &m_directionalLights[i].m_viewProj, sizeof(CameraConstantBuffer));
-			
+			MapBuffer(m_shadowCameraBuffers[i], &m_directionalLights[i].m_viewProj, sizeof(dMatrix));
 			Buffer& cameraMatrixBuffer{ GetBuffer(m_shadowCameraBuffers[i]) };
 			
-			m_commandList->SetGraphicsRootConstantBufferView(0, cameraMatrixBuffer.GetGPUAdress() );
-			m_commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowMapsDepthViews[i].cpuAdress);    // No render target needed for the shadow pass.
-			m_commandList->ClearDepthStencilView(m_shadowMapsDepthViews[i].cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-			ID3D12DescriptorHeap* ppHeaps[] = { m_srvHeap.Get() };
-			m_commandList->SetDescriptorHeaps(1, ppHeaps);
+			pCommandList->SetGraphicsRootConstantBufferView(0, cameraMatrixBuffer.GetGPUAdress() );
+			pCommandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowMapsDepthViews[i].cpuAdress);    // No render target needed for the shadow pass.
+			pCommandList->ClearDepthStencilView(m_shadowMapsDepthViews[i].cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 			for (const auto& [meshID, batch] : m_batches)
 			{
@@ -1136,7 +1189,7 @@ namespace Dune
 				if (batch.instancesData.size() > 0)
 				{
 					Buffer& instanceBuffer{ GetBuffer(batch.instancesDataBuffer)};
-					m_commandList->SetGraphicsRootDescriptorTable(1, instanceBuffer.GetView().gpuAdress);
+					pCommandList->SetGraphicsRootDescriptorTable(1, instanceBuffer.GetView().gpuAdress);
 
 					const Mesh& mesh{ GetMesh(Handle<Mesh>(meshID)) };
 
@@ -1154,30 +1207,29 @@ namespace Dune
 					indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 					indexBufferView.SizeInBytes = indexBuffer.GetSize();
 
-					m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-					m_commandList->IASetIndexBuffer(&indexBufferView);
+					pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					pCommandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+					pCommandList->IASetIndexBuffer(&indexBufferView);
 
 					dU32 indexCount{ indexBuffer.GetSize() / (sizeof(dU32)) };
-					m_commandList->DrawIndexedInstanced(indexCount, (UINT)batch.instancesData.size(), 0, 0, 0);
+					pCommandList->DrawIndexedInstanced(indexCount, (UINT)batch.instancesData.size(), 0, 0, 0);
 				}
 			}
 		}
 
 		shadowMapBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_shadowMaps.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		m_commandList->ResourceBarrier(1, &shadowMapBarrier);
-
+		pCommandList->ResourceBarrier(1, &shadowMapBarrier);
 	}
 
-	void Renderer::ExecuteMainPass()
+	void Renderer::ExecuteMainPass(ID3D12GraphicsCommandList* pCommandList)
 	{
 		ProfileFunc();
 	
 		Shader& shader = m_shaderPool.Get(m_defaultShader);
-		m_commandList->SetPipelineState(shader.GetPSO());
-		m_commandList->SetGraphicsRootSignature(shader.GetRootSignature());
-		m_commandList->RSSetViewports(1, &m_viewport);
-		m_commandList->RSSetScissorRects(1, &m_scissorRect);
+		pCommandList->SetPipelineState(shader.GetPSO());
+		pCommandList->SetGraphicsRootSignature(shader.GetRootSignature());
+		pCommandList->RSSetViewports(1, &m_viewport);
+		pCommandList->RSSetScissorRects(1, &m_scissorRect);
 
 		Texture& intermediateRenderTarget{ GetTexture(m_intermediateRenderTarget) };
 		Texture& depthStencilBuffer { GetTexture(m_depthStencilBuffer) };
@@ -1187,34 +1239,32 @@ namespace Dune
 			CD3DX12_RESOURCE_BARRIER::Transition(intermediateRenderTarget.GetResource(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET),
 			CD3DX12_RESOURCE_BARRIER::Transition(depthStencilBuffer.GetResource(), D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE),
 		};
-		m_commandList->ResourceBarrier(2, barriers);
+		pCommandList->ResourceBarrier(2, barriers);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE intermediateRenderTargetCPUadress = intermediateRenderTarget.GetRTV().cpuAdress;
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilBufferCPUadress = depthStencilBuffer.GetDSV().cpuAdress;
 
-		m_commandList->OMSetRenderTargets(1, &intermediateRenderTargetCPUadress, FALSE, &depthStencilBufferCPUadress);
+		pCommandList->OMSetRenderTargets(1, &intermediateRenderTargetCPUadress, FALSE, &depthStencilBufferCPUadress);
 
 		constexpr float clearColor[] = { 0.05f, 0.05f, 0.075f, 1.0f };
-		m_commandList->ClearRenderTargetView(intermediateRenderTarget.GetRTV().cpuAdress, clearColor, 0, nullptr);
-		m_commandList->ClearDepthStencilView(depthStencilBuffer.GetDSV().cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		pCommandList->ClearRenderTargetView(intermediateRenderTarget.GetRTV().cpuAdress, clearColor, 0, nullptr);
+		pCommandList->ClearDepthStencilView(depthStencilBuffer.GetDSV().cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		Buffer& cameraMatrixBuffer{ GetBuffer(m_cameraMatrixBuffer)};
-		m_commandList->SetGraphicsRootConstantBufferView(0, cameraMatrixBuffer.GetGPUAdress());
-		ID3D12DescriptorHeap* ppHeaps[] = { m_srvHeap.Get(), m_samplerHeap.Get() };
-		m_commandList->SetDescriptorHeaps(2, ppHeaps);
+		pCommandList->SetGraphicsRootConstantBufferView(0, cameraMatrixBuffer.GetGPUAdress());
 
 		if (!m_pointLights.empty())
 		{
 			Buffer& buffer{ GetBuffer(m_pointLightsBuffer) };
-			m_commandList->SetGraphicsRootDescriptorTable(2, buffer.GetView().gpuAdress);
+			pCommandList->SetGraphicsRootDescriptorTable(2, buffer.GetView().gpuAdress);
 		}
 		if (!m_directionalLights.empty())
 		{
 			Buffer& buffer{ GetBuffer(m_directionalLightsBuffer) };
-			m_commandList->SetGraphicsRootDescriptorTable(3, buffer.GetView().gpuAdress);
+			pCommandList->SetGraphicsRootDescriptorTable(3, buffer.GetView().gpuAdress);
 		}
-		m_commandList->SetGraphicsRootDescriptorTable(4, m_shadowMapsResourceView.gpuAdress);
-		m_commandList->SetGraphicsRootDescriptorTable(5, m_shadowMapsSamplerView.gpuAdress);
+		pCommandList->SetGraphicsRootDescriptorTable(4, m_shadowMapsResourceView.gpuAdress);
+		pCommandList->SetGraphicsRootDescriptorTable(5, m_shadowMapsSamplerView.gpuAdress);
 
 		for (const auto& [meshID, batch] : m_batches)
 		{
@@ -1223,7 +1273,7 @@ namespace Dune
 			Assert(batch.instancesData.size() > 0);
 
 			Buffer& instanceBuffer{ GetBuffer(batch.instancesDataBuffer) };
-			m_commandList->SetGraphicsRootDescriptorTable(1, instanceBuffer.GetView().gpuAdress);
+			pCommandList->SetGraphicsRootDescriptorTable(1, instanceBuffer.GetView().gpuAdress);
 
 			const Mesh& mesh{ GetMesh(Handle<Mesh>(meshID)) };
 
@@ -1241,33 +1291,31 @@ namespace Dune
 			indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 			indexBufferView.SizeInBytes = indexBuffer.GetSize();
 
-			m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-			m_commandList->IASetIndexBuffer(&indexBufferView);
+			pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			pCommandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+			pCommandList->IASetIndexBuffer(&indexBufferView);
 
 			dU32 indexCount{ indexBuffer.GetSize() / (sizeof(dU32)) };
-			m_commandList->DrawIndexedInstanced(indexCount, (UINT)batch.instancesData.size(), 0, 0, 0);
+			pCommandList->DrawIndexedInstanced(indexCount, (UINT)batch.instancesData.size(), 0, 0, 0);
 		}
 	}
 
-	void Renderer::ExecuteImGuiPass()
+	void Renderer::ExecuteImGuiPass(ID3D12GraphicsCommandList* pCommandList)
 	{
 		ProfileFunc();
 
-		m_commandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, FALSE, nullptr);
-		ID3D12DescriptorHeap* ppHeaps[] { m_srvHeap.Get() };
-		m_commandList->SetDescriptorHeaps(1, ppHeaps);
-
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+		pCommandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, FALSE, nullptr);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandList);
 	}
 
-	void Renderer::ExecutePostProcessPass()
+	void Renderer::ExecutePostProcessPass(ID3D12GraphicsCommandList* pCommandList)
 	{
+		ProfileFunc();
 		Shader& shader = m_shaderPool.Get(m_postProcessShader);
-		m_commandList->SetPipelineState(shader.GetPSO());
-		m_commandList->SetGraphicsRootSignature(shader.GetRootSignature());
-		m_commandList->RSSetViewports(1, &m_viewport);
-		m_commandList->RSSetScissorRects(1, &m_scissorRect);
+		pCommandList->SetPipelineState(shader.GetPSO());
+		pCommandList->SetGraphicsRootSignature(shader.GetRootSignature());
+		pCommandList->RSSetViewports(1, &m_viewport);
+		pCommandList->RSSetScissorRects(1, &m_scissorRect);
 
 		Texture& intermediateRenderTarget{ GetTexture(m_intermediateRenderTarget) };
 		Texture& depthStencilBuffer{ GetTexture(m_depthStencilBuffer) };
@@ -1279,16 +1327,13 @@ namespace Dune
 			CD3DX12_RESOURCE_BARRIER::Transition(depthStencilBuffer.GetResource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ),
 		};
 
-		m_commandList->ResourceBarrier(3, barriers);
+		pCommandList->ResourceBarrier(3, barriers);
 
-		m_commandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, false, nullptr);
+		pCommandList->OMSetRenderTargets(1, &m_backBufferViews[m_frameIndex].cpuAdress, false, nullptr);
 
-		ID3D12DescriptorHeap* ppHeaps[]{ m_srvHeap.Get() };
-		m_commandList->SetDescriptorHeaps(1, ppHeaps);
-
-		m_commandList->SetGraphicsRootDescriptorTable(0, intermediateRenderTarget.GetSRV().gpuAdress);
-		m_commandList->SetGraphicsRootDescriptorTable(1, depthStencilBuffer.GetSRV().gpuAdress);
-		m_commandList->SetGraphicsRootConstantBufferView(2, GetBuffer(m_postProcessGlobals).GetGPUAdress());
+		pCommandList->SetGraphicsRootDescriptorTable(0, intermediateRenderTarget.GetSRV().gpuAdress);
+		pCommandList->SetGraphicsRootDescriptorTable(1, depthStencilBuffer.GetSRV().gpuAdress);
+		pCommandList->SetGraphicsRootConstantBufferView(2, GetBuffer(m_postProcessGlobals).GetGPUAdress());
 		
 		Buffer& indexBuffer{ GetBuffer(m_fullScreenIndices) };
 
@@ -1297,9 +1342,9 @@ namespace Dune
 		indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 		indexBufferView.SizeInBytes = indexBuffer.GetSize();
 
-		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_commandList->IASetIndexBuffer(&indexBufferView);
-		m_commandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
+		pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		pCommandList->IASetIndexBuffer(&indexBufferView);
+		pCommandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
 	}
 
 	void Renderer::Present()
@@ -1307,11 +1352,14 @@ namespace Dune
 		ProfileFunc();
 
 		D3D12_RESOURCE_BARRIER renderTargetBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_backBuffers[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-		m_commandList->ResourceBarrier(1, &renderTargetBarrier);
+		m_commandLists.back()->ResourceBarrier(1, &renderTargetBarrier);
 
-		ThrowIfFailed(m_commandList->Close());
-		ID3D12CommandList* ppCommandLists[] { m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		for (ID3D12GraphicsCommandList* pCommandList : m_commandLists)
+		{
+			pCommandList->Close();
+		}
+
+		m_commandQueue->ExecuteCommandLists((dU32)m_commandLists.size(), (ID3D12CommandList**)m_commandLists.data());
 
 		ThrowIfFailed(m_swapChain->Present(1, 0));
 	}
