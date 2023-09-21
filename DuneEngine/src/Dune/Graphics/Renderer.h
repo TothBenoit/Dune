@@ -189,8 +189,8 @@ namespace Dune
 		D3D12_VIEWPORT										m_viewport{};
 		D3D12_RECT											m_scissorRect{};
 		float												m_FOV{ 85.f };
-		float												m_farPlane{ 1000.f };
-		float												m_nearPlane{ 1.0f };
+		float												m_farPlane{ 5000.f };
+		float												m_nearPlane{ 0.1f };
 		dMatrix												m_viewMatrix{};
 		dVec3												m_cameraPosition{ 0.0f, 0.0f, 0.0f };
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>				m_swapChain;
