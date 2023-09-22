@@ -78,7 +78,7 @@ namespace Dune
 		Assert(id != ID::invalidID);
 		Assert(mesh.IsValid());
 
-		if (m_batches.find(mesh.GetID()) == m_batches.end())
+		if (m_batches.find(mesh) == m_batches.end())
 		{
 			InstancedBatch batch{};
 			batch.lookupGraphicsElements[id] = 0;
@@ -88,11 +88,11 @@ namespace Dune
 			BufferDesc desc{ L"InstanceDatasBuffer", gs_instanceDataSize, EBufferUsage::Structured, EBufferMemory::CPU, nullptr, gs_instanceDataSize };
 			batch.instancesDataBuffer = CreateBuffer(desc);
 
-			m_batches.emplace(mesh.GetID(), std::move(batch) );
+			m_batches.emplace(mesh, std::move(batch) );
 			return;
 		}
 
-		InstancedBatch& batch{ m_batches[mesh.GetID()] };
+		InstancedBatch& batch{ m_batches[mesh] };
 		auto it{ batch.lookupGraphicsElements.find(id) };
 		if (it != batch.lookupGraphicsElements.end())
 		{
@@ -112,7 +112,7 @@ namespace Dune
 	{
 		Assert(m_batches.find(meshHandle.GetID()) != m_batches.end());
 
-		dHashMap<ID::IDType, InstancedBatch>::iterator it{ m_batches.find(meshHandle.GetID()) };
+		dHashMap< Handle<Mesh>, InstancedBatch>::iterator it{ m_batches.find(meshHandle) };
 
 		InstancedBatch& batch{ it->second };
 
@@ -879,7 +879,7 @@ namespace Dune
 			if (directionalLightHandle.IsValid())
 			{
 				ReleaseBuffer(directionalLightHandle);
-				directionalLightHandle = ID::invalidID;
+				directionalLightHandle.Reset();
 			}
 			return;
 		}
@@ -1306,7 +1306,7 @@ namespace Dune
 			if (pointLightHandle.IsValid())
 			{
 				ReleaseBuffer(pointLightHandle);
-				pointLightHandle = ID::invalidID;
+				pointLightHandle.Reset();
 			}
 
 			return;

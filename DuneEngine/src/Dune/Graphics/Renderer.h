@@ -226,7 +226,7 @@ namespace Dune
 		dVector<EntityID>									m_pointLightEntities;
 		dHashMap<EntityID, dU32>							m_lookupPointLights;
 
-		dHashMap<ID::IDType, InstancedBatch>				m_batches;
+		dHashMap<Handle<Mesh>, InstancedBatch>				m_batches;
 
 		Handle<Buffer>										m_cameraMatrixBuffer;
 		

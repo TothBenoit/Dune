@@ -33,14 +33,26 @@ namespace Dune
 			return *this; 
 		}
 
+		bool operator==(const Handle& other) const
+		{
+			return other.m_id == m_id;
+		}
+
 		[[nodiscard]] ID::IDType GetID() const { return m_id; }
 		[[nodiscard]] bool IsValid() const { return ID::IsValid(m_id); }
+		void Reset() { m_id = ID::invalidID; }
 
-		Handle(ID::IDType id) : m_id(id) {} // Back to private ASAP. I need a hash function asap
 	private:
+		Handle(ID::IDType id) : m_id(id) {}
 
 		ID::IDType m_id;
 
 		template<typename T, typename H> friend class Pool;
 	};
 }
+
+template <typename H>
+struct std::hash<Dune::Handle<H>>
+{
+	size_t operator()(const Dune::Handle<H>& handle) const noexcept { return std::hash<unsigned int>()(handle.GetID()); }
+};
