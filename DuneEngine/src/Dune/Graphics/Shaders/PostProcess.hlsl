@@ -93,7 +93,7 @@ Note: 	Because rayleigh is a long word to type, I use ray instead on most variab
 #define HEIGHT_ABSORPTION 30e3 /* at what height the absorption is at it's maximum */
 #define ABSORPTION_FALLOFF 4e3 /* how much the absorption decreases the further away it gets from the maximum height */
 
-#define PRIMARY_STEPS 32 /* primary steps, affects quality the most */
+#define PRIMARY_STEPS 16 /* primary steps, affects quality the most */
 #define LIGHT_STEPS 8 /* light steps, how much steps in the light direction are taken */
 
 /*
