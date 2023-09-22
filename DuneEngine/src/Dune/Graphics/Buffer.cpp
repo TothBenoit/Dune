@@ -70,7 +70,7 @@ namespace Dune
 				resourceState,
 				nullptr,
 				IID_PPV_ARGS(&m_uploadBuffer)));
-			m_buffer->SetName(L"UploadBuffer");
+			m_uploadBuffer->SetName(L"UploadBuffer");
 
 			D3D12_RANGE readRange{};
 			ThrowIfFailed(m_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_cpuAdress)));
