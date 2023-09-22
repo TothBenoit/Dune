@@ -26,6 +26,6 @@ namespace Dune
 		EBufferUsage usage = EBufferUsage::Constant;
 		EBufferMemory memory = EBufferMemory::CPU;
 		const void* pData = nullptr;
-		dU32 byteStride = 0; // for structured
+		dU32 byteStride = 0; // for structured and vertex
 	};
 }

@@ -123,7 +123,6 @@ namespace Dune
 		void CreateRenderTargets();
 		void CreateDepthStencil(dU32 width, dU32 height);
 		void CreateCommandAllocators();
-		void CreateSamplers();
 		void CreateCommandLists();
 		void CreateFences();
 
@@ -209,11 +208,8 @@ namespace Dune
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_copyCommandList;
 
 		// Shadow Pass
-		Microsoft::WRL::ComPtr<ID3D12Resource>				m_shadowMaps;
+		Handle<Texture>										m_shadowMaps;
 		Handle<Buffer>										m_shadowCameraBuffers[ms_shadowMapCount];
-		DescriptorHandle									m_shadowMapsDepthViews[ms_shadowMapCount];
-		DescriptorHandle									m_shadowMapsResourceView;
-		DescriptorHandle									m_shadowMapsSamplerView;
 
 		// Main Pass
 		Handle<Texture>										m_intermediateRenderTarget;

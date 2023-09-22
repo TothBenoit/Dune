@@ -29,7 +29,7 @@ namespace Dune
 	{
 		dU32 size{ (dU32)m_vertices.size() * sizeof(Vertex) };
 		Assert(size != 0);
-		BufferDesc desc{ L"VertexBuffer", size, EBufferUsage::Vertex, EBufferMemory::GPUStatic, m_vertices.data()};
+		BufferDesc desc{ L"VertexBuffer", size, EBufferUsage::Vertex, EBufferMemory::GPUStatic, m_vertices.data(), sizeof(Vertex)};
 		m_vertexBufferHandle = Renderer::GetInstance().CreateBuffer(desc);
 		Assert(m_vertexBufferHandle.IsValid());
 	}

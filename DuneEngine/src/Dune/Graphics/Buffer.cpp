@@ -106,10 +106,13 @@ namespace Dune
 		Renderer& renderer{ Renderer::GetInstance() };
 		renderer.ReleaseResource(m_buffer);
 
-		dU32 viewCount = (m_memory == EBufferMemory::GPUStatic) ? 1 : Renderer::GetFrameCount();
-		for (dU32 i = 0; i < viewCount; i++)
-			renderer.m_srvHeap.Free(m_pViews[i]);
-		delete[] m_pViews;
+		if (m_usage == EBufferUsage::Structured || m_usage == EBufferUsage::Constant)
+		{
+			dU32 viewCount{ (m_memory == EBufferMemory::GPUStatic) ? 1 : Renderer::GetFrameCount() };
+			for (dU32 i = 0; i < viewCount; i++)
+				renderer.m_srvHeap.Free(m_pViews[i]);
+			delete[] m_pViews;
+		}
 
 		if (m_memory == EBufferMemory::GPU)
 		{
@@ -131,14 +134,29 @@ namespace Dune
 	void Buffer::CreateView()
 	{
 		dU32 bufferCount = (m_memory == EBufferMemory::GPUStatic) ? 1 : Renderer::GetFrameCount();
-		m_pViews = new DescriptorHandle[bufferCount];
-		for (dU32 i = 0; i < bufferCount; i++)
-			m_pViews[i] = Renderer::GetInstance().m_srvHeap.Allocate();
 
 		switch (m_usage)
 		{
+		case EBufferUsage::Vertex:
+		{
+			m_vertexBufferView.BufferLocation = m_buffer->GetGPUVirtualAddress();
+			m_vertexBufferView.StrideInBytes = m_byteStride;
+			m_vertexBufferView.SizeInBytes = m_size;
+			break;
+		}
+		case EBufferUsage::Index:
+		{
+			m_indexBufferView.BufferLocation = m_buffer->GetGPUVirtualAddress();
+			m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+			m_indexBufferView.SizeInBytes = m_size;
+			break;
+		}
 		case EBufferUsage::Constant:
 		{
+			m_pViews = new DescriptorHandle[bufferCount];
+			for (dU32 i = 0; i < bufferCount; i++)
+				m_pViews[i] = Renderer::GetInstance().m_srvHeap.Allocate();
+
 			D3D12_CONSTANT_BUFFER_VIEW_DESC desc
 			{
 				.BufferLocation = m_buffer->GetGPUVirtualAddress(),
@@ -151,6 +169,10 @@ namespace Dune
 
 		case EBufferUsage::Structured:
 		{
+			m_pViews = new DescriptorHandle[bufferCount];
+			for (dU32 i = 0; i < bufferCount; i++)
+				m_pViews[i] = Renderer::GetInstance().m_srvHeap.Allocate();
+
 			dU32 elementCount = m_size / m_byteStride;
 			D3D12_SHADER_RESOURCE_VIEW_DESC desc
 			{

@@ -18,7 +18,10 @@ namespace Dune
 		[[nodiscard]] dU32 GetOffset() const { return m_currentBuffer * m_size; }
 		[[nodiscard]] dU32 GetCurrentBufferIndex() const { return m_currentBuffer; }
 		[[nodiscard]] D3D12_GPU_VIRTUAL_ADDRESS GetGPUAdress() const { return m_buffer->GetGPUVirtualAddress() + GetOffset(); }
-		[[nodiscard]] DescriptorHandle GetView() const { return m_pViews[m_currentBuffer]; }
+		[[nodiscard]] const DescriptorHandle& GetSRV() const { Assert(m_usage == EBufferUsage::Structured); return m_pViews[m_currentBuffer]; }
+		[[nodiscard]] const DescriptorHandle& GetCBV() const { Assert(m_usage == EBufferUsage::Constant); return m_pViews[m_currentBuffer]; }
+		[[nodiscard]] const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const { Assert(m_usage == EBufferUsage::Index); return m_indexBufferView; }
+		[[nodiscard]] const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const { Assert(m_usage == EBufferUsage::Vertex); return m_vertexBufferView; }
 
 		void MapData(const void* pData, dU32 size);
 		void UploadData(const void* pData, dU32 size);
@@ -43,6 +46,11 @@ namespace Dune
 		dU32				m_currentBuffer;
 		dU64				m_cycleFrame;
 
-		DescriptorHandle*	m_pViews;
+		union
+		{
+			DescriptorHandle*			m_pViews;
+			D3D12_INDEX_BUFFER_VIEW		m_indexBufferView;
+			D3D12_VERTEX_BUFFER_VIEW	m_vertexBufferView;
+		};
 	};
 }
