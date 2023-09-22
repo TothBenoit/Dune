@@ -12,6 +12,7 @@ namespace Dune
 	class GraphicsElement;
 	struct InstanceData;
 	class Buffer;
+	struct GPUBuffer;
 	struct BufferDesc;
 	class Texture;
 	struct TextureDesc;
@@ -40,6 +41,7 @@ namespace Dune
 	class Renderer
 	{
 		friend Buffer;
+		friend GPUBuffer;
 		friend Texture;
 		friend Shader;
 		struct InstancedBatch;
