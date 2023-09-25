@@ -364,5 +364,5 @@ float4 PSMain(PSInput input) : SV_Target
     // you can play around with removing this
     col = 1.0f - exp(-col);
 
-    return float4(col, 1.0f);
+    return float4(pow(col, 1 / 2.2f), 1.0f);
 }
