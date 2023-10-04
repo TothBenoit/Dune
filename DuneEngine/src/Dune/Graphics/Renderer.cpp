@@ -110,7 +110,7 @@ namespace Dune
 
 	void Renderer::RemoveGraphicsElement(EntityID id, Handle<Mesh> meshHandle)
 	{
-		Assert(m_batches.find(meshHandle.GetID()) != m_batches.end());
+		Assert(m_batches.find(meshHandle) != m_batches.end());
 
 		dHashMap< Handle<Mesh>, InstancedBatch>::iterator it{ m_batches.find(meshHandle) };
 

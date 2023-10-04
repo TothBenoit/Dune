@@ -214,10 +214,11 @@ namespace Dune
 
 		//Add rotation
 		constexpr float turnSpeed = DirectX::XMConvertToRadians(45.f);
-		cameraTransform->rotation.x = std::fmodf(cameraTransform->rotation.x + rotation.x * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
+		constexpr float xRotationClampValues[] { DirectX::XMConvertToRadians(-89.99f), DirectX::XMConvertToRadians(89.99f) };
+		cameraTransform->rotation.x = std::clamp(std::fmodf(cameraTransform->rotation.x + rotation.x * turnSpeed * clampedDeltaTime, DirectX::XM_2PI), xRotationClampValues[0], xRotationClampValues[1]);
 		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
 		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
-		
+
 		//Compute quaternion from camera rotation
 		DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(cameraTransform->rotation.x, cameraTransform->rotation.y, cameraTransform->rotation.z) };
 		quat = DirectX::XMQuaternionNormalize(quat);

@@ -116,8 +116,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		Dune::Input::SetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam));
 		break;
 	case WM_MOUSEMOVE:
-		Dune::Input::SetMousePosX((float)LOWORD(lParam));
-		Dune::Input::SetMousePosY((float)HIWORD(lParam));
+		Dune::Input::SetMousePosX((short)LOWORD(lParam));
+		Dune::Input::SetMousePosY((short)HIWORD(lParam));
 		break;
 	case WM_LBUTTONDOWN:
 		Dune::Input::SetMouseButtonDown(0);
