@@ -593,6 +593,22 @@ namespace Dune
 		m_dyingResources[m_frameIndex].emplace_back(resource);
 	}
 
+	void Renderer::ReloadShaders()
+	{
+		for (dU32 i = 0; i < ms_frameCount; i++)
+		{
+			WaitForFrame(i);
+		}
+
+		m_shaderPool.Remove(m_depthWriteShader);
+		m_shaderPool.Remove(m_defaultShader);
+		m_shaderPool.Remove(m_postProcessShader);
+
+		CreateDepthWriteShader();
+		CreateDefaultShader();
+		CreatePostProcessShader();
+	}
+
 	void Renderer::CreateFactory()
 	{
 		UINT dxgiFactoryFlags{ 0 };

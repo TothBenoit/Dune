@@ -92,7 +92,9 @@ namespace Dune
 		void							ReleaseShader(Handle<Shader> handle);
 
 		void							ReleaseResource(IUnknown* resource);
-		
+
+		void							ReloadShaders();
+
 		[[nodiscard]] ID3D12Device*		GetDevice() { Assert(m_device.Get()); return m_device.Get(); }
 		[[nodiscard]] Handle<Mesh>		GetDefaultMesh() const { Assert(m_device.Get()); return m_defaultMesh; }
 		[[nodiscard]] dU64				GetElaspedFrame() { return m_elapsedFrame; }

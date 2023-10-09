@@ -422,6 +422,12 @@ namespace Dune
 			}
 		}
 
+		ImGui::SameLine();
+		if (ImGui::Button("Reload shaders"))
+		{
+			Renderer::GetInstance().ReloadShaders();
+		}
+
 		ImGui::Separator();
 		DrawGraph();
 		ImGui::End();
