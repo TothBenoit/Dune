@@ -13,88 +13,95 @@ namespace Dune
 			Assert(entity != ID::invalidID);
 
 			// One component of this type per entity
-			Assert(m_lookup.find(entity) == m_lookup.end());
+			Assert(!Contains(entity));
 
-			// If those container aren't the same size, something went wrong
-			Assert(m_entities.size() == m_components.size());
-			Assert(m_lookup.size() == m_components.size());
+			// If those containers aren't the same size, something went wrong
+			Assert(m_lookupEntities.size() == m_components.size());
+
+			const ID::IDType index = ID::GetIndex(entity);
 
 			// Add the entity to the look up table
-			m_lookup[entity] = m_components.size();
+			m_pLookupComponents[index] = (ID::IDType) m_components.size();
 
 			// Create new component
 			m_components.emplace_back();
 
 			// Add to the list of entity
-			m_entities.push_back(entity);
+			m_lookupEntities.push_back(entity);
 
 			return m_components.back();
 		}
 
 		static void Remove(EntityID entity)
 		{
-			auto it = m_lookup.find(entity);
-			if (it != m_lookup.end())
+			Assert(Contains(entity));
+
+			const ID::IDType index = ID::GetIndex(entity);
+			const ID::IDType componentIndex = m_pLookupComponents[index];
+			m_pLookupComponents[index] = ID::invalidID;
+
+			if (componentIndex < m_components.size() - 1)
 			{
-				const size_t index = it->second;
-				const EntityID entity = m_entities[index];
+				// Swap out the dead element with the last one:
+				m_components[componentIndex] = std::move(m_components.back());
 
-				if (index < m_components.size() - 1)
-				{
-					// Swap out the dead element with the last one:
-					m_components[index] = std::move(m_components.back());
-					m_entities[index] = m_entities.back();
+				const ID::IDType swappedComponentIndex = m_lookupEntities.back();
+				m_lookupEntities[componentIndex] = swappedComponentIndex;
 
-					// Update the lookup table:
-					m_lookup[m_entities[index]] = index;
-				}
-
-				// Shrink the container:
-				m_components.pop_back();
-				m_entities.pop_back();
-				m_lookup.erase(entity);
+				// Update the lookup table:
+				m_pLookupComponents[swappedComponentIndex] = componentIndex;
 			}
+
+			// Shrink the container:
+			m_components.pop_back();
+			m_lookupEntities.pop_back();
 		}
 
 		static Component* GetComponent(EntityID entity)
 		{
-			auto it = m_lookup.find(entity);
-			if (it != m_lookup.end())
+			const ID::IDType componentIndex = m_pLookupComponents[ID::GetIndex(entity)];
+			if (ID::IsValid(componentIndex))
 			{
-				return &m_components[it->second];
+				return &m_components[componentIndex];
 			}
 			return nullptr;
 		}
 
-		static bool Contains(EntityID entity)
+		static Component& GetComponentUnsafe(EntityID entity)
 		{
-			return m_lookup.find(entity) != m_lookup.end();
+			return m_components[m_pLookupComponents[ID::GetIndex(entity)]];
 		}
 
-		static void Init()
+		static bool Contains(EntityID entity)
+		{
+			return ID::IsValid(m_pLookupComponents[ID::GetIndex(entity)]);
+		}
+
+		static void Init(dU32 reservedCount)
 		{
 			Assert(!m_isInitialized);
 
-			constexpr size_t reservedCount = RESERVED_ENTITIES;
 			m_components.reserve(reservedCount);
-			m_entities.reserve(reservedCount);
-			m_lookup.reserve(reservedCount);
+			m_lookupEntities.reserve(reservedCount);
+			m_pLookupComponents = new ID::IDType[MAX_ENTITIES];
+			memset(m_pLookupComponents, ID::invalidID, MAX_ENTITIES * sizeof(ID::IDType));
+
 			m_isInitialized = true;
 		}
 
 		static void Shutdown()
 		{
 			m_components.clear();
-			m_entities.clear();
-			m_lookup.clear();
+			m_lookupEntities.clear();
+			delete[] m_pLookupComponents;
 			m_isInitialized = false;
 		}
 
 	private:
 		friend class EngineCore;
-		inline static dVector<Component> m_components;
-		inline static dVector<EntityID> m_entities;
-		inline static dHashMap<EntityID, size_t> m_lookup;
+		inline static dVector<Component>	m_components;
+		inline static dVector<EntityID>		m_lookupEntities;
+		inline static ID::IDType*			m_pLookupComponents;
 		inline static bool m_isInitialized{false};
 	};
 }

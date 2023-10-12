@@ -21,6 +21,7 @@ namespace Dune
 
 		auto lastFrameTimer = std::chrono::high_resolution_clock::now();
 
+		OnStart();
 		while (window->Update())
 		{
 			ProfileBeginFrame();

@@ -6,7 +6,6 @@
 #include "Dune/Core/Window.h"
 #include "Dune/Core/Logger.h"
 #include "Dune/Utilities/StringUtils.h"
-#include "Dune/Core/ECS/Components/CameraComponent.h"
 #include "Dune/Graphics/Shaders/PointLight.h"
 #include "Dune/Graphics/Shaders/DirectionalLight.h"
 #include "Dune/Graphics/Shaders/PostProcessGlobals.h"
@@ -253,11 +252,10 @@ namespace Dune
 		m_cameraMatrixBuffer = CreateBuffer(camBufferDesc);
 	}
 
-	void Renderer::UpdateCamera(const CameraComponent* pCamera, const dVec3& pos)
+	void Renderer::UpdateCamera(float FOV, const dMatrix& viewMatrix,const dVec3& pos)
 	{
-		Assert(pCamera);
-		m_FOV = pCamera->verticalFieldOfView;
-		m_viewMatrix = pCamera->viewMatrix;
+		m_FOV = FOV;
+		m_viewMatrix = viewMatrix;
 		m_cameraPosition = pos;
 		m_needCameraUpdate = true;
 	}

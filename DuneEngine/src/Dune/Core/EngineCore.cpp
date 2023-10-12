@@ -6,7 +6,6 @@
 #include "Dune/Core/ECS/Components/TransformComponent.h"
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
-#include "Dune/Core/ECS/Components/CameraComponent.h"
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
 #include "Dune/Core/ECS/Components/DirectionalLightComponent.h"
 #include "Dune/Graphics/Renderer.h"
@@ -26,19 +25,15 @@ namespace Dune
 
 		Job::Initialize();
 
-		ComponentManager<TransformComponent>::Init();
-		ComponentManager<BindingComponent>::Init();
-		ComponentManager<GraphicsComponent>::Init();
-		ComponentManager<CameraComponent>::Init();
-		ComponentManager<PointLightComponent>::Init();
-		ComponentManager<DirectionalLightComponent>::Init();
+		ComponentManager<TransformComponent>::Init(MAX_ENTITIES);
+		ComponentManager<BindingComponent>::Init(MAX_ENTITIES);
+		ComponentManager<GraphicsComponent>::Init(MAX_ENTITIES);
+		ComponentManager<PointLightComponent>::Init(256);
+		ComponentManager<DirectionalLightComponent>::Init(8);
 
 		Renderer::GetInstance().Initialize(pWindow);
 
 		m_isInitialized = true;
-
-		m_cameraID = CreateEntity("Camera");
-		AddComponent<CameraComponent>(m_cameraID);
 	}
 
 	void EngineCore::Shutdown()
@@ -57,7 +52,6 @@ namespace Dune
 		ComponentManager<TransformComponent>::Shutdown();
 		ComponentManager<BindingComponent>::Shutdown();
 		ComponentManager<GraphicsComponent>::Shutdown();
-		ComponentManager<CameraComponent>::Shutdown();
 		ComponentManager<PointLightComponent>::Shutdown();
 		ComponentManager<DirectionalLightComponent>::Shutdown();
 
@@ -133,16 +127,6 @@ namespace Dune
 		m_sceneGraph.DeleteNode(id);
 	}
 
-	const CameraComponent* EngineCore::GetCamera()
-	{
-		return GetComponent<CameraComponent>(m_cameraID);
-	}
-
-	CameraComponent* EngineCore::ModifyCamera()
-	{
-		return ModifyComponent<CameraComponent>(m_cameraID);
-	}
-
 	Handle<Mesh> EngineCore::GetDefaultMesh()
 	{
 		return Renderer::GetInstance().GetDefaultMesh();
@@ -151,9 +135,6 @@ namespace Dune
 	void EngineCore::UpdateCamera()
 	{
 		ProfileFunc();
-		//TODO: Input and transformation should be decoupled so we can compute new transformation only when it changed
-		if (!m_entityManager.IsValid(m_cameraID))
-			return;
 
 		dVec3 translate{ 0.f,0.f,0.f };
 		dVec3 rotation{ 0.f,0.f,0.f };
@@ -199,28 +180,17 @@ namespace Dune
 			cameraHasMoved = true;
 		}
 
-
-		if ((m_modifiedEntities.find(m_cameraID) == m_modifiedEntities.end()) && !cameraHasMoved)
-		{
-			return;
-		}
-
-		TransformComponent* cameraTransform = ModifyComponent<TransformComponent>(m_cameraID);
-		Assert(cameraTransform);
-		CameraComponent* camera = ModifyComponent<CameraComponent>(m_cameraID);
-		Assert(camera);
-
 		const float clampedDeltaTime = DirectX::XMMin(m_deltaTime, 0.033f);
 
 		//Add rotation
 		constexpr float turnSpeed = DirectX::XMConvertToRadians(45.f);
 		constexpr float xRotationClampValues[] { DirectX::XMConvertToRadians(-89.99f), DirectX::XMConvertToRadians(89.99f) };
-		cameraTransform->rotation.x = std::clamp(std::fmodf(cameraTransform->rotation.x + rotation.x * turnSpeed * clampedDeltaTime, DirectX::XM_2PI), xRotationClampValues[0], xRotationClampValues[1]);
-		cameraTransform->rotation.y = std::fmodf(cameraTransform->rotation.y + rotation.y * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
-		cameraTransform->rotation.z = std::fmodf(cameraTransform->rotation.z + rotation.z * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
+		m_camera.rotation.x = std::clamp(std::fmodf(m_camera.rotation.x + rotation.x * turnSpeed * clampedDeltaTime, DirectX::XM_2PI), xRotationClampValues[0], xRotationClampValues[1]);
+		m_camera.rotation.y = std::fmodf(m_camera.rotation.y + rotation.y * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
+		m_camera.rotation.z = std::fmodf(m_camera.rotation.z + rotation.z * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
 
 		//Compute quaternion from camera rotation
-		DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(cameraTransform->rotation.x, cameraTransform->rotation.y, cameraTransform->rotation.z) };
+		DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(m_camera.rotation.x, m_camera.rotation.y, m_camera.rotation.z) };
 		quat = DirectX::XMQuaternionNormalize(quat);
 
 		//Apply camera rotation to translation
@@ -233,16 +203,16 @@ namespace Dune
 
 		//Apply translation
 		const float speed = (Input::GetKey(KeyCode::ShiftKey))? 25.f:5.f;
-		cameraTransform->position.x += translate.x * speed * clampedDeltaTime;
-		cameraTransform->position.y += translate.y * speed * clampedDeltaTime;
-		cameraTransform->position.z += translate.z * speed * clampedDeltaTime;
+		m_camera.position.x += translate.x * speed * clampedDeltaTime;
+		m_camera.position.y += translate.y * speed * clampedDeltaTime;
+		m_camera.position.z += translate.z * speed * clampedDeltaTime;
 
 		//Compute camera view matrix
-		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&cameraTransform->position);
+		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&m_camera.position);
 		DirectX::XMVECTOR at{ 0, 0, 1, 0 };
 		DirectX::XMVECTOR up{ 0, 1, 0, 0 };
 		at = DirectX::XMVector3Rotate(at, quat);
-		camera->viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
+		m_camera.viewMatrix = DirectX::XMMatrixLookToLH(eye, at, up);
 	}
 
 	void EngineCore::UpdateTransforms()
@@ -547,20 +517,6 @@ namespace Dune
 				}
 			}
 
-
-			if (CameraComponent* camera = ModifyComponent<CameraComponent>(m_selectedEntity))
-			{
-				if (ImGui::TreeNodeEx("Camera :"))
-				{
-					float verticalFieldOfView = camera->verticalFieldOfView;
-					if (ImGui::DragFloat("Vertical field of view", &verticalFieldOfView, 0.05f, 5.f, 179.999f, "%f", ImGuiSliderFlags_AlwaysClamp))
-					{
-						camera->verticalFieldOfView = verticalFieldOfView;
-					}
-					ImGui::TreePop();
-				}
-			}
-
 			if (GraphicsComponent* graphicsComponent = ModifyComponent<GraphicsComponent>(m_selectedEntity))
 			{
 				if (ImGui::TreeNodeEx("Material :"))
@@ -636,6 +592,18 @@ namespace Dune
 					AddComponent<DirectionalLightComponent>(m_selectedEntity);
 				}
 			}
+
+			ImGui::Separator();
+			ImGui::Text("General options :");
+			if (ImGui::TreeNodeEx("Camera :"))
+			{
+				float verticalFieldOfView = m_camera.verticalFieldOfView;
+				if (ImGui::DragFloat("Vertical FOV", &verticalFieldOfView, 0.05f, 5.f, 179.999f, "%f", ImGuiSliderFlags_AlwaysClamp))
+				{
+					m_camera.verticalFieldOfView = verticalFieldOfView;
+				}
+				ImGui::TreePop();
+			}
 		}
 		
 		ImGui::End();
@@ -646,11 +614,7 @@ namespace Dune
 		ProfileFunc();
 
 		Renderer& renderer{ Renderer::GetInstance() };
-
-		if (m_modifiedEntities.find(m_cameraID) != m_modifiedEntities.end())
-		{
-			renderer.UpdateCamera(GetComponent<CameraComponent>(m_cameraID), GetComponent<TransformComponent>(m_cameraID)->position);
-		}
+		renderer.UpdateCamera(m_camera.verticalFieldOfView, m_camera.viewMatrix, m_camera.position);
 
 		// should we track modified component instead of modified entities ?
 		for (const EntityID entity : m_modifiedEntities)
@@ -659,10 +623,8 @@ namespace Dune
 			{
 				if (pGraphicsComponent->mesh.IsValid())
 				{
-					const TransformComponent* pTransformComponent{ GetComponent<TransformComponent>(entity) };
-					Assert(pTransformComponent);
-
-					const dMatrix& transformMatrix{ pTransformComponent->matrix };
+					const TransformComponent& transformComponent{ GetComponentUnsafe<TransformComponent>(entity) };
+					const dMatrix& transformMatrix{ transformComponent.matrix };
 
 					InstanceData instanceData;
 					DirectX::XMStoreFloat4x4(&instanceData.modelMatrix, transformMatrix);
@@ -675,16 +637,17 @@ namespace Dune
 
 			if (const PointLightComponent* pPointLightComponent = GetComponent<PointLightComponent>(entity))
 			{
-				const TransformComponent* pTransformComponent = GetComponent<TransformComponent>(entity);
+				const TransformComponent& transformComponent{ GetComponentUnsafe<TransformComponent>(entity) };
 				
-				renderer.SubmitPointLight(entity, pPointLightComponent->color, pPointLightComponent->intensity, pTransformComponent->position, pPointLightComponent->radius);
+				renderer.SubmitPointLight(entity, pPointLightComponent->color, pPointLightComponent->intensity, transformComponent.position, pPointLightComponent->radius);
 			}
 
 			if (const DirectionalLightComponent* pDirectionalLightComponent = GetComponent<DirectionalLightComponent>(entity))
 			{
-				const TransformComponent* pTransformComponent = GetComponent<TransformComponent>(entity);
-				
-				DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(pTransformComponent->rotation.x, pTransformComponent->rotation.y, pTransformComponent->rotation.z) };
+				const TransformComponent& transformComponent{ GetComponentUnsafe<TransformComponent>(entity) };
+				const dVec3& rotation{ transformComponent.rotation };
+
+				DirectX::XMVECTOR quat{ DirectX::XMQuaternionRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) };
 				quat = DirectX::XMQuaternionNormalize(quat);
 
 				// Compute camera view matrix

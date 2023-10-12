@@ -9,7 +9,17 @@ namespace Dune
 {
 	class Window;
 	class Mesh;
-	struct CameraComponent;
+	
+	struct Camera
+	{
+		dVec3 position{ 0.f,0.f,0.f };
+		dVec3 rotation{ 0.f, 0.f, 0.f };
+
+		dMatrix matrix;
+
+		dMatrix viewMatrix;
+		float	verticalFieldOfView{ 85.f };
+	};
 
 	class EngineCore
 	{
@@ -50,17 +60,42 @@ namespace Dune
 		}
 
 		template<typename Component>
+		[[nodiscard]] static const Component& GetComponentUnsafe(EntityID id)
+		{
+			Assert(m_entityManager.IsValid(id));
+			return ComponentManager<Component>::GetComponentUnsafe(id);
+		}
+
+		template<typename Component>
+		[[nodiscard]] static Component& ModifyComponentUnsafe(EntityID id)
+		{
+			Assert(m_entityManager.IsValid(id));
+			m_modifiedEntities.insert(id);
+			return ComponentManager<Component>::GetComponentUnsafe(id);
+		}		
+
+		template<typename Component>
 		static void RemoveComponent(EntityID id)
+		{
+			Assert(m_entityManager.IsValid(id));
+			if (ComponentManager<Component>::Contains(id))
+			{
+				m_modifiedEntities.insert(id);
+				ComponentManager<Component>::Remove(id);
+			}
+		}
+
+		template<typename Component>
+		static void RemoveComponentUnsafe(EntityID id)
 		{
 			Assert(m_entityManager.IsValid(id));
 			m_modifiedEntities.insert(id);
 			ComponentManager<Component>::Remove(id);
 		}
 
-		[[nodiscard]] static const CameraComponent* GetCamera();
-		[[nodiscard]] static CameraComponent* ModifyCamera();
+		[[nodiscard]] static const Camera& GetCamera() { return m_camera; };
+		[[nodiscard]] static Camera& ModifyCamera() { return m_camera; };
 
-		[[nodiscard]] static EntityID GetCameraID() { return m_cameraID; }
 		[[nodiscard]] static Handle<Mesh> GetDefaultMesh();
 
 		[[nodiscard]] inline static bool IsInitialized() { return m_isInitialized; }
@@ -84,7 +119,7 @@ namespace Dune
 		static inline bool m_showScene = true;
 		static inline bool m_showInspector = true;
 		static inline bool m_showImGuiDemo = false;
-		static inline EntityID m_cameraID = ID::invalidID;
+		static inline Camera m_camera;
 		static inline float m_deltaTime = 0.f;
 		static inline dHashSet<EntityID> m_modifiedEntities;
 	};

@@ -6,7 +6,6 @@
 #include "Dune/Core/ECS/Components/TransformComponent.h"
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
-#include "Dune/Core/ECS/Components/CameraComponent.h"
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
 
 namespace Dune
@@ -38,10 +37,9 @@ namespace Dune
 
 		//Remove its components
 		//TODO : Create a component list ?
-		EngineCore::RemoveComponent<TransformComponent>(id);
-		EngineCore::RemoveComponent<BindingComponent>(id);
+		EngineCore::RemoveComponentUnsafe<TransformComponent>(id);
+		EngineCore::RemoveComponentUnsafe<BindingComponent>(id);
 		EngineCore::RemoveComponent<GraphicsComponent>(id);
-		EngineCore::RemoveComponent<CameraComponent>(id);
 		EngineCore::RemoveComponent<PointLightComponent>(id);
 
 		//Generate new ID

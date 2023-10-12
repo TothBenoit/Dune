@@ -18,4 +18,4 @@
 	#define Assert(condition)
 #endif
 
-#define RESERVED_ENTITIES 4096
+#define MAX_ENTITIES 200'000

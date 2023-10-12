@@ -6,7 +6,6 @@
 namespace Dune
 {
 	class Window;
-	struct CameraComponent;
 	struct DirectionalLight;
 	struct PointLight;
 	class GraphicsElement;
@@ -69,7 +68,7 @@ namespace Dune
 		void							SubmitDirectionalLight(EntityID id, const dVec3& color, const dVec3& direction, float intensity, const dMatrix4x4& viewProj);
 
 		void							CreateCamera();
-		void							UpdateCamera(const CameraComponent* pCamera, const dVec3& pos);
+		void							UpdateCamera(float FOV, const dMatrix& viewMatrix, const dVec3& pos);
 
 		void							Render();
 
