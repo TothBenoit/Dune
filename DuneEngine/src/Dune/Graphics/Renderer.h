@@ -82,6 +82,7 @@ namespace Dune
 		[[nodiscard]] Handle<Texture>	CreateTexture(const TextureDesc& desc);
 		void							ReleaseTexture(Handle<Texture> handle);
 
+		[[nodiscard]] Handle<Mesh>		CreateMesh(const dVector<dU16>& indices, const dVector<Vertex>& vertices);
 		[[nodiscard]] Handle<Mesh>		CreateMesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
 		void							ReleaseMesh(Handle<Mesh> handle);
 		// Temp until I can load Mesh correctly
@@ -142,6 +143,7 @@ namespace Dune
 
 		void BeginFrame();
 		void ExecuteShadowPass(ID3D12GraphicsCommandList* pCommandList);
+		void ExecuteDepthPrePass(ID3D12GraphicsCommandList* pCommandList);
 		void ExecuteMainPass(ID3D12GraphicsCommandList* pCommandList);
 		void ExecuteImGuiPass(ID3D12GraphicsCommandList* pCommandList);
 		void ExecutePostProcessPass(ID3D12GraphicsCommandList* pCommandList);
@@ -169,7 +171,7 @@ namespace Dune
 		bool												m_needResize{ false };
 		bool												m_needCameraUpdate{ false };
 		
-		dU32												m_renderPassCount{ 4 };
+		dU32												m_renderPassCount{ 5 };
 
 		Handle<Mesh>										m_defaultMesh;
 		Handle<Shader>										m_defaultShader;

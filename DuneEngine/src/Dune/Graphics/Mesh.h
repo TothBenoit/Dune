@@ -23,18 +23,15 @@ namespace Dune
 		[[nodiscard]] Handle<Buffer> GeVertexBufferHandle() const { return m_vertexBufferHandle; }
 
 	private:
+		Mesh(const dVector<dU16>& indices, const dVector<Vertex>& vertices);
 		Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices);
 		~Mesh();
 
-		void UploadBuffers();
-		void UploadVertexBuffer();
-		void UploadIndexBuffer();
+		void UploadVertexBuffer(const void* pData, dU32 size, dU32 byteStride);
+		void UploadIndexBuffer(const void* pData, dU32 size, dU32 byteStride);
 
 	private:
 		friend Pool<Mesh, Mesh>;
-
-		dVector<dU32> m_indices;
-		dVector<Vertex> m_vertices;
 
 		Handle<Buffer> m_indexBufferHandle;
 		Handle<Buffer> m_vertexBufferHandle;

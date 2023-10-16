@@ -41,13 +41,13 @@ struct VS_OUTPUT
 VS_OUTPUT VSMain(VS_INPUT input, uint instanceID : SV_InstanceID)
 {
 	VS_OUTPUT o;
+    InstanceConstantBuffer instance = InstanceDatas[instanceID];
 
-	float4 wPos = mul(InstanceDatas[instanceID].ModelMatrix, float4(input.vPos, 1.0f));
-
+    float4 wPos = mul(instance.ModelMatrix, float4(input.vPos, 1.0f));
 	o.wPos = wPos;
 	o.position = mul(CameraCB.ViewProjMatrix, wPos);
-	o.color = InstanceDatas[instanceID].BaseColor;
-	o.normal = normalize(mul(InstanceDatas[instanceID].NormalMatrix, float4(input.vNormal, 1.0f)).xyz);
+    o.color = instance.BaseColor;
+    o.normal = normalize(mul(instance.NormalMatrix, float4(input.vNormal, 1.0f)).xyz);
 	return o;
 }
 
@@ -158,6 +158,7 @@ float3 AccumulatePointLight(float3 normal, float3 wPos)
 	return accumulatedPointLight;
 }
 
+[earlydepthstencil]
 PS_OUTPUT PSMain(PS_INPUT input)
 {
 	float3 accumulatedPointLight = AccumulatePointLight(input.normal, input.wPos.xyz);

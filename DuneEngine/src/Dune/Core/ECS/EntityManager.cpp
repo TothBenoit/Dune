@@ -7,6 +7,7 @@
 #include "Dune/Core/ECS/Components/BindingComponent.h"
 #include "Dune/Core/ECS/Components/GraphicsComponent.h"
 #include "Dune/Core/ECS/Components/PointLightComponent.h"
+#include "Dune/Core/ECS/Components/DirectionalLightComponent.h"
 
 namespace Dune
 {
@@ -41,6 +42,7 @@ namespace Dune
 		EngineCore::RemoveComponentUnsafe<BindingComponent>(id);
 		EngineCore::RemoveComponent<GraphicsComponent>(id);
 		EngineCore::RemoveComponent<PointLightComponent>(id);
+		EngineCore::RemoveComponent<DirectionalLightComponent>(id);
 
 		//Generate new ID
 		EntityID newID = EntityID(ID::NextGeneration(id));

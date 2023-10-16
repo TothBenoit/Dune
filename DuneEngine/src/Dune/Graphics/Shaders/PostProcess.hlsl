@@ -318,51 +318,46 @@ float4 get_camera_vector(float2 coord) {
 
 float4 PSMain(PSInput input) : SV_Target
 { 
-    float4 scene = sceneColor.Sample(sceneSampler, input.uv);
-    
     uint lightCount;
     uint stride;
     DirectionalLights.GetDimensions(lightCount, stride);
     
-    if (lightCount == 0)
-    {
-        return scene;
-    }
+    float3 col = sceneColor.Sample(sceneSampler, input.uv).xyz;
     
-    float3 camera_position = globals.m_cameraPosition.xyz;
-    float4 camera_vector = get_camera_vector(input.uv);
-    float3 light_dir = -DirectionalLights[0].m_dir;
-
-    // the color of this pixel
-    float3 col = float3(0.0f, 0.0f, 0.0f);
-
-    // get the atmosphere color
-    col += calculate_scattering(
-        camera_position,				// the position of the camera
-        camera_vector.xyz, 				// the camera vector (ray direction of this pixel)
-        camera_vector.w,                // max dist, essentially the scene depth
-        scene.xyz,						// scene color, the color of the current pixel being rendered
-        light_dir,						// light direction
-        float3(40.f, 40.f, 40.f),		// light intensity, 40 looks nice
-        PLANET_POS,						// position of the planet
-        PLANET_RADIUS,                  // radius of the planet in meters
-        ATMOS_RADIUS,                   // radius of the atmosphere in meters
-        RAY_BETA,						// Rayleigh scattering coefficient
-        MIE_BETA,                       // Mie scattering coefficient
-        ABSORPTION_BETA,                // Absorbtion coefficient
-        AMBIENT_BETA,					// ambient scattering, turned off for now. This causes the air to glow a bit when no light reaches it
-        G,                          	// Mie preferred scattering direction
-        HEIGHT_RAY,                     // Rayleigh scale height
-        HEIGHT_MIE,                     // Mie scale height
-        HEIGHT_ABSORPTION,				// the height at which the most absorption happens
-        ABSORPTION_FALLOFF,				// how fast the absorption falls off from the absorption height 
-        PRIMARY_STEPS, 					// steps in the ray direction 
-        LIGHT_STEPS 					// steps in the light direction
-    );
+    if (lightCount != 0)
+    {
+        float3 camera_position = globals.m_cameraPosition.xyz;
+        float4 camera_vector = get_camera_vector(input.uv);
+        float3 light_dir = -DirectionalLights[0].m_dir;
+        
+        // get the atmosphere color
+        col = calculate_scattering(
+            camera_position, // the position of the camera
+            camera_vector.xyz, // the camera vector (ray direction of this pixel)
+            camera_vector.w, // max dist, essentially the scene depth
+            col, // scene color, the color of the current pixel being rendered
+            light_dir, // light direction
+            float3(40.f, 40.f, 40.f), // light intensity, 40 looks nice
+            PLANET_POS, // position of the planet
+            PLANET_RADIUS, // radius of the planet in meters
+            ATMOS_RADIUS, // radius of the atmosphere in meters
+            RAY_BETA, // Rayleigh scattering coefficient
+            MIE_BETA, // Mie scattering coefficient
+            ABSORPTION_BETA, // Absorbtion coefficient
+            AMBIENT_BETA, // ambient scattering, turned off for now. This causes the air to glow a bit when no light reaches it
+            G, // Mie preferred scattering direction
+            HEIGHT_RAY, // Rayleigh scale height
+            HEIGHT_MIE, // Mie scale height
+            HEIGHT_ABSORPTION, // the height at which the most absorption happens
+            ABSORPTION_FALLOFF, // how fast the absorption falls off from the absorption height 
+            PRIMARY_STEPS, // steps in the ray direction 
+            LIGHT_STEPS // steps in the light direction
+        );
+    }
 
     // apply exposure, removing this makes the brighter colors look ugly
     // you can play around with removing this
     col = 1.0f - exp(-col);
-
+    
     return float4(pow(col, 1 / 2.2f), 1.0f);
 }

@@ -213,8 +213,9 @@ namespace Dune
 		}
 		case EBufferUsage::Index:
 		{
+			Assert(m_byteStride == sizeof(dU32) || m_byteStride == sizeof(dU16) )
 			m_indexBufferView.BufferLocation = pInternalBuffer->m_buffer->GetGPUVirtualAddress();
-			m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+			m_indexBufferView.Format = (m_byteStride == sizeof(dU32))? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 			m_indexBufferView.SizeInBytes = pInternalBuffer->m_size;
 			break;
 		}

@@ -17,7 +17,6 @@ namespace Dune
 		GPUStatic
 	};
 
-
 	struct BufferDesc
 	{
 		const wchar_t* debugName = nullptr;
@@ -26,6 +25,6 @@ namespace Dune
 		EBufferUsage usage = EBufferUsage::Constant;
 		EBufferMemory memory = EBufferMemory::CPU;
 		const void* pData = nullptr;
-		dU32 byteStride = 0; // for structured and vertex
+		dU32 byteStride = 0; // for structured, vertex and index buffer
 	};
 }

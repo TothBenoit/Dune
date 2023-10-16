@@ -27,7 +27,7 @@ namespace Dune
 		dU32 codePage{ CP_UTF8 };
 		const wchar_t* args[] 
 		{  
-			L"-I", SHADER_DIR
+			L"-I", SHADER_DIR, L"-Zi"
 		};
 
 		dWString vertexShaderPath{ SHADER_DIR };
@@ -110,11 +110,10 @@ namespace Dune
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState.DepthEnable = desc.depthStencilDesc.depthEnable;
-		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		psoDesc.DepthStencilState.DepthWriteMask = (desc.depthStencilDesc.depthWrite) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
 		psoDesc.DepthStencilState.DepthFunc = desc.depthStencilDesc.depthFunc;
 		psoDesc.DepthStencilState.StencilEnable = desc.depthStencilDesc.stencilEnable;
 		psoDesc.SampleMask = UINT_MAX;
-		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		psoDesc.DSVFormat = DXGI_FORMAT_D16_UNORM;

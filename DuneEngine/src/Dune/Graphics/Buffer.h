@@ -27,6 +27,7 @@ namespace Dune
 		[[nodiscard]] ID3D12Resource* GetResource() { return m_internalBuffer->m_buffer; }
 		[[nodiscard]] dU32 GetOffset() const { return m_internalBuffer->m_currentBuffer * m_internalBuffer->m_size; }
 		[[nodiscard]] dU32 GetCurrentBufferIndex() const { return m_internalBuffer->m_currentBuffer; }
+		[[nodiscard]] dU32 GetByteStride() const { return m_byteStride; }
 		[[nodiscard]] D3D12_GPU_VIRTUAL_ADDRESS GetGPUAdress() const { return m_internalBuffer->m_buffer->GetGPUVirtualAddress() + GetOffset(); }
 		[[nodiscard]] const DescriptorHandle& GetSRV() const { Assert(m_usage == EBufferUsage::Structured); return m_pViews[m_internalBuffer->m_currentBuffer]; }
 		[[nodiscard]] const DescriptorHandle& GetCBV() const { Assert(m_usage == EBufferUsage::Constant); return m_pViews[m_internalBuffer->m_currentBuffer]; }
