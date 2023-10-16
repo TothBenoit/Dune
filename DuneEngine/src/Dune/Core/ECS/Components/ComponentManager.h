@@ -27,7 +27,7 @@ namespace Dune
 			m_components.emplace_back();
 
 			// Add to the list of entity
-			m_lookupEntities.push_back(entity);
+			m_lookupEntities.push_back(index);
 
 			return m_components.back();
 		}
@@ -45,11 +45,11 @@ namespace Dune
 				// Swap out the dead element with the last one:
 				m_components[componentIndex] = std::move(m_components.back());
 
-				const ID::IDType swappedComponentIndex = m_lookupEntities.back();
-				m_lookupEntities[componentIndex] = swappedComponentIndex;
+				const ID::IDType swappedComponentEntityIndex = m_lookupEntities.back();
+				m_lookupEntities[componentIndex] = swappedComponentEntityIndex;
 
 				// Update the lookup table:
-				m_pLookupComponents[swappedComponentIndex] = componentIndex;
+				m_pLookupComponents[swappedComponentEntityIndex] = componentIndex;
 			}
 
 			// Shrink the container:
