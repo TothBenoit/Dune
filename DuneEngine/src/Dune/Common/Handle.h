@@ -6,6 +6,7 @@ namespace Dune
 	class Handle
 	{
 	public:
+		explicit Handle(ID::IDType id) : m_id(id) {}
 		Handle() : m_id(ID::invalidID) {}
 		~Handle() = default;
 
@@ -43,7 +44,6 @@ namespace Dune
 		void Reset() { m_id = ID::invalidID; }
 
 	private:
-		Handle(ID::IDType id) : m_id(id) {}
 
 		ID::IDType m_id;
 

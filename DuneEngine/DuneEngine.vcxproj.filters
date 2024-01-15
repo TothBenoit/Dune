@@ -16,23 +16,8 @@
     <ClInclude Include="src\Dune\Core\ECS\EntityManager.h">
       <Filter>Dune\Core\ECS</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Core\Application.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\BufferDesc.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\DescriptorHeap.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Buffer.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="src\Dune\Core\EngineCore.h">
       <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\GraphicsPch.h">
-      <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Common\ID.h">
       <Filter>Dune\Common</Filter>
@@ -49,23 +34,17 @@
     <ClInclude Include="src\Dune\Common\Macro.h">
       <Filter>Dune\Common</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Material.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Mesh.h">
+    <ClInclude Include="src\Dune\Core\Graphics\Mesh.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h">
       <Filter>Dune\Core\ECS\Component</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Renderer.h">
+    <ClInclude Include="src\Dune\Core\Graphics\Renderer.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Common\Pool.h">
       <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shader.h">
-      <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Core\SceneGraph.h">
       <Filter>Dune\Core</Filter>
@@ -79,12 +58,6 @@
     <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h">
       <Filter>Dune\Core\ECS\Component</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Core\Window.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\WindowPch.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
     <ClInclude Include="src\Dune.h">
       <Filter>Dune</Filter>
     </ClInclude>
@@ -94,30 +67,27 @@
     <ClInclude Include="src\Dune\Utilities\MeshLoader.h">
       <Filter>Dune\Utility</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shaders\Common\ShaderTypes.h">
+    <ClInclude Include="src\Dune\Core\Graphics\Shaders\Common\ShaderTypes.h">
       <Filter>Dune\Graphics\Shader\Common</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shaders\PointLight.h">
+    <ClInclude Include="src\Dune\Core\Graphics\Shaders\PointLight.h">
       <Filter>Dune\Graphics\Shader</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shaders\DirectionalLight.h">
+    <ClInclude Include="src\Dune\Core\Graphics\Shaders\DirectionalLight.h">
       <Filter>Dune\Graphics\Shader</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Utilities\Utils.h">
       <Filter>Dune\Utility</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Texture.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\TextureDesc.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shaders\PostProcessGlobals.h">
+    <ClInclude Include="src\Dune\Core\Graphics\Shaders\PostProcessGlobals.h">
       <Filter>Dune\Graphics\Shader</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Core\JobSystem.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Dune\Core\Graphics.h" />
+    <ClInclude Include="src\Dune\Core\Graphics\Window.h" />
+    <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">
@@ -125,15 +95,6 @@
     </ClCompile>
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp">
       <Filter>Dune\Core\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Core\Application.cpp">
-      <Filter>Dune\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\DescriptorHeap.cpp">
-      <Filter>Dune\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Buffer.cpp">
-      <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\EngineCore.cpp">
       <Filter>Dune\Core</Filter>
@@ -144,19 +105,13 @@
     <ClCompile Include="src\Dune\Core\Logger.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
+    <ClCompile Include="src\Dune\Core\Graphics\Mesh.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Renderer.cpp">
-      <Filter>Dune\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Shader.cpp">
+    <ClCompile Include="src\Dune\Core\Graphics\Renderer.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp">
-      <Filter>Dune\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Core\Window.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp">
@@ -165,12 +120,11 @@
     <ClCompile Include="src\Dune\Utilities\MeshLoader.cpp">
       <Filter>Dune\Utility</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Texture.cpp">
-      <Filter>Dune\Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="src\Dune\Core\JobSystem.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Core\Graphics\Platform\Window.cpp" />
+    <ClCompile Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

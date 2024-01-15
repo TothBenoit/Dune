@@ -5,11 +5,13 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-#include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/Mesh.h"
+#include "Dune/Core/Graphics/Mesh.h"
+#include "Dune/Core/Graphics.h"
 
-namespace Dune
+namespace Dune::Graphics
 {
+	View* g_pCurrentView{ nullptr };
+
 	void ProcessMesh(const aiMesh* pMesh, dVector<Vertex>& vertices, dVector<dU32>& indices, const aiMatrix4x4& transform)
 	{
 		for (dU32 i = 0; i < pMesh->mNumVertices; i++) 
@@ -52,7 +54,7 @@ namespace Dune
 			indices.reserve(indexCount);
 
 			ProcessMesh(pMesh, vertices, indices, pNode->mTransformation);
-			Handle<Mesh> meshHandle{ Renderer::GetInstance().CreateMesh(indices, vertices) };
+			Handle<Mesh> meshHandle{ Graphics::CreateMesh(g_pCurrentView, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Vertex))};
 
 			if (meshHandle.IsValid())
 			{
@@ -60,14 +62,16 @@ namespace Dune
 			}
 		}
 
-		for (UINT i = 0; i < pNode->mNumChildren; i++)
+		for (dU32 i = 0; i < pNode->mNumChildren; i++)
 		{
 			ProcessNode(pNode->mChildren[i], pScene, meshes);
 		}
 	}
 
-	dVector<Handle<Mesh>> MeshLoader::Load(const dString& path)
+	dVector<Handle<Mesh>> MeshLoader::Load(View* pView, const dString& path)
 	{
+		Assert(pView);
+		g_pCurrentView= pView;
 		dVector<Handle<Mesh>> meshes;
 		
 		Assimp::Importer importer;
@@ -83,4 +87,3 @@ namespace Dune
 	}
 
 }
-

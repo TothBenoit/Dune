@@ -11,10 +11,13 @@
 #include <dxcapi.h>
 #include <dxgidebug.h>
 #include <d3dx12/d3dx12.h>
+#include <d3d12shader.h>
 #include <imgui/imgui_impl_dx12.h>
 
 extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 610; }
 extern "C" { __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\"; }
+
+#define ThrowIfFailed(hr) if(FAILED(hr)) { __debugbreak(); assert(false);}
 
 #ifdef _DEBUG
 #define NameDXObject(obj, name) obj->SetName(name); OutputDebugString(name); OutputDebugString(L" has been created \n");

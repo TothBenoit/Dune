@@ -5,7 +5,10 @@
 namespace Dune
 {
 	class Mesh;
-	struct Material;
+	struct Material
+	{
+		const float baseColor[3]{ 0.f, 0.f, 0.f };
+	};
 
 	// TODO : Do a mesh manager and a material manager
 	struct GraphicsComponent

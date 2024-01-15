@@ -2,6 +2,11 @@
 
 namespace Dune
 {
+	namespace Graphics
+	{
+		class Window;
+	}
+
 	enum class KeyCode {
 		None = 0x00, // No key was pressed
 		LButton = 0x01, // Left mouse button
@@ -213,51 +218,53 @@ namespace Dune
 	class Input
 	{
 	public:
-		Input() = delete;
-		~Input() = delete;
 
-		inline static bool GetKey(KeyCode key) { return m_keyState[(int)key]; }
-		inline static bool GetKeyDown(KeyCode key) { return m_keyDown[(int)key]; }
-		inline static bool GetKeyUp(KeyCode key) { return m_keyUp[(int)key]; }
+		inline bool GetKey(KeyCode key) { return m_keyState[(int)key]; }
+		inline bool GetKeyDown(KeyCode key) { return m_keyDown[(int)key]; }
+		inline bool GetKeyUp(KeyCode key) { return m_keyUp[(int)key]; }
 
-		inline static bool GetMouseButton(int index) { return m_mouseState[index]; }
-		inline static bool GetMouseButtonDown(int index) { return m_mouseDown[index]; }
-		inline static bool GetMouseButtonUp(int index) { return m_mouseUp[index]; }
+		inline bool GetMouseButton(int index) { return m_mouseState[index]; }
+		inline bool GetMouseButtonDown(int index) { return m_mouseDown[index]; }
+		inline bool GetMouseButtonUp(int index) { return m_mouseUp[index]; }
 
-		inline static float GetMousePosX() { return m_mousePosX; }
-		inline static float GetMousePosY() { return m_mousePosY; }
-		inline static float GetMouseDeltaX() { return m_mouseDeltaX; }
-		inline static float GetMouseDeltaY() { return m_mouseDeltaY; }
-		inline static float GetMouseWheelDelta() { return m_mouseWheelDelta; }
-
-		//TODO: shouldn't be able to SetKey or SetMouse outside from window event, friend class Window then WindowImpl call protected method that set Input ?
-		static void SetKeyDown(KeyCode key);
-		static void SetKeyUp(KeyCode key);
-
-		static void SetMouseButtonDown(int index);
-		static void SetMouseButtonUp(int index);
-
-		static void SetMousePosX(float posX);
-		static void SetMousePosY(float posY);
-		static void SetMouseWheelDelta(float delta);
-		
-		static void EndFrame();
-
+		inline float GetMousePosX() { return m_mousePosX; }
+		inline float GetMousePosY() { return m_mousePosY; }
+		inline float GetMouseDeltaX() { return m_mouseDeltaX; }
+		inline float GetMouseDeltaY() { return m_mouseDeltaY; }
+		inline float GetMouseWheelDelta() { return m_mouseWheelDelta; }
 
 	private:
-		inline static bool m_keyState[256]{};
-		inline static bool m_keyDown[256]{};
-		inline static bool m_keyUp[256]{};
+		friend Graphics::Window;
 
-		inline static bool m_mouseState[3]{};
-		inline static bool m_mouseDown[3]{};
-		inline static bool m_mouseUp[3]{};
+		Input() = default;
+		~Input() = default;
 
-		inline static float m_mousePosX{};
-		inline static float m_mousePosY{};
-		inline static float m_mouseDeltaX{};
-		inline static float m_mouseDeltaY{};
-		inline static float m_mouseWheelDelta{};
+		void SetKeyDown(KeyCode key);
+		void SetKeyUp(KeyCode key);
+
+		void SetMouseButtonDown(int index);
+		void SetMouseButtonUp(int index);
+
+		void SetMousePosX(float posX);
+		void SetMousePosY(float posY);
+		void SetMouseWheelDelta(float delta);
+		
+		void EndFrame();
+
+	private:
+		bool m_keyState[256]{};
+		bool m_keyDown[256]{};
+		bool m_keyUp[256]{};
+
+		bool m_mouseState[3]{};
+		bool m_mouseDown[3]{};
+		bool m_mouseUp[3]{};
+
+		float m_mousePosX{};
+		float m_mousePosY{};
+		float m_mouseDeltaX{};
+		float m_mouseDeltaY{};
+		float m_mouseWheelDelta{};
 	};
 }
 

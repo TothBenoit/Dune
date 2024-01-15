@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "JobSystem.h"
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+
 namespace Dune::Job
 {
     class CounterInstance;

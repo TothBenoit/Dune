@@ -8,6 +8,7 @@ namespace Dune
 	{
 	public:
 		Pool() = default;
+
 		~Pool()
 		{
 			Assert(m_size == 0);
@@ -15,7 +16,7 @@ namespace Dune
 
 		DISABLE_COPY_AND_MOVE(Pool);
 
-		void Initialize(dSizeT initialSize)
+		void Initialize(ID::IDType initialSize)
 		{
 			Assert(m_size == 0 && !m_generations && !m_datas && !m_freeHandles);
 			Assert(initialSize != 0);
@@ -28,9 +29,9 @@ namespace Dune
 
 			memset(m_generations, 0, sizeof(ID::GenerationType) * m_size);
 
-			for (size_t i{ 0 }; i < m_size; i++)
+			for (ID::IDType i = 0; i < m_size; i++)
 			{
-				m_freeHandles[i] = ID::IDType(i);
+				m_freeHandles[i] = i;
 			}
 
 			m_nextFreeHandlePosition = m_size - 1;
@@ -69,6 +70,29 @@ namespace Dune
 			return handle;
 		}
 
+		template <typename... Args>
+		[[nodiscard]] Handle<H> Create(T** outT,Args&&... args)
+		{
+			Assert(m_size != 0);
+
+			if (m_nextFreeHandlePosition >= m_size)
+			{
+				Resize();
+			}
+
+			Handle<H> handle{};
+			handle.m_id = m_freeHandles[m_nextFreeHandlePosition];
+			m_nextFreeHandlePosition--;
+
+			ID::IDType index{ ID::GetIndex(handle.m_id) };
+
+			T* adress = m_datas + index;
+			new (adress) T(std::forward<Args>(args)...);
+			*outT = adress;
+
+			return handle;
+		}
+
 		void Remove(Handle<H> handle)
 		{
 			Assert(m_size != 0);
@@ -76,7 +100,7 @@ namespace Dune
 			Assert(IsValid(handle));
 
 			ID::IDType index{ ID::GetIndex(handle.m_id) };
-			ID::IDType newID = ID::NextGeneration(handle.m_id);
+			ID::IDType newID{ ID::NextGeneration(handle.m_id) };
 			
 			// Add handle
 			m_nextFreeHandlePosition++;
@@ -118,7 +142,7 @@ namespace Dune
 		{
 			Assert(m_size != 0);
 
-			dSizeT newSize{ m_size * 2 };
+			ID::IDType newSize{ m_size * 2 };
 
 			T* newData{ reinterpret_cast<T*>(::operator new (newSize * sizeof(T))) };
 			memcpy(newData, m_datas, sizeof(T) * m_size);
@@ -127,7 +151,7 @@ namespace Dune
 
 			ID::IDType* newFreeHandles{ new ID::IDType[newSize] };
 			memcpy(&newFreeHandles[m_size], m_freeHandles, sizeof(ID::IDType) * m_size);
-			for (dSizeT i{ 0 }; i < m_size; i++)
+			for (ID::IDType i = 0; i < m_size; i++)
 			{
 				newFreeHandles[i] = ID::IDType(i + m_size);
 			}
@@ -145,8 +169,8 @@ namespace Dune
 		}
 
 	private:
-		dSizeT						m_size{0};
-		dSizeT						m_nextFreeHandlePosition{0};
+		ID::IDType					m_size{ 0 };
+		ID::IDType					m_nextFreeHandlePosition{ 0 };
 		ID::IDType*					m_freeHandles{nullptr};
 		ID::GenerationType*			m_generations{nullptr};
 		T*							m_datas{nullptr};

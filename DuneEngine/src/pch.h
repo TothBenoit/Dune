@@ -5,9 +5,6 @@
 
 #define PROFILE_ENABLED
 
-#include "Dune/Core/WindowPch.h"
-#include "Dune/Graphics/GraphicsPch.h"
-
 #ifdef PROFILE_ENABLED
 	#include <Optick/optick.h>
 	#define ProfileBeginFrame() OPTICK_FRAME("MainThread");

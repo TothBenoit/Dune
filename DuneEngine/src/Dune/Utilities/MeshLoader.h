@@ -2,11 +2,12 @@
 
 #include "Dune/Common/Handle.h"
 
-namespace Dune
+namespace Dune::Graphics
 {
 	class Mesh;
+	class View;
 	namespace MeshLoader
 	{
-		dVector<Handle<Mesh>> Load(const dString& path);
+		dVector<Handle<Mesh>> Load(View* pView, const dString& path);
 	}
 }
