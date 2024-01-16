@@ -120,7 +120,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>src;$(SolutionDir)ThirdParties\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Dune;include;$(SolutionDir)ThirdParties\include\</AdditionalIncludeDirectories>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -139,7 +139,8 @@
       <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration)\;$(SolutionDir)ThirdParties\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
-      <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"</Command>
+      <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"
+xcopy /y /d "$(ProjectDir)src\Dune\Core\Graphics\Shaders\*.hlsl" "$(OutDir)Shaders\"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -174,7 +175,8 @@
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParties\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
-      <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"</Command>
+      <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"
+xcopy /y /d "$(ProjectDir)src\Dune\Core\Graphics\Shaders\*.hlsl" "$(OutDir)Shaders\"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
