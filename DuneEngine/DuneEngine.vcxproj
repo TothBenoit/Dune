@@ -13,41 +13,43 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Dune\Common\Handle.h" />
-    <ClInclude Include="src\Dune\Common\ID.h" />
-    <ClInclude Include="src\Dune\Common\Macro.h" />
-    <ClInclude Include="src\Dune\Common\Pool.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Components\BindingComponent.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Components\DirectionalLightComponent.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Components\GraphicsComponent.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h" />
-    <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h" />
-    <ClInclude Include="src\Dune\Core\ECS\EntityManager.h" />
-    <ClInclude Include="src\Dune\Core\EngineCore.h" />
+    <ClInclude Include="include\Dune\Common\Handle.h" />
+    <ClInclude Include="include\Dune\Common\ID.h" />
+    <ClInclude Include="include\Dune\Common\Macro.h" />
+    <ClInclude Include="include\Dune\Common\Pool.h" />
+    <ClInclude Include="include\Dune\Core\ECS\Components\BindingComponent.h" />
+    <ClInclude Include="include\Dune\Core\ECS\Components\ComponentManager.h" />
+    <ClInclude Include="include\Dune\Core\ECS\Components\DirectionalLightComponent.h" />
+    <ClInclude Include="include\Dune\Core\ECS\Components\GraphicsComponent.h" />
+    <ClInclude Include="include\Dune\Core\ECS\Components\PointLightComponent.h" />
+    <ClInclude Include="include\Dune\Core\ECS\Components\TransformComponent.h" />
+    <ClInclude Include="include\Dune\Core\ECS\EntityManager.h" />
+    <ClInclude Include="include\Dune\Core\Engine.h" />
+    <ClInclude Include="include\Dune\Core\EngineCore.h" />
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Window.h" />
-    <ClInclude Include="src\Dune\Core\JobSystem.h" />
-    <ClInclude Include="src\Dune\Core\SceneGraph.h" />
-    <ClInclude Include="src\Dune\Core\Graphics.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Shaders\PostProcessGlobals.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Shaders\DirectionalLight.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Mesh.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Shaders\PointLight.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Shaders\Common\ShaderTypes.h" />
-    <ClInclude Include="src\Dune\Utilities\MeshLoader.h" />
-    <ClInclude Include="src\Dune\Utilities\StringUtils.h" />
-    <ClInclude Include="src\Dune\Common\Types.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Renderer.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Window.h" />
+    <ClInclude Include="include\Dune\Core\JobSystem.h" />
+    <ClInclude Include="include\Dune\Core\SceneGraph.h" />
+    <ClInclude Include="include\Dune\Core\Graphics.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Shaders\PostProcessGlobals.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Shaders\DirectionalLight.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Mesh.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Shaders\PointLight.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Shaders\ShaderTypes.h" />
+    <ClInclude Include="include\Dune\Utilities\MeshLoader.h" />
+    <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
+    <ClInclude Include="include\Dune\Common\Types.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Renderer.h" />
     <ClInclude Include="src\Dune.h" />
-    <ClInclude Include="src\Dune\Core\Input.h" />
-    <ClInclude Include="src\Dune\Core\Logger.h" />
-    <ClInclude Include="src\Dune\Utilities\Utils.h" />
-    <ClInclude Include="src\pch.h" />
+    <ClInclude Include="include\Dune\Core\Input.h" />
+    <ClInclude Include="include\Dune\Core\Logger.h" />
+    <ClInclude Include="include\Dune\Utilities\Utils.h" />
+    <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
+    <ClCompile Include="src\Dune\Core\Engine.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
@@ -58,7 +60,7 @@
     <ClCompile Include="src\Dune\Core\Input.cpp" />
     <ClCompile Include="src\Dune\Core\Logger.cpp" />
     <ClCompile Include="src\Dune\Utilities\MeshLoader.cpp" />
-    <ClCompile Include="src\pch.cpp">
+    <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
@@ -151,7 +153,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>src;$(SolutionDir)ThirdParties\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Dune;include;$(SolutionDir)ThirdParties\include\</AdditionalIncludeDirectories>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>

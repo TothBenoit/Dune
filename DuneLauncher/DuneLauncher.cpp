@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 		Graphics::CreateShader 
 			({
 				.stage = Graphics::EShaderStage::Vertex,
-				.filePath = L"C:\\Users\\Benoit\\source\\repos\\Dune\\DuneEngine\\src\\Dune\\Core\\Graphics\\Shaders\\Test.hlsl",
+				.filePath = L"C:\\Users\\Benoit\\Documents\\repos\\Dune\\DuneEngine\\src\\Dune\\Core\\Graphics\\Shaders\\Test.hlsl",
 				.entryFunc = L"VSMain",
 				.args = args,
 				.argsCount = _countof(args),
@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 		Graphics::CreateShader
 			({
 				.stage = Graphics::EShaderStage::Pixel,
-				.filePath = L"C:\\Users\\Benoit\\source\\repos\\Dune\\DuneEngine\\src\\Dune\\Core\\Graphics\\Shaders\\Test.hlsl",
+				.filePath = L"C:\\Users\\Benoit\\Documents\\repos\\Dune\\DuneEngine\\src\\Dune\\Core\\Graphics\\Shaders\\Test.hlsl",
 				.entryFunc = L"PSMain",
 				.args = args,
 				.argsCount = _countof(args),
@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 		Graphics::ResetCommand(pCommand);
 		Graphics::SetPipeline(pCommand, pipeline);
 		Graphics::SetRenderTarget(pCommand, pView);
-		//Graphics::ClearRenderTarget(pCommand, pView);
+		Graphics::ClearRenderTarget(pCommand, pView);
 		Graphics::PushGraphicsConstants(pCommand, 0, offset, 16);
 		Graphics::PushGraphicsBuffer(pCommand, 1, colorBuff);
 		Graphics::BindIndexBuffer(pCommand, mesh.GetIndexBufferHandle());

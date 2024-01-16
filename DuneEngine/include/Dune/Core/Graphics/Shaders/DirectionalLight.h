@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common/ShaderTypes.h"
+#include "ShaderTypes.h"
 
 BEGIN_NAMESPACE_SHADER(Dune)
 	struct DirectionalLight

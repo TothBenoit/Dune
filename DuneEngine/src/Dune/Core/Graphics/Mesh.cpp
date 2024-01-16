@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Mesh.h"
+#include "Dune/Core/Graphics/Mesh.h"
 #include "Dune/Core/Graphics.h"
 
 namespace Dune::Graphics

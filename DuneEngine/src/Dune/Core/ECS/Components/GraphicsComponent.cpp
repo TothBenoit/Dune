@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "GraphicsComponent.h"
+#include "Dune/Core/ECS/Components/GraphicsComponent.h"
 
 namespace Dune
 {
