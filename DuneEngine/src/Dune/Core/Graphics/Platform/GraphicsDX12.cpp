@@ -1468,17 +1468,6 @@ namespace Dune::Graphics
 		g_pipelinePool.Remove(handle);
 	}
 
-	void ClearRenderTarget(Command* pCommand, Handle<Texture> handle)
-	{
-		Texture& texture{ g_texturePool.Get(handle) };
-		pCommand->pCommandList->ClearRenderTargetView(texture.GetRTV().cpuAdress, texture.GetClearValue(), 0, nullptr );
-	}
-
-	void ClearRenderTarget(Command * pCommand, View * pView)
-	{
-		pCommand->pCommandList->ClearRenderTargetView(pView->GetCurrentBackBufferView().cpuAdress, pView->GetBackBufferClearValue(), 0, nullptr);
-	}
-
 	Command* CreateCommand(const CommandDesc& desc)
 	{
 		Command* pCommand = new Command();
@@ -1626,9 +1615,41 @@ namespace Dune::Graphics
 		pCommand->pCommandList->OMSetRenderTargets(1, &pView->GetCurrentBackBufferView().cpuAdress, false, nullptr);
 	}
 
+	void ClearRenderTarget(Command* pCommand, Handle<Texture> handle)
+	{
+		Texture& texture{ g_texturePool.Get(handle) };
+		if (texture.GetState() != D3D12_RESOURCE_STATE_RENDER_TARGET)
+		{
+			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(texture.GetResource(), texture.GetState(), D3D12_RESOURCE_STATE_RENDER_TARGET) };
+			pCommand->pCommandList->ResourceBarrier(1, &barrier);
+			texture.SetState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+		}
+		pCommand->pCommandList->ClearRenderTargetView(texture.GetRTV().cpuAdress, texture.GetClearValue(), 0, nullptr);
+	}
+
+	void ClearRenderTarget(Command* pCommand, View* pView)
+	{
+		if (pView->GetCurrentBackBufferState() != D3D12_RESOURCE_STATE_RENDER_TARGET)
+		{
+			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(pView->GetCurrentBackBuffer(), pView->GetCurrentBackBufferState(), D3D12_RESOURCE_STATE_RENDER_TARGET) };
+			pCommand->pCommandList->ResourceBarrier(1, &barrier);
+			pView->SetCurrentBackBufferState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+		}
+
+		pCommand->pCommandList->ClearRenderTargetView(pView->GetCurrentBackBufferView().cpuAdress, pView->GetBackBufferClearValue(), 0, nullptr);
+	}
+
 	void ClearDepthBuffer(Command* pCommand, Handle<Texture> handle)
 	{
 		Texture& texture{ g_texturePool.Get(handle) };
+
+		if (texture.GetState() != D3D12_RESOURCE_STATE_RENDER_TARGET)
+		{
+			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(texture.GetResource(), texture.GetState(), D3D12_RESOURCE_STATE_RENDER_TARGET) };
+			pCommand->pCommandList->ResourceBarrier(1, &barrier);
+			texture.SetState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+		}
+
 		pCommand->pCommandList->ClearDepthStencilView(texture.GetDSV().cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 0, 0, 0, nullptr);
 	}
 

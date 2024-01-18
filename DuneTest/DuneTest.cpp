@@ -8,10 +8,10 @@ using namespace Dune;
 
 void MovingTriangle(Graphics::Device* pDevice)
 {
+	g_mutex.lock();
 	Graphics::View* pView{ Graphics::CreateView({.pDevice = pDevice}) };
 	const wchar_t* args[] = { L"-Zi" };
 
-	g_mutex.lock();
 	Handle<Graphics::Shader> vertexShader =
 		Graphics::CreateShader
 		({
@@ -71,6 +71,7 @@ void MovingTriangle(Graphics::Device* pDevice)
 	Handle<Graphics::Buffer> colorBuff = Graphics::CreateBuffer({ .debugName = L"ColorBuffer", .byteSize = 16, .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = color, .pView = pView });
 
 	g_mutex.unlock();
+	dU32 frameCount = 0;
 	while (Graphics::ProcessViewEvents(pView))
 	{
 		// Game goes here
@@ -98,6 +99,7 @@ void MovingTriangle(Graphics::Device* pDevice)
 		Graphics::DrawIndexedInstanced(pCommand, 3, 1);
 		Graphics::SubmitCommand(pView, pCommand);
 		Graphics::EndFrame(pView);
+		frameCount++;
 	}
 
 	g_mutex.lock();
