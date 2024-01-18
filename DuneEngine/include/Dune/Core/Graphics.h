@@ -337,10 +337,13 @@ namespace Dune::Graphics
 	void							ResetCommand(Command* pCommand);
 	void							ResetCommand(Command* pCommand, Handle<Pipeline>);
 	void							SetPipeline(Command* pCommand, Handle<Pipeline> handle);
-	void							SetRenderTarget(Command* pCommand, Handle<Texture> handle);
+	void							SetRenderTarget(Command* pCommand, Handle<Texture> renderTarget);
+	void							SetRenderTarget(Command* pCommand, Handle<Texture> renderTarget, Handle<Texture> depthBuffer);
 	void							SetRenderTarget(Command* pCommand, View* pView);
+	void							SetRenderTarget(Command* pCommand, View* pView, Handle<Texture> depthBuffer);
 	void							ClearRenderTarget(Command* pCommand, Handle<Texture> handle);
 	void							ClearRenderTarget(Command* pCommand, View* pView);
+	void							ClearDepthBuffer(Command* pCommand, Handle<Texture> depthBuffer);
 	void							PushGraphicsConstants(Command* pCommand, dU32 slot, void* pData, dU32 byteSize);
 	void							PushGraphicsBuffer(Command* pCommand, dU32 slot, Handle<Buffer> handle);
 	void							PushGraphicsResource(Command* pCommand, dU32 slot, Handle<Buffer> handle);

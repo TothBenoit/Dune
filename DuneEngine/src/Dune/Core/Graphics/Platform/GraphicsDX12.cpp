@@ -1112,7 +1112,7 @@ namespace Dune::Graphics
 		const ETextureUsage		m_usage;
 		const dU32				m_dimensions[3];
 		float					m_clearValue[4];
-		D3D12_RESOURCE_STATES	m_state;
+		D3D12_RESOURCE_STATES	m_state{ D3D12_RESOURCE_STATE_COMMON };
 		View*					m_pView{ nullptr };
 	};
 
@@ -1534,10 +1534,10 @@ namespace Dune::Graphics
 		pCommand->pCommandList->SetPipelineState(pipeline.GetPipelineStateObject());
 	}
 
-	void SetRenderTarget(Command* pCommand, Handle<Texture> handle)
+	void SetRenderTarget(Command* pCommand, Handle<Texture> renderTarget)
 	{
-		Assert(handle.IsValid());
-		Texture& texture{ g_texturePool.Get(handle) };
+		Assert(renderTarget.IsValid());
+		Texture& texture{ g_texturePool.Get(renderTarget) };
 		const dU32* pDimensions{ texture.GetDimensions() };
 		D3D12_VIEWPORT viewport{ 0.0f, 0.0f, (float)pDimensions[0], (float)pDimensions[1], 0.0f, 1.0f };
 		D3D12_RECT scissor{ 0, 0, (LONG)pDimensions[0], (LONG)pDimensions[1] };
@@ -1554,7 +1554,36 @@ namespace Dune::Graphics
 		pCommand->pCommandList->OMSetRenderTargets(1, &texture.GetRTV().cpuAdress, false, nullptr);
 	}
 
-	void SetRenderTarget(Command* pCommand, View* pView)
+	void SetRenderTarget(Command* pCommand, Handle<Texture> renderTarget, Handle<Texture> depthBuffer)
+	{
+		Assert(renderTarget.IsValid());
+		Texture& texture{ g_texturePool.Get(renderTarget) };
+		const dU32* pDimensions{ texture.GetDimensions() };
+		D3D12_VIEWPORT viewport{ 0.0f, 0.0f, (float)pDimensions[0], (float)pDimensions[1], 0.0f, 1.0f };
+		D3D12_RECT scissor{ 0, 0, (LONG)pDimensions[0], (LONG)pDimensions[1] };
+
+		if (texture.GetState() != D3D12_RESOURCE_STATE_RENDER_TARGET)
+		{
+			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(texture.GetResource(), texture.GetState(), D3D12_RESOURCE_STATE_RENDER_TARGET) };
+			pCommand->pCommandList->ResourceBarrier(1, &barrier);
+			texture.SetState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+		}
+
+		Texture& depthTexture{ g_texturePool.Get(depthBuffer) };
+
+		if (depthTexture.GetState() != D3D12_RESOURCE_STATE_DEPTH_WRITE)
+		{
+			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(depthTexture.GetResource(), depthTexture.GetState(), D3D12_RESOURCE_STATE_DEPTH_WRITE) };
+			pCommand->pCommandList->ResourceBarrier(1, &barrier);
+			depthTexture.SetState(D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		}
+
+		pCommand->pCommandList->RSSetViewports(1, &viewport);
+		pCommand->pCommandList->RSSetScissorRects(1, &scissor);
+		pCommand->pCommandList->OMSetRenderTargets(1, &texture.GetRTV().cpuAdress, false, &depthTexture.GetDSV().cpuAdress);
+	}
+
+	void SetRenderTarget(Command* pCommand, View* pView, Handle<Texture> depthBuffer)
 	{
 		D3D12_VIEWPORT viewport{ 0.0f, 0.0f, (float)pView->GetWidth(), (float)pView->GetHeight(), 0.0f, 1.0f };
 		D3D12_RECT scissor{ 0, 0, (LONG)pView->GetWidth(), (LONG)pView->GetHeight() };
@@ -1566,9 +1595,41 @@ namespace Dune::Graphics
 			pView->SetCurrentBackBufferState(D3D12_RESOURCE_STATE_RENDER_TARGET);
 		}
 
+		Texture& depthTexture{ g_texturePool.Get(depthBuffer) };
+
+		if (depthTexture.GetState() != D3D12_RESOURCE_STATE_DEPTH_WRITE)
+		{
+			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(depthTexture.GetResource(), depthTexture.GetState(), D3D12_RESOURCE_STATE_DEPTH_WRITE) };
+			pCommand->pCommandList->ResourceBarrier(1, &barrier);
+			depthTexture.SetState(D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		}
+
+		pCommand->pCommandList->RSSetViewports(1, &viewport);
+		pCommand->pCommandList->RSSetScissorRects(1, &scissor);
+		pCommand->pCommandList->OMSetRenderTargets(1, &pView->GetCurrentBackBufferView().cpuAdress, false, &depthTexture.GetDSV().cpuAdress);
+	}
+
+	void SetRenderTarget(Command* pCommand, View* pView)
+	{
+		D3D12_VIEWPORT viewport{ 0.0f, 0.0f, (float)pView->GetWidth(), (float)pView->GetHeight(), 0.0f, 1.0f };
+		D3D12_RECT scissor{ 0, 0, (LONG)pView->GetWidth(), (LONG)pView->GetHeight() };
+
+		if (pView->GetCurrentBackBufferState() != D3D12_RESOURCE_STATE_RENDER_TARGET)
+		{
+			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(pView->GetCurrentBackBuffer(), pView->GetCurrentBackBufferState(), D3D12_RESOURCE_STATE_RENDER_TARGET) };
+			pCommand->pCommandList->ResourceBarrier(1, &barrier);
+			pView->SetCurrentBackBufferState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+		}
+
 		pCommand->pCommandList->RSSetViewports(1, &viewport);
 		pCommand->pCommandList->RSSetScissorRects(1, &scissor);
 		pCommand->pCommandList->OMSetRenderTargets(1, &pView->GetCurrentBackBufferView().cpuAdress, false, nullptr);
+	}
+
+	void ClearDepthBuffer(Command* pCommand, Handle<Texture> handle)
+	{
+		Texture& texture{ g_texturePool.Get(handle) };
+		pCommand->pCommandList->ClearDepthStencilView(texture.GetDSV().cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 0, 0, 0, nullptr);
 	}
 
 	void PushGraphicsConstants(Command* pCommand, dU32 slot, void* pData, dU32 byteSize)
