@@ -2,7 +2,7 @@
 
 #include "ShaderTypes.h"
 
-BEGIN_NAMESPACE_SHADER(Dune)
+BEGIN_NAMESPACE_SHADER
 	struct PostProcessGlobals
 	{
 		matrix		m_invProj;
@@ -13,4 +13,4 @@ BEGIN_NAMESPACE_SHADER(Dune)
 		float2		m_screenResolution;
 		float2		m_padding2;
 	};
-END_NAMESPACE_SHADER(Dune)
+END_NAMESPACE_SHADER

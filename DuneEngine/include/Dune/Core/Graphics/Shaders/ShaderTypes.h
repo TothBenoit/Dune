@@ -1,10 +1,10 @@
 #pragma once
 
 #ifdef __cplusplus
-#define BEGIN_NAMESPACE_SHADER(name) namespace name {
-#define END_NAMESPACE_SHADER(name) }
+#define BEGIN_NAMESPACE_SHADER namespace Dune::Graphics {
+#define END_NAMESPACE_SHADER }
 
-namespace Dune
+namespace Dune::Graphics
 {
 	using uint = dU32;
 
@@ -28,7 +28,7 @@ namespace Dune
 
 #else
 
-#define BEGIN_NAMESPACE_SHADER(name)
-#define END_NAMESPACE_SHADER(name)
+#define BEGIN_NAMESPACE_SHADER
+#define END_NAMESPACE_SHADER
 
 #endif

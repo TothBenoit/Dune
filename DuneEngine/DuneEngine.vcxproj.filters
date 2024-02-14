@@ -58,7 +58,7 @@
     <ClInclude Include="include\Dune\Core\ECS\Components\TransformComponent.h">
       <Filter>Dune\Core\ECS\Component</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune.h">
+    <ClInclude Include="include\Dune.h">
       <Filter>Dune</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
@@ -66,9 +66,6 @@
     </ClInclude>
     <ClInclude Include="include\Dune\Utilities\MeshLoader.h">
       <Filter>Dune\Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Core\Graphics\Shaders\ShaderTypes.h">
-      <Filter>Dune\Core\Graphics\Shader\Common</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PointLight.h">
       <Filter>Dune\Core\Graphics\Shader</Filter>
@@ -96,6 +93,12 @@
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics\Window.h">
       <Filter>Dune\Core\Graphics\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\Shaders\ShaderTypes.h">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -144,6 +147,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl" />
+    <None Include="include\Dune\Core\Graphics\Shaders\DepthWrite.hlsl" />
+    <None Include="include\Dune\Core\Graphics\Shaders\PBR.hlsl" />
+    <None Include="include\Dune\Core\Graphics\Shaders\PostProcess.hlsl" />
+    <None Include="include\Dune\Core\Graphics\Shaders\Test.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">
@@ -175,9 +183,6 @@
     </Filter>
     <Filter Include="Dune\Core\Graphics\Shader">
       <UniqueIdentifier>{df74b725-f633-452c-9fba-ebcdaa67b2ba}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Dune\Core\Graphics\Shader\Common">
-      <UniqueIdentifier>{e5fd42c7-b8de-433a-b0e8-db486a3636dd}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Core\Graphics\Platform">
       <UniqueIdentifier>{7de3f997-37c6-412d-829a-ccf2ebc29c48}</UniqueIdentifier>

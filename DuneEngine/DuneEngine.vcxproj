@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\Microsoft.Direct3D.D3D12.1.610.5\build\native\Microsoft.Direct3D.D3D12.props" Condition="Exists('..\packages\Microsoft.Direct3D.D3D12.1.610.5\build\native\Microsoft.Direct3D.D3D12.props')" />
+  <Import Project="..\packages\Microsoft.Direct3D.D3D12.1.611.2\build\native\Microsoft.Direct3D.D3D12.props" Condition="Exists('..\packages\Microsoft.Direct3D.D3D12.1.611.2\build\native\Microsoft.Direct3D.D3D12.props')" />
   <Import Project="..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.props" Condition="Exists('..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -26,6 +26,7 @@
     <ClInclude Include="include\Dune\Core\ECS\EntityManager.h" />
     <ClInclude Include="include\Dune\Core\Engine.h" />
     <ClInclude Include="include\Dune\Core\EngineCore.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
@@ -40,7 +41,7 @@
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
     <ClInclude Include="include\Dune\Common\Types.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Renderer.h" />
-    <ClInclude Include="src\Dune.h" />
+    <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\Input.h" />
     <ClInclude Include="include\Dune\Core\Logger.h" />
     <ClInclude Include="include\Dune\Utilities\Utils.h" />
@@ -67,6 +68,23 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\DepthWrite.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\PBR.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\PostProcess.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\Test.hlsl">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -140,7 +158,7 @@
     </Lib>
     <PreBuildEvent>
       <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)src\Dune\Core\Graphics\Shaders\*.hlsl" "$(OutDir)Shaders\"</Command>
+xcopy /y /d "$(ProjectDir)include\Dune\Core\Graphics\Shaders\*" "$(OutDir)Shaders\"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -176,13 +194,13 @@ xcopy /y /d "$(ProjectDir)src\Dune\Core\Graphics\Shaders\*.hlsl" "$(OutDir)Shade
     </Lib>
     <PreBuildEvent>
       <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)src\Dune\Core\Graphics\Shaders\*.hlsl" "$(OutDir)Shaders\"</Command>
+xcopy /y /d "$(ProjectDir)include\Dune\Core\Graphics\Shaders\*" "$(OutDir)Shaders\"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.targets" Condition="Exists('..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.targets')" />
-    <Import Project="..\packages\Microsoft.Direct3D.D3D12.1.610.5\build\native\Microsoft.Direct3D.D3D12.targets" Condition="Exists('..\packages\Microsoft.Direct3D.D3D12.1.610.5\build\native\Microsoft.Direct3D.D3D12.targets')" />
+    <Import Project="..\packages\Microsoft.Direct3D.D3D12.1.611.2\build\native\Microsoft.Direct3D.D3D12.targets" Condition="Exists('..\packages\Microsoft.Direct3D.D3D12.1.611.2\build\native\Microsoft.Direct3D.D3D12.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -190,7 +208,7 @@ xcopy /y /d "$(ProjectDir)src\Dune\Core\Graphics\Shaders\*.hlsl" "$(OutDir)Shade
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.props'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.DXC.1.7.2308.12\build\native\Microsoft.Direct3D.DXC.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Direct3D.D3D12.1.610.5\build\native\Microsoft.Direct3D.D3D12.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.D3D12.1.610.5\build\native\Microsoft.Direct3D.D3D12.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Direct3D.D3D12.1.610.5\build\native\Microsoft.Direct3D.D3D12.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.D3D12.1.610.5\build\native\Microsoft.Direct3D.D3D12.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Direct3D.D3D12.1.611.2\build\native\Microsoft.Direct3D.D3D12.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.D3D12.1.611.2\build\native\Microsoft.Direct3D.D3D12.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Direct3D.D3D12.1.611.2\build\native\Microsoft.Direct3D.D3D12.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Direct3D.D3D12.1.611.2\build\native\Microsoft.Direct3D.D3D12.targets'))" />
   </Target>
 </Project>

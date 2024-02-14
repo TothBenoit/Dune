@@ -1409,7 +1409,7 @@ namespace Dune::Graphics
 			for (dU32 i = 0; i < desc.inputLayout.size(); i++)
 			{
 				const VertexInput& input = desc.inputLayout[i];
-				pInputElementDescs[i] = { input.pName, input.slot, (DXGI_FORMAT)input.format, input.index, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+				pInputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 			}
 
 			IDxcBlob* pVSBlob{ (desc.vertexShader.IsValid()) ? g_shaderPool.Get(desc.vertexShader).GetByteCode() : nullptr};
@@ -1643,14 +1643,14 @@ namespace Dune::Graphics
 	{
 		Texture& texture{ g_texturePool.Get(handle) };
 
-		if (texture.GetState() != D3D12_RESOURCE_STATE_RENDER_TARGET)
+		if (texture.GetState() != D3D12_RESOURCE_STATE_DEPTH_WRITE)
 		{
-			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(texture.GetResource(), texture.GetState(), D3D12_RESOURCE_STATE_RENDER_TARGET) };
+			D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(texture.GetResource(), texture.GetState(), D3D12_RESOURCE_STATE_DEPTH_WRITE) };
 			pCommand->pCommandList->ResourceBarrier(1, &barrier);
-			texture.SetState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+			texture.SetState(D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		}
 
-		pCommand->pCommandList->ClearDepthStencilView(texture.GetDSV().cpuAdress, D3D12_CLEAR_FLAG_DEPTH, 0, 0, 0, nullptr);
+		pCommand->pCommandList->ClearDepthStencilView(texture.GetDSV().cpuAdress, D3D12_CLEAR_FLAG_DEPTH, texture.GetClearValue()[0], 0, 0, nullptr);
 	}
 
 	void PushGraphicsConstants(Command* pCommand, dU32 slot, void* pData, dU32 byteSize)

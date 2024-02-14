@@ -2,7 +2,7 @@
 
 #include "ShaderTypes.h"
 
-BEGIN_NAMESPACE_SHADER(Dune)
+BEGIN_NAMESPACE_SHADER
 	struct DirectionalLight
 	{
 		float3		m_color;
@@ -11,4 +11,4 @@ BEGIN_NAMESPACE_SHADER(Dune)
 		float		m_padding1;
 		float4x4	m_viewProj;
 	};
-END_NAMESPACE_SHADER(Dune)
+END_NAMESPACE_SHADER

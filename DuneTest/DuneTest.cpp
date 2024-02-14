@@ -1,6 +1,7 @@
 #include <Dune.h>
 #include <thread>
 #include <mutex>
+#include <Dune/Core/Graphics/Shaders/PBR.h>
 
 std::mutex g_mutex; // API is not thread-safe yet
 
@@ -55,53 +56,60 @@ static const Vertex cubeVertices[] =
 	{ { 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f } }, // 23
 };
 
-Handle<Graphics::Pipeline> CreateTrianglePipeline(Graphics::Device* pDevice)
+Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
 {
-	const wchar_t* args[] = { L"-Zi" };
+	const wchar_t* args[] = { L"-Zi", L"-I Shaders\\" };
 
-	Handle<Graphics::Shader> triVertexShader =
+	Handle<Graphics::Shader> pbrVertexShader =
 		Graphics::CreateShader
 		({
 			.stage = Graphics::EShaderStage::Vertex,
-			.filePath = L"Shaders\\Test.hlsl",
+			.filePath = L"Shaders\\PBR.hlsl",
 			.entryFunc = L"VSMain",
 			.args = args,
 			.argsCount = _countof(args),
-			});
+		});
 
-	Handle<Graphics::Shader> triPixelShader =
+	Handle<Graphics::Shader> pbrPixelShader =
 		Graphics::CreateShader
 		({
 			.stage = Graphics::EShaderStage::Pixel,
-			.filePath = L"Shaders\\Test.hlsl",
+			.filePath = L"Shaders\\PBR.hlsl",
 			.entryFunc = L"PSMain",
 			.args = args,
 			.argsCount = _countof(args),
-			});
+		});
 
-	Handle<Graphics::Pipeline> triPipeline =
+	Handle<Graphics::Pipeline> pbrPipeline =
 		Graphics::CreateGraphicsPipeline
 		({
-			.vertexShader = triVertexShader,
-			.pixelShader = triPixelShader,
+			.vertexShader = pbrVertexShader,
+			.pixelShader = pbrPixelShader,
 			.bindingLayout =
 			{
 				.slots =
 				{
-					{.type = Graphics::EBindingType::Constant, .byteSize = 16, .visibility = Graphics::EShaderVisibility::Vertex },
-					{.type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::Pixel },
+					{ .type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::All },
+					{ .type = Graphics::EBindingType::Constant, .byteSize = 16, .visibility = Graphics::EShaderVisibility::Pixel },
+					{ .type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::Vertex },
 				},
-				.slotCount = 2
+				.slotCount = 3
 			},
-			.inputLayout = { Graphics::VertexInput{ "POSITION", 0, Graphics::EFormat::R32G32B32_FLOAT, 0, 0, false } },
+			.inputLayout =
+				{
+					Graphics::VertexInput { .pName = "POSITION", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
+					Graphics::VertexInput { .pName = "NORMAL", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 12, .bPerInstance = false }
+				},
+			.depthStencilState = { .bDepthEnabled = true, .bDepthWrite = true },
 			.renderTargetsFormat = { Graphics::EFormat::R8G8B8A8_UNORM },
+			.depthStencilFormat = Graphics::EFormat::D16_UNORM,
 			.pDevice = pDevice
-			});
+		});
 
-	Graphics::ReleaseShader(triPixelShader);
-	Graphics::ReleaseShader(triVertexShader);
+	Graphics::ReleaseShader(pbrPixelShader);
+	Graphics::ReleaseShader(pbrVertexShader);
 
-	return triPipeline;
+	return pbrPipeline;
 }
 
 void Test(Graphics::Device* pDevice)
@@ -109,12 +117,8 @@ void Test(Graphics::Device* pDevice)
 	g_mutex.lock();
 	Graphics::View* pView{ Graphics::CreateView({.pDevice = pDevice}) };
 
-	Handle<Graphics::Pipeline> triPipeline = CreateTrianglePipeline(pDevice);
-
-	dU16 triIndices[]{ 0, 1, 2 };
-	dVec3 triVertices[]{ { -0.5f, -0.5f, 0.0 }, { 0.0f, 0.5f, 0.0 }, { 0.5f, -0.5f, 0.0 } };
-	Handle<Graphics::Mesh> triangle = Graphics::CreateMesh(pView, triIndices, 3, triVertices, 3, sizeof(dVec3));
-	Handle<Graphics::Mesh> cube = Graphics::CreateMesh(pView, cubeIndices, 3, cubeVertices, 3, sizeof(Vertex));
+	Handle<Graphics::Pipeline> pbrPipeline = CreatePBRPipeline(pDevice);
+	Handle<Graphics::Mesh> cube = Graphics::CreateMesh(pView, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
 
 	Graphics::Command* pCommand =
 		Graphics::CreateCommand
@@ -123,55 +127,61 @@ void Test(Graphics::Device* pDevice)
 			.pView = pView
 		});
 
-	const Graphics::Mesh& mesh = Graphics::GetMesh(triangle);
+	const Graphics::Mesh& mesh = Graphics::GetMesh(cube);
 
-	float offset[4]{ 0.0f, 0.0f, 0.0f, 0.0f };
-	float color[4]{ 0.0f, 0.0f, 0.0f, 0.0f };
-	float direction{ 1.0 };
+	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -5.0f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
+	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), 1600.f / 900.f, 0.1f, 1000.f) };	
 
-	Handle<Graphics::Buffer> colorBuff = Graphics::CreateBuffer({ .debugName = L"ColorBuffer", .byteSize = 16, .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = color, .pView = pView });
+	Graphics::PBRGlobals globals;
+	DirectX::XMStoreFloat4x4(&globals.viewProjectionMatrix, view * proj);
+	DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.5f, -1.0f, 0.5f }));
+
+	Handle<Graphics::Buffer> globalsBuffer = Graphics::CreateBuffer({ .debugName = L"GlobalsBuffer", .byteSize = sizeof(Graphics::PBRGlobals), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::GPUStatic, .pData = &globals, .pView = pView});
+	
+	float angle = 0.f;
+	dMatrix rotation{ };
+
+	dMatrix initialModel{ DirectX::XMMatrixTranslation(0.0f, 0.0f, 1.0f) };
+	Handle<Graphics::Buffer> instanceBuffer = Graphics::CreateBuffer({ .debugName = L"InstanceBuffer", .byteSize = sizeof(Graphics::PBRInstance), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &initialModel, .pView = pView });
+	Handle<Graphics::Texture> depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { 1600, 900, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
+
+	dVec4 material{ 0.0f, 1.0f, 0.5f, 1.0f };
 
 	g_mutex.unlock();
 	dU32 frameCount = 0;
 	while (Graphics::ProcessViewEvents(pView))
 	{
-		// Game goes here
-		if (std::abs(offset[0]) > 1.0f)
-		{
-			offset[0] = 1.0f * direction;
-			color[0] = 1.0f * direction;
-			color[1] = -1.0f * direction;
-			direction *= -1.f;
-		}
-		offset[0] += 0.005f * direction;
-		color[0] += 0.005f * direction;
-		color[1] += -0.005f * direction;
-
+		angle = fmodf(angle + 1.f, 360.f);
 		Graphics::BeginFrame(pView);
-		Graphics::MapBuffer(colorBuff, color, 16);
+		dMatrix model{ DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(angle)) * initialModel };
+		Graphics::MapBuffer(instanceBuffer, &model, sizeof(dMatrix));
 		Graphics::ResetCommand(pCommand);
-		Graphics::SetPipeline(pCommand, triPipeline);
-		Graphics::SetRenderTarget(pCommand, pView);
+		Graphics::SetPipeline(pCommand, pbrPipeline);
+		Graphics::SetRenderTarget(pCommand, pView, depthBuffer);
 		Graphics::ClearRenderTarget(pCommand, pView);
-		Graphics::PushGraphicsConstants(pCommand, 0, offset, 16);
-		Graphics::PushGraphicsBuffer(pCommand, 1, colorBuff);
+		Graphics::ClearDepthBuffer(pCommand, depthBuffer);
+		Graphics::PushGraphicsBuffer(pCommand, 0, globalsBuffer);
+		Graphics::PushGraphicsConstants(pCommand, 1, &material, 16);
+		Graphics::PushGraphicsBuffer(pCommand, 2, instanceBuffer);
 		Graphics::BindIndexBuffer(pCommand, mesh.GetIndexBufferHandle());
 		Graphics::BindVertexBuffer(pCommand, mesh.GetVertexBufferHandle());
-		Graphics::DrawIndexedInstanced(pCommand, 3, 1);
+		Graphics::DrawIndexedInstanced(pCommand, mesh.GetIndexCount(), 1);
 		Graphics::SubmitCommand(pView, pCommand);
 		Graphics::EndFrame(pView);
 		frameCount++;
 	}
 
 	g_mutex.lock();
-	Graphics::ReleaseBuffer(colorBuff);
 	Graphics::ReleaseMesh(cube);
-	Graphics::ReleaseMesh(triangle);
-	Graphics::ReleasePipeline(triPipeline);
+	Graphics::ReleaseBuffer(globalsBuffer);
+	Graphics::ReleaseBuffer(instanceBuffer);
+	Graphics::ReleaseTexture(depthBuffer);
+	Graphics::ReleasePipeline(pbrPipeline);
 	Graphics::DestroyCommand(pCommand);
 	Graphics::DestroyView(pView);
 	g_mutex.unlock();
 }
+
 
 int main(int argc, char** argv)
 {

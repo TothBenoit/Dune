@@ -2,7 +2,7 @@
 
 #include "ShaderTypes.h"
 
-BEGIN_NAMESPACE_SHADER(Dune)
+BEGIN_NAMESPACE_SHADER
 	struct PointLight
 	{
 		float3	m_color;
@@ -10,4 +10,4 @@ BEGIN_NAMESPACE_SHADER(Dune)
 		float	m_radius;
 		float3	m_pos;
 	};
-END_NAMESPACE_SHADER(Dune)
+END_NAMESPACE_SHADER
