@@ -129,12 +129,12 @@ void Test(Graphics::Device* pDevice)
 
 	const Graphics::Mesh& mesh = Graphics::GetMesh(cube);
 
-	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -5.0f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
+	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -0.5f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
 	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), 1600.f / 900.f, 0.1f, 1000.f) };	
 
 	Graphics::PBRGlobals globals;
 	DirectX::XMStoreFloat4x4(&globals.viewProjectionMatrix, view * proj);
-	DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.5f, -1.0f, 0.5f }));
+	DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
 
 	Handle<Graphics::Buffer> globalsBuffer = Graphics::CreateBuffer({ .debugName = L"GlobalsBuffer", .byteSize = sizeof(Graphics::PBRGlobals), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::GPUStatic, .pData = &globals, .pView = pView});
 	

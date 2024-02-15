@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdarg.h>
+
 namespace Dune
 {
 	namespace dStringUtils
