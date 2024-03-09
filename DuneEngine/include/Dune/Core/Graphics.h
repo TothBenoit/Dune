@@ -189,6 +189,8 @@ namespace Dune::Graphics
 		EFormat	format{ EFormat::R8G8B8A8_UNORM };
 		float clearValue[4]{0.f, 0.f, 0.f, 0.f};
 		View* pView{ nullptr };
+		void* pData{ nullptr };
+		dU32 byteSize{ 0 };
 	};
 
 	[[nodiscard]] Handle<Texture>	CreateTexture(const TextureDesc& desc);
@@ -256,8 +258,8 @@ namespace Dune::Graphics
 	struct ShaderDesc
 	{
 		EShaderStage	stage;
-		const wchar_t* filePath{ nullptr };
-		const wchar_t* entryFunc{ nullptr };
+		const wchar_t*	filePath{ nullptr };
+		const wchar_t*	entryFunc{ nullptr };
 		// TODO : use span
 		const wchar_t** args;
 		dU32			argsCount;

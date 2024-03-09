@@ -27,6 +27,8 @@
     <ClInclude Include="include\Dune\Core\Engine.h" />
     <ClInclude Include="include\Dune\Core\EngineCore.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
+    <ClInclude Include="include\Dune\Core\IO.h" />
+    <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
@@ -60,6 +62,7 @@
     <ClCompile Include="src\Dune\Core\Graphics\Renderer.cpp" />
     <ClCompile Include="src\Dune\Core\Input.cpp" />
     <ClCompile Include="src\Dune\Core\Logger.cpp" />
+    <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp" />
     <ClCompile Include="src\Dune\Utilities\MeshLoader.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -138,7 +141,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>Dune;include;$(SolutionDir)ThirdParties\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)DuneEngine;include;$(SolutionDir)ThirdParties\include\</AdditionalIncludeDirectories>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -172,7 +175,7 @@ xcopy /y /d "$(ProjectDir)include\Dune\Core\Graphics\Shaders\*" "$(OutDir)Shader
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>Dune;include;$(SolutionDir)ThirdParties\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)DuneEngine;include;$(SolutionDir)ThirdParties\include\</AdditionalIncludeDirectories>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>

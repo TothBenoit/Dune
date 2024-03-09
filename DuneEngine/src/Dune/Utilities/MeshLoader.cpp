@@ -68,7 +68,7 @@ namespace Dune::Graphics
 		}
 	}
 
-	dVector<Handle<Mesh>> MeshLoader::Load(View* pView, const dString& path)
+	dVector<Handle<Mesh>> MeshLoader::Load(View* pView, const char* path)
 	{
 		Assert(pView);
 		g_pCurrentView= pView;

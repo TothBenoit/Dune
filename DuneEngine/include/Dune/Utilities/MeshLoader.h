@@ -6,9 +6,9 @@ namespace Dune::Graphics
 {
 	class Mesh;
 	class View;
-	//TODO : Move to Engine
+	// TODO : Create custom mesh format to load. 
 	namespace MeshLoader
 	{
-		dVector<Handle<Mesh>> Load(View* pView, const dString& path);
+		dVector<Handle<Mesh>> Load(View* pView, const char* path);
 	}
 }

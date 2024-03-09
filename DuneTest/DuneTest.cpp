@@ -2,6 +2,7 @@
 #include <thread>
 #include <mutex>
 #include <Dune/Core/Graphics/Shaders/PBR.h>
+#include <Dune/Utilities/DDSLoader.h>
 
 std::mutex g_mutex; // API is not thread-safe yet
 
@@ -11,6 +12,8 @@ struct Vertex
 {
 	dVec3 vPos;
 	dVec3 vNormal;
+	dVec3 vTangent;
+	dVec2 vUV;
 };
 
 static const dU16 cubeIndices[]
@@ -25,35 +28,35 @@ static const dU16 cubeIndices[]
 
 static const Vertex cubeVertices[] =
 {
-	{ {-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f } }, // 0
-	{ {-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f } }, // 1
-	{ { 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f } }, // 2
-	{ { 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f } }, // 3
+	{ {-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f, 0.0f } }, // 0
+	{ {-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f } }, // 1
+	{ { 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f } }, // 2
+	{ { 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 1.0f, 0.0f } }, // 3
 
-	{ {-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f } }, // 4
-	{ {-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f } }, // 5
-	{ { 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f } }, // 6
-	{ { 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f } }, // 7
+	{ {-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 0.0f, 0.0f } }, // 4
+	{ {-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f } }, // 5
+	{ { 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f } }, // 6
+	{ { 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 1.0f, 0.0f } }, // 7
 
-	{ {-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f } }, // 8
-	{ {-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f } }, // 9
-	{ {-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f } }, // 10
-	{ {-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f } }, // 11
+	{ {-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f }, { 0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f } }, // 8
+	{ {-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f }, { 0.0f, -1.0f,  0.0f }, { 1.0f, 0.0f } }, // 9
+	{ {-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f }, { 0.0f, -1.0f,  0.0f }, { 0.0f, 1.0f } }, // 10
+	{ {-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f }, { 0.0f, -1.0f,  0.0f }, { 1.0f, 1.0f } }, // 11
 
-	{ { 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f } }, // 12
-	{ { 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f } }, // 13
-	{ { 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f } }, // 14
-	{ { 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f } }, // 15
+	{ { 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 1.0f, 0.0f } }, // 12
+	{ { 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 0.0f, 0.0f } }, // 13
+	{ { 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 1.0f, 1.0f } }, // 14
+	{ { 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 0.0f, 1.0f } }, // 15
 
-	{ {-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f } }, // 16
-	{ { 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f } }, // 17
-	{ {-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f } }, // 18
-	{ { 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f } }, // 19
+	{ {-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f }, { 0.0f,  0.0f, -1.0f }, { 0.0f, 0.0f } }, // 16
+	{ { 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f }, { 0.0f,  0.0f, -1.0f }, { 1.0f, 0.0f } }, // 17
+	{ {-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f }, { 0.0f,  0.0f, -1.0f }, { 0.0f, 1.0f } }, // 18
+	{ { 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f }, { 0.0f,  0.0f, -1.0f }, { 1.0f, 1.0f } }, // 19
 
-	{ {-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f } }, // 20
-	{ { 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f } }, // 21
-	{ {-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f } }, // 22
-	{ { 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f } }, // 23
+	{ {-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 0.0f, 0.0f } }, // 20
+	{ { 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 1.0f, 0.0f } }, // 21
+	{ {-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 0.0f, 1.0f } }, // 22
+	{ { 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f } }, // 23
 };
 
 Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
@@ -90,15 +93,19 @@ Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
 				.slots =
 				{
 					{ .type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::All },
+					{ .type = Graphics::EBindingType::Group, .groupDesc = { .resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel},
+					{ .type = Graphics::EBindingType::Group, .groupDesc = { .resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel},
 					{ .type = Graphics::EBindingType::Constant, .byteSize = 16, .visibility = Graphics::EShaderVisibility::Pixel },
 					{ .type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::Vertex },
 				},
-				.slotCount = 3
+				.slotCount = 5
 			},
 			.inputLayout =
 				{
 					Graphics::VertexInput { .pName = "POSITION", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
-					Graphics::VertexInput { .pName = "NORMAL", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 12, .bPerInstance = false }
+					Graphics::VertexInput { .pName = "NORMAL", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 12, .bPerInstance = false },
+					Graphics::VertexInput { .pName = "TANGENT", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 24, .bPerInstance = false },
+					Graphics::VertexInput { .pName = "UV", .index = 0, .format = Graphics::EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 36, .bPerInstance = false }
 				},
 			.depthStencilState = { .bDepthEnabled = true, .bDepthWrite = true },
 			.renderTargetsFormat = { Graphics::EFormat::R8G8B8A8_UNORM },
@@ -129,8 +136,23 @@ void Test(Graphics::Device* pDevice)
 
 	const Graphics::Mesh& mesh = Graphics::GetMesh(cube);
 
-	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -0.5f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
-	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), 1600.f / 900.f, 0.1f, 1000.f) };	
+	Graphics::DDSTexture ddsTexture;
+	if (ddsTexture.Load("res\\testAlbedo.DDS") != Graphics::DDSResult::ESucceed)
+		Assert(0);
+	void* pData = ddsTexture.GetData();
+	const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
+	Handle<Graphics::Texture> texture = Graphics::CreateTexture({ .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * ( pHeader->depth + 1 ) * ( pHeader->pixelFormat.size / 8 ) });
+	ddsTexture.Destroy();
+
+	if (ddsTexture.Load("res\\testNormal.DDS") != Graphics::DDSResult::ESucceed)
+		Assert(0);
+	pData = ddsTexture.GetData();
+	pHeader = ddsTexture.GetHeader();
+	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * (pHeader->depth + 1) * (pHeader->pixelFormat.size / 8) });
+	ddsTexture.Destroy();
+
+	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, 0.125f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
+	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), 1600.f / 900.f, 0.01f, 1000.f) };	
 
 	Graphics::PBRGlobals globals;
 	DirectX::XMStoreFloat4x4(&globals.viewProjectionMatrix, view * proj);
@@ -151,7 +173,7 @@ void Test(Graphics::Device* pDevice)
 	dU32 frameCount = 0;
 	while (Graphics::ProcessViewEvents(pView))
 	{
-		angle = fmodf(angle + 1.f, 360.f);
+		angle = fmodf(angle + 0.1f, 360.f);
 		Graphics::BeginFrame(pView);
 		dMatrix model{ DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(angle)) * initialModel };
 		Graphics::MapBuffer(instanceBuffer, &model, sizeof(dMatrix));
@@ -161,8 +183,10 @@ void Test(Graphics::Device* pDevice)
 		Graphics::ClearRenderTarget(pCommand, pView);
 		Graphics::ClearDepthBuffer(pCommand, depthBuffer);
 		Graphics::PushGraphicsBuffer(pCommand, 0, globalsBuffer);
-		Graphics::PushGraphicsConstants(pCommand, 1, &material, 16);
-		Graphics::PushGraphicsBuffer(pCommand, 2, instanceBuffer);
+		Graphics::BindGraphicsTexture(pCommand, 1, texture);
+		Graphics::BindGraphicsTexture(pCommand, 2, normalTexture);
+		Graphics::PushGraphicsConstants(pCommand, 3, &material, 16);
+		Graphics::PushGraphicsBuffer(pCommand, 4, instanceBuffer);
 		Graphics::BindIndexBuffer(pCommand, mesh.GetIndexBufferHandle());
 		Graphics::BindVertexBuffer(pCommand, mesh.GetVertexBufferHandle());
 		Graphics::DrawIndexedInstanced(pCommand, mesh.GetIndexCount(), 1);
@@ -176,6 +200,8 @@ void Test(Graphics::Device* pDevice)
 	Graphics::ReleaseBuffer(globalsBuffer);
 	Graphics::ReleaseBuffer(instanceBuffer);
 	Graphics::ReleaseTexture(depthBuffer);
+	Graphics::ReleaseTexture(texture);
+	Graphics::ReleaseTexture(normalTexture);
 	Graphics::ReleasePipeline(pbrPipeline);
 	Graphics::DestroyCommand(pCommand);
 	Graphics::DestroyView(pView);

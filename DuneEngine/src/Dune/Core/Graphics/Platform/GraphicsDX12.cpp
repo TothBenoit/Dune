@@ -511,6 +511,18 @@ namespace Dune::Graphics
 			WaitForCopy();
 		}
 
+		void UploadTexture(ID3D12Resource* pDest, ID3D12Resource* pUploadBuffer, D3D12_SUBRESOURCE_DATA* pSrcData)
+		{
+			ThrowIfFailed(m_pCopyCommandAllocator->Reset());
+			ThrowIfFailed(m_pCopyCommandList->Reset(m_pCopyCommandAllocator, nullptr));
+
+			UpdateSubresources(m_pCopyCommandList, pDest, pUploadBuffer, 0, 0, 1, pSrcData);
+			m_pCopyCommandList->Close();
+			dVector<ID3D12CommandList*> ppCommandLists{ m_pCopyCommandList };
+			m_pCopyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+			WaitForCopy();
+		}
+
 		void Resize()
 		{
 			if (m_pOnResize)
@@ -935,6 +947,8 @@ namespace Dune::Graphics
 
 			Device* pDeviceInterface{ m_pView->GetDevice() };
 			ID3D12Device* pDevice{ pDeviceInterface->pDevice };
+			D3D12_CLEAR_VALUE clearValue{};
+			D3D12_CLEAR_VALUE* pClearValue{ nullptr };
 
 			DXGI_FORMAT format{ (DXGI_FORMAT)desc.format };
 			D3D12_RESOURCE_FLAGS resourceFlag;
@@ -942,14 +956,20 @@ namespace Dune::Graphics
 			{
 			case ETextureUsage::RTV:
 				resourceFlag = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+				clearValue = CD3DX12_CLEAR_VALUE{ format, desc.clearValue };
+				pClearValue = &clearValue;
 				break;
 			case ETextureUsage::DSV:
 				resourceFlag = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+				clearValue = CD3DX12_CLEAR_VALUE{ format, desc.clearValue };
+				pClearValue = &clearValue;
 				break;
 			case ETextureUsage::SRV:
 				resourceFlag = D3D12_RESOURCE_FLAG_NONE;
+				break;
 			case ETextureUsage::UAV:
 				resourceFlag = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+				break;
 			default:
 				Assert(false);
 				break;
@@ -969,15 +989,33 @@ namespace Dune::Graphics
 				resourceFlag);
 
 			D3D12_HEAP_PROPERTIES heapProps{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
-			D3D12_CLEAR_VALUE clearValue{ CD3DX12_CLEAR_VALUE{ format, desc.clearValue } };
+
 			ThrowIfFailed(pDevice->CreateCommittedResource(
 				&heapProps,
 				D3D12_HEAP_FLAG_NONE,
 				&textureResourceDesc,
 				D3D12_RESOURCE_STATE_COMMON,
-				&clearValue,
+				pClearValue,
 				IID_PPV_ARGS(&m_pTexture)));
 			NameDXObject(m_pTexture, desc.debugName);
+
+			if (desc.pData)
+			{
+				D3D12_HEAP_PROPERTIES uploadHeapProps{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
+				ID3D12Resource* pUploadBuffer{ nullptr };				
+				D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(Utils::AlignTo(desc.byteSize, 512)) };
+				ThrowIfFailed(pDevice->CreateCommittedResource(
+					&uploadHeapProps,
+					D3D12_HEAP_FLAG_NONE,
+					&resourceDesc,
+					D3D12_RESOURCE_STATE_COMMON,
+					nullptr,
+					IID_PPV_ARGS(&pUploadBuffer)));
+
+				D3D12_SUBRESOURCE_DATA srcData{ .pData = desc.pData, .RowPitch = Utils::AlignTo(desc.byteSize / desc.dimensions[1], D3D12_TEXTURE_DATA_PITCH_ALIGNMENT), .SlicePitch = desc.byteSize};
+				m_pView->UploadTexture(m_pTexture, pUploadBuffer, &srcData);
+				pUploadBuffer->Release();
+			}
 
 			switch (m_usage)
 			{
@@ -1044,6 +1082,8 @@ namespace Dune::Graphics
 
 				break;
 			}
+			case ETextureUsage::SRV:
+				break;
 			default:
 				Assert(false);
 				break;
@@ -1337,7 +1377,10 @@ namespace Dune::Graphics
 		}
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
-		rootSignatureDesc.Init_1_1(rootParamCount, rootParameters, 0, nullptr, flags);
+		CD3DX12_STATIC_SAMPLER_DESC1 staticSamplerDesc;
+		staticSamplerDesc.Init(0);
+		staticSamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootSignatureDesc.Init_1_1(rootParamCount, rootParameters, 1, (D3D12_STATIC_SAMPLER_DESC*)&staticSamplerDesc, flags);
 
 		Microsoft::WRL::ComPtr<ID3DBlob> pError{ nullptr };
 		Microsoft::WRL::ComPtr<ID3DBlob> pSignature{ nullptr };
@@ -1504,7 +1547,9 @@ namespace Dune::Graphics
 	{
 		dU32 frameIndex{ pCommand->pView->GetFrameIndex() };
 		ThrowIfFailed(pCommand->ppCommandAllocators[frameIndex]->Reset());
-		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->ppCommandAllocators[frameIndex], nullptr));
+		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->ppCommandAllocators[frameIndex], nullptr));		
+		ID3D12DescriptorHeap* ppHeaps[] { pCommand->pView->GetDevice()->srvHeap.Get() };
+		pCommand->pCommandList->SetDescriptorHeaps(1, ppHeaps);
 	}
 
 	void ResetCommand(Command* pCommand, Handle<Pipeline> handle)

@@ -100,6 +100,8 @@
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\ShaderTypes.h">
       <Filter>Dune\Core\Graphics\Shader</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\IO.h" />
+    <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">
@@ -144,6 +146,7 @@
     <ClCompile Include="src\Dune\Core\Graphics\Platform\Window.cpp">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
