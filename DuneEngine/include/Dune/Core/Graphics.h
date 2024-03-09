@@ -39,8 +39,19 @@ namespace Dune::Graphics
 		Graphics::Device* pDevice{ nullptr };
 		WindowDesc windowDesc;
 		dU8 backBufferCount{ 2 };
-		void (*pOnResize)(void*) { nullptr };
+		void (*pOnResize)(View*, void*) { nullptr };
 		void* pOnResizeData{ nullptr };
+	};
+
+	class View
+	{
+	public:
+		[[nodiscard]] dU32 GetWidth() const { return m_width; }
+		[[nodiscard]] dU32 GetHeight() const { return m_height; }
+
+	protected:
+		dU32 m_width;
+		dU32 m_height;
 	};
 
 	[[nodiscard]]  View*			CreateView(const ViewDesc& desc);
@@ -71,7 +82,7 @@ namespace Dune::Graphics
 	{
 		const wchar_t*	debugName = nullptr;
 
-		dU32			byteSize{ 0 };
+		dU64			byteSize{ 0 };
 		EBufferUsage	usage{ EBufferUsage::Constant };
 		EBufferMemory	memory{ EBufferMemory::CPU };
 		const void*		pData{ nullptr };
@@ -81,8 +92,8 @@ namespace Dune::Graphics
 
 	[[nodiscard]] Handle<Buffer>	CreateBuffer(const BufferDesc& desc);
 	void							ReleaseBuffer(Handle<Buffer> handle);
-	void							UploadBuffer(Handle<Buffer> handle, const void* pData, dU32 byteSize);
-	void							MapBuffer(Handle<Buffer> handle, const void* pData, dU32 byteSize);
+	void							UploadBuffer(Handle<Buffer> handle, const void* pData, dU64 byteSize);
+	void							MapBuffer(Handle<Buffer> handle, const void* pData, dU64 byteSize);
 	// Texture
 
 	enum class ETextureUsage
@@ -190,7 +201,7 @@ namespace Dune::Graphics
 		float clearValue[4]{0.f, 0.f, 0.f, 0.f};
 		View* pView{ nullptr };
 		void* pData{ nullptr };
-		dU32 byteSize{ 0 };
+		dU64 byteSize{ 0 };
 	};
 
 	[[nodiscard]] Handle<Texture>	CreateTexture(const TextureDesc& desc);

@@ -31,7 +31,6 @@ namespace Dune
 		[[nodiscard]] inline static IDType		NextGeneration(IDType id)
 		{
 			const IDType generation = GetGeneration(id) + 1;
-			Assert(generation < lastGeneration);
 			return GetIndex(id) | (generation << indexBits);
 		}
 	};

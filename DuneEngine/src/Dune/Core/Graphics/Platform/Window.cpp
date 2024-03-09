@@ -85,10 +85,11 @@ namespace Dune::Graphics
 			m_bClosing = true;
 			break;
 		case WM_SIZE:
-			if (m_pOnResize)
-				m_pOnResize(m_pOnResizeData);
+			// Thought : Should Window::Update return flags like EResize, EDestroy, ..., instead of handling Resize here ? A current issue is that we resize multiple times during the same Update.
 			m_width = LOWORD(lParam);
 			m_height = HIWORD(lParam);
+			if (m_pOnResize)
+				m_pOnResize(m_pOnResizeData);
 			break;
 		case WM_PAINT:
 			break;

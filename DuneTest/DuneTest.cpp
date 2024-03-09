@@ -119,10 +119,45 @@ Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
 	return pbrPipeline;
 }
 
+struct OnResizeData
+{
+	Handle<Graphics::Buffer>* globalsBuffer;
+	Handle<Graphics::Texture>* depthBuffer;
+};
+
+void OnResize(Graphics::View* pView, void* pData)
+{
+	OnResizeData& data = *(OnResizeData*)pData;
+
+	dU32 width = pView->GetWidth();
+	dU32 height = pView->GetHeight();
+
+	if (data.globalsBuffer->IsValid())
+	{
+		dMatrix view{ DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -1.0f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
+		dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), (float)width / (float)height, 0.01f, 1000.f) };
+
+		Graphics::PBRGlobals globals;
+		DirectX::XMStoreFloat4x4(&globals.viewProjectionMatrix, view * proj);
+		DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
+		Graphics::UploadBuffer(*data.globalsBuffer, &globals, sizeof(Graphics::PBRGlobals));
+	}
+
+	if (data.depthBuffer->IsValid())
+	{
+		Graphics::ReleaseTexture(*data.depthBuffer);
+		*data.depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { width, height, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
+	}
+}
+
 void Test(Graphics::Device* pDevice)
 {
 	g_mutex.lock();
-	Graphics::View* pView{ Graphics::CreateView({.pDevice = pDevice}) };
+
+	Handle<Graphics::Buffer> globalsBuffer;
+	Handle<Graphics::Texture> depthBuffer;
+	OnResizeData onResizeData{ .globalsBuffer = &globalsBuffer, .depthBuffer = &depthBuffer };
+	Graphics::View* pView{ Graphics::CreateView({.pDevice = pDevice, .pOnResize = OnResize, .pOnResizeData = &onResizeData}) };
 
 	Handle<Graphics::Pipeline> pbrPipeline = CreatePBRPipeline(pDevice);
 	Handle<Graphics::Mesh> cube = Graphics::CreateMesh(pView, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
@@ -151,21 +186,20 @@ void Test(Graphics::Device* pDevice)
 	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * (pHeader->depth + 1) * (pHeader->pixelFormat.size / 8) });
 	ddsTexture.Destroy();
 
-	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, 0.125f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
-	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), 1600.f / 900.f, 0.01f, 1000.f) };	
+	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -1.0f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
+	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), (float)pView->GetWidth() / (float)pView->GetHeight(), 0.01f, 1000.f)};
 
 	Graphics::PBRGlobals globals;
 	DirectX::XMStoreFloat4x4(&globals.viewProjectionMatrix, view * proj);
 	DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
-
-	Handle<Graphics::Buffer> globalsBuffer = Graphics::CreateBuffer({ .debugName = L"GlobalsBuffer", .byteSize = sizeof(Graphics::PBRGlobals), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::GPUStatic, .pData = &globals, .pView = pView});
+	globalsBuffer = Graphics::CreateBuffer({ .debugName = L"GlobalsBuffer", .byteSize = sizeof(Graphics::PBRGlobals), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::GPU, .pData = &globals, .pView = pView});
 	
 	float angle = 0.f;
 	dMatrix rotation{ };
 
 	dMatrix initialModel{ DirectX::XMMatrixTranslation(0.0f, 0.0f, 1.0f) };
 	Handle<Graphics::Buffer> instanceBuffer = Graphics::CreateBuffer({ .debugName = L"InstanceBuffer", .byteSize = sizeof(Graphics::PBRInstance), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &initialModel, .pView = pView });
-	Handle<Graphics::Texture> depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { 1600, 900, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
+	depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { pView->GetWidth(), pView->GetHeight(), 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
 
 	dVec4 material{ 0.0f, 1.0f, 0.5f, 1.0f };
 
@@ -176,7 +210,7 @@ void Test(Graphics::Device* pDevice)
 		angle = fmodf(angle + 0.1f, 360.f);
 		Graphics::BeginFrame(pView);
 		dMatrix model{ DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(angle)) * initialModel };
-		Graphics::MapBuffer(instanceBuffer, &model, sizeof(dMatrix));
+		Graphics::MapBuffer(instanceBuffer, &model, sizeof(Graphics::PBRInstance));
 		Graphics::ResetCommand(pCommand);
 		Graphics::SetPipeline(pCommand, pbrPipeline);
 		Graphics::SetRenderTarget(pCommand, pView, depthBuffer);
