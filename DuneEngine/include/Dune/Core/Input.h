@@ -4,7 +4,7 @@ namespace Dune
 {
 	namespace Graphics
 	{
-		class Window;
+		class WindowInternal;
 	}
 
 	enum class KeyCode {
@@ -234,7 +234,7 @@ namespace Dune
 		inline float GetMouseWheelDelta() { return m_mouseWheelDelta; }
 
 	private:
-		friend Graphics::Window;
+		friend Graphics::WindowInternal;
 
 		Input() = default;
 		~Input() = default;

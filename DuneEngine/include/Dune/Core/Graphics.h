@@ -17,6 +17,7 @@ namespace Dune::Graphics
 	struct Vertex;
 	class Shader;
 	class Pipeline;
+	class Window;
 
 	void Initialize();
 	void Shutdown();
@@ -46,12 +47,9 @@ namespace Dune::Graphics
 	class View
 	{
 	public:
-		[[nodiscard]] dU32 GetWidth() const { return m_width; }
-		[[nodiscard]] dU32 GetHeight() const { return m_height; }
-
+		[[nodiscard]] const Window* GetWindow() const { return m_pWindow; }
 	protected:
-		dU32 m_width;
-		dU32 m_height;
+		Window* m_pWindow{ nullptr };
 	};
 
 	[[nodiscard]]  View*			CreateView(const ViewDesc& desc);

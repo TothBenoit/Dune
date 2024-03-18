@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "GraphicsDX12.h"
+#include "WindowInternal.h"
 #include "Dune/Core/Graphics.h"
-#include "Dune/Core/Graphics/Window.h"
 #include "Dune/Core/Graphics/Mesh.h"
 #include "Dune/Common/Pool.h"
 #include "Dune/Utilities/Utils.h"
@@ -252,9 +252,10 @@ namespace Dune::Graphics
 	public:
 		void Initialize(const ViewDesc& desc)
 		{
-			m_pWindow = new Window();
-			m_pWindow->Initialize(desc.windowDesc);
-			m_pWindow->SetOnResizeFunc(this, &OnResize);
+			WindowInternal* pWindow = new WindowInternal();
+			m_pWindow = pWindow;
+			pWindow->Initialize(desc.windowDesc);
+			pWindow->SetOnResizeFunc(this, &OnResize);
 			m_pOnResize = desc.pOnResize;
 			m_pOnResizeData = desc.pOnResizeData;
 
@@ -265,7 +266,7 @@ namespace Dune::Graphics
 			m_backBufferCount = desc.backBufferCount;
 
 			RECT clientRect;
-			HWND handle{ (HWND)m_pWindow->GetHandle() };
+			HWND handle{ (HWND) pWindow->GetHandle() };
 			GetClientRect(handle, &clientRect);
 
 			D3D12_COMMAND_QUEUE_DESC queueDesc
@@ -356,9 +357,6 @@ namespace Dune::Graphics
 			}
 			m_frameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 			m_pCommand = CreateCommand({ .type = ECommandType::Graphics, .pView = this });
-			
-			m_width = m_pWindow->GetWidth();
-			m_height = m_pWindow->GetHeight();
 		}
 
 		void Destroy()
@@ -389,13 +387,13 @@ namespace Dune::Graphics
 			m_pCopyCommandAllocator->Release();
 			m_pCopyCommandQueue->Release();
 
-			m_pWindow->Destroy();
+			((WindowInternal*)m_pWindow)->Destroy();
 			delete(m_pWindow);
 		}
 
 		bool ProcessEvents()
 		{
-			return m_pWindow->Update();
+			return ((WindowInternal*)m_pWindow)->Update();
 		}
 
 		[[nodiscard]] ID3D12Resource* GetCurrentBackBuffer()
@@ -529,11 +527,6 @@ namespace Dune::Graphics
 
 		void Resize()
 		{
-			m_width = m_pWindow->GetWidth();
-			m_width = (m_width == 0) ? 1 : m_width;
-			m_height = m_pWindow->GetHeight();
-			m_height = (m_height == 0) ? 1 : m_height;
-
 			// Wait until all previous frames are processed.
 			for (dU32 i = 0; i < m_backBufferCount; i++)
 			{
@@ -548,7 +541,7 @@ namespace Dune::Graphics
 
 			ThrowIfFailed(m_pSwapChain->ResizeBuffers(
 				m_backBufferCount,
-				m_width, m_height,
+				GetWidth(), GetHeight(),
 				DXGI_FORMAT_R8G8B8A8_UNORM,
 				0
 			));
@@ -573,7 +566,6 @@ namespace Dune::Graphics
 		[[nodiscard]] dU64 GetElaspedFrame() const { return m_elapsedFrame; }
 
 	private:
-		Window* m_pWindow{ nullptr };
 		void(*m_pOnResize)(View*, void*) { nullptr };
 		void* m_pOnResizeData{ nullptr };
 		Device* m_pDeviceInterface{ nullptr };

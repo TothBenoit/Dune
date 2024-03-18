@@ -2,6 +2,7 @@
 #include <thread>
 #include <mutex>
 #include <Dune/Core/Graphics/Shaders/PBR.h>
+#include <Dune/Core/Graphics/Window.h>
 #include <Dune/Utilities/DDSLoader.h>
 
 std::mutex g_mutex; // API is not thread-safe yet
@@ -85,7 +86,7 @@ Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
 
 	Handle<Graphics::Pipeline> pbrPipeline =
 		Graphics::CreateGraphicsPipeline
-		({
+		({		
 			.vertexShader = pbrVertexShader,
 			.pixelShader = pbrPixelShader,
 			.bindingLayout =
@@ -128,9 +129,9 @@ struct OnResizeData
 void OnResize(Graphics::View* pView, void* pData)
 {
 	OnResizeData& data = *(OnResizeData*)pData;
-
-	dU32 width = pView->GetWidth();
-	dU32 height = pView->GetHeight();
+	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };
+	dU32 width = pWindow->GetWidth();
+	dU32 height = pWindow->GetHeight();
 
 	if (data.globalsBuffer->IsValid())
 	{
@@ -148,6 +149,11 @@ void OnResize(Graphics::View* pView, void* pData)
 		Graphics::ReleaseTexture(*data.depthBuffer);
 		*data.depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { width, height, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
 	}
+}
+
+void UpdateCamera(Handle<Graphics::Buffer> global, Graphics::View* pView )
+{
+
 }
 
 void Test(Graphics::Device* pDevice)
@@ -172,22 +178,23 @@ void Test(Graphics::Device* pDevice)
 	const Graphics::Mesh& mesh = Graphics::GetMesh(cube);
 
 	Graphics::DDSTexture ddsTexture;
-	if (ddsTexture.Load("res\\testAlbedo.DDS") != Graphics::DDSResult::ESucceed)
-		Assert(0);
+	Graphics::DDSResult result = ddsTexture.Load("res\\testAlbedo.DDS");
+	Assert( result == Graphics::DDSResult::ESucceed )
 	void* pData = ddsTexture.GetData();
 	const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
 	Handle<Graphics::Texture> texture = Graphics::CreateTexture({ .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * ( pHeader->depth + 1 ) * ( pHeader->pixelFormat.size / 8 ) });
 	ddsTexture.Destroy();
 
-	if (ddsTexture.Load("res\\testNormal.DDS") != Graphics::DDSResult::ESucceed)
-		Assert(0);
+	result = ddsTexture.Load("res\\testNormal.DDS");
+	Assert( result == Graphics::DDSResult::ESucceed );
 	pData = ddsTexture.GetData();
 	pHeader = ddsTexture.GetHeader();
 	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * (pHeader->depth + 1) * (pHeader->pixelFormat.size / 8) });
 	ddsTexture.Destroy();
 
+	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };
 	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -1.0f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
-	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), (float)pView->GetWidth() / (float)pView->GetHeight(), 0.01f, 1000.f)};
+	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), (float)pWindow->GetWidth() / (float)pWindow->GetHeight(), 0.01f, 1000.f)};
 
 	Graphics::PBRGlobals globals;
 	DirectX::XMStoreFloat4x4(&globals.viewProjectionMatrix, view * proj);
@@ -199,7 +206,7 @@ void Test(Graphics::Device* pDevice)
 
 	dMatrix initialModel{ DirectX::XMMatrixTranslation(0.0f, 0.0f, 1.0f) };
 	Handle<Graphics::Buffer> instanceBuffer = Graphics::CreateBuffer({ .debugName = L"InstanceBuffer", .byteSize = sizeof(Graphics::PBRInstance), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &initialModel, .pView = pView });
-	depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { pView->GetWidth(), pView->GetHeight(), 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
+	depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { pWindow->GetWidth(), pWindow->GetHeight(), 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
 
 	dVec4 material{ 0.0f, 1.0f, 0.5f, 1.0f };
 
@@ -208,6 +215,7 @@ void Test(Graphics::Device* pDevice)
 	while (Graphics::ProcessViewEvents(pView))
 	{
 		angle = fmodf(angle + 0.1f, 360.f);
+		UpdateCamera(globalsBuffer, pView);
 		Graphics::BeginFrame(pView);
 		dMatrix model{ DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(angle)) * initialModel };
 		Graphics::MapBuffer(instanceBuffer, &model, sizeof(Graphics::PBRInstance));
@@ -241,7 +249,6 @@ void Test(Graphics::Device* pDevice)
 	Graphics::DestroyView(pView);
 	g_mutex.unlock();
 }
-
 
 int main(int argc, char** argv)
 {

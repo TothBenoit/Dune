@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Dune/Core/Graphics/Window.h"
+#include "WindowInternal.h"
 #include "Dune/Core/Input.h"
 #include "Dune/Core/Graphics.h"
 
@@ -10,14 +10,15 @@
 
 namespace Dune::Graphics
 {
+
 	LRESULT CALLBACK InternalWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		Window* window{ (Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA) };
+		WindowInternal* window{ (WindowInternal*)GetWindowLongPtr(hwnd, GWLP_USERDATA) };
 		window->WindowProc(uMsg, (void*)wParam, (void*)lParam);
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
-	void Window::Initialize(const WindowDesc& desc)
+	void WindowInternal::Initialize(const WindowDesc& desc)
 	{
 		m_width = desc.width;
 		m_height = desc.height;
@@ -58,12 +59,12 @@ namespace Dune::Graphics
 		ShowWindow((HWND)m_pHandle, 1);
 	}
 
-	void Window::Destroy()
+	void WindowInternal::Destroy()
 	{
 		delete m_pInput;
 	}
 
-	bool Window::Update()
+	bool WindowInternal::Update()
 	{
 		MSG msg{};
 		while (PeekMessage(&msg, (HWND)m_pHandle, 0, 0, PM_REMOVE) > 0)
@@ -77,7 +78,7 @@ namespace Dune::Graphics
 		return true;
 	}
 
-	void Window::WindowProc(dUInt uMsg, void* wParam, void* lParam)
+	void WindowInternal::WindowProc(dUInt uMsg, void* wParam, void* lParam)
 	{
 		switch (uMsg)
 		{
@@ -87,7 +88,9 @@ namespace Dune::Graphics
 		case WM_SIZE:
 			// Thought : Should Window::Update return flags like EResize, EDestroy, ..., instead of handling Resize here ? A current issue is that we resize multiple times during the same Update.
 			m_width = LOWORD(lParam);
+			m_width = (m_width == 0) ? 1 : m_width;
 			m_height = HIWORD(lParam);
+			m_height = (m_height == 0) ? 1 : m_height;
 			if (m_pOnResize)
 				m_pOnResize(m_pOnResizeData);
 			break;

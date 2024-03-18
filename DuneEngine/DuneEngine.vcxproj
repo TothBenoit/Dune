@@ -48,6 +48,7 @@
     <ClInclude Include="include\Dune\Core\Logger.h" />
     <ClInclude Include="include\Dune\Utilities\Utils.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
@@ -56,7 +57,7 @@
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
-    <ClCompile Include="src\Dune\Core\Graphics\Platform\Window.cpp" />
+    <ClCompile Include="src\Dune\Core\Graphics\Platform\WindowInternal.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Renderer.cpp" />
