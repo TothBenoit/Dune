@@ -387,8 +387,9 @@ namespace Dune::Graphics
 			m_pCopyCommandAllocator->Release();
 			m_pCopyCommandQueue->Release();
 
-			((WindowInternal*)m_pWindow)->Destroy();
-			delete(m_pWindow);
+			WindowInternal* pWindow = (WindowInternal*) m_pWindow;
+			pWindow->Destroy();
+			delete(pWindow);
 		}
 
 		bool ProcessEvents()
