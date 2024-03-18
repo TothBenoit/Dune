@@ -27,8 +27,8 @@
     <ClInclude Include="include\Dune\Core\EngineCore.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
-    <ClInclude Include="include\Dune\Core\IO.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
+    <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
@@ -51,6 +51,7 @@
     <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />

@@ -1,11 +1,12 @@
 #include <Dune.h>
 #include <thread>
 #include <mutex>
+#include <chrono>
 #include <Dune/Core/Graphics/Shaders/PBR.h>
 #include <Dune/Core/Graphics/Window.h>
 #include <Dune/Core/Input.h>
-#include <Dune/Core/Graphics/Camera.h>
 #include <Dune/Utilities/DDSLoader.h>
+#include <Dune/Utilities/SimpleCameraController.h>
 
 std::mutex g_mutex; // API is not thread-safe yet
 
@@ -124,7 +125,7 @@ Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
 
 struct OnResizeData
 {
-	Graphics::Camera* pCamera;
+	SimpleCameraController* pCameraController;
 	Handle<Graphics::Texture>* depthBuffer;
 };
 
@@ -135,8 +136,8 @@ void OnResize(Graphics::View* pView, void* pData)
 	dU32 width = pWindow->GetWidth();
 	dU32 height = pWindow->GetHeight();
 
-	if (data.pCamera != nullptr)
-		data.pCamera->aspectRatio = (float)width / (float)height;
+	if (data.pCameraController != nullptr)
+		data.pCameraController->SetAspectRatio((float)width / (float)height);
 
 	if ( data.depthBuffer->IsValid() )
 	{
@@ -149,15 +150,9 @@ void Test(Graphics::Device* pDevice)
 {
 	g_mutex.lock();
 
-	float distFromObject = 2.0;
-	float angle = 0.f;
-	Graphics::Camera camera
-	{
-		.position = { -sin(angle) * distFromObject, 1.0f, cos(angle) * distFromObject },
-		.target = { 0.0f, 0.0f, 0.0f },
-	};
+	SimpleCameraController cameraController{ {.position = { 0.0f, 1.0f, -1.0f }, .target = { 0.0f, 0.0f, 0.0f }, } };	
 	Handle<Graphics::Texture> depthBuffer;
-	OnResizeData onResizeData{ .pCamera = &camera, .depthBuffer = &depthBuffer };
+	OnResizeData onResizeData{ .pCameraController = &cameraController, .depthBuffer = &depthBuffer };
 	Graphics::View* pView{ Graphics::CreateView({.pDevice = pDevice, .pOnResize = OnResize, .pOnResizeData = &onResizeData}) };
 
 	Handle<Graphics::Pipeline> pbrPipeline = CreatePBRPipeline(pDevice);
@@ -188,46 +183,34 @@ void Test(Graphics::Device* pDevice)
 	ddsTexture.Destroy();
 
 	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };	
-	Graphics::PBRGlobals globals;
-	Graphics::ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
+	Graphics::PBRGlobals globals;	
+	Graphics::ComputeViewProjectionMatrix(cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
 	DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
 	Handle<Graphics::Buffer> globalsBuffer = Graphics::CreateBuffer({ .debugName = L"GlobalsBuffer", .byteSize = sizeof(Graphics::PBRGlobals), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &globals, .pView = pView});
 	
-	dMatrix initialModel{ DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&camera.target)) };
+	dMatrix initialModel{ DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&cameraController.GetCamera().target)) };
 	Handle<Graphics::Buffer> instanceBuffer = Graphics::CreateBuffer({ .debugName = L"InstanceBuffer", .byteSize = sizeof(Graphics::PBRInstance), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &initialModel, .pView = pView });
 	depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { pWindow->GetWidth(), pWindow->GetHeight(), 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
 
 	Graphics::PBRMaterial material{ .albedo = {0.0f, 1.0f, 0.5f}, .roughness = 1.0f };
 	
 	g_mutex.unlock();
-	dU32 frameCount = 0;
+	auto lastFrameTimer = std::chrono::high_resolution_clock::now();
 	while (Graphics::ProcessViewEvents(pView))
 	{
+		auto timer = std::chrono::high_resolution_clock::now();
+		float dt = (float)std::chrono::duration<float>(timer - lastFrameTimer).count();
+		lastFrameTimer = std::chrono::high_resolution_clock::now();
+
 		const Input* pInput{ pView->GetWindow()->GetInput() };
-		if (pInput->GetKey(KeyCode::Q)) 
-		{
-			angle = fmodf(angle - 0.01f, 360.f);
-		}
-		if (pInput->GetKey(KeyCode::D)) 
-		{
-			angle = fmodf(angle + 0.01f, 360.f);
-		}
-		if (pInput->GetKey(KeyCode::Z))
-		{
-			distFromObject *= 0.99f;
-		}
-		if (pInput->GetKey(KeyCode::S))
-		{
-			distFromObject *= 1.01f;
-		}
-		camera.position = { sin(angle) * distFromObject, 1.0f, -cos(angle) * distFromObject };
+		cameraController.Update(dt, pInput);
 
 		Graphics::BeginFrame(pView);
 		Graphics::ResetCommand(pCommand, pbrPipeline);
 		Graphics::SetRenderTarget(pCommand, pView, depthBuffer);
 		Graphics::ClearRenderTarget(pCommand, pView);
 		Graphics::ClearDepthBuffer(pCommand, depthBuffer);
-		Graphics::ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
+		Graphics::ComputeViewProjectionMatrix(cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
 		Graphics::MapBuffer(globalsBuffer, &globals, 0, sizeof(Graphics::PBRGlobals));
 		Graphics::PushGraphicsBuffer(pCommand, 0, globalsBuffer);
 		Graphics::BindGraphicsTexture(pCommand, 1, texture);
@@ -239,7 +222,6 @@ void Test(Graphics::Device* pDevice)
 		Graphics::DrawIndexedInstanced(pCommand, mesh.GetIndexCount(), 1);
 		Graphics::SubmitCommand(pView, pCommand);
 		Graphics::EndFrame(pView);
-		frameCount++;
 	}
 
 	g_mutex.lock();

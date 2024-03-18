@@ -50,7 +50,7 @@
       <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Utilities\StringUtils.h">
-      <Filter>Dune\Utility</Filter>
+      <Filter>Dune\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Common\Types.h">
       <Filter>Dune\Common</Filter>
@@ -65,7 +65,7 @@
       <Filter>Dune</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Utilities\MeshLoader.h">
-      <Filter>Dune\Utility</Filter>
+      <Filter>Dune\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PointLight.h">
       <Filter>Dune\Core\Graphics\Shader</Filter>
@@ -74,7 +74,7 @@
       <Filter>Dune\Core\Graphics\Shader</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Utilities\Utils.h">
-      <Filter>Dune\Utility</Filter>
+      <Filter>Dune\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PostProcessGlobals.h">
       <Filter>Dune\Core\Graphics\Shader</Filter>
@@ -97,10 +97,18 @@
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\ShaderTypes.h">
       <Filter>Dune\Core\Graphics\Shader</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\IO.h" />
-    <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
+    <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h">
+      <Filter>Dune\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Utilities\DDSLoader.h">
+      <Filter>Dune\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\Camera.h">
+      <Filter>Dune\Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h">
+      <Filter>Dune\Core\Graphics\Platform</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">
@@ -131,7 +139,7 @@
       <Filter>Dune</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Utilities\MeshLoader.cpp">
-      <Filter>Dune\Utility</Filter>
+      <Filter>Dune\Utilities</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\JobSystem.cpp">
       <Filter>Dune\Core</Filter>
@@ -142,23 +150,37 @@
     <ClCompile Include="src\Dune\Core\Graphics\Platform\WindowInternal.cpp">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp" />
-    <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp" />
+    <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp">
+      <Filter>Dune\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp">
+      <Filter>Dune\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp">
+      <Filter>Dune\Core\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl" />
-    <None Include="include\Dune\Core\Graphics\Shaders\DepthWrite.hlsl" />
-    <None Include="include\Dune\Core\Graphics\Shaders\PBR.hlsl" />
-    <None Include="include\Dune\Core\Graphics\Shaders\PostProcess.hlsl" />
-    <None Include="include\Dune\Core\Graphics\Shaders\Test.hlsl" />
+    <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\DepthWrite.hlsl">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\PBR.hlsl">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\PostProcess.hlsl">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\Test.hlsl">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">
       <UniqueIdentifier>{11174586-51f2-40d5-90a1-87c4ccbb601b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Dune\Utility">
-      <UniqueIdentifier>{bd6dcf96-7182-425d-b008-55e8c5df4a98}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Core">
       <UniqueIdentifier>{694541c6-96f2-4f44-ae4e-601e643b4858}</UniqueIdentifier>
@@ -172,12 +194,6 @@
     <Filter Include="Dune\Common">
       <UniqueIdentifier>{b71fb8c9-cd47-4211-8b73-2f3ca412bff7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ThirdParty">
-      <UniqueIdentifier>{944a8c62-5430-4610-8571-48df16bac69c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ThirdParty\Optick">
-      <UniqueIdentifier>{683a57f2-db88-4389-a4b5-5e131007cfd5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dune\Core\Graphics">
       <UniqueIdentifier>{78921c41-9947-4ab1-b553-aab00a88cdea}</UniqueIdentifier>
     </Filter>
@@ -186,6 +202,9 @@
     </Filter>
     <Filter Include="Dune\Core\Graphics\Platform">
       <UniqueIdentifier>{7de3f997-37c6-412d-829a-ccf2ebc29c48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Utilities">
+      <UniqueIdentifier>{bd6dcf96-7182-425d-b008-55e8c5df4a98}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
