@@ -3,6 +3,8 @@
 #include <mutex>
 #include <Dune/Core/Graphics/Shaders/PBR.h>
 #include <Dune/Core/Graphics/Window.h>
+#include <Dune/Core/Input.h>
+#include <Dune/Core/Graphics/Camera.h>
 #include <Dune/Utilities/DDSLoader.h>
 
 std::mutex g_mutex; // API is not thread-safe yet
@@ -122,7 +124,7 @@ Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
 
 struct OnResizeData
 {
-	Handle<Graphics::Buffer>* globalsBuffer;
+	Graphics::Camera* pCamera;
 	Handle<Graphics::Texture>* depthBuffer;
 };
 
@@ -133,36 +135,29 @@ void OnResize(Graphics::View* pView, void* pData)
 	dU32 width = pWindow->GetWidth();
 	dU32 height = pWindow->GetHeight();
 
-	if (data.globalsBuffer->IsValid())
-	{
-		dMatrix view{ DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -1.0f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
-		dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), (float)width / (float)height, 0.01f, 1000.f) };
+	if (data.pCamera != nullptr)
+		data.pCamera->aspectRatio = (float)width / (float)height;
 
-		Graphics::PBRGlobals globals;
-		DirectX::XMStoreFloat4x4(&globals.viewProjectionMatrix, view * proj);
-		DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
-		Graphics::UploadBuffer(*data.globalsBuffer, &globals, sizeof(Graphics::PBRGlobals));
-	}
-
-	if (data.depthBuffer->IsValid())
+	if ( data.depthBuffer->IsValid() )
 	{
 		Graphics::ReleaseTexture(*data.depthBuffer);
-		*data.depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { width, height, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
+		*data.depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { width, height, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = { 1.f, 1.f, 1.f, 1.f }, .pView = pView });
 	}
-}
-
-void UpdateCamera(Handle<Graphics::Buffer> global, Graphics::View* pView )
-{
-
 }
 
 void Test(Graphics::Device* pDevice)
 {
 	g_mutex.lock();
 
-	Handle<Graphics::Buffer> globalsBuffer;
+	float distFromObject = 2.0;
+	float angle = 0.f;
+	Graphics::Camera camera
+	{
+		.position = { -sin(angle) * distFromObject, 1.0f, cos(angle) * distFromObject },
+		.target = { 0.0f, 0.0f, 0.0f },
+	};
 	Handle<Graphics::Texture> depthBuffer;
-	OnResizeData onResizeData{ .globalsBuffer = &globalsBuffer, .depthBuffer = &depthBuffer };
+	OnResizeData onResizeData{ .pCamera = &camera, .depthBuffer = &depthBuffer };
 	Graphics::View* pView{ Graphics::CreateView({.pDevice = pDevice, .pOnResize = OnResize, .pOnResizeData = &onResizeData}) };
 
 	Handle<Graphics::Pipeline> pbrPipeline = CreatePBRPipeline(pDevice);
@@ -179,7 +174,7 @@ void Test(Graphics::Device* pDevice)
 
 	Graphics::DDSTexture ddsTexture;
 	Graphics::DDSResult result = ddsTexture.Load("res\\testAlbedo.DDS");
-	Assert( result == Graphics::DDSResult::ESucceed )
+	Assert( result == Graphics::DDSResult::ESucceed );
 	void* pData = ddsTexture.GetData();
 	const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
 	Handle<Graphics::Texture> texture = Graphics::CreateTexture({ .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * ( pHeader->depth + 1 ) * ( pHeader->pixelFormat.size / 8 ) });
@@ -192,38 +187,49 @@ void Test(Graphics::Device* pDevice)
 	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * (pHeader->depth + 1) * (pHeader->pixelFormat.size / 8) });
 	ddsTexture.Destroy();
 
-	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };
-	dMatrix view { DirectX::XMMatrixLookAtLH({0.0f, 1.0f, -1.0f}, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }) };
-	dMatrix proj{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(85.f), (float)pWindow->GetWidth() / (float)pWindow->GetHeight(), 0.01f, 1000.f)};
-
+	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };	
 	Graphics::PBRGlobals globals;
-	DirectX::XMStoreFloat4x4(&globals.viewProjectionMatrix, view * proj);
+	Graphics::ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
 	DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
-	globalsBuffer = Graphics::CreateBuffer({ .debugName = L"GlobalsBuffer", .byteSize = sizeof(Graphics::PBRGlobals), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::GPU, .pData = &globals, .pView = pView});
+	Handle<Graphics::Buffer> globalsBuffer = Graphics::CreateBuffer({ .debugName = L"GlobalsBuffer", .byteSize = sizeof(Graphics::PBRGlobals), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &globals, .pView = pView});
 	
-	float angle = 0.f;
-	dMatrix rotation{ };
-
-	dMatrix initialModel{ DirectX::XMMatrixTranslation(0.0f, 0.0f, 1.0f) };
+	dMatrix initialModel{ DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&camera.target)) };
 	Handle<Graphics::Buffer> instanceBuffer = Graphics::CreateBuffer({ .debugName = L"InstanceBuffer", .byteSize = sizeof(Graphics::PBRInstance), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &initialModel, .pView = pView });
 	depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { pWindow->GetWidth(), pWindow->GetHeight(), 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
 
-	dVec4 material{ 0.0f, 1.0f, 0.5f, 1.0f };
-
+	Graphics::PBRMaterial material{ .albedo = {0.0f, 1.0f, 0.5f}, .roughness = 1.0f };
+	
 	g_mutex.unlock();
 	dU32 frameCount = 0;
 	while (Graphics::ProcessViewEvents(pView))
 	{
-		angle = fmodf(angle + 0.1f, 360.f);
-		UpdateCamera(globalsBuffer, pView);
+		const Input* pInput{ pView->GetWindow()->GetInput() };
+		if (pInput->GetKey(KeyCode::Q)) 
+		{
+			angle = fmodf(angle - 0.01f, 360.f);
+		}
+		if (pInput->GetKey(KeyCode::D)) 
+		{
+			angle = fmodf(angle + 0.01f, 360.f);
+		}
+		if (pInput->GetKey(KeyCode::Z))
+		{
+			distFromObject *= 0.99f;
+		}
+		if (pInput->GetKey(KeyCode::S))
+		{
+			distFromObject *= 1.01f;
+		}
+		camera.position = { sin(angle) * distFromObject, 1.0f, -cos(angle) * distFromObject };
+
 		Graphics::BeginFrame(pView);
-		dMatrix model{ DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(angle)) * initialModel };
-		Graphics::MapBuffer(instanceBuffer, &model, sizeof(Graphics::PBRInstance));
 		Graphics::ResetCommand(pCommand);
 		Graphics::SetPipeline(pCommand, pbrPipeline);
 		Graphics::SetRenderTarget(pCommand, pView, depthBuffer);
 		Graphics::ClearRenderTarget(pCommand, pView);
 		Graphics::ClearDepthBuffer(pCommand, depthBuffer);
+		Graphics::ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
+		Graphics::MapBuffer(globalsBuffer, &globals, 0, sizeof(Graphics::PBRGlobals));
 		Graphics::PushGraphicsBuffer(pCommand, 0, globalsBuffer);
 		Graphics::BindGraphicsTexture(pCommand, 1, texture);
 		Graphics::BindGraphicsTexture(pCommand, 2, normalTexture);

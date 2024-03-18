@@ -82,9 +82,6 @@
     <ClInclude Include="include\Dune\Core\JobSystem.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\Engine.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
@@ -103,6 +100,7 @@
     <ClInclude Include="include\Dune\Core\IO.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">
@@ -138,9 +136,6 @@
     <ClCompile Include="src\Dune\Core\JobSystem.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\Engine.cpp">
-      <Filter>Dune\Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.cpp">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClCompile>
@@ -148,6 +143,7 @@
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp" />
+    <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

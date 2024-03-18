@@ -219,19 +219,19 @@ namespace Dune
 	{
 	public:
 
-		inline bool GetKey(KeyCode key) { return m_keyState[(int)key]; }
-		inline bool GetKeyDown(KeyCode key) { return m_keyDown[(int)key]; }
-		inline bool GetKeyUp(KeyCode key) { return m_keyUp[(int)key]; }
+		inline bool GetKey(KeyCode key) const { return m_keyState[(int)key]; }
+		inline bool GetKeyDown(KeyCode key) const { return m_keyDown[(int)key]; }
+		inline bool GetKeyUp(KeyCode key) const { return m_keyUp[(int)key]; }
 
-		inline bool GetMouseButton(int index) { return m_mouseState[index]; }
-		inline bool GetMouseButtonDown(int index) { return m_mouseDown[index]; }
-		inline bool GetMouseButtonUp(int index) { return m_mouseUp[index]; }
+		inline bool GetMouseButton(int index) const { return m_mouseState[index]; }
+		inline bool GetMouseButtonDown(int index) const { return m_mouseDown[index]; }
+		inline bool GetMouseButtonUp(int index) const { return m_mouseUp[index]; }
 
-		inline float GetMousePosX() { return m_mousePosX; }
-		inline float GetMousePosY() { return m_mousePosY; }
-		inline float GetMouseDeltaX() { return m_mouseDeltaX; }
-		inline float GetMouseDeltaY() { return m_mouseDeltaY; }
-		inline float GetMouseWheelDelta() { return m_mouseWheelDelta; }
+		inline float GetMousePosX() const { return m_mousePosX; }
+		inline float GetMousePosY() const { return m_mousePosY; }
+		inline float GetMouseDeltaX() const { return m_mouseDeltaX; }
+		inline float GetMouseDeltaY() const { return m_mouseDeltaY; }
+		inline float GetMouseWheelDelta() const { return m_mouseWheelDelta; }
 
 	private:
 		friend Graphics::WindowInternal;
@@ -249,7 +249,7 @@ namespace Dune
 		void SetMousePosY(float posY);
 		void SetMouseWheelDelta(float delta);
 		
-		void EndFrame();
+		void BeginFrame();
 
 	private:
 		bool m_keyState[256]{};

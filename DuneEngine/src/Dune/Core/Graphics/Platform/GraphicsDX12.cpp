@@ -655,22 +655,22 @@ namespace Dune::Graphics
 		[[nodiscard]] const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const { Assert(m_usage == EBufferUsage::Index); return m_indexBufferView; }
 		[[nodiscard]] const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const { Assert(m_usage == EBufferUsage::Vertex); return m_vertexBufferView; }
 
-		void MapData(const void* pData, dU64 byteSize)
+		void MapData(const void* pData, dU64 byteOffset, dU64 byteSize)
 		{
 			Assert(byteSize <= m_byteSize);
 
-			dU64 offset{ CycleBuffer() };
-			memcpy(m_cpuAdress + offset, pData, byteSize);
+			dU64 bufferOffset{ CycleBuffer() };
+			memcpy(m_cpuAdress + bufferOffset + byteOffset, pData, byteSize);
 		}
 
-		void UploadData(const void* pData, dU64 byteSize)
+		void UploadData(const void* pData, dU64 byteOffset, dU64 byteSize)
 		{
 			Assert(byteSize <= m_byteSize);
 
-			dU64 offset{ CycleBuffer() };
+			dU64 bufferOffset{ CycleBuffer() };
 			memcpy(m_cpuAdress, pData, byteSize);
 			m_pView->WaitForCopy();			
-			m_pView->CopyBufferRegion(m_pBuffer, m_byteSize * GetCurrentBufferIndex(), m_pUploadBuffer, 0, m_byteSize);
+			m_pView->CopyBufferRegion(m_pBuffer, bufferOffset + byteOffset, m_pUploadBuffer, 0, byteSize);
 		}
 
 	private:
@@ -810,7 +810,7 @@ namespace Dune::Graphics
 			}
 			case EBufferUsage::Index:
 			{
-				Assert(m_byteStride == sizeof(dU32) || m_byteStride == sizeof(dU16))
+				Assert(m_byteStride == sizeof(dU32) || m_byteStride == sizeof(dU16));
 				m_indexBufferView.BufferLocation = m_pBuffer->GetGPUVirtualAddress();
 				m_indexBufferView.Format = (m_byteStride == sizeof(dU32)) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 				m_indexBufferView.SizeInBytes = (dU32)m_byteSize;
@@ -894,14 +894,14 @@ namespace Dune::Graphics
 		g_bufferPool.Remove(handle);
 	}
 
-	void UploadBuffer(Handle<Buffer> handle, const void* pData, dU64 byteSize)
+	void UploadBuffer(Handle<Buffer> handle, const void* pData, dU64 byteOffset, dU64 byteSize)
 	{
-		g_bufferPool.Get(handle).UploadData(pData, byteSize);
+		g_bufferPool.Get(handle).UploadData(pData, byteOffset, byteSize);
 	}
 
-	void MapBuffer(Handle<Buffer> handle, const void* pData, dU64 byteSize)
+	void MapBuffer(Handle<Buffer> handle, const void* pData, dU64 byteOffset, dU64 byteSize)
 	{
-		g_bufferPool.Get(handle).MapData(pData, byteSize);
+		g_bufferPool.Get(handle).MapData(pData, byteOffset, byteSize);
 	}
 
 	Handle<Mesh> CreateMesh(View* pView, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)

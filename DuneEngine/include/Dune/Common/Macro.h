@@ -13,7 +13,7 @@
 		DISABLE_MOVE(ClassName)
 
 #ifdef _DEBUG
-	#define Assert(condition) if (!(condition)) {__debugbreak();} 
+	#define Assert(condition) do { if (!(condition)) {__debugbreak();} } while(false) 
 #else
 	#define Assert(condition)
 #endif

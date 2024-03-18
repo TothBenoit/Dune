@@ -67,6 +67,7 @@ namespace Dune::Graphics
 	bool WindowInternal::Update()
 	{
 		MSG msg{};
+		m_pInput->BeginFrame();
 		while (PeekMessage(&msg, (HWND)m_pHandle, 0, 0, PM_REMOVE) > 0)
 		{
 			TranslateMessage(&msg);

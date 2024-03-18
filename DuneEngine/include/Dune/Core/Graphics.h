@@ -90,8 +90,8 @@ namespace Dune::Graphics
 
 	[[nodiscard]] Handle<Buffer>	CreateBuffer(const BufferDesc& desc);
 	void							ReleaseBuffer(Handle<Buffer> handle);
-	void							UploadBuffer(Handle<Buffer> handle, const void* pData, dU64 byteSize);
-	void							MapBuffer(Handle<Buffer> handle, const void* pData, dU64 byteSize);
+	void							UploadBuffer(Handle<Buffer> handle, const void* pData, dU64 byteOffset, dU64 byteSize);
+	void							MapBuffer(Handle<Buffer> handle, const void* pData, dU64 byteOffset, dU64 byteSize);
 	// Texture
 
 	enum class ETextureUsage

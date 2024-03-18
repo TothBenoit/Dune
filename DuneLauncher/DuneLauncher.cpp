@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 		color[1] += -0.005f * direction;
 
 		Graphics::BeginFrame(pView);
-		Graphics::MapBuffer(colorBuff, color, 16);
+		Graphics::MapBuffer(colorBuff, color, 0, 16);
 		Graphics::ResetCommand(pCommand);
 		Graphics::SetPipeline(pCommand, pipeline);
 		Graphics::SetRenderTarget(pCommand, pView);

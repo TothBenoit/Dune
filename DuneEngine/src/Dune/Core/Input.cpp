@@ -37,7 +37,7 @@ namespace Dune
 	{
 		m_mouseWheelDelta = delta;
 	}
-	void Input::EndFrame()
+	void Input::BeginFrame()
 	{
 		memset(m_keyDown, 0, sizeof(m_keyDown));
 		memset(m_keyUp, 0, sizeof(m_keyUp));

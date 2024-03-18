@@ -24,8 +24,8 @@
     <ClInclude Include="include\Dune\Core\ECS\Components\PointLightComponent.h" />
     <ClInclude Include="include\Dune\Core\ECS\Components\TransformComponent.h" />
     <ClInclude Include="include\Dune\Core\ECS\EntityManager.h" />
-    <ClInclude Include="include\Dune\Core\Engine.h" />
     <ClInclude Include="include\Dune\Core\EngineCore.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
     <ClInclude Include="include\Dune\Core\IO.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
@@ -53,8 +53,8 @@
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
     <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
-    <ClCompile Include="src\Dune\Core\Engine.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
+    <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp" />
     <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
     <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Platform\WindowInternal.cpp" />
