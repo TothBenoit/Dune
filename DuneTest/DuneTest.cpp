@@ -223,8 +223,7 @@ void Test(Graphics::Device* pDevice)
 		camera.position = { sin(angle) * distFromObject, 1.0f, -cos(angle) * distFromObject };
 
 		Graphics::BeginFrame(pView);
-		Graphics::ResetCommand(pCommand);
-		Graphics::SetPipeline(pCommand, pbrPipeline);
+		Graphics::ResetCommand(pCommand, pbrPipeline);
 		Graphics::SetRenderTarget(pCommand, pView, depthBuffer);
 		Graphics::ClearRenderTarget(pCommand, pView);
 		Graphics::ClearDepthBuffer(pCommand, depthBuffer);

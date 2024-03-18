@@ -59,9 +59,11 @@ namespace Dune::Graphics
 
 	struct Command
 	{
-		ID3D12CommandAllocator** ppCommandAllocators{ nullptr };
+		dU32 commandIndex{ 0 };
+		dU32 commandCount{ 0 };
 		ID3D12GraphicsCommandList* pCommandList{ nullptr };
-		ViewInternal* pView{ nullptr };
+		ID3D12CommandAllocator** ppCommandAllocators{ nullptr };
+		ID3D12DescriptorHeap* heaps[2]{ nullptr, nullptr };
 	};
 
 	struct Device
@@ -1516,16 +1518,20 @@ namespace Dune::Graphics
 	{
 		Command* pCommand = new Command();
 		Assert(desc.pView);
-		pCommand->pView = (ViewInternal*)desc.pView;
-		ID3D12Device* pDevice{ pCommand->pView->GetDevice()->pDevice };
-		dU32 frameCount{ pCommand->pView->GetFrameCount() };
-		pCommand->ppCommandAllocators = new ID3D12CommandAllocator * [frameCount];
-		for (dU32 i = 0; i < frameCount; i++)
+		ViewInternal* pView = (ViewInternal*)desc.pView;
+		ID3D12Device* pDevice{ pView->GetDevice()->pDevice };
+		pCommand->commandCount = pView->GetFrameCount();
+		pCommand->ppCommandAllocators = new ID3D12CommandAllocator * [pCommand->commandCount];
+		pCommand->heaps[0] = pView->GetDevice()->srvHeap.Get();
+		pCommand->heaps[1] = pView->GetDevice()->samplerHeap.Get();
+
+		for (dU32 i = 0; i < pCommand->commandCount; i++)
 		{
 			ThrowIfFailed(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCommand->ppCommandAllocators[i])));
 			NameDXObject(pCommand->ppCommandAllocators[i], L"CommandAllocator");
 		}
-		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommand->ppCommandAllocators[pCommand->pView->GetFrameIndex()], nullptr, IID_PPV_ARGS(&pCommand->pCommandList)));
+
+		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommand->ppCommandAllocators[0], nullptr, IID_PPV_ARGS(&pCommand->pCommandList)));
 		ThrowIfFailed(pCommand->pCommandList->Close());
 		NameDXObject(pCommand->pCommandList, L"GraphicsCommandList");
 
@@ -1535,8 +1541,7 @@ namespace Dune::Graphics
 	void DestroyCommand(Command* pCommand)
 	{
 		pCommand->pCommandList->Release();
-		dU32 frameCount{ pCommand->pView->GetFrameCount() };
-		for (dU32 i = 0; i < frameCount; i++)
+		for (dU32 i = 0; i < pCommand->commandCount; i++)
 		{
 			pCommand->ppCommandAllocators[i]->Release();
 		}
@@ -1546,18 +1551,21 @@ namespace Dune::Graphics
 
 	void ResetCommand(Command* pCommand)
 	{
-		dU32 frameIndex{ pCommand->pView->GetFrameIndex() };
-		ThrowIfFailed(pCommand->ppCommandAllocators[frameIndex]->Reset());
-		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->ppCommandAllocators[frameIndex], nullptr));		
-		ID3D12DescriptorHeap* ppHeaps[] { pCommand->pView->GetDevice()->srvHeap.Get() };
-		pCommand->pCommandList->SetDescriptorHeaps(1, ppHeaps);
+		dU32 commandIndex = pCommand->commandIndex = (pCommand->commandIndex + 1) % pCommand->commandCount;
+		ThrowIfFailed(pCommand->ppCommandAllocators[commandIndex]->Reset());
+		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->ppCommandAllocators[commandIndex], nullptr));
+		pCommand->pCommandList->SetDescriptorHeaps(2, pCommand->heaps);
 	}
 
 	void ResetCommand(Command* pCommand, Handle<Pipeline> handle)
 	{
-		dU32 frameIndex{ pCommand->pView->GetFrameIndex() };
-		ThrowIfFailed(pCommand->ppCommandAllocators[frameIndex]->Reset());
-		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->ppCommandAllocators[frameIndex], g_pipelinePool.Get(handle).GetPipelineStateObject()));
+		dU32 commandIndex = pCommand->commandIndex = (pCommand->commandIndex + 1) % pCommand->commandCount;
+		Pipeline& pipeline{ g_pipelinePool.Get(handle) };
+		ThrowIfFailed(pCommand->ppCommandAllocators[commandIndex]->Reset());
+		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->ppCommandAllocators[commandIndex], pipeline.GetPipelineStateObject()));
+		pCommand->pCommandList->SetGraphicsRootSignature(pipeline.GetRootSignature());
+		pCommand->pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		pCommand->pCommandList->SetDescriptorHeaps(2, pCommand->heaps);
 	}
 
 	void SetPipeline(Command* pCommand, Handle<Pipeline> handle)
