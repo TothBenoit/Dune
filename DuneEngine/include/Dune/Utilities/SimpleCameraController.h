@@ -18,7 +18,15 @@ namespace Dune
 		void SetNear(float near) { m_camera.near = near; }
 		void SetFar(float far) { m_camera.far = far; }
 	private:
+		
+		void UpdateFirstPersonControls(float deltaTime, const Input* pInput);
+		void UpdateEditorControls(float deltaTime, const Input* pInput);
+
+	private:
 		Graphics::Camera m_camera;
-		dVec3 m_rotation;
+		dVec2 m_rotation;
+		float m_zoomSpeed = 1.15f;
+		float m_minZoom = 0.01f;
+		float m_maxZoom = 2e10f;
 	};
 }

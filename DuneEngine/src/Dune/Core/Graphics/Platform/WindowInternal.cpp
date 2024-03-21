@@ -97,9 +97,11 @@ namespace Dune::Graphics
 			break;
 		case WM_PAINT:
 			break;
+		case WM_SYSKEYDOWN:
 		case WM_KEYDOWN:
 			m_pInput->SetKeyDown(static_cast<KeyCode>((WPARAM)wParam));
 			break;
+		case WM_SYSKEYUP:
 		case WM_KEYUP:
 			m_pInput->SetKeyUp(static_cast<KeyCode>((WPARAM)wParam));
 			break;
