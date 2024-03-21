@@ -161,7 +161,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
     <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl">
       <Filter>Dune\Core\Graphics\Shader</Filter>
     </None>
@@ -177,6 +176,7 @@
     <None Include="include\Dune\Core\Graphics\Shaders\Test.hlsl">
       <Filter>Dune\Core\Graphics\Shader</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">
