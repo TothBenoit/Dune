@@ -73,7 +73,6 @@ namespace Dune::Job
     template<Fence fenceType>
     void JobBuilder::DispatchJob(const std::function<void()>& job)
     {
-        ProfileFunc();
         DispatchJobInternal(job);
         if constexpr (fenceType == Fence::With)
         {

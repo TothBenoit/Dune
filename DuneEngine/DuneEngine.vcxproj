@@ -18,7 +18,7 @@
     <ClInclude Include="include\Dune\Common\Macro.h" />
     <ClInclude Include="include\Dune\Common\Pool.h" />
     <ClInclude Include="include\Dune\Core\ECS\Components\BindingComponent.h" />
-    <ClInclude Include="include\Dune\Core\ECS\Components\ComponentManager.h" />
+    <ClInclude Include="include\Dune\Core\ECS\Components\ComponentContainer.h" />
     <ClInclude Include="include\Dune\Core\ECS\Components\DirectionalLightComponent.h" />
     <ClInclude Include="include\Dune\Core\ECS\Components\GraphicsComponent.h" />
     <ClInclude Include="include\Dune\Core\ECS\Components\PointLightComponent.h" />

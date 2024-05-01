@@ -203,10 +203,8 @@ namespace Dune::Job
                     {
                         WaitForCounter_Fiber(job.m_fence);
                     }
-                    Profile("Job");
 
                     {
-                        Profile("ExecuteJob");
                         (job.m_executable)();
                     }
 
@@ -232,7 +230,6 @@ namespace Dune::Job
 
     void InitWorker(dU32 workerID)
     {
-        ProfileBeginThread("JobWorker");
         assert(!g_pMainFiber);
         g_pMainFiber = ::ConvertThreadToFiber(nullptr);
         g_workerID = workerID;
@@ -291,7 +288,6 @@ namespace Dune::Job
 
     void WaitForCounter(const Counter& counter)
     {
-        ProfileFunc();
         if (g_pCurrentFiber.pFiber)
         {
             WaitForCounter_Fiber(counter);
@@ -385,7 +381,6 @@ namespace Dune::Job
 
     void JobBuilder::DispatchExplicitFence()
     {
-        ProfileFunc();
         if (m_counter.GetValue() > 0)
         {
             m_fence = std::move(m_counter);
@@ -406,7 +401,6 @@ namespace Dune::Job
 
     void JobBuilder::DispatchJobInternal(const std::function<void()>& job)
     {
-        ProfileFunc();
         m_counter++;
         g_currentLabel.fetch_add(1);
 
