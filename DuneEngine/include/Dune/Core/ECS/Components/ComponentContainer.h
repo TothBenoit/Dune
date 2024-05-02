@@ -11,13 +11,13 @@ namespace Dune
 		void Initialize(dU32 reservedCount)
 		{
 			Assert(!m_isInitialized);
+			m_capacity = m_maxEntity = reservedCount;
 
-			m_pComponents = new Component[reservedCount];
-			m_pLookupEntities = new EntityID[reservedCount];
-			m_pLookupComponents = new dU32[reservedCount];
-			m_capacity = reservedCount;
+			m_pComponents = new Component[m_capacity];
+			m_pLookupEntities = new EntityID[m_capacity];
+			m_pLookupComponents = new ID::IDType[m_maxEntity];
 		#if _DEBUG
-			memset(m_pLookupComponents, ID::invalidID, reservedCount * sizeof(dU32));
+			memset(m_pLookupComponents, ID::invalidID, m_maxEntity * sizeof(ID::IDType));
 			m_isInitialized = true;
 		#endif
 		}
@@ -40,24 +40,17 @@ namespace Dune
 
 			Component* pComponents = new Component[size];
 			EntityID* pLookupEntities = new EntityID[size];
-			ID::IDType* pLookupComponents = new ID::IDType[size];
 
 			m_count = (size < m_count) ? size : m_count;
 
 			memcpy(pComponents, m_pComponents, m_count * sizeof(Component));
 			memcpy(pLookupEntities, m_pLookupEntities, m_count * sizeof(dU32));
-		#if _DEBUG
-			memset(pLookupComponents, ID::invalidID, size * sizeof(dU32));
-		#endif
-			memcpy(pLookupComponents, m_pLookupComponents, m_count * sizeof(dU32));
 
 			delete[] m_pComponents;
 			delete[] m_pLookupEntities;
-			delete[] m_pLookupComponents;
 
 			m_pComponents = pComponents;
 			m_pLookupEntities = pLookupEntities;
-			m_pLookupComponents = pLookupComponents;
 
 			m_capacity = size;
 		}
@@ -67,12 +60,29 @@ namespace Dune
 			Assert(entity != ID::invalidID);
 			Assert(!Contains(entity));
 
-			if (m_count + 1 == m_capacity)
+			const ID::IDType index = ID::GetIndex(entity);
+
+			if (index >= m_maxEntity)
 			{
-				Resize(m_capacity << 1);
+				// TODO : Allocator + reserve / resize maxEntity
+				ID::IDType maxEntity = index + 1;
+				ID::IDType* pLookupComponents = new ID::IDType[maxEntity];
+			#if _DEBUG
+				memset(pLookupComponents, ID::invalidID, maxEntity * sizeof(ID::IDType));
+			#endif
+				memcpy(pLookupComponents, m_pLookupComponents, m_maxEntity * sizeof(ID::IDType));
+
+				delete[] m_pLookupComponents;
+				m_pLookupComponents = pLookupComponents;
+				m_maxEntity = maxEntity;
 			}
 
-			const ID::IDType index = ID::GetIndex(entity);
+			if (m_count + 1 == m_capacity)
+			{
+				// TODO : Allocator
+				Resize(m_capacity + 1);
+			}
+
 			m_pLookupComponents[index] = (ID::IDType) m_count;
 
 			m_pComponents[m_count] = component;
@@ -115,7 +125,8 @@ namespace Dune
 
 		bool Contains(EntityID entity)
 		{
-			return ID::IsValid(m_pLookupComponents[ID::GetIndex(entity)]);
+			const ID::IDType index = ID::GetIndex(entity);
+			return (index >= m_maxEntity) ? false : ID::IsValid(m_pLookupComponents[index]);
 		}
 
 	private:
@@ -124,6 +135,7 @@ namespace Dune
 		ID::IDType*	m_pLookupComponents;
 		dU32		m_count;
 		dU32		m_capacity;
+		ID::IDType	m_maxEntity;
 	#if _DEBUG
 		bool		m_isInitialized{ false };
 	#endif

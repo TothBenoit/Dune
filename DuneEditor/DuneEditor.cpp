@@ -3,12 +3,6 @@
 
 using namespace Dune;
 
-struct TestComponent
-{
-	int a;
-	int b;
-};
-
 int main(int argc, char** argv)
 {
 #ifdef _DEBUG
