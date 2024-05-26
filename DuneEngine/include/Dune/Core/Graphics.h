@@ -350,13 +350,6 @@ namespace Dune::Graphics
 	// BindGroup
 
 	// Compute Pipeline
-
-	enum class ECommandBuffering : dU32
-	{
-		None = 1,
-		Double = 2,
-		Triple = 3
-	};
 	
 	struct DirectCommandDesc
 	{
@@ -365,8 +358,6 @@ namespace Dune::Graphics
 
 	[[nodiscard]] DirectCommand*	CreateDirectCommand(const DirectCommandDesc& desc);
 	void							DestroyCommand(DirectCommand* pCommand);
-	void							DestroyCommand(ComputeCommand* pCommand);
-	void							DestroyCommand(CopyCommand* pCommand);
 	void							ResetCommand(DirectCommand* pCommand);
 	void							ResetCommand(DirectCommand* pCommand, Handle<Pipeline>);
 	void							SetPipeline(DirectCommand* pCommand, Handle<Pipeline> handle);
@@ -386,13 +377,22 @@ namespace Dune::Graphics
 	void							BindVertexBuffer(DirectCommand* pCommand, Handle<Buffer> handle);
 	void							DrawIndexedInstanced(DirectCommand* pCommand, dU32 indexCount, dU32 instanceCount);
 
+	enum class ECommandBuffering : dU32
+	{
+		None = 1,
+		Double = 2,
+		Triple = 3
+	};
+
 	struct ComputeCommandDesc
 	{
 		Device* pDevice;
 		ECommandBuffering buffering;
 	};
 
-	[[nodiscard]] ComputeCommand* CreateComputeCommand(const ComputeCommandDesc& desc);
+	[[nodiscard]] ComputeCommand*	CreateComputeCommand(const ComputeCommandDesc& desc);
+	void							DestroyCommand(ComputeCommand* pCommand);
+	dU64							SubmitCommand(Device* pDevice, ComputeCommand* pCommand);
 
 	struct CopyCommandDesc
 	{
@@ -400,6 +400,8 @@ namespace Dune::Graphics
 		ECommandBuffering buffering;
 	};
 
-	[[nodiscard]] CopyCommand* CreateCopyCommand(const CopyCommandDesc& desc);
+	[[nodiscard]] CopyCommand*		CreateCopyCommand(const CopyCommandDesc& desc);
+	void							DestroyCommand(CopyCommand* pCommand);
+	dU64							SubmitCommand(Device* pDevice, ComputeCommand* pCommand);
 	
 }

@@ -73,7 +73,7 @@ namespace Dune::Graphics
 		ID3D12GraphicsCommandList* pCommandList{ nullptr };
 		ID3D12CommandAllocator* pCommandAllocators[3]{ nullptr, nullptr, nullptr };
 		ID3D12DescriptorHeap* heaps[2]{ nullptr, nullptr };
-		dU32 fenceValues[3]{ 0, 0, 0 };
+		dU64 fenceValues[3]{ 0, 0, 0 };
 	};
 
 	struct CopyCommand
@@ -82,16 +82,65 @@ namespace Dune::Graphics
 		dU32 commandCount{ 0 };
 		ID3D12GraphicsCommandList* pCommandList{ nullptr };
 		ID3D12CommandAllocator* pCommandAllocators[3] { nullptr, nullptr, nullptr };
-		dU32 fenceValues[3]{ 0, 0, 0 };
+		dU64 fenceValues[3]{ 0, 0, 0 };
 	};
 
 	struct Device
 	{
+		void WaitForCopy()
+		{
+			Assert(pCopyFence && copyFenceEvent.IsValid());
+
+			if (pCopyFence->GetCompletedValue() < copyFenceValue)
+			{
+				ThrowIfFailed(pCopyFence->SetEventOnCompletion(copyFenceValue, NULL))
+			}
+		}
+
+		void CopyBufferRegion(ID3D12Resource* pDestBuffer, dU64 dstOffset, ID3D12Resource* pSrcBuffer, dU64 srcOffset, dU64 size)
+		{
+			ThrowIfFailed(pCopyCommandAllocator->Reset());
+			ThrowIfFailed(pCopyCommandList->Reset(pCopyCommandAllocator, nullptr));
+
+			pCopyCommandList->CopyBufferRegion(pDestBuffer, dstOffset, pSrcBuffer, srcOffset, size);
+			pCopyCommandList->Close();
+			dVector<ID3D12CommandList*> ppCommandLists{ pCopyCommandList };
+			pCopyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+			pCopyFence->Signal(++copyFenceValue);
+			WaitForCopy();
+		}
+
+		void UploadTexture(ID3D12Resource* pDest, ID3D12Resource* pUploadBuffer, D3D12_SUBRESOURCE_DATA* pSrcData)
+		{
+			ThrowIfFailed(pCopyCommandAllocator->Reset());
+			ThrowIfFailed(pCopyCommandList->Reset(pCopyCommandAllocator, nullptr));
+
+			UpdateSubresources(pCopyCommandList, pDest, pUploadBuffer, 0, 0, 1, pSrcData);
+			pCopyCommandList->Close();
+			dVector<ID3D12CommandList*> ppCommandLists{ pCopyCommandList };
+			pCopyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
+			pCopyFence->Signal(++copyFenceValue);
+			WaitForCopy();
+		}
+
 		IDXGIFactory7*	pFactory{ nullptr };
 		ID3D12Device*	pDevice{ nullptr };
 	#ifdef _DEBUG
 		IDXGIDebug1*	pDebug{ nullptr };
 	#endif
+
+		ID3D12CommandQueue* pComputeCommandQueue{ nullptr };
+		ID3D12Fence* pComputeFence{ nullptr };
+		Microsoft::WRL::Wrappers::Event	computeFenceEvent;
+		dU64 computeFenceValue{ 0 };
+
+		ID3D12CommandQueue* pCopyCommandQueue{ nullptr };
+		ID3D12Fence* pCopyFence{ nullptr };
+		Microsoft::WRL::Wrappers::Event	copyFenceEvent;
+		dU64 copyFenceValue{ 0 };
+
+		ID3D12CommandAllocator* pCopyCommandAllocator{ nullptr };
+		ID3D12GraphicsCommandList* pCopyCommandList{ nullptr };
 
 		DescriptorHeap	rtvHeap;
 		DescriptorHeap	dsvHeap;
@@ -168,17 +217,60 @@ namespace Dune::Graphics
 		pDeviceInterface->samplerHeap.Initialize(pDevice, 64, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		pDeviceInterface->srvHeap.Initialize(pDevice, 4096, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		D3D12_COMMAND_QUEUE_DESC copyQueueDesc
+		D3D12_COMMAND_QUEUE_DESC queueDesc
 		{
-			.Type = D3D12_COMMAND_LIST_TYPE_COPY,
+			.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE,
 			.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE
 		};
+
+		ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&pDeviceInterface->pComputeCommandQueue)));
+		NameDXObject(pDeviceInterface->pComputeCommandQueue, L"ComputeCommandQueue");
+
+		ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pDeviceInterface->pComputeFence)));
+		NameDXObject(pDeviceInterface->pComputeFence, L"ComputeFence");
+
+		pDeviceInterface->computeFenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+		if (!pDeviceInterface->computeFenceEvent.IsValid())
+		{
+			ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+		}
+
+		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+		ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&pDeviceInterface->pCopyCommandQueue)));
+		NameDXObject(pDeviceInterface->pCopyCommandQueue, L"CopyCommandQueue");
+
+		ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pDeviceInterface->pCopyFence)));
+		NameDXObject(pDeviceInterface->pCopyFence, L"CopyFence");
+
+		pDeviceInterface->copyFenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+		if (!pDeviceInterface->copyFenceEvent.IsValid())
+		{
+			ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+		}
+
+		ThrowIfFailed(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&pDeviceInterface->pCopyCommandAllocator)));
+		NameDXObject(pDeviceInterface->pCopyCommandAllocator, L"CopyCommandAllocator");
+
+		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, pDeviceInterface->pCopyCommandAllocator, nullptr, IID_PPV_ARGS(&pDeviceInterface->pCopyCommandList)));
+		ThrowIfFailed(pDeviceInterface->pCopyCommandList->Close());
+		NameDXObject(pDeviceInterface->pCopyCommandList, L"CopyCommandList");
+
 
 		return pDeviceInterface;
 	}
 
 	void DestroyDevice(Device* pDeviceInterface)
 	{
+		pDeviceInterface->computeFenceEvent.Close();
+		pDeviceInterface->pComputeFence->Release();
+		pDeviceInterface->pComputeCommandQueue->Release();
+
+		pDeviceInterface->copyFenceEvent.Close();
+		pDeviceInterface->pCopyFence->Release();
+		pDeviceInterface->pCopyCommandList->Release();
+		pDeviceInterface->pCopyCommandAllocator->Release();
+		pDeviceInterface->pCopyCommandQueue->Release();
+
 		pDeviceInterface->pDevice->Release();
 		pDeviceInterface->pFactory->Release();
 		pDeviceInterface->rtvHeap.Destroy();
@@ -299,19 +391,19 @@ namespace Dune::Graphics
 			ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pCommandQueue)));
 			NameDXObject(m_pCommandQueue, L"CommandQueue");
 
-			ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
-			NameDXObject(m_pFence, L"Fence");
+			ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pDirectFence)));
+			NameDXObject(m_pDirectFence, L"DirectFence");
 
-			m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-			if (!m_fenceEvent.IsValid())
+			m_directFenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+			if (!m_directFenceEvent.IsValid())
 			{
 				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 			}
 
-			m_fenceValues = new dU64[m_backBufferCount];
+			m_directFenceValues = new dU64[m_backBufferCount];
 			for (dU32 i = 0; i < m_backBufferCount; i++)
 			{
-				m_fenceValues[i] = 0;
+				m_directFenceValues[i] = 0;
 			}
 
 			DXGI_SWAP_CHAIN_DESC1 swapChainDesc
@@ -342,27 +434,7 @@ namespace Dune::Graphics
 
 			ThrowIfFailed(pFactory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER));
 			ThrowIfFailed(swapChain.As(&pSwapChain));
-			m_pSwapChain = pSwapChain.Detach();
-
-			queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-			ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pCopyCommandQueue)));
-			NameDXObject(m_pCopyCommandQueue, L"CopyCommandQueue");
-
-			ThrowIfFailed(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&m_pCopyCommandAllocator)));
-			NameDXObject(m_pCopyCommandAllocator, L"CopyCommandAllocator");
-
-			ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, m_pCopyCommandAllocator, nullptr, IID_PPV_ARGS(&m_pCopyCommandList)));
-			ThrowIfFailed(m_pCopyCommandList->Close());
-			NameDXObject(m_pCopyCommandList, L"CopyCommandList");
-
-			ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pCopyFence)));
-			NameDXObject(m_pCopyFence, L"CopyFence");
-
-			m_copyFenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-			if (!m_copyFenceEvent.IsValid())
-			{
-				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-			}
+			m_pSwapChain = pSwapChain.Detach();			
 
 			m_dyingResources = new dVector<IUnknown*>[m_backBufferCount];
 			m_pBackBuffers = new ID3D12Resource*[m_backBufferCount];
@@ -397,16 +469,10 @@ namespace Dune::Graphics
 			delete[] m_pBackBuffers;
 			m_pSwapChain->Release();
 			
-			m_fenceEvent.Close();
-			m_pFence->Release();
-			delete[] m_fenceValues;
+			m_directFenceEvent.Close();
+			m_pDirectFence->Release();
+			delete[] m_directFenceValues;
 			m_pCommandQueue->Release();
-
-			m_copyFenceEvent.Close();
-			m_pCopyFence->Release();
-			m_pCopyCommandList->Release();
-			m_pCopyCommandAllocator->Release();
-			m_pCopyCommandQueue->Release();
 
 			WindowInternal* pWindow = (WindowInternal*) m_pWindow;
 			pWindow->Destroy();
@@ -478,8 +544,8 @@ namespace Dune::Graphics
 			}
 
 			ThrowIfFailed(m_pSwapChain->Present(1, 0));
-			ThrowIfFailed(m_pCommandQueue->Signal(m_pFence, m_elapsedFrame));
-			m_fenceValues[m_frameIndex] = m_elapsedFrame;
+			ThrowIfFailed(m_pCommandQueue->Signal(m_pDirectFence, m_elapsedFrame));
+			m_directFenceValues[m_frameIndex] = m_elapsedFrame;
 			m_elapsedFrame++;
 			m_frameIndex = (m_frameIndex + 1) % m_backBufferCount;
 		}
@@ -500,51 +566,15 @@ namespace Dune::Graphics
 
 		void WaitForFrame(const dU32 frameIndex)
 		{
-			Assert(m_pFence && m_fenceEvent.IsValid());
+			Assert(m_pDirectFence && m_directFenceEvent.IsValid());
 
-			const dU64 frameFenceValue{ m_fenceValues[frameIndex] };
-			if (m_pFence->GetCompletedValue() < frameFenceValue)
+			const dU64 frameFenceValue{ m_directFenceValues[frameIndex] };
+			if (m_pDirectFence->GetCompletedValue() < frameFenceValue)
 			{
-				ThrowIfFailed(m_pFence->SetEventOnCompletion(frameFenceValue, NULL))
+				ThrowIfFailed(m_pDirectFence->SetEventOnCompletion(frameFenceValue, NULL))
 			}
 
-			WaitForCopy();
-		}
-
-		void WaitForCopy()
-		{
-			Assert(m_pCopyFence && m_copyFenceEvent.IsValid());
-
-			m_pCopyCommandQueue->Signal(m_pCopyFence, 1);
-			if (m_pCopyFence->GetCompletedValue() < 1)
-			{
-				ThrowIfFailed(m_pCopyFence->SetEventOnCompletion(1, NULL))
-			}
-			m_pCopyFence->Signal(0);
-		}
-
-		void CopyBufferRegion(ID3D12Resource* pDestBuffer, dU64 dstOffset, ID3D12Resource* pSrcBuffer, dU64 srcOffset, dU64 size)
-		{
-			ThrowIfFailed(m_pCopyCommandAllocator->Reset());
-			ThrowIfFailed(m_pCopyCommandList->Reset(m_pCopyCommandAllocator, nullptr));
-
-			m_pCopyCommandList->CopyBufferRegion(pDestBuffer, dstOffset, pSrcBuffer, srcOffset, size);
-			m_pCopyCommandList->Close();
-			dVector<ID3D12CommandList*> ppCommandLists{ m_pCopyCommandList };
-			m_pCopyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-			WaitForCopy();
-		}
-
-		void UploadTexture(ID3D12Resource* pDest, ID3D12Resource* pUploadBuffer, D3D12_SUBRESOURCE_DATA* pSrcData)
-		{
-			ThrowIfFailed(m_pCopyCommandAllocator->Reset());
-			ThrowIfFailed(m_pCopyCommandList->Reset(m_pCopyCommandAllocator, nullptr));
-
-			UpdateSubresources(m_pCopyCommandList, pDest, pUploadBuffer, 0, 0, 1, pSrcData);
-			m_pCopyCommandList->Close();
-			dVector<ID3D12CommandList*> ppCommandLists{ m_pCopyCommandList };
-			m_pCopyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-			WaitForCopy();
+			m_pDeviceInterface->WaitForCopy();
 		}
 
 		void Resize()
@@ -598,21 +628,15 @@ namespace Dune::Graphics
 		const float	m_backBufferClearValue[4] { 0.f, 0.f, 0.f, 0.f };
 
 		ID3D12CommandQueue* m_pCommandQueue{ nullptr };
+		ID3D12Fence* m_pDirectFence;
+		Microsoft::WRL::Wrappers::Event	m_directFenceEvent;
+		dU64* m_directFenceValues;
+
 		dU32 m_backBufferCount{ 0 };
 		dU32 m_frameIndex{ 0 };
 		dU64 m_elapsedFrame{ 0 };
-		Microsoft::WRL::Wrappers::Event	m_fenceEvent;
-		ID3D12Fence* m_pFence;
-		dU64* m_fenceValues;
 
 		DirectCommand* m_pCommand{ nullptr };
-
-		ID3D12CommandQueue* m_pCopyCommandQueue{ nullptr };
-		ID3D12CommandAllocator* m_pCopyCommandAllocator{ nullptr };
-		ID3D12GraphicsCommandList* m_pCopyCommandList{ nullptr };
-
-		Microsoft::WRL::Wrappers::Event	m_copyFenceEvent;
-		ID3D12Fence* m_pCopyFence{ nullptr };
 
 		dVector<IUnknown*>* m_dyingResources;
 	};
@@ -649,6 +673,24 @@ namespace Dune::Graphics
 	void SubmitCommand(View* pView, DirectCommand* pCommand)
 	{
 		((ViewInternal*)pView)->SubmitCommand(pCommand);
+	}
+
+	dU64 SubmitCommand(Device* pDevice, ComputeCommand* pCommand)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ pCommand->pCommandList };
+		pCommandList->Close();
+		pDevice->pComputeCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&pCommandList);
+		pDevice->pComputeFence->Signal(++pDevice->computeFenceValue);
+		return pDevice->computeFenceValue;
+	}
+
+	dU64 SubmitCommand(Device* pDevice, CopyCommand* pCommand)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ pCommand->pCommandList };
+		pCommandList->Close();
+		pDevice->pCopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&pCommandList);
+		pDevice->pCopyFence->Signal(++pDevice->copyFenceValue);
+		return pDevice->copyFenceValue;
 	}
 
 	void EndFrame(View* pView)
@@ -690,8 +732,8 @@ namespace Dune::Graphics
 
 			dU64 bufferOffset{ CycleBuffer() };
 			memcpy(m_cpuAdress, pData, byteSize);
-			m_pView->WaitForCopy();			
-			m_pView->CopyBufferRegion(m_pBuffer, bufferOffset + byteOffset, m_pUploadBuffer, 0, byteSize);
+			m_pView->GetDevice()->WaitForCopy();
+			m_pView->GetDevice()->CopyBufferRegion(m_pBuffer, bufferOffset + byteOffset, m_pUploadBuffer, 0, byteSize);
 		}
 
 	private:
@@ -770,16 +812,16 @@ namespace Dune::Graphics
 					if (desc.pData)
 					{
 						memcpy(m_cpuAdress, desc.pData, m_byteSize);
-						m_pView->WaitForCopy();
-						m_pView->CopyBufferRegion(m_pBuffer, 0, m_pUploadBuffer, 0, m_byteSize);
+						m_pView->GetDevice()->WaitForCopy();
+						m_pView->GetDevice()->CopyBufferRegion(m_pBuffer, 0, m_pUploadBuffer, 0, m_byteSize);
 					}
 				}
 				else
 				{
 					Assert(desc.pData);
 					memcpy(m_cpuAdress, desc.pData, m_byteSize);
-					m_pView->WaitForCopy();
-					m_pView->CopyBufferRegion(m_pBuffer, 0, m_pUploadBuffer, 0, m_byteSize);
+					m_pView->GetDevice()->WaitForCopy();
+					m_pView->GetDevice()->CopyBufferRegion(m_pBuffer, 0, m_pUploadBuffer, 0, m_byteSize);
 					m_pUploadBuffer->Release();
 				}
 			}
@@ -1035,7 +1077,7 @@ namespace Dune::Graphics
 					IID_PPV_ARGS(&pUploadBuffer)));
 
 				D3D12_SUBRESOURCE_DATA srcData{ .pData = desc.pData, .RowPitch = (dU32)Utils::AlignTo(desc.byteSize / desc.dimensions[1], D3D12_TEXTURE_DATA_PITCH_ALIGNMENT), .SlicePitch = (dU32)desc.byteSize};
-				m_pView->UploadTexture(m_pTexture, pUploadBuffer, &srcData);
+				m_pView->GetDevice()->UploadTexture(m_pTexture, pUploadBuffer, &srcData);
 				pUploadBuffer->Release();
 			}
 

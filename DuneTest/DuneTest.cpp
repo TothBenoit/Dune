@@ -241,7 +241,7 @@ int main(int argc, char** argv)
 	Graphics::Initialize();
 	Graphics::Device* pDevice = Graphics::CreateDevice();
 	dVector<std::thread> tests;
-	dU32 testCount{ 1 };
+	dU32 testCount{ 5 };
 	tests.reserve(testCount);
 
 	for (dU32 i{ 0 }; i < testCount; i++)
