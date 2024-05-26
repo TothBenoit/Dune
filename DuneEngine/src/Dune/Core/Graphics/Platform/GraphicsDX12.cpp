@@ -1482,8 +1482,9 @@ namespace Dune::Graphics
 			psoDesc.DepthStencilState.DepthWriteMask = (desc.depthStencilState.bDepthWrite) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
 			psoDesc.DepthStencilState.DepthFunc = ConvertDepthFunc(desc.depthStencilState.bDepthFunc);
 			psoDesc.SampleMask = UINT_MAX;
-			psoDesc.NumRenderTargets = 1;
-			for (dU32 i = 0; i < desc.renderTargetsFormat.size(); i++)
+			dU32 renderTargetCount = desc.renderTargetsFormat.size();
+			psoDesc.NumRenderTargets = renderTargetCount;
+			for (dU32 i = 0; i < renderTargetCount; i++)
 			{
 				psoDesc.RTVFormats[i] = (DXGI_FORMAT)desc.renderTargetsFormat[i];
 			}
