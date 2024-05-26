@@ -10,7 +10,9 @@ namespace Dune::Graphics
 {
 	struct Device;
 	class View;
-	struct Command;
+	struct DirectCommand;
+	struct ComputeCommand;
+	struct CopyCommand;
 	class Buffer;
 	class Texture;
 	class Mesh;
@@ -56,7 +58,7 @@ namespace Dune::Graphics
 	void							DestroyView(View* pView);
 	bool							ProcessViewEvents(View* pView);
 	void							BeginFrame(View* pView);
-	void							SubmitCommand(View* pView, Command* pCommand);
+	void							SubmitCommand(View* pView, DirectCommand* pCommand);
 	void							EndFrame(View* pView);
 	[[nodiscard]] const Input*		GetInput(View* pView);
 
@@ -349,37 +351,55 @@ namespace Dune::Graphics
 
 	// Compute Pipeline
 
-	enum class ECommandType
+	enum class ECommandBuffering : dU32
 	{
-		Graphics,
-		Compute,
+		None = 1,
+		Double = 2,
+		Triple = 3
 	};
-
-	struct CommandDesc
+	
+	struct DirectCommandDesc
 	{
-		ECommandType type;
 		View* pView;
 	};
 
-	[[nodiscard]] Command*			CreateCommand(const CommandDesc& desc);
-	void							DestroyCommand(Command* pCommand);
-	void							ResetCommand(Command* pCommand);
-	void							ResetCommand(Command* pCommand, Handle<Pipeline>);
-	void							SetPipeline(Command* pCommand, Handle<Pipeline> handle);
-	void							SetRenderTarget(Command* pCommand, Handle<Texture> renderTarget);
-	void							SetRenderTarget(Command* pCommand, Handle<Texture> renderTarget, Handle<Texture> depthBuffer);
-	void							SetRenderTarget(Command* pCommand, View* pView);
-	void							SetRenderTarget(Command* pCommand, View* pView, Handle<Texture> depthBuffer);
-	void							ClearRenderTarget(Command* pCommand, Handle<Texture> handle);
-	void							ClearRenderTarget(Command* pCommand, View* pView);
-	void							ClearDepthBuffer(Command* pCommand, Handle<Texture> depthBuffer);
-	void							PushGraphicsConstants(Command* pCommand, dU32 slot, void* pData, dU32 byteSize);
-	void							PushGraphicsBuffer(Command* pCommand, dU32 slot, Handle<Buffer> handle);
-	void							PushGraphicsResource(Command* pCommand, dU32 slot, Handle<Buffer> handle);
-	//void							PushGraphicsBindGroup(Command* pCommand, dU32 slot, Handle<BindGroup> handle);
-	void							BindGraphicsTexture(Command* pCommand, dU32 slot, Handle<Texture> handle);
-	void							BindIndexBuffer(Command* pCommand, Handle<Buffer> handle);
-	void							BindVertexBuffer(Command* pCommand, Handle<Buffer> handle);
-	void							DrawIndexedInstanced(Command* pCommand, dU32 indexCount, dU32 instanceCount);
+	[[nodiscard]] DirectCommand*	CreateDirectCommand(const DirectCommandDesc& desc);
+	void							DestroyCommand(DirectCommand* pCommand);
+	void							DestroyCommand(ComputeCommand* pCommand);
+	void							DestroyCommand(CopyCommand* pCommand);
+	void							ResetCommand(DirectCommand* pCommand);
+	void							ResetCommand(DirectCommand* pCommand, Handle<Pipeline>);
+	void							SetPipeline(DirectCommand* pCommand, Handle<Pipeline> handle);
+	void							SetRenderTarget(DirectCommand* pCommand, Handle<Texture> renderTarget);
+	void							SetRenderTarget(DirectCommand* pCommand, Handle<Texture> renderTarget, Handle<Texture> depthBuffer);
+	void							SetRenderTarget(DirectCommand* pCommand, View* pView);
+	void							SetRenderTarget(DirectCommand* pCommand, View* pView, Handle<Texture> depthBuffer);
+	void							ClearRenderTarget(DirectCommand* pCommand, Handle<Texture> handle);
+	void							ClearRenderTarget(DirectCommand* pCommand, View* pView);
+	void							ClearDepthBuffer(DirectCommand* pCommand, Handle<Texture> depthBuffer);
+	void							PushGraphicsConstants(DirectCommand* pCommand, dU32 slot, void* pData, dU32 byteSize);
+	void							PushGraphicsBuffer(DirectCommand* pCommand, dU32 slot, Handle<Buffer> handle);
+	void							PushGraphicsResource(DirectCommand* pCommand, dU32 slot, Handle<Buffer> handle);
+	//void							PushGraphicsBindGroup(DirectCommand* pCommand, dU32 slot, Handle<BindGroup> handle);
+	void							BindGraphicsTexture(DirectCommand* pCommand, dU32 slot, Handle<Texture> handle);
+	void							BindIndexBuffer(DirectCommand* pCommand, Handle<Buffer> handle);
+	void							BindVertexBuffer(DirectCommand* pCommand, Handle<Buffer> handle);
+	void							DrawIndexedInstanced(DirectCommand* pCommand, dU32 indexCount, dU32 instanceCount);
+
+	struct ComputeCommandDesc
+	{
+		Device* pDevice;
+		ECommandBuffering buffering;
+	};
+
+	[[nodiscard]] ComputeCommand* CreateComputeCommand(const ComputeCommandDesc& desc);
+
+	struct CopyCommandDesc
+	{
+		Device* pDevice;
+		ECommandBuffering buffering;
+	};
+
+	[[nodiscard]] CopyCommand* CreateCopyCommand(const CopyCommandDesc& desc);
 	
 }

@@ -158,12 +158,7 @@ void Test(Graphics::Device* pDevice)
 	Handle<Graphics::Pipeline> pbrPipeline = CreatePBRPipeline(pDevice);
 	Handle<Graphics::Mesh> cube = Graphics::CreateMesh(pView, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
 
-	Graphics::Command* pCommand =
-		Graphics::CreateCommand
-		({
-			.type = Graphics::ECommandType::Graphics,
-			.pView = pView
-		});
+	Graphics::DirectCommand* pCommand =	Graphics::CreateDirectCommand({ .pView = pView });
 
 	const Graphics::Mesh& mesh = Graphics::GetMesh(cube);
 

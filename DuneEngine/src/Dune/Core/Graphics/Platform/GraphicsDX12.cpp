@@ -57,13 +57,32 @@ namespace Dune::Graphics
 		bool m_bIsShaderVisible{ false };
 	};
 
-	struct Command
+	struct DirectCommand
 	{
 		dU32 commandIndex{ 0 };
 		dU32 commandCount{ 0 };
 		ID3D12GraphicsCommandList* pCommandList{ nullptr };
-		ID3D12CommandAllocator** ppCommandAllocators{ nullptr };
+		ID3D12CommandAllocator* pCommandAllocators[3]{ nullptr, nullptr, nullptr };
 		ID3D12DescriptorHeap* heaps[2]{ nullptr, nullptr };
+	};
+
+	struct ComputeCommand
+	{
+		dU32 commandIndex{ 0 };
+		dU32 commandCount{ 0 };
+		ID3D12GraphicsCommandList* pCommandList{ nullptr };
+		ID3D12CommandAllocator* pCommandAllocators[3]{ nullptr, nullptr, nullptr };
+		ID3D12DescriptorHeap* heaps[2]{ nullptr, nullptr };
+		dU32 fenceValues[3]{ 0, 0, 0 };
+	};
+
+	struct CopyCommand
+	{
+		dU32 commandIndex{ 0 };
+		dU32 commandCount{ 0 };
+		ID3D12GraphicsCommandList* pCommandList{ nullptr };
+		ID3D12CommandAllocator* pCommandAllocators[3] { nullptr, nullptr, nullptr };
+		dU32 fenceValues[3]{ 0, 0, 0 };
 	};
 
 	struct Device
@@ -358,7 +377,7 @@ namespace Dune::Graphics
 				m_pBackBufferStates[i] = D3D12_RESOURCE_STATE_COMMON;
 			}
 			m_frameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
-			m_pCommand = CreateCommand({ .type = ECommandType::Graphics, .pView = this });
+			m_pCommand = CreateDirectCommand({ .pView = this });
 		}
 
 		void Destroy()
@@ -440,7 +459,7 @@ namespace Dune::Graphics
 			ReleaseDyingResources(m_frameIndex);
 		}
 
-		void SubmitCommand(Command* pCommand)
+		void SubmitCommand(DirectCommand* pCommand)
 		{
 			ID3D12GraphicsCommandList* pCommandList{ pCommand->pCommandList };
 			pCommandList->Close();
@@ -586,7 +605,7 @@ namespace Dune::Graphics
 		ID3D12Fence* m_pFence;
 		dU64* m_fenceValues;
 
-		Command* m_pCommand{ nullptr };
+		DirectCommand* m_pCommand{ nullptr };
 
 		ID3D12CommandQueue* m_pCopyCommandQueue{ nullptr };
 		ID3D12CommandAllocator* m_pCopyCommandAllocator{ nullptr };
@@ -627,7 +646,7 @@ namespace Dune::Graphics
 		((ViewInternal*)pView)->BeginFrame();
 	}
 
-	void SubmitCommand(View* pView, Command* pCommand)
+	void SubmitCommand(View* pView, DirectCommand* pCommand)
 	{
 		((ViewInternal*)pView)->SubmitCommand(pCommand);
 	}
@@ -1482,7 +1501,7 @@ namespace Dune::Graphics
 			psoDesc.DepthStencilState.DepthWriteMask = (desc.depthStencilState.bDepthWrite) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
 			psoDesc.DepthStencilState.DepthFunc = ConvertDepthFunc(desc.depthStencilState.bDepthFunc);
 			psoDesc.SampleMask = UINT_MAX;
-			dU32 renderTargetCount = desc.renderTargetsFormat.size();
+			dU32 renderTargetCount = (dU32) desc.renderTargetsFormat.size();
 			psoDesc.NumRenderTargets = renderTargetCount;
 			for (dU32 i = 0; i < renderTargetCount; i++)
 			{
@@ -1520,61 +1539,123 @@ namespace Dune::Graphics
 		g_pipelinePool.Remove(handle);
 	}
 
-	Command* CreateCommand(const CommandDesc& desc)
+	DirectCommand* CreateDirectCommand(const DirectCommandDesc& desc)
 	{
-		Command* pCommand = new Command();
+		DirectCommand* pCommand = new DirectCommand();
 		Assert(desc.pView);
 		ViewInternal* pView = (ViewInternal*)desc.pView;
 		ID3D12Device* pDevice{ pView->GetDevice()->pDevice };
 		pCommand->commandCount = pView->GetFrameCount();
-		pCommand->ppCommandAllocators = new ID3D12CommandAllocator * [pCommand->commandCount];
 		pCommand->heaps[0] = pView->GetDevice()->srvHeap.Get();
 		pCommand->heaps[1] = pView->GetDevice()->samplerHeap.Get();
 
 		for (dU32 i = 0; i < pCommand->commandCount; i++)
 		{
-			ThrowIfFailed(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCommand->ppCommandAllocators[i])));
-			NameDXObject(pCommand->ppCommandAllocators[i], L"CommandAllocator");
+			ThrowIfFailed(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCommand->pCommandAllocators[i])));
+			NameDXObject(pCommand->pCommandAllocators[i], L"DirectCommandAllocator");
 		}
 
-		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommand->ppCommandAllocators[0], nullptr, IID_PPV_ARGS(&pCommand->pCommandList)));
+		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommand->pCommandAllocators[0], nullptr, IID_PPV_ARGS(&pCommand->pCommandList)));
 		ThrowIfFailed(pCommand->pCommandList->Close());
-		NameDXObject(pCommand->pCommandList, L"GraphicsCommandList");
+		NameDXObject(pCommand->pCommandList, L"DirectCommandList");
 
 		return pCommand;
 	}
 
-	void DestroyCommand(Command* pCommand)
+	ComputeCommand* CreateComputeCommand(const ComputeCommandDesc& desc)
+	{
+		ComputeCommand* pCommand = new ComputeCommand();
+		Assert(desc.pDevice);
+		Device* pDeviceInterface = desc.pDevice;
+		ID3D12Device* pDevice{ pDeviceInterface->pDevice };
+		pCommand->commandCount = (dU32) desc.buffering;
+		pCommand->heaps[0] = pDeviceInterface->srvHeap.Get();
+		pCommand->heaps[1] = pDeviceInterface->samplerHeap.Get();
+
+		for (dU32 i = 0; i < pCommand->commandCount; i++)
+		{
+			ThrowIfFailed(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&pCommand->pCommandAllocators[i])));
+			NameDXObject(pCommand->pCommandAllocators[i], L"ComputeCommandAllocator");
+		}
+
+		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, pCommand->pCommandAllocators[0], nullptr, IID_PPV_ARGS(&pCommand->pCommandList)));
+		ThrowIfFailed(pCommand->pCommandList->Close());
+		NameDXObject(pCommand->pCommandList, L"ComputeCommandList");
+
+		return pCommand;
+	}
+
+	CopyCommand* CreateCopyCommand(const CopyCommandDesc& desc)
+	{
+		CopyCommand* pCommand = new CopyCommand();
+		Assert(desc.pDevice);
+		Device* pDeviceInterface = desc.pDevice;
+		ID3D12Device* pDevice{ pDeviceInterface->pDevice };
+		pCommand->commandCount = (dU32)desc.buffering;
+
+		for (dU32 i = 0; i < pCommand->commandCount; i++)
+		{
+			ThrowIfFailed(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&pCommand->pCommandAllocators[i])));
+			NameDXObject(pCommand->pCommandAllocators[i], L"CopyCommandAllocator");
+		}
+
+		ThrowIfFailed(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, pCommand->pCommandAllocators[0], nullptr, IID_PPV_ARGS(&pCommand->pCommandList)));
+		ThrowIfFailed(pCommand->pCommandList->Close());
+		NameDXObject(pCommand->pCommandList, L"CopyCommandList");
+
+		return pCommand;
+	}
+
+	void DestroyCommand(DirectCommand* pCommand)
 	{
 		pCommand->pCommandList->Release();
 		for (dU32 i = 0; i < pCommand->commandCount; i++)
 		{
-			pCommand->ppCommandAllocators[i]->Release();
+			pCommand->pCommandAllocators[i]->Release();
 		}
-		delete[] pCommand->ppCommandAllocators;
 		delete pCommand;
 	}
 
-	void ResetCommand(Command* pCommand)
+	void DestroyCommand(ComputeCommand* pCommand)
+	{
+		pCommand->pCommandList->Release();
+		for (dU32 i = 0; i < pCommand->commandCount; i++)
+		{
+			pCommand->pCommandAllocators[i]->Release();
+		}
+		delete pCommand;
+	}
+
+	void DestroyCommand(CopyCommand* pCommand)
+	{
+		pCommand->pCommandList->Release();
+		for (dU32 i = 0; i < pCommand->commandCount; i++)
+		{
+			pCommand->pCommandAllocators[i]->Release();
+		}
+		delete pCommand;
+	}
+
+	void ResetCommand(DirectCommand* pCommand)
 	{
 		dU32 commandIndex = pCommand->commandIndex = (pCommand->commandIndex + 1) % pCommand->commandCount;
-		ThrowIfFailed(pCommand->ppCommandAllocators[commandIndex]->Reset());
-		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->ppCommandAllocators[commandIndex], nullptr));
+		ThrowIfFailed(pCommand->pCommandAllocators[commandIndex]->Reset());
+		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->pCommandAllocators[commandIndex], nullptr));
 		pCommand->pCommandList->SetDescriptorHeaps(2, pCommand->heaps);
 	}
 
-	void ResetCommand(Command* pCommand, Handle<Pipeline> handle)
+	void ResetCommand(DirectCommand* pCommand, Handle<Pipeline> handle)
 	{
 		dU32 commandIndex = pCommand->commandIndex = (pCommand->commandIndex + 1) % pCommand->commandCount;
 		Pipeline& pipeline{ g_pipelinePool.Get(handle) };
-		ThrowIfFailed(pCommand->ppCommandAllocators[commandIndex]->Reset());
-		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->ppCommandAllocators[commandIndex], pipeline.GetPipelineStateObject()));
+		ThrowIfFailed(pCommand->pCommandAllocators[commandIndex]->Reset());
+		ThrowIfFailed(pCommand->pCommandList->Reset(pCommand->pCommandAllocators[commandIndex], pipeline.GetPipelineStateObject()));
 		pCommand->pCommandList->SetGraphicsRootSignature(pipeline.GetRootSignature());
 		pCommand->pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		pCommand->pCommandList->SetDescriptorHeaps(2, pCommand->heaps);
 	}
 
-	void SetPipeline(Command* pCommand, Handle<Pipeline> handle)
+	void SetPipeline(DirectCommand* pCommand, Handle<Pipeline> handle)
 	{
 		Assert(handle.IsValid());
 		Pipeline& pipeline{ g_pipelinePool.Get(handle) };
@@ -1583,7 +1664,7 @@ namespace Dune::Graphics
 		pCommand->pCommandList->SetPipelineState(pipeline.GetPipelineStateObject());
 	}
 
-	void SetRenderTarget(Command* pCommand, Handle<Texture> renderTarget)
+	void SetRenderTarget(DirectCommand* pCommand, Handle<Texture> renderTarget)
 	{
 		Assert(renderTarget.IsValid());
 		Texture& texture{ g_texturePool.Get(renderTarget) };
@@ -1603,7 +1684,7 @@ namespace Dune::Graphics
 		pCommand->pCommandList->OMSetRenderTargets(1, &texture.GetRTV().cpuAdress, false, nullptr);
 	}
 
-	void SetRenderTarget(Command* pCommand, Handle<Texture> renderTarget, Handle<Texture> depthBuffer)
+	void SetRenderTarget(DirectCommand* pCommand, Handle<Texture> renderTarget, Handle<Texture> depthBuffer)
 	{
 		Assert(renderTarget.IsValid());
 		Texture& texture{ g_texturePool.Get(renderTarget) };
@@ -1632,7 +1713,7 @@ namespace Dune::Graphics
 		pCommand->pCommandList->OMSetRenderTargets(1, &texture.GetRTV().cpuAdress, false, &depthTexture.GetDSV().cpuAdress);
 	}
 
-	void SetRenderTarget(Command* pCommand, View* pViewInterface, Handle<Texture> depthBuffer)
+	void SetRenderTarget(DirectCommand* pCommand, View* pViewInterface, Handle<Texture> depthBuffer)
 	{
 		ViewInternal* pView{ ((ViewInternal*)pViewInterface) };
 		D3D12_VIEWPORT viewport{ 0.0f, 0.0f, (float)pView->GetWidth(), (float)pView->GetHeight(), 0.0f, 1.0f };
@@ -1659,7 +1740,7 @@ namespace Dune::Graphics
 		pCommand->pCommandList->OMSetRenderTargets(1, &pView->GetCurrentBackBufferView().cpuAdress, false, &depthTexture.GetDSV().cpuAdress);
 	}
 
-	void SetRenderTarget(Command* pCommand, View* pViewInterface)
+	void SetRenderTarget(DirectCommand* pCommand, View* pViewInterface)
 	{
 		ViewInternal* pView{ ((ViewInternal*)pViewInterface) };
 		D3D12_VIEWPORT viewport{ 0.0f, 0.0f, (float)pView->GetWidth(), (float)pView->GetHeight(), 0.0f, 1.0f };
@@ -1677,7 +1758,7 @@ namespace Dune::Graphics
 		pCommand->pCommandList->OMSetRenderTargets(1, &pView->GetCurrentBackBufferView().cpuAdress, false, nullptr);
 	}
 
-	void ClearRenderTarget(Command* pCommand, Handle<Texture> handle)
+	void ClearRenderTarget(DirectCommand* pCommand, Handle<Texture> handle)
 	{
 		Texture& texture{ g_texturePool.Get(handle) };
 		if (texture.GetState() != D3D12_RESOURCE_STATE_RENDER_TARGET)
@@ -1689,7 +1770,7 @@ namespace Dune::Graphics
 		pCommand->pCommandList->ClearRenderTargetView(texture.GetRTV().cpuAdress, texture.GetClearValue(), 0, nullptr);
 	}
 
-	void ClearRenderTarget(Command* pCommand, View* pViewInterface)
+	void ClearRenderTarget(DirectCommand* pCommand, View* pViewInterface)
 	{
 		ViewInternal* pView{ ((ViewInternal*)pViewInterface) };
 		if (pView->GetCurrentBackBufferState() != D3D12_RESOURCE_STATE_RENDER_TARGET)
@@ -1702,7 +1783,7 @@ namespace Dune::Graphics
 		pCommand->pCommandList->ClearRenderTargetView(pView->GetCurrentBackBufferView().cpuAdress, pView->GetBackBufferClearValue(), 0, nullptr);
 	}
 
-	void ClearDepthBuffer(Command* pCommand, Handle<Texture> handle)
+	void ClearDepthBuffer(DirectCommand* pCommand, Handle<Texture> handle)
 	{
 		Texture& texture{ g_texturePool.Get(handle) };
 
@@ -1716,24 +1797,24 @@ namespace Dune::Graphics
 		pCommand->pCommandList->ClearDepthStencilView(texture.GetDSV().cpuAdress, D3D12_CLEAR_FLAG_DEPTH, texture.GetClearValue()[0], 0, 0, nullptr);
 	}
 
-	void PushGraphicsConstants(Command* pCommand, dU32 slot, void* pData, dU32 byteSize)
+	void PushGraphicsConstants(DirectCommand* pCommand, dU32 slot, void* pData, dU32 byteSize)
 	{
 		pCommand->pCommandList->SetGraphicsRoot32BitConstants(slot, byteSize / 4, pData, 0);
 	}
 
-	void PushGraphicsBuffer(Command* pCommand, dU32 slot, Handle<Buffer> handle)
+	void PushGraphicsBuffer(DirectCommand* pCommand, dU32 slot, Handle<Buffer> handle)
 	{
 		Assert(handle.IsValid());
 		pCommand->pCommandList->SetGraphicsRootConstantBufferView(slot, g_bufferPool.Get(handle).GetGPUAdress());
 	}
 
-	void PushGraphicsResource(Command* pCommand, dU32 slot, Handle<Buffer> handle)
+	void PushGraphicsResource(DirectCommand* pCommand, dU32 slot, Handle<Buffer> handle)
 	{
 		Assert(handle.IsValid());
 		pCommand->pCommandList->SetGraphicsRootShaderResourceView(slot, g_bufferPool.Get(handle).GetGPUAdress());
 	}
 
-	void BindGraphicsTexture(Command* pCommand, dU32 slot, Handle<Texture> handle)
+	void BindGraphicsTexture(DirectCommand* pCommand, dU32 slot, Handle<Texture> handle)
 	{
 		Assert(handle.IsValid());
 		Texture& texture{ g_texturePool.Get(handle) };
@@ -1746,19 +1827,19 @@ namespace Dune::Graphics
 		pCommand->pCommandList->SetGraphicsRootDescriptorTable(slot, texture.GetSRV().gpuAdress);
 	}
 
-	void BindIndexBuffer(Command* pCommand, Handle<Buffer> handle)
+	void BindIndexBuffer(DirectCommand* pCommand, Handle<Buffer> handle)
 	{
 		Assert(handle.IsValid());
 		pCommand->pCommandList->IASetIndexBuffer(&g_bufferPool.Get(handle).GetIndexBufferView());
 	}
 
-	void BindVertexBuffer(Command* pCommand, Handle<Buffer> handle)
+	void BindVertexBuffer(DirectCommand* pCommand, Handle<Buffer> handle)
 	{
 		Assert(handle.IsValid());
 		pCommand->pCommandList->IASetVertexBuffers(0, 1, &g_bufferPool.Get(handle).GetVertexBufferView());
 	}
 
-	void DrawIndexedInstanced(Command* pCommand, dU32 indexCount, dU32 instanceCount)
+	void DrawIndexedInstanced(DirectCommand* pCommand, dU32 indexCount, dU32 instanceCount)
 	{
 		pCommand->pCommandList->DrawIndexedInstanced(indexCount, instanceCount, 0, 0, 0);
 	}
