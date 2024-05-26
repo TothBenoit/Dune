@@ -1470,7 +1470,12 @@ namespace Dune::Graphics
 			psoDesc.PS.BytecodeLength = (pPSBlob) ? pPSBlob->GetBufferSize() : 0;
 			psoDesc.PS.pShaderBytecode = (pPSBlob) ? pPSBlob->GetBufferPointer() : nullptr;
 			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-			psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+			psoDesc.RasterizerState.FillMode = (desc.rasterizerState.bWireframe) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
+			psoDesc.RasterizerState.CullMode = (D3D12_CULL_MODE) desc.rasterizerState.cullingMode;
+			psoDesc.RasterizerState.DepthBias = desc.rasterizerState.depthBias;
+			psoDesc.RasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
+			psoDesc.RasterizerState.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias;
+			psoDesc.RasterizerState.DepthClipEnable = desc.rasterizerState.bDepthClipEnable;
 			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 			psoDesc.DepthStencilState.DepthEnable = desc.depthStencilState.bDepthEnabled;

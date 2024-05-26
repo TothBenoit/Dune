@@ -279,6 +279,23 @@ namespace Dune::Graphics
 
 	// Graphics Pipeline
 
+	enum class ECullingMode
+	{
+		NONE = 1,
+		FRONT = 2,
+		BACK = 3
+	};
+
+	struct RasterizerState
+	{
+		ECullingMode cullingMode { ECullingMode::BACK };
+		dS32 depthBias { 0 };
+		float depthBiasClamp { 0.0f };
+		float slopeScaledDepthBias { 0.0f };
+		bool bDepthClipEnable : 1 { true };
+		bool bWireframe : 1 { false };
+	};
+
 	enum class ECompFunc
 	{
 		NONE,
@@ -317,6 +334,7 @@ namespace Dune::Graphics
 		BindingLayout			bindingLayout;
 		// TODO : Use span
 		dVector<VertexInput>	inputLayout;
+		RasterizerState			rasterizerState;
 		DepthStencilState		depthStencilState;
 		// TODO : Use span or array[8] like dx12
 		dVector<EFormat>		renderTargetsFormat;
