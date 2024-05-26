@@ -109,6 +109,8 @@
     <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\ECS\Components\BaseComponent.h" />
+    <ClInclude Include="include\Dune\Common\Family.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">

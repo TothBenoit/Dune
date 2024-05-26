@@ -13,10 +13,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Dune\Common\Family.h" />
     <ClInclude Include="include\Dune\Common\Handle.h" />
     <ClInclude Include="include\Dune\Common\ID.h" />
     <ClInclude Include="include\Dune\Common\Macro.h" />
     <ClInclude Include="include\Dune\Common\Pool.h" />
+    <ClInclude Include="include\Dune\Core\ECS\Components\BaseComponent.h" />
     <ClInclude Include="include\Dune\Core\ECS\Components\BindingComponent.h" />
     <ClInclude Include="include\Dune\Core\ECS\Components\ComponentContainer.h" />
     <ClInclude Include="include\Dune\Core\ECS\Components\DirectionalLightComponent.h" />

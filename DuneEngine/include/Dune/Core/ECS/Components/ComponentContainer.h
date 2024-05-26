@@ -8,6 +8,11 @@ namespace Dune
 	class ComponentContainer
 	{
 	public:
+
+		ComponentContainer() = default;
+		~ComponentContainer() = default;
+		DISABLE_COPY_AND_MOVE(ComponentContainer);
+
 		void Initialize(dU32 reservedCount)
 		{
 			Assert(!m_isInitialized);

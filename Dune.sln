@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuneEditor", "DuneEditor\Du
 		{6423B652-03DA-48CD-8F13-3F946A11EB77} = {6423B652-03DA-48CD-8F13-3F946A11EB77}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ThirdParties", "ThirdParties", "{834F0B89-F32F-4423-A331-71B876C1B349}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -46,6 +48,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6423B652-03DA-48CD-8F13-3F946A11EB77} = {834F0B89-F32F-4423-A331-71B876C1B349}
+		{31FBDCBA-D741-46E6-B840-5E8E96021BDA} = {834F0B89-F32F-4423-A331-71B876C1B349}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DECCD3B3-ADFA-4CC6-AFBE-9135A15220D1}
