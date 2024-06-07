@@ -106,20 +106,20 @@ namespace Dune::Graphics
 			pCopyCommandList->Close();
 			dVector<ID3D12CommandList*> ppCommandLists{ pCopyCommandList };
 			pCopyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-			pCopyFence->Signal(++copyFenceValue);
+			pCopyCommandQueue->Signal(pCopyFence, ++copyFenceValue);
 			WaitForCopy();
 		}
 
-		void UploadTexture(ID3D12Resource* pDest, ID3D12Resource* pUploadBuffer, D3D12_SUBRESOURCE_DATA* pSrcData)
+		void UploadTexture(ID3D12Resource* pDest, ID3D12Resource* pUploadBuffer, dU32 uploadByteOffset, dU32 firstSubresource, dU32 subresourceCount, D3D12_SUBRESOURCE_DATA* pSrcData)
 		{
 			ThrowIfFailed(pCopyCommandAllocator->Reset());
 			ThrowIfFailed(pCopyCommandList->Reset(pCopyCommandAllocator, nullptr));
 
-			UpdateSubresources(pCopyCommandList, pDest, pUploadBuffer, 0, 0, 1, pSrcData);
+			UpdateSubresources(pCopyCommandList, pDest, pUploadBuffer, uploadByteOffset, firstSubresource, subresourceCount, pSrcData);
 			pCopyCommandList->Close();
 			dVector<ID3D12CommandList*> ppCommandLists{ pCopyCommandList };
 			pCopyCommandQueue->ExecuteCommandLists(static_cast<UINT>(ppCommandLists.size()), ppCommandLists.data());
-			pCopyFence->Signal(++copyFenceValue);
+			pCopyCommandQueue->Signal(pCopyFence, ++copyFenceValue);
 			WaitForCopy();
 		}
 
@@ -680,7 +680,7 @@ namespace Dune::Graphics
 		ID3D12GraphicsCommandList* pCommandList{ pCommand->pCommandList };
 		pCommandList->Close();
 		pDevice->pComputeCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&pCommandList);
-		pDevice->pComputeFence->Signal(++pDevice->computeFenceValue);
+		pDevice->pComputeCommandQueue->Signal(pDevice->pComputeFence, ++pDevice->computeFenceValue);
 		return pDevice->computeFenceValue;
 	}
 
@@ -689,7 +689,7 @@ namespace Dune::Graphics
 		ID3D12GraphicsCommandList* pCommandList{ pCommand->pCommandList };
 		pCommandList->Close();
 		pDevice->pCopyCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&pCommandList);
-		pDevice->pCopyFence->Signal(++pDevice->copyFenceValue);
+		pDevice->pCopyCommandQueue->Signal(pDevice->pCopyFence, ++pDevice->copyFenceValue);		
 		return pDevice->copyFenceValue;
 	}
 
@@ -1077,7 +1077,7 @@ namespace Dune::Graphics
 					IID_PPV_ARGS(&pUploadBuffer)));
 
 				D3D12_SUBRESOURCE_DATA srcData{ .pData = desc.pData, .RowPitch = (dU32)Utils::AlignTo(desc.byteSize / desc.dimensions[1], D3D12_TEXTURE_DATA_PITCH_ALIGNMENT), .SlicePitch = (dU32)desc.byteSize};
-				m_pView->GetDevice()->UploadTexture(m_pTexture, pUploadBuffer, &srcData);
+				m_pView->GetDevice()->UploadTexture(m_pTexture, pUploadBuffer, 0, 0, 1, &srcData);
 				pUploadBuffer->Release();
 			}
 
