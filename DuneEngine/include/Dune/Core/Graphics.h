@@ -201,7 +201,6 @@ namespace Dune::Graphics
 		float clearValue[4]{0.f, 0.f, 0.f, 0.f};
 		View* pView{ nullptr };
 		void* pData{ nullptr };
-		dU64 byteSize{ 0 };
 	};
 
 	[[nodiscard]] Handle<Texture>	CreateTexture(const TextureDesc& desc);

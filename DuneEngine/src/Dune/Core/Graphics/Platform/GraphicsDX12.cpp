@@ -1066,8 +1066,11 @@ namespace Dune::Graphics
 			if (desc.pData)
 			{
 				D3D12_HEAP_PROPERTIES uploadHeapProps{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-				ID3D12Resource* pUploadBuffer{ nullptr };				
-				D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(Utils::AlignTo(desc.byteSize, 512)) };
+				ID3D12Resource* pUploadBuffer{ nullptr };
+				dU64 byteSize = 0;
+				D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
+				pDevice->GetCopyableFootprints(&textureResourceDesc, 0, 1, 0, &layout, nullptr, nullptr, &byteSize);
+				D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(byteSize) };
 				ThrowIfFailed(pDevice->CreateCommittedResource(
 					&uploadHeapProps,
 					D3D12_HEAP_FLAG_NONE,
@@ -1076,7 +1079,7 @@ namespace Dune::Graphics
 					nullptr,
 					IID_PPV_ARGS(&pUploadBuffer)));
 
-				D3D12_SUBRESOURCE_DATA srcData{ .pData = desc.pData, .RowPitch = (dU32)Utils::AlignTo(desc.byteSize / desc.dimensions[1], D3D12_TEXTURE_DATA_PITCH_ALIGNMENT), .SlicePitch = (dU32)desc.byteSize};
+				D3D12_SUBRESOURCE_DATA srcData{ .pData = desc.pData, .RowPitch = (LONG_PTR)layout.Footprint.RowPitch, .SlicePitch = (LONG_PTR)byteSize};
 				m_pView->GetDevice()->UploadTexture(m_pTexture, pUploadBuffer, 0, 0, 1, &srcData);
 				pUploadBuffer->Release();
 			}

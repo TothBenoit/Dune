@@ -167,14 +167,14 @@ void Test(Graphics::Device* pDevice)
 	Assert( result == Graphics::DDSResult::ESucceed );
 	void* pData = ddsTexture.GetData();
 	const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
-	Handle<Graphics::Texture> texture = Graphics::CreateTexture({ .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * ( pHeader->depth + 1 ) * ( pHeader->pixelFormat.size / 8 ) });
+	Handle<Graphics::Texture> texture = Graphics::CreateTexture({ .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData });
 	ddsTexture.Destroy();
 
 	result = ddsTexture.Load("res\\testNormal.DDS");
 	Assert( result == Graphics::DDSResult::ESucceed );
 	pData = ddsTexture.GetData();
 	pHeader = ddsTexture.GetHeader();
-	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData, .byteSize = pHeader->height * pHeader->width * (pHeader->depth + 1) * (pHeader->pixelFormat.size / 8) });
+	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData });
 	ddsTexture.Destroy();
 
 	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };	
