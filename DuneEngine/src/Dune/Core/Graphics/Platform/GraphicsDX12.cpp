@@ -57,6 +57,77 @@ namespace Dune::Graphics
 		bool m_bIsShaderVisible{ false };
 	};
 
+	struct TempBuffer
+	{
+		ID3D12Resource* pResource{ nullptr };
+		dU8* pCpuAdress{ nullptr };
+		dU64 offset{ 0 };
+	};
+
+	class TempAllocator
+	{
+	public:
+		void Initialize(ID3D12Device* pDevice, dU64 byteSize)
+		{
+			Assert(!m_pResource);
+
+			D3D12_HEAP_PROPERTIES heapsProps{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
+			D3D12_RESOURCE_DESC resourceDesc{};
+			resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+			resourceDesc.Width = dU32(byteSize);
+			resourceDesc.Height = 1;
+			resourceDesc.DepthOrArraySize = 1;
+			resourceDesc.MipLevels = 1;
+			resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+			resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+			resourceDesc.SampleDesc.Count = 1;
+			resourceDesc.SampleDesc.Quality = 0;
+			resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			resourceDesc.Alignment = 0;
+
+			ThrowIfFailed(pDevice->CreateCommittedResource(&heapsProps, D3D12_HEAP_FLAG_NONE, &resourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pResource)));
+			D3D12_RANGE readRange{};
+			ThrowIfFailed(m_pResource->Map(0, &readRange, reinterpret_cast<void**>(&m_pCpuMemory)));
+			m_capacity = byteSize;
+		}
+
+		void Shutdown()
+		{
+			Assert(m_pResource);
+			m_pResource->Release();
+			m_pResource = nullptr;
+			m_pCpuMemory = nullptr;
+			m_capacity = 0;
+			m_offset = 0;
+		}
+
+		TempBuffer Allocate(dU64 byteSize)
+		{	
+			dU64 offset = m_offset + byteSize;
+			// TODO : Handle resize
+			Assert(offset < m_capacity);		
+	
+			TempBuffer tempBuffer{};
+			tempBuffer.pResource = m_pResource;
+			tempBuffer.pCpuAdress = m_pCpuMemory + m_offset;
+			tempBuffer.offset = m_offset;
+			m_offset = offset;		
+
+			return tempBuffer;
+		}
+
+		void Reset()
+		{
+			m_offset = 0;
+		}
+
+	private:
+		ID3D12Resource* m_pResource { nullptr };
+		dU8* m_pCpuMemory{ nullptr };
+		dU64 m_capacity{ 0 };
+		dU64 m_offset{ 0 };
+	};
+
 	struct DirectCommand
 	{
 		dU32 commandIndex{ 0 };
@@ -110,7 +181,7 @@ namespace Dune::Graphics
 			WaitForCopy();
 		}
 
-		void UploadTexture(ID3D12Resource* pDest, ID3D12Resource* pUploadBuffer, dU32 uploadByteOffset, dU32 firstSubresource, dU32 subresourceCount, D3D12_SUBRESOURCE_DATA* pSrcData)
+		void UploadTexture(ID3D12Resource* pDest, ID3D12Resource* pUploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 subresourceCount, D3D12_SUBRESOURCE_DATA* pSrcData)
 		{
 			ThrowIfFailed(pCopyCommandAllocator->Reset());
 			ThrowIfFailed(pCopyCommandList->Reset(pCopyCommandAllocator, nullptr));
@@ -440,6 +511,7 @@ namespace Dune::Graphics
 			m_pBackBuffers = new ID3D12Resource*[m_backBufferCount];
 			m_pBackBufferViews = new DescriptorHandle[m_backBufferCount];
 			m_pBackBufferStates = new D3D12_RESOURCE_STATES[m_backBufferCount];
+			m_pTempAllocators = new TempAllocator[m_backBufferCount];
 			for (UINT i = 0; i < m_backBufferCount; i++)
 			{
 				m_pBackBufferViews[i] = m_pDeviceInterface->rtvHeap.Allocate();
@@ -447,6 +519,7 @@ namespace Dune::Graphics
 				pDevice->CreateRenderTargetView(m_pBackBuffers[i], nullptr, m_pBackBufferViews[i].cpuAdress);
 				NameDXObjectIndexed(m_pBackBuffers[i], i, L"BackBuffers");
 				m_pBackBufferStates[i] = D3D12_RESOURCE_STATE_COMMON;
+				m_pTempAllocators[i].Initialize(pDevice, 64 * 1024 * 1024 );
 			}
 			m_frameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 			m_pCommand = CreateDirectCommand({ .pView = this });
@@ -460,6 +533,7 @@ namespace Dune::Graphics
 				m_pBackBuffers[i]->Release();
 				m_pDeviceInterface->rtvHeap.Free(m_pBackBufferViews[i]);
 				ReleaseDyingResources(i);
+				m_pTempAllocators[i].Shutdown();
 			}
 			DestroyCommand(m_pCommand);
 
@@ -467,6 +541,7 @@ namespace Dune::Graphics
 			delete[] m_pBackBufferStates;
 			delete[] m_pBackBufferViews;
 			delete[] m_pBackBuffers;
+			delete[] m_pTempAllocators;
 			m_pSwapChain->Release();
 			
 			m_directFenceEvent.Close();
@@ -523,6 +598,7 @@ namespace Dune::Graphics
 		{
 			WaitForFrame(m_frameIndex);
 			ReleaseDyingResources(m_frameIndex);
+			m_pTempAllocators[m_frameIndex].Reset();
 		}
 
 		void SubmitCommand(DirectCommand* pCommand)
@@ -616,6 +692,7 @@ namespace Dune::Graphics
 		[[nodiscard]] dU32 GetFrameCount() const { return m_backBufferCount; }
 		[[nodiscard]] dU32 GetFrameIndex() const { return m_frameIndex; }
 		[[nodiscard]] dU64 GetElaspedFrame() const { return m_elapsedFrame; }
+		[[nodiscard]] TempAllocator& GetTempAllocator() { return m_pTempAllocators[m_frameIndex]; }
 
 	private:
 		void(*m_pOnResize)(View*, void*) { nullptr };
@@ -634,9 +711,11 @@ namespace Dune::Graphics
 
 		dU32 m_backBufferCount{ 0 };
 		dU32 m_frameIndex{ 0 };
-		dU64 m_elapsedFrame{ 0 };
+		dU64 m_elapsedFrame{ 0 };		
 
 		DirectCommand* m_pCommand{ nullptr };
+
+		TempAllocator* m_pTempAllocators{ nullptr };
 
 		dVector<IUnknown*>* m_dyingResources;
 	};
@@ -731,9 +810,13 @@ namespace Dune::Graphics
 			Assert(byteSize <= m_byteSize);
 
 			dU64 bufferOffset{ CycleBuffer() };
-			memcpy(m_cpuAdress, pData, byteSize);
+
+			TempAllocator& allocator = m_pView->GetTempAllocator();
+			TempBuffer uploadBuffer = allocator.Allocate(m_byteSize);
+
+			memcpy(uploadBuffer.pCpuAdress, pData, byteSize);
 			m_pView->GetDevice()->WaitForCopy();
-			m_pView->GetDevice()->CopyBufferRegion(m_pBuffer, bufferOffset + byteOffset, m_pUploadBuffer, 0, byteSize);
+			m_pView->GetDevice()->CopyBufferRegion(m_pBuffer, bufferOffset + byteOffset, uploadBuffer.pResource, uploadBuffer.offset, byteSize);
 		}
 
 	private:
@@ -789,41 +872,13 @@ namespace Dune::Graphics
 				if (desc.pData)
 					memcpy(m_cpuAdress, desc.pData, m_byteSize);
 			}
-			else
-			{
-				heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-				resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
-
-				D3D12_RESOURCE_DESC uploadResourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(m_byteSize) };
-				ThrowIfFailed(pDeviceInterface->pDevice->CreateCommittedResource(
-					&heapProps,
-					D3D12_HEAP_FLAG_NONE,
-					&uploadResourceDesc,
-					resourceState,
-					nullptr,
-					IID_PPV_ARGS(&m_pUploadBuffer)));
-				m_pUploadBuffer->SetName(L"UploadBuffer");
-
-				D3D12_RANGE readRange{};
-				ThrowIfFailed(m_pUploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_cpuAdress)));
-
-				if (m_memory != EBufferMemory::GPUStatic)
-				{
-					if (desc.pData)
-					{
-						memcpy(m_cpuAdress, desc.pData, m_byteSize);
-						m_pView->GetDevice()->WaitForCopy();
-						m_pView->GetDevice()->CopyBufferRegion(m_pBuffer, 0, m_pUploadBuffer, 0, m_byteSize);
-					}
-				}
-				else
-				{
-					Assert(desc.pData);
-					memcpy(m_cpuAdress, desc.pData, m_byteSize);
-					m_pView->GetDevice()->WaitForCopy();
-					m_pView->GetDevice()->CopyBufferRegion(m_pBuffer, 0, m_pUploadBuffer, 0, m_byteSize);
-					m_pUploadBuffer->Release();
-				}
+			else if ( desc.pData )
+			{				
+				TempAllocator& allocator = m_pView->GetTempAllocator();
+				TempBuffer uploadBuffer = allocator.Allocate(m_byteSize);
+				memcpy(uploadBuffer.pCpuAdress, desc.pData, m_byteSize);
+				m_pView->GetDevice()->WaitForCopy();
+				m_pView->GetDevice()->CopyBufferRegion(m_pBuffer, 0, uploadBuffer.pResource, uploadBuffer.offset, m_byteSize);
 			}
 		}
 
@@ -837,11 +892,6 @@ namespace Dune::Graphics
 				for (dU32 i = 0u; i < viewCount; i++)
 					m_pView->GetDevice()->srvHeap.Free(m_pDescriptors[i]);
 				delete[] m_pDescriptors;
-			}
-
-			if (m_memory == EBufferMemory::GPU)
-			{
-				m_pUploadBuffer->Release();
 			}
 		}
 		DISABLE_COPY_AND_MOVE(Buffer);
@@ -929,7 +979,6 @@ namespace Dune::Graphics
 		friend Pool<Buffer, Buffer>;
 
 		dU8*				m_cpuAdress;
-		ID3D12Resource*		m_pUploadBuffer;
 		ID3D12Resource*		m_pBuffer;
 		const EBufferUsage	m_usage;
 		const EBufferMemory m_memory;
@@ -1065,23 +1114,15 @@ namespace Dune::Graphics
 
 			if (desc.pData)
 			{
-				D3D12_HEAP_PROPERTIES uploadHeapProps{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-				ID3D12Resource* pUploadBuffer{ nullptr };
 				dU64 byteSize = 0;
 				D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
 				pDevice->GetCopyableFootprints(&textureResourceDesc, 0, 1, 0, &layout, nullptr, nullptr, &byteSize);
-				D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(byteSize) };
-				ThrowIfFailed(pDevice->CreateCommittedResource(
-					&uploadHeapProps,
-					D3D12_HEAP_FLAG_NONE,
-					&resourceDesc,
-					D3D12_RESOURCE_STATE_COMMON,
-					nullptr,
-					IID_PPV_ARGS(&pUploadBuffer)));
+
+				TempAllocator& allocator = m_pView->GetTempAllocator();
+				TempBuffer uploadBuffer = allocator.Allocate(byteSize);
 
 				D3D12_SUBRESOURCE_DATA srcData{ .pData = desc.pData, .RowPitch = (LONG_PTR)layout.Footprint.RowPitch, .SlicePitch = (LONG_PTR)byteSize};
-				m_pView->GetDevice()->UploadTexture(m_pTexture, pUploadBuffer, 0, 0, 1, &srcData);
-				pUploadBuffer->Release();
+				m_pView->GetDevice()->UploadTexture(m_pTexture, uploadBuffer.pResource, uploadBuffer.offset, 0, 1, &srcData);
 			}
 
 			switch (m_usage)
