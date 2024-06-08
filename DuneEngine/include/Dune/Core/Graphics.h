@@ -197,6 +197,7 @@ namespace Dune::Graphics
 
 		ETextureUsage usage{ ETextureUsage::RTV };
 		dU32 dimensions[3]{ 1, 1, 1 };
+		dU32 mipLevels{ 1 };
 		EFormat	format{ EFormat::R8G8B8A8_UNORM };
 		float clearValue[4]{0.f, 0.f, 0.f, 0.f};
 		View* pView{ nullptr };

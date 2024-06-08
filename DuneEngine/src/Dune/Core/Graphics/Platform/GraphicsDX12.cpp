@@ -1094,7 +1094,7 @@ namespace Dune::Graphics
 				m_dimensions[0],
 				m_dimensions[1],
 				m_dimensions[2],
-				1,
+				desc.mipLevels,
 				format,
 				1,
 				0,
@@ -1115,14 +1115,30 @@ namespace Dune::Graphics
 			if (desc.pData)
 			{
 				dU64 byteSize = 0;
-				D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
-				pDevice->GetCopyableFootprints(&textureResourceDesc, 0, 1, 0, &layout, nullptr, nullptr, &byteSize);
+				dU32 subresourceCount = desc.mipLevels;
+				D3D12_PLACED_SUBRESOURCE_FOOTPRINT *pLayouts = new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[subresourceCount];
+				dU32* pRowsCount = new dU32[subresourceCount];
+				dU64* pRowsSizeInBytes = new dU64[subresourceCount];
+				pDevice->GetCopyableFootprints(&textureResourceDesc, 0, subresourceCount, 0, pLayouts, pRowsCount, pRowsSizeInBytes, &byteSize);
 
 				TempAllocator& allocator = m_pView->GetTempAllocator();
 				TempBuffer uploadBuffer = allocator.Allocate(byteSize);
 
-				D3D12_SUBRESOURCE_DATA srcData{ .pData = desc.pData, .RowPitch = (LONG_PTR)layout.Footprint.RowPitch, .SlicePitch = (LONG_PTR)byteSize};
-				m_pView->GetDevice()->UploadTexture(m_pTexture, uploadBuffer.pResource, uploadBuffer.offset, 0, 1, &srcData);
+				D3D12_SUBRESOURCE_DATA* pSrcDatas = new D3D12_SUBRESOURCE_DATA[subresourceCount];
+				dU64 previousSlice = 0;
+				for (dU32 i = 0; i < subresourceCount; i++)
+				{
+					pSrcDatas[i] = { .pData = (void*)(((dU64)desc.pData) + previousSlice), .RowPitch = (LONG_PTR)pLayouts[i].Footprint.RowPitch, .SlicePitch = (LONG_PTR)pLayouts[i].Footprint.RowPitch * ( pRowsCount[i] - 1 ) + (dU32)pRowsSizeInBytes[i]};
+					previousSlice += (LONG_PTR)pLayouts[i].Footprint.RowPitch * (pRowsCount[i] - 1) + pRowsSizeInBytes[i];
+				}
+				
+				Assert(previousSlice <= byteSize);				
+				m_pView->GetDevice()->UploadTexture(m_pTexture, uploadBuffer.pResource, uploadBuffer.offset, 0, subresourceCount, pSrcDatas);
+
+				delete[] pLayouts;
+				delete[] pSrcDatas;
+				delete[] pRowsCount;
+				delete[] pRowsSizeInBytes;
 			}
 
 			switch (m_usage)
@@ -1207,7 +1223,7 @@ namespace Dune::Graphics
 			{
 				srvDesc.Texture2DArray.ArraySize = m_dimensions[2];
 				srvDesc.Texture2DArray.FirstArraySlice = 0;
-				srvDesc.Texture2DArray.MipLevels = 1;
+				srvDesc.Texture2DArray.MipLevels = desc.mipLevels;
 				srvDesc.Texture2DArray.MostDetailedMip = 0;
 				srvDesc.Texture2DArray.PlaneSlice = 0;
 				srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
@@ -1215,7 +1231,7 @@ namespace Dune::Graphics
 			}
 			else
 			{
-				srvDesc.Texture2D.MipLevels = 1;
+				srvDesc.Texture2D.MipLevels = desc.mipLevels;
 				srvDesc.Texture2D.MostDetailedMip = 0;
 				srvDesc.Texture2D.PlaneSlice = 0;
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;

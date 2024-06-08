@@ -163,18 +163,18 @@ void Test(Graphics::Device* pDevice)
 	const Graphics::Mesh& mesh = Graphics::GetMesh(cube);
 
 	Graphics::DDSTexture ddsTexture;
-	Graphics::DDSResult result = ddsTexture.Load("res\\testAlbedo.DDS");
+	Graphics::DDSResult result = ddsTexture.Load("res\\testAlbedoMips.DDS");
 	Assert( result == Graphics::DDSResult::ESucceed );
 	void* pData = ddsTexture.GetData();
 	const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
-	Handle<Graphics::Texture> texture = Graphics::CreateTexture({ .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData });
+	Handle<Graphics::Texture> texture = Graphics::CreateTexture({ .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData });
 	ddsTexture.Destroy();
 
-	result = ddsTexture.Load("res\\testNormal.DDS");
+	result = ddsTexture.Load("res\\testNormalMips.DDS");
 	Assert( result == Graphics::DDSResult::ESucceed );
 	pData = ddsTexture.GetData();
 	pHeader = ddsTexture.GetHeader();
-	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData });
+	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData });
 	ddsTexture.Destroy();
 
 	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };	
