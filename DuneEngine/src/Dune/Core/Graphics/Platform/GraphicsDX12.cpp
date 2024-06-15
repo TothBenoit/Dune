@@ -560,9 +560,6 @@ namespace Dune::Graphics
 				.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE
 			};
 
-			ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pDirectFence)));
-			NameDXObject(m_pDirectFence, L"DirectFence");
-
 			m_directFenceValues = new dU64[m_backBufferCount];
 			for (dU32 i = 0; i < m_backBufferCount; i++)
 			{
@@ -631,7 +628,6 @@ namespace Dune::Graphics
 
 			m_pSwapChain->Release();
 			
-			m_pDirectFence->Release();
 			delete[] m_directFenceValues;
 
 			WindowInternal* pWindow = (WindowInternal*) m_pWindow;
@@ -697,8 +693,8 @@ namespace Dune::Graphics
 			}
 
 			ThrowIfFailed(m_pSwapChain->Present(1, 0));
-			ThrowIfFailed(m_pDeviceInterface->pDirectCommandQueue->Signal(m_pDirectFence, m_elapsedFrame));
-			m_directFenceValues[m_frameIndex] = m_elapsedFrame;
+			ThrowIfFailed(m_pDeviceInterface->pDirectCommandQueue->Signal(m_pDeviceInterface->pDirectFence, ++m_pDeviceInterface->directFenceValue));
+			m_directFenceValues[m_frameIndex] = m_pDeviceInterface->directFenceValue;
 			m_elapsedFrame++;
 			m_frameIndex = (m_frameIndex + 1) % m_backBufferCount;
 		}
@@ -715,12 +711,10 @@ namespace Dune::Graphics
 
 		void WaitForFrame(const dU32 frameIndex)
 		{
-			Assert(m_pDirectFence);
-
 			const dU64 frameFenceValue{ m_directFenceValues[frameIndex] };
-			if (m_pDirectFence->GetCompletedValue() < frameFenceValue)
+			if (m_pDeviceInterface->pDirectFence->GetCompletedValue() < frameFenceValue)
 			{
-				ThrowIfFailed(m_pDirectFence->SetEventOnCompletion(frameFenceValue, NULL))
+				ThrowIfFailed(m_pDeviceInterface->pDirectFence->SetEventOnCompletion(frameFenceValue, NULL))
 			}
 
 			m_pDeviceInterface->WaitForCopy();
@@ -774,7 +768,6 @@ namespace Dune::Graphics
 		D3D12_RESOURCE_STATES* m_pBackBufferStates{ nullptr };
 		const float	m_backBufferClearValue[4] { 0.f, 0.f, 0.f, 0.f };
 
-		ID3D12Fence* m_pDirectFence;
 		dU64* m_directFenceValues;
 
 		dU32 m_backBufferCount{ 0 };
