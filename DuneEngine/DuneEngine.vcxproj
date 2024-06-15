@@ -74,6 +74,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="include\Dune\Core\Graphics\Shaders\BRDF.hlsli" />
+    <None Include="include\Dune\Core\Graphics\Shaders\Common.hlsli" />
     <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl">
       <FileType>Document</FileType>
     </None>

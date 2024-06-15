@@ -1183,7 +1183,7 @@ namespace Dune::Graphics
 				pDevice->GetCopyableFootprints(&textureResourceDesc, 0, numSubresource, 0, layouts, rowsCount, rowsSizeInBytes, &byteSize);
 
 				RingBufferAllocation allocation;
-				m_pDeviceInterface->ringBufferAllocator.Allocate(allocation, byteSize);
+				m_pDeviceInterface->ringBufferAllocator.Allocate(allocation, (dU32)byteSize);
 
 				D3D12_SUBRESOURCE_DATA srcDatas[16];
 				LONG_PTR prevSlice = 0;
@@ -1448,6 +1448,26 @@ namespace Dune::Graphics
 		}
 	}
 
+	D3D12_STATIC_SAMPLER_DESC AddStaticSampler( dU32 slot, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE wrap, D3D12_COMPARISON_FUNC comp = D3D12_COMPARISON_FUNC_ALWAYS)
+	{
+		D3D12_STATIC_SAMPLER_DESC desc;
+		desc.AddressU = wrap;
+		desc.AddressV = wrap;
+		desc.AddressW = wrap;
+		desc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+		desc.ComparisonFunc = comp;
+		desc.Filter = filter;
+		desc.MaxAnisotropy = 8;
+		desc.MaxLOD = FLT_MAX;
+		desc.MinLOD = 0.0f;
+		desc.RegisterSpace = 1;
+		desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+		desc.ShaderRegister = slot;
+		desc.MipLODBias = 0.0f;
+
+		return desc;
+	}
+
 	ID3D12RootSignature* ComputeRootSignature(ID3D12Device* pDevice, const BindingLayout& layout, D3D12_ROOT_SIGNATURE_FLAGS flags)
 	{
 		// 64 descriptor tables with 3 types of resource at most
@@ -1558,10 +1578,26 @@ namespace Dune::Graphics
 		}
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
-		CD3DX12_STATIC_SAMPLER_DESC1 staticSamplerDesc;
-		staticSamplerDesc.Init(0);
-		staticSamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		rootSignatureDesc.Init_1_1(rootParamCount, rootParameters, 1, (D3D12_STATIC_SAMPLER_DESC*)&staticSamplerDesc, flags);
+		dU32 staticSamplerCount{ 0 };
+		D3D12_STATIC_SAMPLER_DESC staticSamplerDesc[]
+		{
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP),
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER),
+
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP),
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_BORDER),
+
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP),
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_BORDER),
+
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_COMPARISON_FUNC_GREATER),
+			AddStaticSampler(staticSamplerCount++, D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_GREATER)
+		};
+
+		rootSignatureDesc.Init_1_1(rootParamCount, rootParameters, staticSamplerCount, staticSamplerDesc, flags);
 
 		Microsoft::WRL::ComPtr<ID3DBlob> pError{ nullptr };
 		Microsoft::WRL::ComPtr<ID3DBlob> pSignature{ nullptr };

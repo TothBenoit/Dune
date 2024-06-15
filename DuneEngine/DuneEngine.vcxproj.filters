@@ -179,6 +179,8 @@
       <Filter>Dune\Core\Graphics\Shader</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="include\Dune\Core\Graphics\Shaders\Common.hlsli" />
+    <None Include="include\Dune\Core\Graphics\Shaders\BRDF.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">
