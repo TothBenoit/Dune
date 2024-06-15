@@ -5,10 +5,10 @@
 namespace Dune::Graphics
 {
 	class Mesh;
-	class View;
+	struct Device;
 	// TODO : Create custom mesh format to load. 
 	namespace MeshLoader
 	{
-		dVector<Handle<Mesh>> Load(View* pView, const char* path);
+		dVector<Handle<Mesh>> Load(Device* pDevice, const char* path);
 	}
 }

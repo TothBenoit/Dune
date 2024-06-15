@@ -10,7 +10,7 @@
 
 namespace Dune::Graphics
 {
-	View* g_pCurrentView{ nullptr };
+	Device* g_pCurrentDevice{ nullptr };
 
 	void ProcessMesh(const aiMesh* pMesh, dVector<Vertex>& vertices, dVector<dU32>& indices, const aiMatrix4x4& transform)
 	{
@@ -54,7 +54,7 @@ namespace Dune::Graphics
 			indices.reserve(indexCount);
 
 			ProcessMesh(pMesh, vertices, indices, pNode->mTransformation);
-			Handle<Mesh> meshHandle{ Graphics::CreateMesh(g_pCurrentView, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Vertex))};
+			Handle<Mesh> meshHandle{ Graphics::CreateMesh(g_pCurrentDevice, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Vertex))};
 
 			if (meshHandle.IsValid())
 			{
@@ -68,10 +68,10 @@ namespace Dune::Graphics
 		}
 	}
 
-	dVector<Handle<Mesh>> MeshLoader::Load(View* pView, const char* path)
+	dVector<Handle<Mesh>> MeshLoader::Load(Device* pDevice, const char* path)
 	{
-		Assert(pView);
-		g_pCurrentView= pView;
+		Assert(pDevice);
+		g_pCurrentDevice = pDevice;
 		dVector<Handle<Mesh>> meshes;
 		
 		Assimp::Importer importer;

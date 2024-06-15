@@ -65,7 +65,7 @@ static const Vertex cubeVertices[] =
 
 Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
 {
-	const wchar_t* args[] = { L"-Zi", L"-I Shaders\\" };
+	const wchar_t* args[] = { L"-Zi", L"-I Shaders\\", L"-all_resources_bound"};
 
 	Handle<Graphics::Shader> pbrVertexShader =
 		Graphics::CreateShader
@@ -142,11 +142,11 @@ void OnResize(Graphics::View* pView, void* pData)
 	if ( data.depthBuffer->IsValid() )
 	{
 		Graphics::ReleaseTexture(*data.depthBuffer);
-		*data.depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { width, height, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = { 1.f, 1.f, 1.f, 1.f }, .pView = pView });
+		*data.depthBuffer = Graphics::CreateTexture(pView->GetDevice(), { .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { width, height, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = { 1.f, 1.f, 1.f, 1.f } });
 	}
 }
 
-void Test(Graphics::Device* pDevice)
+void Test(Graphics::Device* pDevice, Handle<Graphics::Texture> albedo, Handle<Graphics::Texture> normal, Handle<Graphics::Mesh> cube)
 {
 	g_mutex.lock();
 
@@ -156,36 +156,18 @@ void Test(Graphics::Device* pDevice)
 	Graphics::View* pView{ Graphics::CreateView({.pDevice = pDevice, .pOnResize = OnResize, .pOnResizeData = &onResizeData}) };
 
 	Handle<Graphics::Pipeline> pbrPipeline = CreatePBRPipeline(pDevice);
-	Handle<Graphics::Mesh> cube = Graphics::CreateMesh(pView, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
-
 	Graphics::DirectCommand* pCommand =	Graphics::CreateDirectCommand({ .pView = pView });
-
 	const Graphics::Mesh& mesh = Graphics::GetMesh(cube);
-
-	Graphics::DDSTexture ddsTexture;
-	Graphics::DDSResult result = ddsTexture.Load("res\\testAlbedoMips.DDS");
-	Assert( result == Graphics::DDSResult::ESucceed );
-	void* pData = ddsTexture.GetData();
-	const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
-	Handle<Graphics::Texture> texture = Graphics::CreateTexture({ .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData });
-	ddsTexture.Destroy();
-
-	result = ddsTexture.Load("res\\testNormalMips.DDS");
-	Assert( result == Graphics::DDSResult::ESucceed );
-	pData = ddsTexture.GetData();
-	pHeader = ddsTexture.GetHeader();
-	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture({ .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pView = pView, .pData = pData });
-	ddsTexture.Destroy();
 
 	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };	
 	Graphics::PBRGlobals globals;	
 	Graphics::ComputeViewProjectionMatrix(cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
 	DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
-	Handle<Graphics::Buffer> globalsBuffer = Graphics::CreateBuffer({ .debugName = L"GlobalsBuffer", .byteSize = sizeof(Graphics::PBRGlobals), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &globals, .pView = pView});
+	Handle<Graphics::Buffer> globalsBuffer = Graphics::CreateBuffer( pDevice, { .debugName = L"GlobalsBuffer", .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &globals, .byteSize = sizeof(Graphics::PBRGlobals) });
 	
 	dMatrix initialModel{ DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&cameraController.GetCamera().target)) };
-	Handle<Graphics::Buffer> instanceBuffer = Graphics::CreateBuffer({ .debugName = L"InstanceBuffer", .byteSize = sizeof(Graphics::PBRInstance), .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &initialModel, .pView = pView });
-	depthBuffer = Graphics::CreateTexture({ .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { pWindow->GetWidth(), pWindow->GetHeight(), 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f}, .pView = pView });
+	Handle<Graphics::Buffer> instanceBuffer = Graphics::CreateBuffer(pDevice, { .debugName = L"InstanceBuffer", .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &initialModel, .byteSize = sizeof(Graphics::PBRInstance) });
+	depthBuffer = Graphics::CreateTexture(pDevice, { .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { pWindow->GetWidth(), pWindow->GetHeight(), 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f} });
 
 	Graphics::PBRMaterial material{ .albedo = {0.0f, 1.0f, 0.5f}, .roughness = 1.0f };
 	
@@ -208,24 +190,21 @@ void Test(Graphics::Device* pDevice)
 		Graphics::ComputeViewProjectionMatrix(cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
 		Graphics::MapBuffer(globalsBuffer, &globals, 0, sizeof(Graphics::PBRGlobals));
 		Graphics::PushGraphicsBuffer(pCommand, 0, globalsBuffer);
-		Graphics::BindGraphicsTexture(pCommand, 1, texture);
-		Graphics::BindGraphicsTexture(pCommand, 2, normalTexture);
+		Graphics::BindGraphicsTexture(pCommand, 1, albedo);
+		Graphics::BindGraphicsTexture(pCommand, 2, normal);
 		Graphics::PushGraphicsConstants(pCommand, 3, &material, 16);
 		Graphics::PushGraphicsBuffer(pCommand, 4, instanceBuffer);
 		Graphics::BindIndexBuffer(pCommand, mesh.GetIndexBufferHandle());
 		Graphics::BindVertexBuffer(pCommand, mesh.GetVertexBufferHandle());
 		Graphics::DrawIndexedInstanced(pCommand, mesh.GetIndexCount(), 1);
-		Graphics::SubmitCommand(pView, pCommand);
+		Graphics::SubmitCommand(pDevice, pCommand);
 		Graphics::EndFrame(pView);
 	}
 
 	g_mutex.lock();
-	Graphics::ReleaseMesh(cube);
 	Graphics::ReleaseBuffer(globalsBuffer);
 	Graphics::ReleaseBuffer(instanceBuffer);
 	Graphics::ReleaseTexture(depthBuffer);
-	Graphics::ReleaseTexture(texture);
-	Graphics::ReleaseTexture(normalTexture);
 	Graphics::ReleasePipeline(pbrPipeline);
 	Graphics::DestroyCommand(pCommand);
 	Graphics::DestroyView(pView);
@@ -244,9 +223,26 @@ int main(int argc, char** argv)
 	dU32 testCount{ 5 };
 	tests.reserve(testCount);
 
+	Graphics::DDSTexture ddsTexture;
+	Graphics::DDSResult result = ddsTexture.Load("res\\testAlbedoMips.DDS");
+	Assert(result == Graphics::DDSResult::ESucceed);
+	void* pData = ddsTexture.GetData();
+	const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
+	Handle<Graphics::Texture> texture = Graphics::CreateTexture(pDevice, { .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pData = pData });
+	ddsTexture.Destroy();
+
+	result = ddsTexture.Load("res\\testNormalMips.DDS");
+	Assert(result == Graphics::DDSResult::ESucceed);
+	pData = ddsTexture.GetData();
+	pHeader = ddsTexture.GetHeader();
+	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture(pDevice, { .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pData = pData });
+	ddsTexture.Destroy();
+
+	Handle<Graphics::Mesh> cube = Graphics::CreateMesh(pDevice, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
+
 	for (dU32 i{ 0 }; i < testCount; i++)
 	{
-		tests.emplace_back(std::thread(&Test, pDevice));
+		tests.emplace_back(std::thread(&Test, pDevice, texture, normalTexture, cube));
 	}
 
 	for (dU32 i{ 0 }; i < testCount; i++)
@@ -254,6 +250,9 @@ int main(int argc, char** argv)
 		tests[i].join();
 	}
 
+	Graphics::ReleaseTexture(texture);
+	Graphics::ReleaseTexture(normalTexture);
+	Graphics::ReleaseMesh(cube);
 	Graphics::DestroyDevice(pDevice);
 	Graphics::Shutdown();
 

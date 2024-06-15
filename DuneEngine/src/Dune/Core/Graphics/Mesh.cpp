@@ -4,20 +4,20 @@
 
 namespace Dune::Graphics
 {
-	Mesh::Mesh(View* pView, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
+	Mesh::Mesh(Device* pDevice, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
 		: m_indexCount{ indexCount }
 		, m_vertexCount{ vertexCount }
 	{
-		UploadIndexBuffer(pView, pIndices, indexCount, sizeof(dU16));
-		UploadVertexBuffer(pView, pVertices, vertexCount, vertexByteStride );
+		UploadIndexBuffer(pDevice, pIndices, indexCount, sizeof(dU16));
+		UploadVertexBuffer(pDevice, pVertices, vertexCount, vertexByteStride );
 	}
 
-	Mesh::Mesh(View* pView, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
+	Mesh::Mesh(Device* pDevice, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
 		: m_indexCount{ indexCount }
 		, m_vertexCount{ vertexCount }
 	{
-		UploadIndexBuffer(pView, pIndices, indexCount, sizeof(dU32));
-		UploadVertexBuffer(pView, pVertices, vertexCount, vertexByteStride);
+		UploadIndexBuffer(pDevice, pIndices, indexCount, sizeof(dU32));
+		UploadVertexBuffer(pDevice, pVertices, vertexCount, vertexByteStride);
 	}
 
 	Mesh::~Mesh()
@@ -26,19 +26,19 @@ namespace Dune::Graphics
 		Graphics::ReleaseBuffer(m_indexBufferHandle);
 	}
 
-	void Mesh::UploadIndexBuffer(View* pView, const void* pData, dU32 size, dU32 byteStride)
+	void Mesh::UploadIndexBuffer(Device* pDevice, const void* pData, dU32 size, dU32 byteStride)
 	{
 		Assert(size != 0);
-		BufferDesc desc{ L"IndexBuffer", size * byteStride , EBufferUsage::Index, EBufferMemory::GPUStatic, pData, byteStride, pView };
-		m_indexBufferHandle = Graphics::CreateBuffer(desc);
+		BufferDesc desc{ L"IndexBuffer", EBufferUsage::Index, EBufferMemory::GPUStatic, pData, size * byteStride, byteStride };
+		m_indexBufferHandle = Graphics::CreateBuffer(pDevice, desc);
 		Assert(m_indexBufferHandle.IsValid());
 	}
 
-	void Mesh::UploadVertexBuffer(View* pView, const void* pData, dU32 size, dU32 byteStride)
+	void Mesh::UploadVertexBuffer(Device* pDevice, const void* pData, dU32 size, dU32 byteStride)
 	{
 		Assert(size != 0);
-		BufferDesc desc{ L"VertexBuffer",  size * byteStride, EBufferUsage::Vertex, EBufferMemory::GPUStatic, pData, byteStride, pView };
-		m_vertexBufferHandle = Graphics::CreateBuffer(desc);
+		BufferDesc desc{ L"VertexBuffer",EBufferUsage::Vertex, EBufferMemory::GPUStatic, pData, size * byteStride, byteStride};
+		m_vertexBufferHandle = Graphics::CreateBuffer(pDevice, desc);
 		Assert(m_vertexBufferHandle.IsValid());
 	}
 }

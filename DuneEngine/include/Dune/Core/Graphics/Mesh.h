@@ -11,7 +11,7 @@ namespace Dune
 namespace Dune::Graphics
 {
 	class Buffer;
-	class View;
+	struct Device;
 
 	struct Vertex
 	{
@@ -30,12 +30,12 @@ namespace Dune::Graphics
 		[[nodiscard]] dU32				GetVertexCount() const { return m_vertexCount; }
 
 	private:
-		Mesh(View* pView, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
-		Mesh(View* pView, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
+		Mesh(Device* pDevice, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
+		Mesh(Device* pDevice, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
 		~Mesh();
 
-		void UploadVertexBuffer(View* pView, const void* pData, dU32 size, dU32 byteStride);
-		void UploadIndexBuffer(View* pView, const void* pData, dU32 size, dU32 byteStride);
+		void UploadVertexBuffer(Device* pDevice, const void* pData, dU32 size, dU32 byteStride);
+		void UploadIndexBuffer(Device* pDevice, const void* pData, dU32 size, dU32 byteStride);
 
 	private:
 		friend Pool<Mesh, Mesh>;
