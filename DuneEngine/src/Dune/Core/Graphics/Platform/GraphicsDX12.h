@@ -19,7 +19,7 @@ extern "C" { __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3
 #define ThrowIfFailed(hr) if(FAILED(hr)) { __debugbreak(); assert(false);}
 
 #ifdef _DEBUG
-#define NameDXObject(obj, name) obj->SetName(name); OutputDebugString(name); OutputDebugString(L" has been created \n");
+#define NameDXObject(obj, name) if (name) { obj->SetName(name); OutputDebugString(name); OutputDebugString(L" has been created \n"); }
 #define NameDXObjectIndexed(obj, n, name)						\
 		{																\
 			wchar_t indexedName[128];									\

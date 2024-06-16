@@ -19,6 +19,7 @@
     <ClInclude Include="include\Dune\Common\Pool.h" />
     <ClInclude Include="include\Dune\Core\EngineCore.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />

@@ -223,21 +223,8 @@ int main(int argc, char** argv)
 	dU32 testCount{ 5 };
 	tests.reserve(testCount);
 
-	Graphics::DDSTexture ddsTexture;
-	Graphics::DDSResult result = ddsTexture.Load("res\\testAlbedoMips.DDS");
-	Assert(result == Graphics::DDSResult::ESucceed);
-	void* pData = ddsTexture.GetData();
-	const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
-	Handle<Graphics::Texture> texture = Graphics::CreateTexture(pDevice, { .debugName = L"TestTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pData = pData });
-	ddsTexture.Destroy();
-
-	result = ddsTexture.Load("res\\testNormalMips.DDS");
-	Assert(result == Graphics::DDSResult::ESucceed);
-	pData = ddsTexture.GetData();
-	pHeader = ddsTexture.GetHeader();
-	Handle<Graphics::Texture> normalTexture = Graphics::CreateTexture(pDevice, { .debugName = L"TestNormalTexture", .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = Graphics::EFormat::BC7_UNORM, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pData = pData });
-	ddsTexture.Destroy();
-
+	Handle<Graphics::Texture> texture = Graphics::DDSTexture::CreateTextureFromFile(pDevice, "res\\testAlbedoMips.DDS");
+	Handle<Graphics::Texture> normalTexture = Graphics::DDSTexture::CreateTextureFromFile(pDevice, "res\\testNormalMips.DDS");
 	Handle<Graphics::Mesh> cube = Graphics::CreateMesh(pDevice, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
 
 	for (dU32 i{ 0 }; i < testCount; i++)

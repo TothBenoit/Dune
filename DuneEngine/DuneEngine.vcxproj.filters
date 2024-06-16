@@ -85,6 +85,7 @@
     <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\EngineCore.cpp">

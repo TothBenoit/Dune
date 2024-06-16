@@ -1,6 +1,7 @@
 #include "pch.h"
-#include "Dune/Utilities/DDSLoader.h"
 #include <fstream>
+#include "Dune/Utilities/DDSLoader.h"
+#include "Dune/Core/Graphics.h"
 
 namespace Dune::Graphics 
 {
@@ -57,9 +58,10 @@ namespace Dune::Graphics
 		bool dxt10Header = false;
 		if ( (header.pixelFormat.flags & dU32(DDSPixelFormatFlagBits::FourCC))  && (MakeFourCC('D', 'X', '1', '0') == header.pixelFormat.fourCC ))
 		{
-			if ((sizeof(uint32_t) + sizeof(DDSHeader) + sizeof(DDSHeaderDXT10)) >= dds.size())
+			if ((sizeof(dU32) + sizeof(DDSHeader) + sizeof(DDSHeaderDXT10)) >= dds.size())
 				return DDSResult::EFailedSize;
 			
+			outDDSTexture.m_pHeaderDXT10 = reinterpret_cast<DDSHeaderDXT10*>(dds.data() + sizeof(dU32) + sizeof(DDSHeader));
 			dxt10Header = true;
 		}
 
@@ -74,6 +76,19 @@ namespace Dune::Graphics
 	DDSResult DDSTexture::Load(const char* filePath)
 	{
 		return Load(filePath, *this);
+	}
+
+	Handle<Texture> DDSTexture::CreateTextureFromFile(Device* pDevice, const char* filePath)
+	{
+		Graphics::DDSTexture ddsTexture;
+		Graphics::DDSResult result = ddsTexture.Load(filePath);
+		Assert(result == Graphics::DDSResult::ESucceed && ddsTexture.GetHeaderDXT10());
+		void* pData = ddsTexture.GetData();
+		const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
+		const Graphics::DDSHeaderDXT10* pHeaderDXT10 = ddsTexture.GetHeaderDXT10();
+		Handle<Graphics::Texture> texture = Graphics::CreateTexture(pDevice, { .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = pHeaderDXT10->format, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pData = pData });
+		ddsTexture.Destroy();
+		return texture;
 	}
 
 	void DDSTexture::Destroy()
