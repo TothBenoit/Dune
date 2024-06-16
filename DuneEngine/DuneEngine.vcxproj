@@ -13,19 +13,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Dune\Common\Family.h" />
     <ClInclude Include="include\Dune\Common\Handle.h" />
     <ClInclude Include="include\Dune\Common\ID.h" />
     <ClInclude Include="include\Dune\Common\Macro.h" />
     <ClInclude Include="include\Dune\Common\Pool.h" />
-    <ClInclude Include="include\Dune\Core\ECS\Components\BaseComponent.h" />
-    <ClInclude Include="include\Dune\Core\ECS\Components\BindingComponent.h" />
-    <ClInclude Include="include\Dune\Core\ECS\Components\ComponentContainer.h" />
-    <ClInclude Include="include\Dune\Core\ECS\Components\DirectionalLightComponent.h" />
-    <ClInclude Include="include\Dune\Core\ECS\Components\GraphicsComponent.h" />
-    <ClInclude Include="include\Dune\Core\ECS\Components\PointLightComponent.h" />
-    <ClInclude Include="include\Dune\Core\ECS\Components\TransformComponent.h" />
-    <ClInclude Include="include\Dune\Core\ECS\EntityManager.h" />
     <ClInclude Include="include\Dune\Core\EngineCore.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
@@ -34,7 +25,6 @@
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
-    <ClInclude Include="include\Dune\Core\SceneGraph.h" />
     <ClInclude Include="include\Dune\Core\Graphics.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PostProcessGlobals.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\DirectionalLight.h" />
@@ -54,12 +44,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp" />
-    <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp" />
-    <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp" />
     <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
-    <ClCompile Include="src\Dune\Core\SceneGraph.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Platform\WindowInternal.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.cpp" />

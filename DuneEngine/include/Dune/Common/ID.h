@@ -34,6 +34,4 @@ namespace Dune
 			return GetIndex(id) | (generation << indexBits);
 		}
 	};
-
-	using EntityID = ID::IDType;
 }
