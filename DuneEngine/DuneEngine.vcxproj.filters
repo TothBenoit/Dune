@@ -85,7 +85,12 @@
     <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
+    <ClInclude Include="include\Dune\Core\Engine.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\Format.h">
+      <Filter>Dune\Core\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\EngineCore.cpp">
@@ -127,6 +132,9 @@
     <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp">
       <Filter>Dune\Core\Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Core\Engine.cpp">
+      <Filter>Dune\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl">
@@ -145,8 +153,12 @@
       <Filter>Dune\Core\Graphics\Shader</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="include\Dune\Core\Graphics\Shaders\Common.hlsli" />
-    <None Include="include\Dune\Core\Graphics\Shaders\BRDF.hlsli" />
+    <None Include="include\Dune\Core\Graphics\Shaders\BRDF.hlsli">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
+    </None>
+    <None Include="include\Dune\Core\Graphics\Shaders\Common.hlsli">
+      <Filter>Dune\Core\Graphics\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">
@@ -154,12 +166,6 @@
     </Filter>
     <Filter Include="Dune\Core">
       <UniqueIdentifier>{694541c6-96f2-4f44-ae4e-601e643b4858}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Dune\Core\ECS">
-      <UniqueIdentifier>{3fe98755-a7a4-4c24-8afe-52ccce619281}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Dune\Core\ECS\Component">
-      <UniqueIdentifier>{27edc9e7-5f9e-4480-8392-f8c544145144}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Common">
       <UniqueIdentifier>{b71fb8c9-cd47-4211-8b73-2f3ca412bff7}</UniqueIdentifier>

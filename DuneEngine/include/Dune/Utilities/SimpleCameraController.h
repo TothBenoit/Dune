@@ -9,6 +9,7 @@ namespace Dune
 	class SimpleCameraController
 	{
 	public :
+		SimpleCameraController() = default;
 		SimpleCameraController( const Graphics::Camera& camera );
 
 		void Update(float deltaTime, const Input* pInput);

@@ -1,14 +1,8 @@
 #include <Dune.h>
 #include <thread>
-#include <mutex>
 #include <chrono>
 #include <Dune/Core/Graphics/Shaders/PBR.h>
-#include <Dune/Core/Graphics/Window.h>
-#include <Dune/Core/Input.h>
-#include <Dune/Utilities/DDSLoader.h>
-#include <Dune/Utilities/SimpleCameraController.h>
-
-std::mutex g_mutex; // API is not thread-safe yet
+#include <Dune/Core/Engine.h>
 
 using namespace Dune;
 
@@ -63,152 +57,20 @@ static const Vertex cubeVertices[] =
 	{ { 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f } }, // 23
 };
 
-Handle<Graphics::Pipeline> CreatePBRPipeline(Graphics::Device* pDevice)
-{
-	const wchar_t* args[] = { L"-Zi", L"-I Shaders\\", L"-all_resources_bound"};
+void Test(Renderer* pRenderer, Scene* pScene)
+{	
+	Handle<SceneView> view = pRenderer->CreateSceneView();
+	float dt = 0.f;
+	while (pRenderer->UpdateSceneView(view, dt))
+	{	
+		auto start = std::chrono::high_resolution_clock::now();
 
-	Handle<Graphics::Shader> pbrVertexShader =
-		Graphics::CreateShader
-		({
-			.stage = Graphics::EShaderStage::Vertex,
-			.filePath = L"Shaders\\PBR.hlsl",
-			.entryFunc = L"VSMain",
-			.args = args,
-			.argsCount = _countof(args),
-		});
-
-	Handle<Graphics::Shader> pbrPixelShader =
-		Graphics::CreateShader
-		({
-			.stage = Graphics::EShaderStage::Pixel,
-			.filePath = L"Shaders\\PBR.hlsl",
-			.entryFunc = L"PSMain",
-			.args = args,
-			.argsCount = _countof(args),
-		});
-
-	Handle<Graphics::Pipeline> pbrPipeline =
-		Graphics::CreateGraphicsPipeline
-		({		
-			.vertexShader = pbrVertexShader,
-			.pixelShader = pbrPixelShader,
-			.bindingLayout =
-			{
-				.slots =
-				{
-					{ .type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::All },
-					{ .type = Graphics::EBindingType::Group, .groupDesc = { .resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel},
-					{ .type = Graphics::EBindingType::Group, .groupDesc = { .resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel},
-					{ .type = Graphics::EBindingType::Constant, .byteSize = 16, .visibility = Graphics::EShaderVisibility::Pixel },
-					{ .type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::Vertex },
-				},
-				.slotCount = 5
-			},
-			.inputLayout =
-				{
-					Graphics::VertexInput { .pName = "POSITION", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
-					Graphics::VertexInput { .pName = "NORMAL", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 12, .bPerInstance = false },
-					Graphics::VertexInput { .pName = "TANGENT", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 24, .bPerInstance = false },
-					Graphics::VertexInput { .pName = "UV", .index = 0, .format = Graphics::EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 36, .bPerInstance = false }
-				},
-			.depthStencilState = { .bDepthEnabled = true, .bDepthWrite = true },
-			.renderTargetsFormat = { Graphics::EFormat::R8G8B8A8_UNORM },
-			.depthStencilFormat = Graphics::EFormat::D16_UNORM,
-			.pDevice = pDevice
-		});
-
-	Graphics::ReleaseShader(pbrPixelShader);
-	Graphics::ReleaseShader(pbrVertexShader);
-
-	return pbrPipeline;
-}
-
-struct OnResizeData
-{
-	SimpleCameraController* pCameraController;
-	Handle<Graphics::Texture>* depthBuffer;
-};
-
-void OnResize(Graphics::View* pView, void* pData)
-{
-	OnResizeData& data = *(OnResizeData*)pData;
-	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };
-	dU32 width = pWindow->GetWidth();
-	dU32 height = pWindow->GetHeight();
-
-	if (data.pCameraController != nullptr)
-		data.pCameraController->SetAspectRatio((float)width / (float)height);
-
-	if ( data.depthBuffer->IsValid() )
-	{
-		Graphics::ReleaseTexture(*data.depthBuffer);
-		*data.depthBuffer = Graphics::CreateTexture(pView->GetDevice(), { .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { width, height, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = { 1.f, 1.f, 1.f, 1.f } });
-	}
-}
-
-void Test(Graphics::Device* pDevice, Handle<Graphics::Texture> albedo, Handle<Graphics::Texture> normal, Handle<Graphics::Mesh> cube)
-{
-	g_mutex.lock();
-
-	SimpleCameraController cameraController{ {.position = { 0.0f, 1.0f, -1.0f }, .target = { 0.0f, 0.0f, 0.0f }, } };	
-	Handle<Graphics::Texture> depthBuffer;
-	OnResizeData onResizeData{ .pCameraController = &cameraController, .depthBuffer = &depthBuffer };
-	Graphics::View* pView{ Graphics::CreateView({.pDevice = pDevice, .pOnResize = OnResize, .pOnResizeData = &onResizeData}) };
-
-	Handle<Graphics::Pipeline> pbrPipeline = CreatePBRPipeline(pDevice);
-	Graphics::DirectCommand* pCommand =	Graphics::CreateDirectCommand({ .pView = pView });
-	const Graphics::Mesh& mesh = Graphics::GetMesh(cube);
-
-	const Dune::Graphics::Window* pWindow{ pView->GetWindow() };	
-	Graphics::PBRGlobals globals;	
-	Graphics::ComputeViewProjectionMatrix(cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
-	DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
-	Handle<Graphics::Buffer> globalsBuffer = Graphics::CreateBuffer( pDevice, { .debugName = L"GlobalsBuffer", .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &globals, .byteSize = sizeof(Graphics::PBRGlobals) });
-	
-	dMatrix initialModel{ DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&cameraController.GetCamera().target)) };
-	Handle<Graphics::Buffer> instanceBuffer = Graphics::CreateBuffer(pDevice, { .debugName = L"InstanceBuffer", .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &initialModel, .byteSize = sizeof(Graphics::PBRInstance) });
-	depthBuffer = Graphics::CreateTexture(pDevice, { .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DSV, .dimensions = { pWindow->GetWidth(), pWindow->GetHeight(), 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = {1.f, 1.f, 1.f, 1.f} });
-
-	Graphics::PBRMaterial material{ .albedo = {0.0f, 1.0f, 0.5f}, .roughness = 1.0f };
-	
-	g_mutex.unlock();
-	auto lastFrameTimer = std::chrono::high_resolution_clock::now();
-	while (Graphics::ProcessViewEvents(pView))
-	{
-		auto timer = std::chrono::high_resolution_clock::now();
-		float dt = (float)std::chrono::duration<float>(timer - lastFrameTimer).count();
-		lastFrameTimer = std::chrono::high_resolution_clock::now();
-
-		const Input* pInput{ pView->GetWindow()->GetInput() };
-		cameraController.Update(dt, pInput);
-
-		Graphics::BeginFrame(pView);
-		Graphics::ResetCommand(pCommand, pbrPipeline);
-		Graphics::SetRenderTarget(pCommand, pView, depthBuffer);
-		Graphics::ClearRenderTarget(pCommand, pView);
-		Graphics::ClearDepthBuffer(pCommand, depthBuffer);
-		Graphics::ComputeViewProjectionMatrix(cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
-		Graphics::MapBuffer(globalsBuffer, &globals, 0, sizeof(Graphics::PBRGlobals));
-		Graphics::PushGraphicsBuffer(pCommand, 0, globalsBuffer);
-		Graphics::BindGraphicsTexture(pCommand, 1, albedo);
-		Graphics::BindGraphicsTexture(pCommand, 2, normal);
-		Graphics::PushGraphicsConstants(pCommand, 3, &material, 16);
-		Graphics::PushGraphicsBuffer(pCommand, 4, instanceBuffer);
-		Graphics::BindIndexBuffer(pCommand, mesh.GetIndexBufferHandle());
-		Graphics::BindVertexBuffer(pCommand, mesh.GetVertexBufferHandle());
-		Graphics::DrawIndexedInstanced(pCommand, mesh.GetIndexCount(), 1);
-		Graphics::SubmitCommand(pDevice, pCommand);
-		Graphics::EndFrame(pView);
+		pRenderer->RenderScene(view, *pScene);
+		auto end = std::chrono::high_resolution_clock::now();
+		dt = (float)std::chrono::duration<float>(end - start).count();;
 	}
 
-	g_mutex.lock();
-	Graphics::ReleaseBuffer(globalsBuffer);
-	Graphics::ReleaseBuffer(instanceBuffer);
-	Graphics::ReleaseTexture(depthBuffer);
-	Graphics::ReleasePipeline(pbrPipeline);
-	Graphics::DestroyCommand(pCommand);
-	Graphics::DestroyView(pView);
-	g_mutex.unlock();
+	pRenderer->DestroySceneView(view);
 }
 
 int main(int argc, char** argv)
@@ -216,32 +78,44 @@ int main(int argc, char** argv)
 #ifdef _DEBUG
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
+	
+	Renderer renderer;
+	renderer.Initialize();
 
-	Graphics::Initialize();
-	Graphics::Device* pDevice = Graphics::CreateDevice();
+	Handle<Graphics::Texture> albedoTexture = renderer.CreateTexture("res\\testAlbedoMips.DDS");
+	Handle<Graphics::Texture> normalTexture = renderer.CreateTexture("res\\testNormalMips.DDS");
+	Handle<Graphics::Mesh> cubeMesh = renderer.CreateMesh(cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
+
+	Scene scene{};
+	entt::entity cubeEntity = scene.CreateEntity("Cube");
+
+	Transform& transform = scene.AddComponent<Transform>(cubeEntity);
+	transform.position.z = 2;
+	RenderData& renderData = scene.AddComponent<RenderData>(cubeEntity);
+	renderData.albedo = albedoTexture;
+	renderData.normal = normalTexture;
+	renderData.mesh = cubeMesh;
+
 	dVector<std::thread> tests;
-	dU32 testCount{ 5 };
-	tests.reserve(testCount);
-
-	Handle<Graphics::Texture> texture = Graphics::DDSTexture::CreateTextureFromFile(pDevice, "res\\testAlbedoMips.DDS");
-	Handle<Graphics::Texture> normalTexture = Graphics::DDSTexture::CreateTextureFromFile(pDevice, "res\\testNormalMips.DDS");
-	Handle<Graphics::Mesh> cube = Graphics::CreateMesh(pDevice, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
-
-	for (dU32 i{ 0 }; i < testCount; i++)
+	dU32 windowCount{ 5 };
+	tests.reserve(windowCount);
+	for (dU32 i{ 0 }; i < windowCount; i++)
 	{
-		tests.emplace_back(std::thread(&Test, pDevice, texture, normalTexture, cube));
+		tests.emplace_back(std::thread(&Test, &renderer, &scene));
 	}
 
-	for (dU32 i{ 0 }; i < testCount; i++)
+	for (dU32 i{ 0 }; i < windowCount; i++)
 	{
 		tests[i].join();
 	}
 
-	Graphics::ReleaseTexture(texture);
-	Graphics::ReleaseTexture(normalTexture);
-	Graphics::ReleaseMesh(cube);
-	Graphics::DestroyDevice(pDevice);
-	Graphics::Shutdown();
+	scene.DestroyEntity(cubeEntity);
+
+	renderer.ReleaseTexture(albedoTexture);
+	renderer.ReleaseTexture(normalTexture);
+	renderer.ReleaseMesh(cubeMesh);
+
+	renderer.Destroy();
 
 	return 0;
 }

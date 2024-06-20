@@ -4,7 +4,7 @@
 
 namespace Dune
 {
-	template <typename T, typename H>
+	template <typename T, typename H, bool ThreadSafe>
 	class Pool;
 }
 
@@ -34,14 +34,15 @@ namespace Dune::Graphics
 		Mesh(Device* pDevice, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
 		~Mesh();
 
-		void UploadVertexBuffer(Device* pDevice, const void* pData, dU32 size, dU32 byteStride);
-		void UploadIndexBuffer(Device* pDevice, const void* pData, dU32 size, dU32 byteStride);
+		void UploadVertexBuffer(const void* pData, dU32 size, dU32 byteStride);
+		void UploadIndexBuffer(const void* pData, dU32 size, dU32 byteStride);
 
 	private:
-		friend Pool<Mesh, Mesh>;
+		friend Pool<Mesh, Mesh, true>;
 		dU32 m_indexCount{ 0 };
 		dU32 m_vertexCount{ 0 };
 		Handle<Buffer> m_indexBufferHandle;
 		Handle<Buffer> m_vertexBufferHandle;
+		Device* m_pDevice{ nullptr };
 	};
 }

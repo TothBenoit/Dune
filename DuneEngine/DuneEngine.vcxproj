@@ -17,6 +17,7 @@
     <ClInclude Include="include\Dune\Common\ID.h" />
     <ClInclude Include="include\Dune\Common\Macro.h" />
     <ClInclude Include="include\Dune\Common\Pool.h" />
+    <ClInclude Include="include\Dune\Core\Engine.h" />
     <ClInclude Include="include\Dune\Core\EngineCore.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
@@ -44,6 +45,7 @@
     <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Core\Engine.cpp" />
     <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp" />
     <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp" />

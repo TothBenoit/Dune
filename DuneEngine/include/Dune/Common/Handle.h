@@ -47,7 +47,7 @@ namespace Dune
 
 		ID::IDType m_id;
 
-		template<typename T, typename H> friend class Pool;
+		template<typename T, typename H, bool ThreadSafe> friend class Pool;
 	};
 }
 

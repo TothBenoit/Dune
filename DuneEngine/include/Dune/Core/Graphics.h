@@ -22,9 +22,6 @@ namespace Dune::Graphics
 	class Pipeline;
 	class Window;
 
-	void Initialize();
-	void Shutdown();
-
 	// Device
 	Device*							CreateDevice();
 	void							DestroyDevice(Device* pDevice);
@@ -60,7 +57,7 @@ namespace Dune::Graphics
 	[[nodiscard]]  View*			CreateView(const ViewDesc& desc);
 	void							DestroyView(View* pView);
 	bool							ProcessViewEvents(View* pView);
-	void							BeginFrame(View* pView);
+	void							BeginFrame(View* pView);	
 	void							EndFrame(View* pView);
 	[[nodiscard]] const Input*		GetInput(View* pView);
 
@@ -92,9 +89,9 @@ namespace Dune::Graphics
 	};
 
 	[[nodiscard]] Handle<Buffer>	CreateBuffer(Device* pDevice, const BufferDesc& desc);
-	void							ReleaseBuffer(Handle<Buffer> handle);
-	void							UploadBuffer(Handle<Buffer> handle, const void* pData, dU32 byteOffset, dU32 byteSize);
-	void							MapBuffer(Handle<Buffer> handle, const void* pData, dU32 byteOffset, dU32 byteSize);
+	void							ReleaseBuffer(Device* pDevice, Handle<Buffer> handle);
+	void							UploadBuffer(Device* pDevice, Handle<Buffer> handle, const void* pData, dU32 byteOffset, dU32 byteSize);
+	void							MapBuffer(Device* pDevice, Handle<Buffer> handle, const void* pData, dU32 byteOffset, dU32 byteSize);
 	// Texture
 
 	enum class ETextureUsage
@@ -118,14 +115,14 @@ namespace Dune::Graphics
 	};
 
 	[[nodiscard]] Handle<Texture>	CreateTexture(Device* pDevice, const TextureDesc& desc);
-	void							ReleaseTexture(Handle<Texture> handle);
+	void							ReleaseTexture(Device* pDevice, Handle<Texture> handle);
 
 	// Mesh
 
 	[[nodiscard]] Handle<Mesh>		CreateMesh(Device* pDevice, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
 	[[nodiscard]] Handle<Mesh>		CreateMesh(Device* pDevice, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
-	void							ReleaseMesh(Handle<Mesh> handle);
-	[[nodiscard]] const Mesh&		GetMesh(Handle<Mesh> handle);
+	void							ReleaseMesh(Device* pDevice, Handle<Mesh> handle);
+	[[nodiscard]] const Mesh&		GetMesh(Device* pDevice, Handle<Mesh> handle);
 
 	// Shader
 
@@ -189,8 +186,8 @@ namespace Dune::Graphics
 		dU32			argsCount;
 	};
 
-	[[nodiscard]] Handle<Shader>	CreateShader(const ShaderDesc& desc);
-	void							ReleaseShader(Handle<Shader> handle);
+	[[nodiscard]] Handle<Shader>	CreateShader(Device* pDevice, const ShaderDesc& desc);
+	void							ReleaseShader(Device* pDevice, Handle<Shader> handle);
 
 	// Graphics Pipeline
 
@@ -254,11 +251,10 @@ namespace Dune::Graphics
 		// TODO : Use span or array[8] like dx12
 		dVector<EFormat>		renderTargetsFormat;
 		EFormat					depthStencilFormat;
-		Device*					pDevice{ nullptr };
 	};
 
-	[[nodiscard]] Handle<Pipeline>			CreateGraphicsPipeline(const GraphicsPipelineDesc& desc);
-	void									ReleasePipeline(Handle<Pipeline> handle);
+	[[nodiscard]] Handle<Pipeline>			CreateGraphicsPipeline(	Device* pDevice, const GraphicsPipelineDesc& desc);
+	void									ReleasePipeline( Device* pDevice, Handle<Pipeline> handle);
 
 	// BindGroup
 

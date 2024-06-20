@@ -10,12 +10,6 @@ BEGIN_NAMESPACE_SHADER
 		float		_padding;
 	};
 
-	struct PBRMaterial
-	{
-		float3	albedo;
-		float	roughness;
-	};
-
 	struct PBRInstance
 	{
 		float4x4 modelMatrix;

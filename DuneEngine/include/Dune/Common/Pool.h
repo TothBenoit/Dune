@@ -3,9 +3,17 @@
 
 namespace Dune
 {
-	template<typename T, typename H = T> 
+	template<typename T, typename H = T, bool ThreadSafe = true>
 	class Pool
 	{
+		struct FakeMutex
+		{
+			void lock() {}
+			void unlock() {}
+		};
+
+		using Mutex = std::conditional_t<ThreadSafe, std::mutex, FakeMutex>;
+
 	public:
 		Pool() = default;
 
@@ -37,7 +45,7 @@ namespace Dune
 			m_nextFreeHandlePosition = m_size - 1;
 		}
 
-		void Release()
+		void Destroy()
 		{
 			Assert(m_nextFreeHandlePosition == (m_size - 1));
 			::operator delete[](m_datas);
@@ -54,6 +62,7 @@ namespace Dune
 		template <typename... Args>
 		[[nodiscard]] Handle<H> Create(Args&&... args)
 		{
+			std::lock_guard lock{ m_lock };
 			Assert(m_size != 0);
 
 			if (m_nextFreeHandlePosition >= m_size)
@@ -73,6 +82,7 @@ namespace Dune
 		template <typename... Args>
 		[[nodiscard]] Handle<H> Create(T** outT,Args&&... args)
 		{
+			std::lock_guard lock{ m_lock };
 			Assert(m_size != 0);
 
 			if (m_nextFreeHandlePosition >= m_size)
@@ -102,15 +112,13 @@ namespace Dune
 			ID::IDType index{ ID::GetIndex(handle.m_id) };
 			ID::IDType newID{ ID::NextGeneration(handle.m_id) };
 			
-			// Add handle
+			m_datas[index].~T();
+			m_generations[index] = ID::GetGeneration(newID);		
+
+			std::lock_guard lock{ m_lock };
+
 			m_nextFreeHandlePosition++;
 			m_freeHandles[m_nextFreeHandlePosition] = newID;
-
-			// Invalidate previous handle
-			m_generations[index] = ID::GetGeneration(newID);
-			
-			// Destroy T
-			m_datas[index].~T();
 		}
 
 		[[nodiscard]] bool IsValid(Handle<H> handle) const
@@ -125,6 +133,7 @@ namespace Dune
 
 		[[nodiscard]] T& Get(Handle<H> handle)
 		{
+			std::lock_guard lock{ m_lock };
 			Assert(IsValid(handle));
 
 			return m_datas[ID::GetIndex(handle.m_id)];
@@ -132,6 +141,7 @@ namespace Dune
 
 		[[nodiscard]] const T& Get(Handle<H> handle) const
 		{
+			std::lock_guard lock{ m_lock };
 			Assert(IsValid(handle));
 
 			return m_datas[ID::GetIndex(handle.m_id)];
@@ -174,6 +184,6 @@ namespace Dune
 		ID::IDType*					m_freeHandles{nullptr};
 		ID::GenerationType*			m_generations{nullptr};
 		T*							m_datas{nullptr};
-		
+		Mutex						m_lock{};
 	};
 }

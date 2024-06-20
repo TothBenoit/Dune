@@ -34,8 +34,6 @@ VS_OUTPUT VSMain(VS_INPUT input)
     return o;
 }
 
-ConstantBuffer<PBRMaterial> cMaterial : register(b1);
-
 struct PS_INPUT
 {
     float4 position : SV_Position;
@@ -65,7 +63,7 @@ PS_OUTPUT PSMain(PS_INPUT input)
     const float nDotV = saturate(dot(n, v));
     const float nDotH = saturate(dot(n, h));
     const float vDotH = saturate(dot(v, h));
-    const float roughness = cMaterial.roughness;
+    const float roughness = 1.0f;
     const float alpha = roughness * roughness;
     const float alpha2 = alpha * alpha;
     
