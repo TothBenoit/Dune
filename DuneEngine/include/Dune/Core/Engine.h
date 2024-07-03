@@ -7,8 +7,10 @@ namespace Dune
 {
 	namespace Graphics
 	{
+		struct Device;
 		class Mesh;
 		class Texture;
+		class Pipeline;
 	}
 
 	class Renderer;

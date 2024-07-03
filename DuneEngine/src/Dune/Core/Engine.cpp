@@ -5,6 +5,7 @@
 #include "Dune/Core/Graphics/Window.h"
 #include <Dune/Core/Graphics/Shaders/PBR.h>
 #include <Dune/Utilities/DDSLoader.h>
+#include <Dune/Utilities/SimpleCameraController.h>
 
 namespace Dune
 {
