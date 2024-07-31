@@ -26,7 +26,6 @@ namespace Dune
 	void SimpleCameraController::UpdateFirstPersonControls(float deltaTime, const Input* pInput)
 	{
 		dVec3 translate{ 0.f,0.f,0.f };
-		dVec2 rotation{ 0.0f, 0.0f };
 
 		//Get input
 		if (pInput->GetKey(KeyCode::Q))
@@ -60,14 +59,16 @@ namespace Dune
 
 		//Add rotation
 		constexpr float turnSpeed = DirectX::XMConvertToRadians(45.f);
-		constexpr float xRotationClampValues[]{ DirectX::XMConvertToRadians(-89.99f), DirectX::XMConvertToRadians(89.99f) };
-		m_rotation.x = std::fmodf(m_rotation.x + pInput->GetMouseDeltaX() * turnSpeed * clampedDeltaTime, DirectX::XM_2PI);
-		m_rotation.y = std::clamp(std::fmodf(m_rotation.y + pInput->GetMouseDeltaY() * turnSpeed * clampedDeltaTime, DirectX::XM_2PI), xRotationClampValues[0], xRotationClampValues[1]);
+		float turnVelocity = turnSpeed * clampedDeltaTime;
+		dVec2 rotation{ pInput->GetMouseDeltaX() * turnVelocity, pInput->GetMouseDeltaY() * turnVelocity };
+		constexpr float yRotationClampValues[]{ DirectX::XMConvertToRadians(-89.99f), DirectX::XMConvertToRadians(89.99f) };
+		m_rotation.x = std::fmodf(m_rotation.x + rotation.x, DirectX::XM_2PI);
+		m_rotation.y = std::clamp(std::fmodf(m_rotation.y + rotation.y, DirectX::XM_2PI), yRotationClampValues[0], yRotationClampValues[1]);
 
 		//Compute quaternion from camera rotation
 		DirectX::XMVECTOR xQuat{ DirectX::XMQuaternionRotationAxis(DirectX::XMLoadFloat3(&m_camera.up), m_rotation.x) };
 		DirectX::XMVECTOR yQuat{ DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f }, m_rotation.y) };
-		DirectX::XMVECTOR quat = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(yQuat, xQuat));
+		DirectX::XMVECTOR quat{ DirectX::XMQuaternionMultiply(yQuat, xQuat) };
 
 		//Apply camera rotation to translation
 		DirectX::XMStoreFloat3(&translate,
@@ -79,9 +80,10 @@ namespace Dune
 
 		//Apply translation
 		const float speed = (pInput->GetKey(KeyCode::ShiftKey)) ? 25.f : 5.f;
-		m_camera.position.x += translate.x * speed * clampedDeltaTime;
-		m_camera.position.y += translate.y * speed * clampedDeltaTime;
-		m_camera.position.z += translate.z * speed * clampedDeltaTime;
+		const float velocity = speed * clampedDeltaTime;
+		m_camera.position.x += translate.x * velocity;
+		m_camera.position.y += translate.y * velocity;
+		m_camera.position.z += translate.z * velocity;
 
 		//Compute camera view matrix
 		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&m_camera.position);
