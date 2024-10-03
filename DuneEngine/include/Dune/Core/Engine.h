@@ -35,53 +35,16 @@ namespace Dune
 		std::string name;
 	};
 
-	class Scene
+	struct Scene
 	{
-	public:
-
-		Scene() = default;
-		~Scene() = default;
-
-		inline entt::entity CreateEntity(const char* name)
+		inline entt::entity CreateEntity(const char* pName)
 		{
-			entt::entity e = m_registry.create();
-			m_registry.emplace<Name>(e, name);
-			return e;
+			entt::entity entity{ registry.create() };
+			registry.emplace<Name>(entity, pName);
+			return entity;
 		}
 
-		inline void DestroyEntity(entt::entity entity)
-		{
-			m_registry.destroy(entity);
-		}
-
-		template<typename T>
-		T& AddComponent( entt::entity entity )
-		{
-			return m_registry.emplace<T>(entity);
-		}
-
-		template<typename T, typename... Args>
-		T& AddComponent(entt::entity entity, Args&&... args)
-		{
-			return m_registry.emplace<T>(entity, std::forward<Args>(args)...);
-		}
-
-		template<typename T>
-		T& GetComponent(entt::entity entity)
-		{
-			return m_registry.get<T>(entity);
-		}
-
-		template<typename T, typename... Other>
-		void RemoveComponent(entt::entity entity)
-		{
-			return m_registry.remove<T, Other>(entity);
-		}
-
-	private:
-		friend Renderer;
-
-		entt::registry m_registry;
+		entt::registry registry;
 	};	
 
 	class Renderer

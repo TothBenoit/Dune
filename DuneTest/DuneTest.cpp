@@ -89,9 +89,9 @@ int main(int argc, char** argv)
 	Scene scene{};
 	entt::entity cubeEntity = scene.CreateEntity("Cube");
 
-	Transform& transform = scene.AddComponent<Transform>(cubeEntity);
+	Transform& transform = scene.registry.emplace<Transform>(cubeEntity);
 	transform.position.z = 2;
-	RenderData& renderData = scene.AddComponent<RenderData>(cubeEntity);
+	RenderData& renderData = scene.registry.emplace<RenderData>(cubeEntity);
 	renderData.albedo = albedoTexture;
 	renderData.normal = normalTexture;
 	renderData.mesh = cubeMesh;
@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 		tests[i].join();
 	}
 
-	scene.DestroyEntity(cubeEntity);
+	scene.registry.destroy(cubeEntity);
 
 	renderer.ReleaseTexture(albedoTexture);
 	renderer.ReleaseTexture(normalTexture);

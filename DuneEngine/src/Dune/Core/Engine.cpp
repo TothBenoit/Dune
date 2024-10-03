@@ -192,7 +192,7 @@ namespace Dune
 
 		dVector<Handle<Graphics::Buffer>> buffers{};
 
-		scene.m_registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
+		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
 				const Graphics::Mesh& mesh = Graphics::GetMesh(m_pDevice, renderData.mesh);
 				dMatrix initialModel{ DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)) };
