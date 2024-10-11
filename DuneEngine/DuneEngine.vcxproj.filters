@@ -58,9 +58,6 @@
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\Graphics\Window.h">
-      <Filter>Dune\Core\Graphics\Platform</Filter>
-    </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h">
       <Filter>Dune\Core\Graphics\Shader</Filter>
     </ClInclude>
@@ -82,8 +79,15 @@
     <ClInclude Include="include\Dune\Core\Graphics\Format.h">
       <Filter>Dune\Core\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Buffer.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h">
+      <Filter>Dune\Core\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Buffer.h">
+      <Filter>Dune\Core\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\Window.h">
+      <Filter>Dune\Core\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Input.cpp">
@@ -119,7 +123,9 @@
     <ClCompile Include="src\Dune\Core\Renderer.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\Graphics\Window.cpp" />
+    <ClCompile Include="src\Dune\Core\Graphics\Window.cpp">
+      <Filter>Dune\Core\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl">
