@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "GraphicsDX12.h"
-#include "WindowInternal.h"
+#include "Dune/Core/Graphics/Window.h"
 #include "Dune/Core/Graphics.h"
 #include "Dune/Core/Graphics/Mesh.h"
+#include "Dune/Core/Graphics/RHI/Buffer.h"
+#include "Dune/Core/Graphics/RHI/Texture.h"
 #include "Dune/Common/Pool.h"
 #include "Dune/Utilities/Utils.h"
 
@@ -558,7 +560,7 @@ namespace Dune::Graphics
 	public:
 		void Initialize(const ViewDesc& desc)
 		{
-			WindowInternal* pWindow = new WindowInternal();
+			Window* pWindow = new Window();
 			m_pWindow = pWindow;
 			pWindow->Initialize(desc.windowDesc);
 			pWindow->SetOnResizeFunc(this, &OnResize);
@@ -651,14 +653,13 @@ namespace Dune::Graphics
 			
 			delete[] m_directFenceValues;
 
-			WindowInternal* pWindow = (WindowInternal*) m_pWindow;
-			pWindow->Destroy();
-			delete(pWindow);
+			m_pWindow->Destroy();
+			delete(m_pWindow);
 		}
 
 		bool ProcessEvents()
 		{
-			return ((WindowInternal*)m_pWindow)->Update();
+			return m_pWindow->Update();
 		}
 
 		[[nodiscard]] ID3D12Resource* GetCurrentBackBuffer()

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "WindowInternal.h"
+#include "Dune/Core/Graphics/Window.h"
 #include "Dune/Core/Input.h"
 #include "Dune/Core/Graphics.h"
 
@@ -9,15 +9,14 @@
 
 namespace Dune::Graphics
 {
-
 	LRESULT CALLBACK InternalWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		WindowInternal* window{ (WindowInternal*)GetWindowLongPtr(hwnd, GWLP_USERDATA) };
+		Window* window{ (Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA) };
 		window->WindowProc(uMsg, (void*)wParam, (void*)lParam);
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
-	void WindowInternal::Initialize(const WindowDesc& desc)
+	void Window::Initialize(const WindowDesc& desc)
 	{
 		m_width = desc.width;
 		m_height = desc.height;
@@ -58,12 +57,12 @@ namespace Dune::Graphics
 		ShowWindow((HWND)m_pHandle, 1);
 	}
 
-	void WindowInternal::Destroy()
+	void Window::Destroy()
 	{
 		delete m_pInput;
 	}
 
-	bool WindowInternal::Update()
+	bool Window::Update()
 	{
 		MSG msg{};
 		m_pInput->BeginFrame();
@@ -78,7 +77,7 @@ namespace Dune::Graphics
 		return true;
 	}
 
-	void WindowInternal::WindowProc(dUInt uMsg, void* wParam, void* lParam)
+	void Window::WindowProc(dUInt uMsg, void* wParam, void* lParam)
 	{
 		switch (uMsg)
 		{

@@ -17,8 +17,9 @@
     <ClInclude Include="include\Dune\Common\ID.h" />
     <ClInclude Include="include\Dune\Common\Macro.h" />
     <ClInclude Include="include\Dune\Common\Pool.h" />
-    <ClInclude Include="include\Dune\Core\Engine.h" />
-    <ClInclude Include="include\Dune\Core\EngineCore.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Buffer.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h" />
+    <ClInclude Include="include\Dune\Core\Renderer.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
@@ -36,24 +37,20 @@
     <ClInclude Include="include\Dune\Utilities\MeshLoader.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
     <ClInclude Include="include\Dune\Common\Types.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Renderer.h" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\Input.h" />
     <ClInclude Include="include\Dune\Core\Logger.h" />
     <ClInclude Include="include\Dune\Utilities\Utils.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Dune\Core\Engine.cpp" />
+    <ClCompile Include="src\Dune\Core\Graphics\Window.cpp" />
+    <ClCompile Include="src\Dune\Core\Renderer.cpp" />
     <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp" />
-    <ClCompile Include="src\Dune\Core\EngineCore.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp" />
     <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
-    <ClCompile Include="src\Dune\Core\Graphics\Platform\WindowInternal.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.cpp" />
-    <ClCompile Include="src\Dune\Core\Graphics\Renderer.cpp" />
     <ClCompile Include="src\Dune\Core\Input.cpp" />
     <ClCompile Include="src\Dune\Core\Logger.cpp" />
     <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp" />

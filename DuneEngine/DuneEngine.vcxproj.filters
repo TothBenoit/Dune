@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="include\Dune\Core\EngineCore.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
     <ClInclude Include="include\Dune\Common\ID.h">
       <Filter>Dune\Common</Filter>
     </ClInclude>
@@ -20,9 +17,6 @@
       <Filter>Dune\Common</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics\Mesh.h">
-      <Filter>Dune\Core\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Core\Graphics\Renderer.h">
       <Filter>Dune\Core\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Common\Pool.h">
@@ -82,20 +76,16 @@
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h">
       <Filter>Dune\Core\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Core\Graphics\Platform\WindowInternal.h">
-      <Filter>Dune\Core\Graphics\Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Core\Engine.h">
+    <ClInclude Include="include\Dune\Core\Renderer.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics\Format.h">
       <Filter>Dune\Core\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Buffer.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Dune\Core\EngineCore.cpp">
-      <Filter>Dune\Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\Dune\Core\Input.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
@@ -103,9 +93,6 @@
       <Filter>Dune\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\Graphics\Mesh.cpp">
-      <Filter>Dune\Core\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Core\Graphics\Renderer.cpp">
       <Filter>Dune\Core\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
@@ -120,9 +107,6 @@
     <ClCompile Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.cpp">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\Graphics\Platform\WindowInternal.cpp">
-      <Filter>Dune\Core\Graphics\Platform</Filter>
-    </ClCompile>
     <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp">
       <Filter>Dune\Utilities</Filter>
     </ClCompile>
@@ -132,9 +116,10 @@
     <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp">
       <Filter>Dune\Core\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\Engine.cpp">
+    <ClCompile Include="src\Dune\Core\Renderer.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Core\Graphics\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl">
@@ -181,6 +166,9 @@
     </Filter>
     <Filter Include="Dune\Utilities">
       <UniqueIdentifier>{bd6dcf96-7182-425d-b008-55e8c5df4a98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Core\Graphics\RHI">
+      <UniqueIdentifier>{d903048e-0edd-4606-bc55-d2da2aefdff8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

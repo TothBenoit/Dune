@@ -2,7 +2,8 @@
 #include <thread>
 #include <chrono>
 #include <Dune/Core/Graphics/Shaders/PBR.h>
-#include <Dune/Core/Engine.h>
+#include <Dune/Core/Renderer.h>
+#include <Dune/Utilities/DDSLoader.h>
 
 using namespace Dune;
 
@@ -57,20 +58,21 @@ static const Vertex cubeVertices[] =
 	{ { 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f } }, // 23
 };
 
-void Test(Renderer* pRenderer, Scene* pScene)
-{	
-	Handle<SceneView> view = pRenderer->CreateSceneView();
+void Test(Graphics::Device* pDevice, Scene* pScene)
+{
+	Renderer renderer;
+	renderer.Initialize(pDevice);
 	float dt = 0.f;
-	while (pRenderer->UpdateSceneView(view, dt))
+	while (renderer.UpdateSceneView(dt))
 	{	
 		auto start = std::chrono::high_resolution_clock::now();
 
-		pRenderer->RenderScene(view, *pScene);
+		renderer.RenderScene(*pScene);
 		auto end = std::chrono::high_resolution_clock::now();
 		dt = (float)std::chrono::duration<float>(end - start).count();;
 	}
 
-	pRenderer->DestroySceneView(view);
+	renderer.Destroy();
 }
 
 int main(int argc, char** argv)
@@ -79,12 +81,11 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
-	Renderer renderer;
-	renderer.Initialize();
+	Graphics::Device* pDevice{ Graphics::CreateDevice() };
 
-	Handle<Graphics::Texture> albedoTexture = renderer.CreateTexture("res\\testAlbedoMips.DDS");
-	Handle<Graphics::Texture> normalTexture = renderer.CreateTexture("res\\testNormalMips.DDS");
-	Handle<Graphics::Mesh> cubeMesh = renderer.CreateMesh(cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
+	Handle<Graphics::Texture> albedoTexture = Graphics::DDSTexture::CreateTextureFromFile(pDevice, "res\\testAlbedoMips.DDS");
+	Handle<Graphics::Texture> normalTexture = Graphics::DDSTexture::CreateTextureFromFile(pDevice, "res\\testNormalMips.DDS");
+	Handle<Graphics::Mesh> cubeMesh = Graphics::CreateMesh(pDevice, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
 
 	Scene scene{};
 	entt::entity cubeEntity = scene.CreateEntity("Cube");
@@ -101,7 +102,7 @@ int main(int argc, char** argv)
 	tests.reserve(windowCount);
 	for (dU32 i{ 0 }; i < windowCount; i++)
 	{
-		tests.emplace_back(std::thread(&Test, &renderer, &scene));
+		tests.emplace_back(std::thread(&Test, pDevice, &scene));
 	}
 
 	for (dU32 i{ 0 }; i < windowCount; i++)
@@ -111,11 +112,11 @@ int main(int argc, char** argv)
 
 	scene.registry.destroy(cubeEntity);
 
-	renderer.ReleaseTexture(albedoTexture);
-	renderer.ReleaseTexture(normalTexture);
-	renderer.ReleaseMesh(cubeMesh);
+	Graphics::ReleaseTexture(pDevice, albedoTexture);
+	Graphics::ReleaseTexture(pDevice, normalTexture);
+	Graphics::ReleaseMesh(pDevice, cubeMesh);
 
-	renderer.Destroy();
+	Graphics::DestroyDevice(pDevice);
 
 	return 0;
 }

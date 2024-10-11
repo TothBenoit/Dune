@@ -4,10 +4,11 @@ namespace Dune
 {
 	namespace Graphics
 	{
-		class WindowInternal;
+		class Window;
 	}
 
-	enum class KeyCode {
+	enum class KeyCode 
+	{
 		None = 0x00, // No key was pressed
 		LButton = 0x01, // Left mouse button
 		RButton = 0x02, // Right mouse button
@@ -234,7 +235,7 @@ namespace Dune
 		inline float GetMouseWheelDelta() const { return m_mouseWheelDelta; }
 
 	private:
-		friend Graphics::WindowInternal;
+		friend Graphics::Window;
 
 		Input() = default;
 		~Input() = default;

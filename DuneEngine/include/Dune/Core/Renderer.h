@@ -2,6 +2,7 @@
 
 #include "EnTT/entt.hpp"
 #include "Dune/Common/Pool.h"
+#include <Dune/Utilities/SimpleCameraController.h>
 
 namespace Dune
 {
@@ -11,6 +12,9 @@ namespace Dune
 		class Mesh;
 		class Texture;
 		class Pipeline;
+		class Buffer;
+		struct DirectCommand;
+		class View;
 	}
 
 	class Renderer;
@@ -50,24 +54,27 @@ namespace Dune
 	class Renderer
 	{
 	public:
-		void Initialize();
+		void Initialize(Graphics::Device* pDevice);
 		void Destroy();
 
-		bool UpdateSceneView(Handle<SceneView> hView, float dt);
+		void OnResize(dU32 width, dU32 height);
 
-		Handle<SceneView> CreateSceneView();
-		void DestroySceneView(Handle<SceneView> hView);
+		bool UpdateSceneView(float dt);
 
-		Handle<Graphics::Texture> CreateTexture(const char* path);
-		void ReleaseTexture(Handle<Graphics::Texture> hTexture);
-		Handle<Graphics::Mesh> CreateMesh(const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
-		void ReleaseMesh(Handle<Graphics::Mesh> hMesh);
+		void RenderScene(const Scene& scene);
 
-		void RenderScene(Handle<SceneView> hView, const Scene& scene);
+	public:
+		SimpleCameraController m_cameraController;
 
 	private:
 		Graphics::Device* m_pDevice{ nullptr };
-		Pool<SceneView> m_sceneViewPool;
+		Graphics::View* m_pView{ nullptr };
+		Graphics::DirectCommand* m_pCommand{ nullptr };
+
 		Handle<Graphics::Pipeline> m_pbrPipeline;
+		Handle<Graphics::Texture> m_depthBuffer;
+		Handle<Graphics::Buffer> m_globalsBuffer;
+
+		void* m_pOnResizeData{ nullptr };
 	};
 }

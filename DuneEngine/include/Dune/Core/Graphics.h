@@ -1,6 +1,9 @@
 #pragma once
 #include "Dune/Common/Handle.h"
 #include "Dune/Core/Graphics/Format.h"
+#include "Dune/Core/Graphics/RHI/Buffer.h"
+#include "Dune/Core/Graphics/RHI/Texture.h"
+#include "Dune/Core/Graphics/Window.h"
 
 namespace Dune
 {
@@ -27,13 +30,6 @@ namespace Dune::Graphics
 	void							DestroyDevice(Device* pDevice);
 
 	// View
-	struct WindowDesc
-	{
-		void* parent{ nullptr };
-		dU32 width{ 1600 };
-		dU32 height{ 900 };
-		dWString title{ L"Dune Window" };
-	};
 
 	struct ViewDesc
 	{
@@ -60,62 +56,6 @@ namespace Dune::Graphics
 	void							BeginFrame(View* pView);	
 	void							EndFrame(View* pView);
 	[[nodiscard]] const Input*		GetInput(View* pView);
-
-	// Buffer
-	enum class EBufferUsage
-	{
-		Vertex,
-		Index,
-		Constant,
-		Structured,
-	};
-
-	enum class EBufferMemory
-	{
-		CPU,
-		GPU,
-		GPUStatic
-	};
-
-	struct BufferDesc
-	{
-		const wchar_t*	debugName = nullptr;
-
-		EBufferUsage	usage{ EBufferUsage::Constant };
-		EBufferMemory	memory{ EBufferMemory::CPU };
-		const void*		pData{ nullptr };
-		dU32			byteSize{ 0 };
-		dU32			byteStride{ 0 }; // for structured, vertex and index buffer
-	};
-
-	[[nodiscard]] Handle<Buffer>	CreateBuffer(Device* pDevice, const BufferDesc& desc);
-	void							ReleaseBuffer(Device* pDevice, Handle<Buffer> handle);
-	void							UploadBuffer(Device* pDevice, Handle<Buffer> handle, const void* pData, dU32 byteOffset, dU32 byteSize);
-	void							MapBuffer(Device* pDevice, Handle<Buffer> handle, const void* pData, dU32 byteOffset, dU32 byteSize);
-	// Texture
-
-	enum class ETextureUsage
-	{
-		RTV,
-		DSV,
-		SRV,
-		UAV,
-	};
-
-	struct TextureDesc
-	{
-		const wchar_t* debugName{ nullptr };
-
-		ETextureUsage usage{ ETextureUsage::RTV };
-		dU32 dimensions[3]{ 1, 1, 1 };
-		dU32 mipLevels{ 1 };
-		EFormat	format{ EFormat::R8G8B8A8_UNORM };
-		float clearValue[4]{0.f, 0.f, 0.f, 0.f};
-		void* pData{ nullptr };
-	};
-
-	[[nodiscard]] Handle<Texture>	CreateTexture(Device* pDevice, const TextureDesc& desc);
-	void							ReleaseTexture(Device* pDevice, Handle<Texture> handle);
 
 	// Mesh
 
