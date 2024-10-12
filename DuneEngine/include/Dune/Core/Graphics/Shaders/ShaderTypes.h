@@ -9,6 +9,7 @@ namespace Dune::Graphics
 	using uint = dU32;
 
 	using float3x3 = dMatrix3x3;
+	using float3x4 = dMatrix3x4;
 	using float4x3 = dMatrix4x3;
 	using float4x4 = dMatrix4x4;
 	using matrix = dMatrix;

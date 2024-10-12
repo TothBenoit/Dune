@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Dune/Core/Graphics/RHI/Resource.h"
+
 namespace Dune::Graphics
 {
 	struct Device;
-	struct Resource;
+	class Resource;
 	struct Descriptor;
 
 	enum class EBufferUsage
@@ -32,17 +34,19 @@ namespace Dune::Graphics
 		dU32			byteStride{ 0 }; // for structured, vertex and index buffer
 	};
 
-	class Buffer
+	class Buffer : public Resource
 	{
 	public:
+		Buffer(Device* pDeviceInterface, const BufferDesc& desc);
+		~Buffer();
+		DISABLE_COPY_AND_MOVE(Buffer);
+
 		[[nodiscard]] inline dU32 GetByteSize() const { return m_byteSize; }
 		[[nodiscard]] inline dU32 GetByteStride() const { return m_byteStride; }
 		[[nodiscard]] inline EBufferUsage GetUsage() const { return m_usage; }
-		[[nodiscard]] const void* GetResource() const { return m_pBuffer; }
-		[[nodiscard]] void* GetResource() { return m_pBuffer; }
 		[[nodiscard]] dU32 GetOffset() const { return m_currentBuffer * m_byteSize; }
 		[[nodiscard]] dU32 GetCurrentBufferIndex() const { return m_currentBuffer; }
-		[[nodiscard]] dU64 GetGPUAddress() const;
+		[[nodiscard]] dU64 GetGPUAddress();
 		[[nodiscard]] const Descriptor CreateSRV(); // TODO : desc
 		[[nodiscard]] const Descriptor CreateCBV(); // TODO : desc
 		void ReleaseDescriptor(const Descriptor& descriptor);		
@@ -52,16 +56,10 @@ namespace Dune::Graphics
 		void UploadData(const void* pData, dU32  byteOffset, dU32 byteSize);
 
 	private:
-		Buffer(Device* pDeviceInterface, const BufferDesc& desc);
-		~Buffer();
-		DISABLE_COPY_AND_MOVE(Buffer);
 
 		dU32 CycleBuffer();
 
 	private:
-		friend Pool<Buffer, Buffer, true>;
-
-		void*				m_pBuffer;
 		const EBufferUsage	m_usage;
 		const EBufferMemory m_memory;
 		dU32				m_byteSize;

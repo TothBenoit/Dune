@@ -220,9 +220,6 @@ namespace Dune::Graphics
 	void							ClearRenderTarget(DirectCommand* pCommand, View* pView);
 	void							ClearDepthBuffer(DirectCommand* pCommand, Handle<Texture> depthBuffer);
 	void							PushGraphicsConstants(DirectCommand* pCommand, dU32 slot, void* pData, dU32 byteSize);
-	void							PushGraphicsBuffer(DirectCommand* pCommand, dU32 slot, Handle<Buffer> handle);
-	void							PushGraphicsResource(DirectCommand* pCommand, dU32 slot, Handle<Buffer> handle);
-	//void							PushGraphicsBindGroup(DirectCommand* pCommand, dU32 slot, Handle<BindGroup> handle);
 	void							BindGraphicsTexture(DirectCommand* pCommand, dU32 slot, Handle<Texture> handle);
 	void							BindIndexBuffer(DirectCommand* pCommand, Handle<Buffer> handle);
 	void							BindVertexBuffer(DirectCommand* pCommand, Handle<Buffer> handle);

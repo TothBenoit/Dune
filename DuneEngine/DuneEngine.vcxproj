@@ -13,12 +13,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Fence.h" />
     <ClInclude Include="include\Dune\Common\Handle.h" />
     <ClInclude Include="include\Dune\Common\ID.h" />
     <ClInclude Include="include\Dune\Common\Macro.h" />
     <ClInclude Include="include\Dune\Common\Pool.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Buffer.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\DescriptorHeap.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\CommandList.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Resource.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h" />
     <ClInclude Include="include\Dune\Core\Renderer.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
@@ -148,7 +151,7 @@
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>assimp-vc143-mtd.lib;imguid.lib;Optickd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration)\;$(SolutionDir)ThirdParties\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
@@ -184,7 +187,7 @@ xcopy /y /d "$(ProjectDir)include\Dune\Core\Graphics\Shaders\*" "$(OutDir)Shader
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>assimp-vc143-mt.lib;imgui.lib;Optick.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParties\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>

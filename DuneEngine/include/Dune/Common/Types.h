@@ -60,6 +60,7 @@ namespace Dune
 
 	using dMatrix =			DirectX::XMMATRIX;
 	using dMatrix3x3 =		DirectX::XMFLOAT3X3;
+	using dMatrix3x4 =		DirectX::XMFLOAT3X4;
 	using dMatrix4x3 =		DirectX::XMFLOAT4X3;
 	using dMatrix4x4 =		DirectX::XMFLOAT4X4;
 	using dQuat =			DirectX::XMVECTOR;

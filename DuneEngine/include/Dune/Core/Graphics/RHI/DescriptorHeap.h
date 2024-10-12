@@ -29,18 +29,17 @@ namespace Dune::Graphics
 		dU32 capacity;
 	};
 
-	class DescriptorHeap
+	class DescriptorHeap : public Resource
 	{
 	public:
-		void Initialize(Device* pDevice, const DescriptorHeapDesc& desc);
-		void Destroy();
+		DescriptorHeap(Device* pDevice, const DescriptorHeapDesc& desc);
+		~DescriptorHeap();
+		DISABLE_COPY_AND_MOVE(DescriptorHeap);
 
 		[[nodiscard]] inline dU32 GetCapacity() { return m_capacity; }
 		[[nodiscard]] inline dU32 GetSize() { return (dU32)m_freeSlots.size(); }
 		[[nodiscard]] Descriptor Allocate();;
 		void Free(Descriptor handle);
-
-		void* Get() { return m_pHeap; }
 
 	private:
 		dU32 m_capacity{ 0 };
@@ -48,7 +47,6 @@ namespace Dune::Graphics
 		dU64 m_cpuAddress{ 0 };
 		dU64 m_gpuAddress{ 0 };
 		dU64 m_descriptorSize{ 0 };
-		void* m_pHeap{ nullptr };
 		std::mutex m_lock;
 	};
 }

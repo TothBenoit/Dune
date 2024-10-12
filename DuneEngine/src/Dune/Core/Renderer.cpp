@@ -57,12 +57,9 @@ namespace Dune
 				{
 					.slots =
 					{
-						{.type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::All },
-						{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
-						{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
-						{.type = Graphics::EBindingType::Buffer, .visibility = Graphics::EShaderVisibility::Vertex },
+						{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRGlobals), .visibility = Graphics::EShaderVisibility::All},
 					},
-					.slotCount = 4
+					.slotCount = 1
 				},
 				.inputLayout =
 					{
@@ -88,9 +85,7 @@ namespace Dune
 
 		Graphics::PBRGlobals globals;
 		Graphics::ComputeViewProjectionMatrix(m_cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
-		DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
 		m_globalsBuffer = Graphics::CreateBuffer(m_pDevice, { .debugName = L"GlobalsBuffer", .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .pData = &globals, .byteSize = sizeof(Graphics::PBRGlobals) });
-
 	}
 
 	void Renderer::Destroy()
@@ -133,22 +128,11 @@ namespace Dune
 		Graphics::ClearDepthBuffer(m_pCommand, m_depthBuffer);
 		Graphics::PBRGlobals globals;
 		Graphics::ComputeViewProjectionMatrix(m_cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
-		DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
-		Graphics::MapBuffer(m_pDevice, m_globalsBuffer, &globals, 0, sizeof(Graphics::PBRGlobals));
-		Graphics::PushGraphicsBuffer(m_pCommand, 0, m_globalsBuffer);
-
-		dVector<Handle<Graphics::Buffer>> buffers{};
+		Graphics::PushGraphicsConstants(m_pCommand, 0, &globals, sizeof(Graphics::PBRGlobals));
 
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
 				const Graphics::Mesh& mesh = Graphics::GetMesh(m_pDevice, renderData.mesh);
-				dMatrix initialModel{ DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)) };
-				Handle<Graphics::Buffer> instanceData = Graphics::CreateBuffer(m_pDevice, { .debugName = L"InstanceBuffer", .usage = Graphics::EBufferUsage::Constant, .memory = Graphics::EBufferMemory::CPU, .byteSize = sizeof(Graphics::PBRInstance) });
-				buffers.push_back(instanceData);
-				Graphics::MapBuffer(m_pDevice, instanceData, &initialModel, 0, sizeof(Graphics::PBRInstance));
-				Graphics::BindGraphicsTexture(m_pCommand, 1, renderData.albedo);
-				Graphics::BindGraphicsTexture(m_pCommand, 2, renderData.normal);
-				Graphics::PushGraphicsBuffer(m_pCommand, 3, instanceData);
 				Graphics::BindIndexBuffer(m_pCommand, mesh.GetIndexBufferHandle());
 				Graphics::BindVertexBuffer(m_pCommand, mesh.GetVertexBufferHandle());
 				Graphics::DrawIndexedInstanced(m_pCommand, mesh.GetIndexCount(), 1);
@@ -156,8 +140,5 @@ namespace Dune
 
 		Graphics::SubmitCommand(m_pDevice, m_pCommand);
 		Graphics::EndFrame(m_pView);
-
-		for (Handle<Graphics::Buffer> buf : buffers)
-			Graphics::ReleaseBuffer(m_pDevice, buf);
 	}
 }
