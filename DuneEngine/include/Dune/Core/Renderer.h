@@ -64,7 +64,7 @@ namespace Dune
 		void RenderScene(const Scene& scene);
 
 	public:
-		SimpleCameraController m_cameraController;
+		SimpleCameraController m_cameraController; // TODO : Don't use the controller here, put only the camera.
 
 	private:
 		Graphics::Device* m_pDevice{ nullptr };

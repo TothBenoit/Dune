@@ -3,14 +3,15 @@
 namespace Dune::Graphics
 {
 	struct Device;
-	class Buffer;
+	struct Resource;
+	struct Descriptor;
 
 	enum class EBufferUsage
 	{
-		Vertex,
 		Index,
+		Vertex,
 		Constant,
-		Structured,
+		Structured
 	};
 
 	enum class EBufferMemory
@@ -26,9 +27,51 @@ namespace Dune::Graphics
 
 		EBufferUsage	usage{ EBufferUsage::Constant };
 		EBufferMemory	memory{ EBufferMemory::CPU };
-		const void* pData{ nullptr };
+		const void*		pData{ nullptr };
 		dU32			byteSize{ 0 };
 		dU32			byteStride{ 0 }; // for structured, vertex and index buffer
+	};
+
+	class Buffer
+	{
+	public:
+		[[nodiscard]] inline dU32 GetByteSize() const { return m_byteSize; }
+		[[nodiscard]] inline dU32 GetByteStride() const { return m_byteStride; }
+		[[nodiscard]] inline EBufferUsage GetUsage() const { return m_usage; }
+		[[nodiscard]] const void* GetResource() const { return m_pBuffer; }
+		[[nodiscard]] void* GetResource() { return m_pBuffer; }
+		[[nodiscard]] dU32 GetOffset() const { return m_currentBuffer * m_byteSize; }
+		[[nodiscard]] dU32 GetCurrentBufferIndex() const { return m_currentBuffer; }
+		[[nodiscard]] dU64 GetGPUAddress() const;
+		[[nodiscard]] const Descriptor CreateSRV(); // TODO : desc
+		[[nodiscard]] const Descriptor CreateCBV(); // TODO : desc
+		void ReleaseDescriptor(const Descriptor& descriptor);		
+
+		void Map(dU32 byteOffset, dU32 byteSize, void** pCpuAdress);
+		void Unmap(dU32 byteOffset, dU32 byteSize);
+		void UploadData(const void* pData, dU32  byteOffset, dU32 byteSize);
+
+	private:
+		Buffer(Device* pDeviceInterface, const BufferDesc& desc);
+		~Buffer();
+		DISABLE_COPY_AND_MOVE(Buffer);
+
+		dU32 CycleBuffer();
+
+	private:
+		friend Pool<Buffer, Buffer, true>;
+
+		void*				m_pBuffer;
+		const EBufferUsage	m_usage;
+		const EBufferMemory m_memory;
+		dU32				m_byteSize;
+		dU32				m_byteStride;
+		dU32				m_currentBuffer;
+		Device*				m_pDeviceInterface{ nullptr };
+
+#if _DEBUG
+		dU32				m_descriptorAllocated{ 0 };
+#endif
 	};
 
 	[[nodiscard]] Handle<Buffer>	CreateBuffer(Device* pDevice, const BufferDesc& desc);

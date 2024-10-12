@@ -3,6 +3,7 @@
 #include "Dune/Core/Graphics/Format.h"
 #include "Dune/Core/Graphics/RHI/Buffer.h"
 #include "Dune/Core/Graphics/RHI/Texture.h"
+#include "Dune/Core/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Core/Graphics/Window.h"
 
 namespace Dune

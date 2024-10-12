@@ -18,6 +18,7 @@
     <ClInclude Include="include\Dune\Common\Macro.h" />
     <ClInclude Include="include\Dune\Common\Pool.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Buffer.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\DescriptorHeap.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h" />
     <ClInclude Include="include\Dune\Core\Renderer.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />

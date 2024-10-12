@@ -88,6 +88,7 @@
     <ClInclude Include="include\Dune\Core\Graphics\Window.h">
       <Filter>Dune\Core\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\DescriptorHeap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Input.cpp">
