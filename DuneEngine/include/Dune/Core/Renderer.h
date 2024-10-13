@@ -11,7 +11,7 @@ namespace Dune
 		struct Device;
 		class Mesh;
 		class Texture;
-		class Pipeline;
+		class GraphicsPipeline;
 		class Buffer;
 		struct DirectCommand;
 		class View;
@@ -71,7 +71,7 @@ namespace Dune
 		Graphics::View* m_pView{ nullptr };
 		Graphics::DirectCommand* m_pCommand{ nullptr };
 
-		Handle<Graphics::Pipeline> m_pbrPipeline;
+		Handle<Graphics::GraphicsPipeline> m_pbrPipeline;
 		Handle<Graphics::Texture> m_depthBuffer;
 		Handle<Graphics::Buffer> m_globalsBuffer;
 

@@ -8,6 +8,7 @@
 #include "Dune/Core/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Core/Graphics/RHI/CommandList.h"
 #include "Dune/Core/Graphics/RHI/Fence.h"
+#include "Dune/Core/Graphics/RHI/GraphicsPipeline.h"
 #include "Dune/Common/Pool.h"
 #include "Dune/Utilities/Utils.h"
 
@@ -15,6 +16,12 @@ namespace Dune::Graphics
 {
 	class DescriptorHeap;
 	class ViewInternal;
+
+	struct GraphicsPipelineDX12
+	{
+		ID3D12RootSignature* pRootSignature{ nullptr };
+		ID3D12PipelineState* pPipelineState{ nullptr };
+	};
 
 	inline ID3D12Resource* ToResource(void* pResource) 
 	{
@@ -90,6 +97,16 @@ namespace Dune::Graphics
 	inline const ID3D12Fence* ToFence(const void* pFence)
 	{
 		return (const ID3D12Fence*)pFence;
+	}
+
+	inline GraphicsPipelineDX12* ToPipeline(void* pPipeline)
+	{
+		return (GraphicsPipelineDX12*)pPipeline;
+	}
+
+	inline const GraphicsPipelineDX12* ToPipeline(const void* pPipeline)
+	{
+		return (const GraphicsPipelineDX12*)pPipeline;
 	}
 
 	struct RingBufferAllocation
@@ -306,11 +323,11 @@ namespace Dune::Graphics
 		DescriptorHeap* pRtvHeap{ nullptr };
 		DescriptorHeap* pDsvHeap{ nullptr };
 
-		Pool<Buffer>	bufferPool;
-		Pool<Mesh>		meshPool;
-		Pool<Texture>	texturePool;
-		Pool<Shader>	shaderPool;
-		Pool<Pipeline>	pipelinePool;
+		Pool<Buffer>			bufferPool;
+		Pool<Mesh>				meshPool;
+		Pool<Texture>			texturePool;
+		Pool<Shader>			shaderPool;
+		Pool<GraphicsPipeline>	pipelinePool;
 
 		void WaitForCopy()
 		{
@@ -526,9 +543,17 @@ namespace Dune::Graphics
 		ToCommandList(Get())->Release();
 	}
 
-	void CommandList::Reset(CommandAllocator& commandAllocator/*, Pipeline& pipeline*/)
+	void CommandList::Reset(CommandAllocator& commandAllocator)
 	{
 		ToCommandList(Get())->Reset(ToCommandAllocator(commandAllocator.Get()), nullptr);
+	}
+
+	void CommandList::Reset(CommandAllocator& commandAllocator, const GraphicsPipeline& pipeline)
+	{
+		const GraphicsPipelineDX12* pPipeline{ ToPipeline(pipeline.Get()) };
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->Reset(ToCommandAllocator(commandAllocator.Get()), pPipeline->pPipelineState);
+		pCommandList->SetGraphicsRootSignature(pPipeline->pRootSignature);
 	}
 
 	void CommandList::Close()
@@ -548,7 +573,13 @@ namespace Dune::Graphics
 		ToCommandList(Get())->SetDescriptorHeaps(2, pDescriptorHeaps);
 	}
 
-	// void CommandList::SetPipeline(const Pipeline& pipeline)
+	void CommandList::SetGraphicsPipeline(const GraphicsPipeline& pipeline)
+	{
+		const GraphicsPipelineDX12* pPipline{ ToPipeline(pipeline.Get()) };
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetGraphicsRootSignature(pPipline->pRootSignature);
+		pCommandList->SetPipelineState(pPipline->pPipelineState);
+	}
 
 	void CommandList::SetRenderTarget(const dU64* rtvs, dU32 rtvCount, const dU64* dsv)
 	{
@@ -1129,7 +1160,7 @@ namespace Dune::Graphics
 			resourceState,
 			nullptr,
 			IID_PPV_ARGS(&pResource)));
-		pResource->SetName(desc.debugName);
+		NameDXObject(pResource, desc.debugName);
 		m_pResource = pResource;
 
 		if (m_memory == EBufferMemory::CPU)
@@ -1789,98 +1820,91 @@ namespace Dune::Graphics
 		return D3D12_COMPARISON_FUNC_NONE;
 	}
 
-	class Pipeline
+	GraphicsPipeline::GraphicsPipeline(Device* pDeviceInterface, const GraphicsPipelineDesc& desc)
 	{
-	public:
-		[[nodiscard]] ID3D12PipelineState* GetPipelineStateObject() { return m_pPipelineState; }
-		[[nodiscard]] ID3D12RootSignature* GetRootSignature() { return m_pRootSignature; }
+		Assert(pDeviceInterface);
+		ID3D12Device* pDevice = pDeviceInterface->pDevice;
 
-	private:
-		Pipeline(Device* pDeviceInterface, const GraphicsPipelineDesc& desc)
-			: m_pDeviceInterface { pDeviceInterface }
+		D3D12_ROOT_SIGNATURE_FLAGS flags
 		{
-			Assert(pDeviceInterface);
-			ID3D12Device* pDevice = m_pDeviceInterface->pDevice;
+			(desc.inputLayout.empty()) ? D3D12_ROOT_SIGNATURE_FLAG_NONE : D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS
+		};
 
-			D3D12_ROOT_SIGNATURE_FLAGS flags
-			{
-				(desc.inputLayout.empty()) ? D3D12_ROOT_SIGNATURE_FLAG_NONE : D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-				| D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS
-				| D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
-				| D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
-				| D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
-				| D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS
-				| D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS
-				| D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS
-			};
+		ID3D12RootSignature* pRootSignature{ ComputeRootSignature(pDevice, desc.bindingLayout, flags) };
 
-			m_pRootSignature = ComputeRootSignature(pDevice, desc.bindingLayout, flags);
-
-			D3D12_INPUT_ELEMENT_DESC* pInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[desc.inputLayout.size()];
-			for (dU32 i = 0; i < desc.inputLayout.size(); i++)
-			{
-				const VertexInput& input = desc.inputLayout[i];
-				pInputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-			}
-
-			IDxcBlob* pVSBlob{ (desc.vertexShader.IsValid()) ? m_pDeviceInterface->shaderPool.Get(desc.vertexShader).GetByteCode() : nullptr};
-			IDxcBlob* pPSBlob{ (desc.vertexShader.IsValid()) ? m_pDeviceInterface->shaderPool.Get(desc.pixelShader).GetByteCode() : nullptr};
-
-			// Describe and create the graphics pipeline state object (PSO).
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
-			psoDesc.InputLayout = { pInputElementDescs, (dU32)desc.inputLayout.size()};
-			psoDesc.pRootSignature = m_pRootSignature;
-			psoDesc.VS.BytecodeLength = pVSBlob->GetBufferSize();
-			psoDesc.VS.pShaderBytecode = pVSBlob->GetBufferPointer();
-			psoDesc.PS.BytecodeLength = (pPSBlob) ? pPSBlob->GetBufferSize() : 0;
-			psoDesc.PS.pShaderBytecode = (pPSBlob) ? pPSBlob->GetBufferPointer() : nullptr;
-			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-			psoDesc.RasterizerState.FillMode = (desc.rasterizerState.bWireframe) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
-			psoDesc.RasterizerState.CullMode = (D3D12_CULL_MODE) desc.rasterizerState.cullingMode;
-			psoDesc.RasterizerState.DepthBias = desc.rasterizerState.depthBias;
-			psoDesc.RasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
-			psoDesc.RasterizerState.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias;
-			psoDesc.RasterizerState.DepthClipEnable = desc.rasterizerState.bDepthClipEnable;
-			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-			psoDesc.DepthStencilState.DepthEnable = desc.depthStencilState.bDepthEnabled;
-			psoDesc.DepthStencilState.DepthWriteMask = (desc.depthStencilState.bDepthWrite) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-			psoDesc.DepthStencilState.DepthFunc = ConvertDepthFunc(desc.depthStencilState.bDepthFunc);
-			psoDesc.SampleMask = UINT_MAX;
-			dU32 renderTargetCount = (dU32) desc.renderTargetsFormat.size();
-			psoDesc.NumRenderTargets = renderTargetCount;
-			for (dU32 i = 0; i < renderTargetCount; i++)
-			{
-				psoDesc.RTVFormats[i] = (DXGI_FORMAT)desc.renderTargetsFormat[i];
-			}
-			psoDesc.DSVFormat = (DXGI_FORMAT)desc.depthStencilFormat;
-			psoDesc.SampleDesc.Count = 1;
-			ThrowIfFailed(pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPipelineState)));
-			delete[] pInputElementDescs;
+		D3D12_INPUT_ELEMENT_DESC* pInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[desc.inputLayout.size()];
+		for (dU32 i = 0; i < desc.inputLayout.size(); i++)
+		{
+			const VertexInput& input = desc.inputLayout[i];
+			pInputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 		}
 
-		~Pipeline()
+		IDxcBlob* pVSBlob{ (desc.vertexShader.IsValid()) ? pDeviceInterface->shaderPool.Get(desc.vertexShader).GetByteCode() : nullptr};
+		IDxcBlob* pPSBlob{ (desc.vertexShader.IsValid()) ? pDeviceInterface->shaderPool.Get(desc.pixelShader).GetByteCode() : nullptr};
+
+		// Describe and create the graphics pipeline state object (PSO).
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+		psoDesc.InputLayout = { pInputElementDescs, (dU32)desc.inputLayout.size()};
+		psoDesc.pRootSignature = pRootSignature;
+		psoDesc.VS.BytecodeLength = pVSBlob->GetBufferSize();
+		psoDesc.VS.pShaderBytecode = pVSBlob->GetBufferPointer();
+		psoDesc.PS.BytecodeLength = (pPSBlob) ? pPSBlob->GetBufferSize() : 0;
+		psoDesc.PS.pShaderBytecode = (pPSBlob) ? pPSBlob->GetBufferPointer() : nullptr;
+		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		psoDesc.RasterizerState.FillMode = (desc.rasterizerState.bWireframe) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
+		psoDesc.RasterizerState.CullMode = (D3D12_CULL_MODE) desc.rasterizerState.cullingMode;
+		psoDesc.RasterizerState.DepthBias = desc.rasterizerState.depthBias;
+		psoDesc.RasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
+		psoDesc.RasterizerState.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias;
+		psoDesc.RasterizerState.DepthClipEnable = desc.rasterizerState.bDepthClipEnable;
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		psoDesc.DepthStencilState.DepthEnable = desc.depthStencilState.bDepthEnabled;
+		psoDesc.DepthStencilState.DepthWriteMask = (desc.depthStencilState.bDepthWrite) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+		psoDesc.DepthStencilState.DepthFunc = ConvertDepthFunc(desc.depthStencilState.bDepthFunc);
+		psoDesc.SampleMask = UINT_MAX;
+		dU32 renderTargetCount = (dU32) desc.renderTargetsFormat.size();
+		psoDesc.NumRenderTargets = renderTargetCount;
+		for (dU32 i = 0; i < renderTargetCount; i++)
 		{
-			m_pDeviceInterface->ReleaseResource(m_pRootSignature);
-			m_pDeviceInterface->ReleaseResource(m_pPipelineState);
+			psoDesc.RTVFormats[i] = (DXGI_FORMAT)desc.renderTargetsFormat[i];
 		}
+		psoDesc.DSVFormat = (DXGI_FORMAT)desc.depthStencilFormat;
+		psoDesc.SampleDesc.Count = 1;
+		ID3D12PipelineState* pPipelineState{ nullptr };
+		ThrowIfFailed(pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pPipelineState)));
 
-		DISABLE_COPY_AND_MOVE(Pipeline);
+		GraphicsPipelineDX12* pPipeline = new GraphicsPipelineDX12();
+		pPipeline->pPipelineState = pPipelineState;
+		pPipeline->pRootSignature = pRootSignature;
+		m_pResource = pPipeline;
 
-	private:
-		friend Pool<Pipeline, Pipeline, true>;
+		delete[] pInputElementDescs;
+	}
 
-		ID3D12RootSignature* m_pRootSignature{ nullptr };
-		ID3D12PipelineState* m_pPipelineState{ nullptr };
-		Device* m_pDeviceInterface{ nullptr };
-	};
+	GraphicsPipeline::~GraphicsPipeline()
+	{
+		GraphicsPipelineDX12* pPipelineDX12 = ToPipeline(Get());
+		
+		pPipelineDX12->pRootSignature->Release();
+		pPipelineDX12->pPipelineState->Release();
 
-	Handle<Pipeline> CreateGraphicsPipeline(Device* pDevice, const GraphicsPipelineDesc& desc)
+		delete pPipelineDX12;
+	}
+
+	Handle<GraphicsPipeline> CreateGraphicsPipeline(Device* pDevice, const GraphicsPipelineDesc& desc)
 	{
 		return pDevice->pipelinePool.Create(pDevice, desc);
 	}
 
-	void ReleasePipeline(Device* pDevice, Handle<Pipeline> handle)
+	void ReleasePipeline(Device* pDevice, Handle<GraphicsPipeline> handle)
 	{
 		pDevice->pipelinePool.Remove(handle);
 	}
@@ -1982,26 +2006,23 @@ namespace Dune::Graphics
 		pCommand->pCommandList->SetDescriptorHeaps(*pCommand->heaps[0], *pCommand->heaps[1]);
 	}
 
-	void ResetCommand(DirectCommand* pCommand, Handle<Pipeline> handle)
+	void ResetCommand(DirectCommand* pCommand, Handle<GraphicsPipeline> handle)
 	{
 		dU32 commandIndex = pCommand->commandIndex = (pCommand->commandIndex + 1) % pCommand->commandCount;
+		GraphicsPipeline& pipeline{ pCommand->pDeviceInterface->pipelinePool.Get(handle) };
 		WaitCommand(pCommand);
-		Pipeline& pipeline{ pCommand->pDeviceInterface->pipelinePool.Get(handle) };
 		pCommand->pCommandAllocators[commandIndex]->Reset();
-		pCommand->pCommandList->Reset(*pCommand->pCommandAllocators[commandIndex]);
-		ToCommandList(pCommand->pCommandList->Get())->SetPipelineState(pipeline.GetPipelineStateObject());
-		ToCommandList(pCommand->pCommandList->Get())->SetGraphicsRootSignature(pipeline.GetRootSignature());
+		pCommand->pCommandList->Reset(*pCommand->pCommandAllocators[commandIndex], pipeline);		
 		ToCommandList(pCommand->pCommandList->Get())->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		pCommand->pCommandList->SetDescriptorHeaps(*pCommand->heaps[0], *pCommand->heaps[1]);
 	}
 
-	void SetPipeline(DirectCommand* pCommand, Handle<Pipeline> handle)
+	void SetPipeline(DirectCommand* pCommand, Handle<GraphicsPipeline> handle)
 	{
 		Assert(handle.IsValid());
-		Pipeline& pipeline{ pCommand->pDeviceInterface->pipelinePool.Get(handle) };
-		ToCommandList(pCommand->pCommandList->Get())->SetGraphicsRootSignature(pipeline.GetRootSignature());
+		GraphicsPipeline& pipeline{ pCommand->pDeviceInterface->pipelinePool.Get(handle) };
+		pCommand->pCommandList->SetGraphicsPipeline(pipeline);
 		ToCommandList(pCommand->pCommandList->Get())->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		ToCommandList(pCommand->pCommandList->Get())->SetPipelineState(pipeline.GetPipelineStateObject());
 	}
 
 	void SetRenderTarget(DirectCommand* pCommand, Handle<Texture> renderTarget)

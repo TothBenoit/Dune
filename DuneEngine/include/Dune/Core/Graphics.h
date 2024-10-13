@@ -4,6 +4,7 @@
 #include "Dune/Core/Graphics/RHI/Buffer.h"
 #include "Dune/Core/Graphics/RHI/Texture.h"
 #include "Dune/Core/Graphics/RHI/DescriptorHeap.h"
+#include "Dune/Core/Graphics/RHI/GraphicsPipeline.h"
 #include "Dune/Core/Graphics/Window.h"
 
 namespace Dune
@@ -23,7 +24,6 @@ namespace Dune::Graphics
 	class Mesh;
 	struct Vertex;
 	class Shader;
-	class Pipeline;
 	class Window;
 
 	// Device
@@ -74,49 +74,6 @@ namespace Dune::Graphics
 		Compute,
 	};
 
-	enum class EShaderVisibility
-	{
-		Vertex,
-		Pixel,
-		All,
-		Count
-	};
-
-	enum class EBindingType
-	{
-		Constant,
-		Buffer,
-		Resource,
-		UAV,
-		Group,
-		Samplers,
-	};
-
-	struct BindingGroup
-	{
-		dU32 bufferCount{ 0 };
-		dU32 uavCount{ 0 };
-		dU32 resourceCount{ 0 };
-	};
-
-	struct BindingSlot
-	{
-		EBindingType type;
-		union
-		{
-			BindingGroup	groupDesc;
-			dU32			byteSize;
-			dU32			samplerCount;
-		};
-		EShaderVisibility visibility{ EShaderVisibility::All };
-	};
-
-	struct BindingLayout
-	{
-		BindingSlot slots[64];
-		dU8 slotCount{ 0 };
-	};
-
 	struct ShaderDesc
 	{
 		EShaderStage	stage;
@@ -129,73 +86,6 @@ namespace Dune::Graphics
 
 	[[nodiscard]] Handle<Shader>	CreateShader(Device* pDevice, const ShaderDesc& desc);
 	void							ReleaseShader(Device* pDevice, Handle<Shader> handle);
-
-	// Graphics Pipeline
-
-	enum class ECullingMode
-	{
-		NONE = 1,
-		FRONT = 2,
-		BACK = 3
-	};
-
-	struct RasterizerState
-	{
-		ECullingMode cullingMode { ECullingMode::BACK };
-		dS32 depthBias { 0 };
-		float depthBiasClamp { 0.0f };
-		float slopeScaledDepthBias { 0.0f };
-		bool bDepthClipEnable : 1 { true };
-		bool bWireframe : 1 { false };
-	};
-
-	enum class ECompFunc
-	{
-		NONE,
-		NEVER = 1,
-		LESS = 2,
-		EQUAL = 3,
-		LESS_EQUAL = 4,
-		GREATER = 5,
-		NOT_EQUAL = 6,
-		GREATER_EQUAL = 7,
-		ALWAYS = 8
-	};
-
-	struct DepthStencilState
-	{
-		bool		bDepthEnabled	: 1	{ false };
-		bool		bDepthWrite		: 1	{ false };
-		ECompFunc	bDepthFunc			{ ECompFunc::LESS_EQUAL };
-		// TODO: Add stencil
-	};
-
-	struct VertexInput
-	{
-		const char* pName		{ nullptr };
-		dU32 index				{ 0 };
-		EFormat format			{ EFormat::R32G32B32A32_FLOAT };
-		dU32 slot				{ 0 };
-		dU32 byteAlignedOffset	{ 0 };
-		bool bPerInstance		{ false };
-	};
-
-	struct GraphicsPipelineDesc
-	{
-		Handle<Shader>			vertexShader;
-		Handle<Shader>			pixelShader;
-		BindingLayout			bindingLayout;
-		// TODO : Use span
-		dVector<VertexInput>	inputLayout;
-		RasterizerState			rasterizerState;
-		DepthStencilState		depthStencilState;
-		// TODO : Use span or array[8] like dx12
-		dVector<EFormat>		renderTargetsFormat;
-		EFormat					depthStencilFormat;
-	};
-
-	[[nodiscard]] Handle<Pipeline>			CreateGraphicsPipeline(	Device* pDevice, const GraphicsPipelineDesc& desc);
-	void									ReleasePipeline( Device* pDevice, Handle<Pipeline> handle);
 
 	// BindGroup
 
@@ -210,8 +100,8 @@ namespace Dune::Graphics
 	void							DestroyCommand(DirectCommand* pCommand);
 	void							SubmitCommand(Device* pDevice, DirectCommand* pCommand);
 	void							ResetCommand(DirectCommand* pCommand);
-	void							ResetCommand(DirectCommand* pCommand, Handle<Pipeline>);
-	void							SetPipeline(DirectCommand* pCommand, Handle<Pipeline> handle);
+	void							ResetCommand(DirectCommand* pCommand, Handle<GraphicsPipeline>);
+	void							SetPipeline(DirectCommand* pCommand, Handle<GraphicsPipeline> handle);
 	void							SetRenderTarget(DirectCommand* pCommand, Handle<Texture> renderTarget);
 	void							SetRenderTarget(DirectCommand* pCommand, Handle<Texture> renderTarget, Handle<Texture> depthBuffer);
 	void							SetRenderTarget(DirectCommand* pCommand, View* pView);

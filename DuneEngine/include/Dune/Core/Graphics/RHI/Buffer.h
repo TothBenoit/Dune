@@ -25,7 +25,7 @@ namespace Dune::Graphics
 
 	struct BufferDesc
 	{
-		const wchar_t* debugName = nullptr;
+		const wchar_t* debugName{ L"Buffer" };
 
 		EBufferUsage	usage{ EBufferUsage::Constant };
 		EBufferMemory	memory{ EBufferMemory::CPU };

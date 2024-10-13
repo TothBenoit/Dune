@@ -37,12 +37,13 @@ namespace Dune::Graphics
 		~CommandList();
 		DISABLE_COPY_AND_MOVE(CommandList);
 
-        void Reset(CommandAllocator& commandAllocator/*, Pipeline& pipeline*/);
+        void Reset(CommandAllocator& commandAllocator);
+        void Reset(CommandAllocator& commandAllocator, const GraphicsPipeline& pipeline);
         void Close();
 
         void SetDescriptorHeaps(DescriptorHeap& pSrvHeap);
         void SetDescriptorHeaps(DescriptorHeap& pSrvHeap, DescriptorHeap& pSamplerHeap);
-		// void SetPipeline(const Pipeline& pipeline);
+		void SetGraphicsPipeline(const GraphicsPipeline& pipeline);
 		void SetRenderTarget(const dU64* rtvs, dU32 rtvCount, const dU64* dsv);
 		void ClearRenderTargetView(const Descriptor& rtv, const float clearColor[4]);
 		void ClearDepthBuffer(const Descriptor& dsv, float depth, float stencil);

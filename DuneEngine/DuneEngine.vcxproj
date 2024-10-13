@@ -29,6 +29,7 @@
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\GraphicsPipeline.h" />
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
