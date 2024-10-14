@@ -717,7 +717,7 @@ namespace Dune::Graphics
 	DescriptorHeap::DescriptorHeap(Device* pDeviceInterface, const DescriptorHeapDesc& desc)
 	{
 		Assert(!Get());
-		Assert( desc.capacity != 0);
+		Assert(desc.capacity != 0);
 		m_capacity = desc.capacity;
 
 		ID3D12Device* pDevice = pDeviceInterface->pDevice;
@@ -742,10 +742,8 @@ namespace Dune::Graphics
 		m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(heapType);
 
 		m_freeSlots.reserve(m_capacity);
-		for (dU32 i{ 0 }; i < m_capacity; i++)
-		{
+		for (dU32 i = 0; i < m_capacity; i++)
 			m_freeSlots.push_back(i);
-		}
 	}
 
 	DescriptorHeap::~DescriptorHeap()
@@ -756,7 +754,7 @@ namespace Dune::Graphics
 		m_freeSlots.clear();
 	}
 
-	[[nodiscard]] Descriptor DescriptorHeap::Allocate()
+	Descriptor DescriptorHeap::Allocate()
 	{
 		Descriptor handle{};
 		dU32 slot;
@@ -1187,8 +1185,7 @@ namespace Dune::Graphics
 
 	Buffer::~Buffer()
 	{
-		Assert(m_descriptorAllocated == 0);
-		m_pDeviceInterface->ReleaseResource(ToResource(Get()));
+		ToResource(Get())->Release();
 	}
 
 	dU64 Buffer::GetGPUAddress()
@@ -1196,12 +1193,10 @@ namespace Dune::Graphics
 		return ToResource(Get())->GetGPUVirtualAddress() + GetOffset();
 	}
 
-	const Descriptor Buffer::CreateSRV()
+	void Buffer::CreateSRV(Descriptor& srv)
 	{ 
 		Assert(m_usage == EBufferUsage::Structured);
-#if _DEBUG
-		m_descriptorAllocated++;
-#endif
+
 		dU32 elementCount = (dU32)(m_byteSize / m_byteStride);
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc
 		{
@@ -1215,36 +1210,21 @@ namespace Dune::Graphics
 				.Flags = D3D12_BUFFER_SRV_FLAG_NONE,
 			}
 		};
-		Descriptor srv{ m_pDeviceInterface->pSrvHeap->Allocate() };
 		ID3D12Device* pDevice{ m_pDeviceInterface->pDevice };
 		pDevice->CreateShaderResourceView(ToResource(Get()), &desc, { srv.cpuAddress });
-		return srv; 
 	}
 
-	const Descriptor Buffer::CreateCBV()
+	void Buffer::CreateCBV(Descriptor& cbv)
 	{ 
 		Assert(m_usage == EBufferUsage::Constant); 
-#if _DEBUG
-		m_descriptorAllocated++;
-#endif
+
 		D3D12_CONSTANT_BUFFER_VIEW_DESC desc
 		{
 			.BufferLocation = ToResource(Get())->GetGPUVirtualAddress(),
 			.SizeInBytes = (dU32)m_byteSize
 		};
-		Descriptor cbv{ m_pDeviceInterface->pSrvHeap->Allocate() };
 		ID3D12Device* pDevice{ m_pDeviceInterface->pDevice };
 		pDevice->CreateConstantBufferView(&desc, { cbv.cpuAddress } );
-		return cbv;
-	}
-
-	void Buffer::ReleaseDescriptor(const Descriptor& descriptor) 
-	{
-		Assert(m_descriptorAllocated == 0);
-#if _DEBUG
-		m_descriptorAllocated--;
-#endif
-		m_pDeviceInterface->pSrvHeap->Free(descriptor);
 	}
 
 	dU32 Buffer::CycleBuffer()

@@ -47,9 +47,8 @@ namespace Dune::Graphics
 		[[nodiscard]] dU32 GetOffset() const { return m_currentBuffer * m_byteSize; }
 		[[nodiscard]] dU32 GetCurrentBufferIndex() const { return m_currentBuffer; }
 		[[nodiscard]] dU64 GetGPUAddress();
-		[[nodiscard]] const Descriptor CreateSRV(); // TODO : desc
-		[[nodiscard]] const Descriptor CreateCBV(); // TODO : desc
-		void ReleaseDescriptor(const Descriptor& descriptor);		
+		[[nodiscard]] void CreateSRV(Descriptor& srv); // TODO : desc
+		[[nodiscard]] void CreateCBV(Descriptor& cbv); // TODO : desc
 
 		void Map(dU32 byteOffset, dU32 byteSize, void** pCpuAdress);
 		void Unmap(dU32 byteOffset, dU32 byteSize);
@@ -66,10 +65,6 @@ namespace Dune::Graphics
 		dU32				m_byteStride;
 		dU32				m_currentBuffer;
 		Device*				m_pDeviceInterface{ nullptr };
-
-#if _DEBUG
-		dU32				m_descriptorAllocated{ 0 };
-#endif
 	};
 
 	[[nodiscard]] Handle<Buffer>	CreateBuffer(Device* pDevice, const BufferDesc& desc);
