@@ -9,6 +9,7 @@
 #include "Dune/Core/Graphics/RHI/CommandList.h"
 #include "Dune/Core/Graphics/RHI/Fence.h"
 #include "Dune/Core/Graphics/RHI/GraphicsPipeline.h"
+#include "Dune/Core/Graphics/RHI/Swapchain.h"
 #include "Dune/Common/Pool.h"
 #include "Dune/Utilities/Utils.h"
 
@@ -107,6 +108,16 @@ namespace Dune::Graphics
 	inline const GraphicsPipelineDX12* ToPipeline(const void* pPipeline)
 	{
 		return (const GraphicsPipelineDX12*)pPipeline;
+	}
+
+	inline IDXGISwapChain4* ToSwapchain(void* pSwapchain)
+	{
+		return (IDXGISwapChain4*)pSwapchain;
+	}
+
+	inline const IDXGISwapChain4* ToSwapchain(const void* pSwapchain)
+	{
+		return (const IDXGISwapChain4*)pSwapchain;
 	}
 
 	struct RingBufferAllocation
@@ -782,6 +793,120 @@ namespace Dune::Graphics
 		m_freeSlots.push_back(slot);
 	}
 
+	Swapchain::Swapchain(Device* pDeviceInterface, Window* pWindow, const SwapchainDesc& desc)
+	{
+		IDXGIFactory7* pFactory = pDeviceInterface->pFactory;
+		ID3D12Device* pDevice = pDeviceInterface->pDevice;
+
+		m_latency = desc.latency;
+		m_pDevice = pDeviceInterface;
+
+		RECT clientRect;
+		HWND handle{ (HWND)pWindow->GetHandle() };
+		GetClientRect(handle, &clientRect);
+
+		D3D12_COMMAND_QUEUE_DESC queueDesc
+		{
+			.Type = D3D12_COMMAND_LIST_TYPE_DIRECT,
+			.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE
+		};
+
+		DXGI_SWAP_CHAIN_DESC1 swapChainDesc
+		{
+			.Width = 0,
+			.Height = 0,
+			.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+			.Stereo = false,
+			.SampleDesc = {.Count = 1, .Quality = 0},
+			.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
+			.BufferCount = m_latency,
+			.Scaling = DXGI_SCALING_STRETCH,
+			.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
+			.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED,
+			.Flags = 0
+		};
+
+		Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
+		Microsoft::WRL::ComPtr<IDXGISwapChain4> pSwapChain{ nullptr };
+		ThrowIfFailed(pFactory->CreateSwapChainForHwnd(
+			ToCommandQueue(pDeviceInterface->directQueue.pCommandQueue->Get()),
+			handle,
+			&swapChainDesc,
+			nullptr,
+			nullptr,
+			&swapChain
+		));
+
+		ThrowIfFailed(pFactory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER));
+		ThrowIfFailed(swapChain.As(&pSwapChain));
+
+		ID3D12Resource** pBackBuffers = new ID3D12Resource * [m_latency];
+		m_RTVs = new Descriptor[m_latency];
+		for (UINT i = 0; i < m_latency; i++)
+		{
+			m_RTVs[i] = pDeviceInterface->pRtvHeap->Allocate();
+			ThrowIfFailed(pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffers[i])));
+			pDevice->CreateRenderTargetView(pBackBuffers[i], nullptr, { m_RTVs[i].cpuAddress });
+			NameDXObjectIndexed(pBackBuffers[i], i, L"BackBuffers");
+		}
+
+		m_pBackBuffers = pBackBuffers;
+		m_pResource = pSwapChain.Detach();
+	}
+
+	Swapchain::~Swapchain()
+	{
+		ID3D12Resource** pBackBuffers = (ID3D12Resource**)m_pBackBuffers;
+		for (dU32 i = 0; i < m_latency; i++)
+		{
+			pBackBuffers[i]->Release();
+			m_pDevice->pRtvHeap->Free(m_RTVs[i]);
+		}
+		delete[] m_RTVs;
+		delete[](ID3D12Resource**)m_pBackBuffers;
+		ToSwapchain(Get())->Release();
+	}
+
+	void Swapchain::Resize(dU32 width, dU32 height)
+	{
+		ID3D12Resource** pBackBuffers = (ID3D12Resource**)m_pBackBuffers;
+		for (dU32 i = 0; i < m_latency; i++)
+			pBackBuffers[i]->Release();
+
+		IDXGISwapChain4* pSwapchain{ ToSwapchain(Get()) };
+		ThrowIfFailed(pSwapchain->ResizeBuffers(
+			m_latency,
+			width, height,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			0
+		));
+
+		for (dU32 i = 0; i < m_latency; i++)
+		{
+			ThrowIfFailed(pSwapchain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffers[i])));
+			m_pDevice->pDevice->CreateRenderTargetView(pBackBuffers[i], nullptr, { m_RTVs[i].cpuAddress });
+			NameDXObjectIndexed(pBackBuffers[i], i, L"BackBuffers");
+		}
+
+		m_pBackBuffers = pBackBuffers;
+	}
+
+	void Swapchain::Present()
+	{
+		ToSwapchain(Get())->Present(1, 0);
+	}
+
+	void* Swapchain::GetBackBuffer(dU32 index)
+	{
+		Assert(index < m_latency);
+		return ((ID3D12Resource**)m_pBackBuffers)[index];
+	}
+
+	dU32 Swapchain::GetCurrentBackBufferIndex()
+	{
+		return ToSwapchain(Get())->GetCurrentBackBufferIndex();
+	}
+
 	void OnResize(void* pData);
 	class ViewInternal : public View
 	{
@@ -796,14 +921,8 @@ namespace Dune::Graphics
 			m_pOnResizeData = desc.pOnResizeData;
 
 			m_pDeviceInterface = desc.pDevice;
-			IDXGIFactory7* pFactory = m_pDeviceInterface->pFactory;
-			ID3D12Device* pDevice = m_pDeviceInterface->pDevice;
-
-			m_backBufferCount = desc.backBufferCount;
-
-			RECT clientRect;
-			HWND handle{ (HWND) pWindow->GetHandle() };
-			GetClientRect(handle, &clientRect);
+			
+			m_pSwapchain = new Swapchain(m_pDeviceInterface, m_pWindow, { .latency = desc.backBufferCount });
 
 			D3D12_COMMAND_QUEUE_DESC queueDesc
 			{
@@ -811,74 +930,29 @@ namespace Dune::Graphics
 				.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE
 			};
 
-			m_directFenceValues = new dU64[m_backBufferCount];
-			for (dU32 i = 0; i < m_backBufferCount; i++)
-			{
+			m_directFenceValues = new dU64[desc.backBufferCount];
+			for (dU32 i = 0; i < desc.backBufferCount; i++)
 				m_directFenceValues[i] = 0;
-			}
+	
 
-			DXGI_SWAP_CHAIN_DESC1 swapChainDesc
-			{
-				.Width = 0,
-				.Height = 0,
-				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-				.Stereo = false,
-				.SampleDesc = {.Count = 1, .Quality = 0},
-				.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-				.BufferCount = m_backBufferCount,
-				.Scaling = DXGI_SCALING_STRETCH,
-				.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
-				.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED,
-				.Flags = 0
-			};
-
-			Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
-			Microsoft::WRL::ComPtr<IDXGISwapChain4> pSwapChain{ nullptr };
-			ThrowIfFailed(pFactory->CreateSwapChainForHwnd(
-				ToCommandQueue(m_pDeviceInterface->directQueue.pCommandQueue->Get()),
-				handle,
-				&swapChainDesc,
-				nullptr,
-				nullptr,
-				&swapChain
-			));
-
-			ThrowIfFailed(pFactory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER));
-			ThrowIfFailed(swapChain.As(&pSwapChain));
-			m_pSwapChain = pSwapChain.Detach();			
-
-			m_pBackBuffers = new ID3D12Resource*[m_backBufferCount];
-			m_pBackBufferViews = new Descriptor[m_backBufferCount];
-			m_pBackBufferStates = new D3D12_RESOURCE_STATES[m_backBufferCount];
-			for (UINT i = 0; i < m_backBufferCount; i++)
-			{
-				m_pBackBufferViews[i] = m_pDeviceInterface->pRtvHeap->Allocate();
-				ThrowIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&m_pBackBuffers[i])));
-				pDevice->CreateRenderTargetView(m_pBackBuffers[i], nullptr, { m_pBackBufferViews[i].cpuAddress });
-				NameDXObjectIndexed(m_pBackBuffers[i], i, L"BackBuffers");
+			m_pBackBufferStates = new D3D12_RESOURCE_STATES[desc.backBufferCount];
+			for (UINT i = 0; i < desc.backBufferCount; i++)
 				m_pBackBufferStates[i] = D3D12_RESOURCE_STATE_COMMON;
-			}
-			m_frameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
+
+			m_frameIndex = m_pSwapchain->GetCurrentBackBufferIndex();
 			m_pCommand = CreateDirectCommand({ .pView = this });
 		}
 
 		void Destroy()
 		{
-			for (dU32 i = 0; i < m_backBufferCount; i++)
-			{
+			for (dU32 i = 0; i < m_pSwapchain->GetLatency(); i++)			
 				WaitForFrame(i);
-				m_pBackBuffers[i]->Release();
-				m_pDeviceInterface->pRtvHeap->Free(m_pBackBufferViews[i]);
-				ReleaseDyingResources();
-			}
+			
+			delete m_pSwapchain;
+			ReleaseDyingResources();
 			DestroyCommand(m_pCommand);
 
 			delete[] m_pBackBufferStates;
-			delete[] m_pBackBufferViews;
-			delete[] m_pBackBuffers;
-
-			m_pSwapChain->Release();
-			
 			delete[] m_directFenceValues;
 
 			m_pWindow->Destroy();
@@ -892,12 +966,12 @@ namespace Dune::Graphics
 
 		[[nodiscard]] ID3D12Resource* GetCurrentBackBuffer()
 		{
-			return m_pBackBuffers[m_frameIndex];
+			return ToResource(m_pSwapchain->GetBackBuffer(m_frameIndex));
 		}
 
 		[[nodiscard]] const Descriptor& GetCurrentBackBufferView() const
 		{ 
-			return m_pBackBufferViews[m_frameIndex]; 
+			return m_pSwapchain->GetRTV(m_frameIndex); 
 		}
 
 		[[nodiscard]] D3D12_RESOURCE_STATES GetCurrentBackBufferState() const
@@ -936,17 +1010,17 @@ namespace Dune::Graphics
 			ResetCommand(m_pCommand);
 			if (m_pBackBufferStates[m_frameIndex] != D3D12_RESOURCE_STATE_PRESENT)
 			{
-				D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(m_pBackBuffers[m_frameIndex], m_pBackBufferStates[m_frameIndex], D3D12_RESOURCE_STATE_PRESENT) };
+				D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(ToResource(m_pSwapchain->GetBackBuffer(m_frameIndex)), m_pBackBufferStates[m_frameIndex], D3D12_RESOURCE_STATE_PRESENT) };
 				ToCommandList(m_pCommand->pCommandList->Get())->ResourceBarrier(1, &barrier);
 				m_pBackBufferStates[m_frameIndex] = D3D12_RESOURCE_STATE_PRESENT;
 				SubmitCommand(m_pDeviceInterface, m_pCommand);
 			}
 
-			ThrowIfFailed(m_pSwapChain->Present(1, 0));
+			m_pSwapchain->Present();
 
 			m_directFenceValues[m_frameIndex] = m_pDeviceInterface->directQueue.Signal();
 			m_elapsedFrame++;
-			m_frameIndex = (m_frameIndex + 1) % m_backBufferCount;
+			m_frameIndex = (m_frameIndex + 1) % m_pSwapchain->GetLatency();
 		}
 
 		void ReleaseResource(ID3D12Object* pResource)
@@ -971,31 +1045,12 @@ namespace Dune::Graphics
 		void Resize()
 		{
 			// Wait until all previous frames are processed.
-			for (dU32 i = 0; i < m_backBufferCount; i++)
-			{
+			for (dU32 i = 0; i < m_pSwapchain->GetLatency(); i++)
 				WaitForFrame(i);
-			}
 
-			// Release resources that are tied to the swap chain.
-			for (dU32 i = 0; i < m_backBufferCount; i++)
-			{
-				m_pBackBuffers[i]->Release();
-			}
-
-			ThrowIfFailed(m_pSwapChain->ResizeBuffers(
-				m_backBufferCount,
-				GetWidth(), GetHeight(),
-				DXGI_FORMAT_R8G8B8A8_UNORM,
-				0
-			));
-
-			for (dU32 i = 0; i < m_backBufferCount; i++)
-			{
-				ThrowIfFailed(m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&m_pBackBuffers[i])));
-				m_pDeviceInterface->pDevice->CreateRenderTargetView(m_pBackBuffers[i], nullptr, { m_pBackBufferViews[i].cpuAddress });
-				NameDXObjectIndexed(m_pBackBuffers[i], i, L"BackBuffers");
-			}			
-			m_frameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
+			m_pSwapchain->Resize(GetWidth(), GetHeight());
+		
+			m_frameIndex = m_pSwapchain->GetCurrentBackBufferIndex();
 			m_elapsedFrame++;
 
 			if (m_pOnResize)
@@ -1003,22 +1058,19 @@ namespace Dune::Graphics
 		}
 
 		[[nodiscard]] const Input* GetInput() const { return m_pWindow->GetInput(); }
-		[[nodiscard]] dU32 GetFrameCount() const { return m_backBufferCount; }
+		[[nodiscard]] dU32 GetFrameCount() const { return m_pSwapchain->GetLatency(); }
 		[[nodiscard]] dU32 GetFrameIndex() const { return m_frameIndex; }
 		[[nodiscard]] dU64 GetElaspedFrame() const { return m_elapsedFrame; }
 
 	private:
 		void(*m_pOnResize)(View*, void*) { nullptr };
 		void* m_pOnResizeData{ nullptr };
-		IDXGISwapChain4* m_pSwapChain{ nullptr };
-		ID3D12Resource** m_pBackBuffers{ nullptr };
-		Descriptor* m_pBackBufferViews{ nullptr };
+		Swapchain* m_pSwapchain{ nullptr };
 		D3D12_RESOURCE_STATES* m_pBackBufferStates{ nullptr };
 		const float	m_backBufferClearValue[4] { 0.f, 0.f, 0.f, 0.f };
 
 		dU64* m_directFenceValues;
 
-		dU32 m_backBufferCount{ 0 };
 		dU32 m_frameIndex{ 0 };
 		dU64 m_elapsedFrame{ 0 };		
 

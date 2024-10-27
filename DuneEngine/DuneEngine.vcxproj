@@ -47,6 +47,7 @@
     <ClInclude Include="include\Dune\Core\Logger.h" />
     <ClInclude Include="include\Dune\Utilities\Utils.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Swapchain.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Graphics\Window.cpp" />

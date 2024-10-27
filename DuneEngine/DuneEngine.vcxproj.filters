@@ -103,6 +103,9 @@
     <ClInclude Include="include\Dune\Core\Graphics\RHI\GraphicsPipeline.h">
       <Filter>Dune\Core\Graphics\RHI</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Swapchain.h">
+      <Filter>Dune\Core\Graphics\RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Input.cpp">
