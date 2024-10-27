@@ -58,8 +58,11 @@ namespace Dune
 					.slots =
 					{
 						{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRGlobals), .visibility = Graphics::EShaderVisibility::All},
+						{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
+						{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
+						{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRInstance), .visibility = Graphics::EShaderVisibility::Vertex},
 					},
-					.slotCount = 1
+					.slotCount = 4
 				},
 				.inputLayout =
 					{
@@ -128,11 +131,17 @@ namespace Dune
 		Graphics::ClearDepthBuffer(m_pCommand, m_depthBuffer);
 		Graphics::PBRGlobals globals;
 		Graphics::ComputeViewProjectionMatrix(m_cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
+		DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
 		Graphics::PushGraphicsConstants(m_pCommand, 0, &globals, sizeof(Graphics::PBRGlobals));
 
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
 				const Graphics::Mesh& mesh = Graphics::GetMesh(m_pDevice, renderData.mesh);
+				Graphics::PBRInstance instance;
+				DirectX::XMStoreFloat4x4(&instance.modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)));
+				Graphics::BindGraphicsTexture(m_pCommand, 1, renderData.albedo);
+				Graphics::BindGraphicsTexture(m_pCommand, 2, renderData.normal);
+				Graphics::PushGraphicsConstants(m_pCommand, 3, &instance, sizeof(Graphics::PBRInstance));
 				Graphics::BindIndexBuffer(m_pCommand, mesh.GetIndexBufferHandle());
 				Graphics::BindVertexBuffer(m_pCommand, mesh.GetVertexBufferHandle());
 				Graphics::DrawIndexedInstanced(m_pCommand, mesh.GetIndexCount(), 1);

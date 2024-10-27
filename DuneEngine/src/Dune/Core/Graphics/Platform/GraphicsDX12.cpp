@@ -1735,7 +1735,7 @@ namespace Dune::Graphics
 			{
 			case EBindingType::Constant:
 			{
-				rootParameters[rootParamCount++].InitAsConstants( slot.byteSize, bufferRegisterOffset + bufferRegister[(dU32)slot.visibility]++, 0u, visibility) ;
+				rootParameters[rootParamCount++].InitAsConstants( slot.byteSize >> 2, bufferRegisterOffset + bufferRegister[(dU32)slot.visibility]++, 0u, visibility) ;
 				break;
 			}
 			case EBindingType::Buffer:
