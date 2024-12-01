@@ -7,6 +7,8 @@ namespace Dune::Graphics
 
     class Device;
     class Texture;
+    class CommandList;
+    class Buffer;
 
     enum class DDSResult
     {
@@ -80,7 +82,7 @@ namespace Dune::Graphics
 	public:
 
 		static DDSResult Load(const char* filePath, DDSTexture& outDDSTexture);
-        static Graphics::Texture* CreateTextureFromFile(Device* pDevice, const char* filePath);
+        static Graphics::Texture* CreateTextureFromFile(Device* pDevice, CommandList* pCommandList, Buffer& uploadBuffer, const char* filePath);
 
         DDSResult Load(const char* filePath);
         void Destroy();

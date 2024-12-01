@@ -11,6 +11,7 @@ namespace Dune::Graphics
 	class Buffer;
 	class Device;
 	class Fence;
+	class Texture;
 	class Barrier;
 
 	enum class ECommandType
@@ -29,6 +30,29 @@ namespace Dune::Graphics
 		void Reset();
 	};
 
+	enum class EPrimitiveTopology
+	{
+		TriangleList = 4,
+	};
+
+	struct Viewport
+	{
+		float topLeftX;
+		float topLeftY;
+		float width;
+		float height;
+		float minDepth;
+		float maxDepth;
+	};
+
+	struct Scissor
+	{
+		dU32 left;
+		dU32 top;
+		dU32 right;
+		dU32 bottom;
+	};
+
 	class CommandList : public Resource
 	{
 	public:
@@ -38,6 +62,13 @@ namespace Dune::Graphics
         void Reset(CommandAllocator& commandAllocator);
         void Reset(CommandAllocator& commandAllocator, const GraphicsPipeline& pipeline);
         void Close();
+
+		void SetPrimitiveTopology(EPrimitiveTopology primitiveTopology);
+		void SetViewports(dU32 numViewport, Viewport* pViewports);
+		void SetScissors(dU32 numScissor, Scissor* pScissors);
+
+		void CopyBufferRegion(Buffer& destBuffer, dU64 dstOffset, Buffer& srcBuffer, dU64 srcOffset, dU64 size);
+		void UploadTexture(Texture& destTexture, Buffer& uploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 numSubresource, void* pSrcData);
 
 		void Transition(const Barrier& barrier);
         void SetDescriptorHeaps(DescriptorHeap& srvHeap);

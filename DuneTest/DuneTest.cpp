@@ -3,7 +3,9 @@
 #include <chrono>
 #include <Dune/Core/Graphics/Shaders/PBR.h>
 #include <Dune/Core/Graphics/RHI/Texture.h>
+#include <Dune/Core/Graphics/RHI/Buffer.h>
 #include <Dune/Core/Graphics/RHI/Device.h>
+#include <Dune/Core/Graphics/RHI/Fence.h>
 #include <Dune/Core/Renderer.h>
 #include <Dune/Utilities/DDSLoader.h>
 
@@ -86,10 +88,33 @@ int main(int argc, char** argv)
 	Graphics::Device device{};
 	device.Initialize();
 
-	Graphics::Texture* pAlbedoTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, "res\\testAlbedoMips.DDS");
-	Graphics::Texture* pNormalTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, "res\\testNormalMips.DDS");
 	Graphics::Mesh cube{};
-	cube.Initialize(&device, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
+
+	Graphics::ECommandType commandType = Graphics::ECommandType::Direct;
+	Graphics::CommandQueue commandQueue;
+	commandQueue.Initialize(&device, commandType);
+	Graphics::CommandAllocator commandAllocator;
+	commandAllocator.Initialize(&device, commandType);
+	Graphics::CommandList commandList;
+	commandList.Initialize(&device, commandType, commandAllocator);
+	commandList.Close();
+	commandAllocator.Reset();
+	commandList.Reset(commandAllocator);
+	cube.Initialize(&device, &commandList, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
+	Graphics::Buffer uploadBuffer;
+	Graphics::Texture* pAlbedoTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, "res\\testAlbedoMips.DDS");
+	Graphics::Texture* pNormalTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, "res\\testNormalMips.DDS");
+	commandList.Close();
+	commandQueue.ExecuteCommandLists(&commandList, 1);
+	Graphics::Fence fence;
+	fence.Initialize(&device, 0);
+	commandQueue.Signal(fence, 1);
+	fence.Wait(1);
+	fence.Destroy();
+	commandQueue.Destroy();
+	commandAllocator.Destroy();
+	commandList.Destroy();
+	uploadBuffer.Destroy();
 
 	Scene scene{};
 	entt::entity cubeEntity = scene.CreateEntity("Cube");
@@ -98,12 +123,12 @@ int main(int argc, char** argv)
 	transform.position.z = 2;
 	RenderData& renderData = scene.registry.emplace<RenderData>(cubeEntity);
 	
-	//renderData.pAlbedo = pAlbedoTexture;
-	//renderData.pNormal = pNormalTexture;
+	renderData.pAlbedo = pAlbedoTexture;
+	renderData.pNormal = pNormalTexture;
 	renderData.pMesh = &cube;
 
 	dVector<std::thread> tests;
-	dU32 windowCount{ 1 };
+	dU32 windowCount{ 5 };
 	tests.reserve(windowCount);
 	for (dU32 i{ 0 }; i < windowCount; i++)
 	{
@@ -117,6 +142,8 @@ int main(int argc, char** argv)
 
 	scene.registry.destroy(cubeEntity);
 
+	pAlbedoTexture->Destroy();
+	pNormalTexture->Destroy();
 	delete pAlbedoTexture;
 	delete pNormalTexture;
 

@@ -1,8 +1,10 @@
 #include "pch.h"
 #include <fstream>
 #include "Dune/Utilities/DDSLoader.h"
-#include "Dune/Core/Graphics.h"
+#include "Dune/Core/Graphics/RHI/Buffer.h"
 #include "Dune/Core/Graphics/RHI/Texture.h"
+#include "Dune/Core/Graphics/RHI/CommandList.h"
+#include "Dune/Core/Graphics/RHI/Device.h"
 
 namespace Dune::Graphics 
 {
@@ -79,7 +81,7 @@ namespace Dune::Graphics
 		return Load(filePath, *this);
 	}
 
-	Graphics::Texture* DDSTexture::CreateTextureFromFile(Device* pDevice, const char* filePath)
+	Graphics::Texture* DDSTexture::CreateTextureFromFile(Device* pDevice, CommandList* pCommandList, Buffer& uploadBuffer, const char* filePath)
 	{
 		Graphics::DDSTexture ddsTexture;
 		Graphics::DDSResult result = ddsTexture.Load(filePath);
@@ -88,7 +90,13 @@ namespace Dune::Graphics
 		const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
 		const Graphics::DDSHeaderDXT10* pHeaderDXT10 = ddsTexture.GetHeaderDXT10();
 		Graphics::Texture* pTexture = new Graphics::Texture();
-		pTexture->Initialize(pDevice, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = pHeaderDXT10->format, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pData = pData });
+		pTexture->Initialize(pDevice, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = pHeaderDXT10->format, .clearValue = {0.f, 0.f, 0.f, 0.f} });
+
+		dU32 byteSize = (dU32)pTexture->GetRequiredIntermediateSize(0, pHeader->mipMapCount);
+		BufferDesc desc{ L"UploadBuffer",EBufferUsage::Constant, EBufferMemory::CPU, byteSize, byteSize };
+		uploadBuffer.Initialize(pDevice, desc);
+		pCommandList->UploadTexture(*pTexture, uploadBuffer, 0, 0, pHeader->mipMapCount, pData);
+
 		ddsTexture.Destroy();
 		return pTexture;
 	}

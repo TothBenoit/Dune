@@ -83,7 +83,7 @@ namespace Dune::Graphics
 
 	struct DepthStencilState
 	{
-		bool		bDepthEnabled : 1	{ false };
+		bool		bDepthEnabled : 1 { false };
 		bool		bDepthWrite : 1	{ false };
 		ECompFunc	bDepthFunc{ ECompFunc::LESS_EQUAL };
 		// TODO: Add stencil

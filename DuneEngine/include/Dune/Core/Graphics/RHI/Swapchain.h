@@ -22,12 +22,12 @@ namespace Dune::Graphics
 		void Resize(dU32 width, dU32 height);
 		void Present();
 
-		[[nodiscard]] void* GetBackBuffer(dU32 index);
+		[[nodiscard]] Texture& GetBackBuffer(dU32 index);
 		[[nodiscard]] dU32 GetCurrentBackBufferIndex();
-		[[nodiscard]] dU32 GetLatency() const { return m_latency; };		
+		[[nodiscard]] dU32 GetLatency() const { return m_latency; }
 
 	private:
 		dU32 m_latency{ 0 };
-		void* m_pBackBuffers{ nullptr };
+		Texture* m_pBackBuffers{ nullptr };
 	};
 }

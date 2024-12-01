@@ -4,6 +4,7 @@
 #include "Dune/Common/Pool.h"
 #include <Dune/Utilities/SimpleCameraController.h>
 #include <Dune/Core/Graphics/RHI/DescriptorHeap.h>
+#include <Dune/Core/Graphics/RHI/CommandList.h>
 
 namespace Dune
 {
@@ -35,8 +36,8 @@ namespace Dune
 
 	struct RenderData
 	{
-		const Graphics::Descriptor albedo;
-		const Graphics::Descriptor normal;
+		Graphics::Texture* pAlbedo;
+		Graphics::Texture* pNormal;
 		const Graphics::Mesh* pMesh;
 	};
 
@@ -60,8 +61,9 @@ namespace Dune
 	struct Frame
 	{
 		dU32 fenceValue{ 0 };
-		Graphics::CommandAllocator* pCommandAllocator{ nullptr };
-		Graphics::CommandList* pCommandList{ nullptr };
+		Graphics::CommandAllocator commandAllocator;
+		Graphics::CommandList commandList;
+		dQueue<Graphics::Descriptor> descriptorsToRelease;
 	};
 
 	class Renderer
@@ -78,7 +80,7 @@ namespace Dune
 
 	private:
 
-		void WaitForFrame(dU32 frameIndex);
+		void WaitForFrame(const Frame& frame);
 
 	public:
 		SimpleCameraController m_cameraController; // TODO : Don't use the controller here, put only the camera.
@@ -97,12 +99,13 @@ namespace Dune
 		Graphics::DescriptorHeap* m_pRtvHeap{ nullptr };
 		Graphics::DescriptorHeap* m_pDsvHeap{ nullptr };
 
-		Graphics::Descriptor* m_pRenderTargetsDescriptors{ nullptr };
+		Graphics::Descriptor m_renderTargetsDescriptors[3];
 		Graphics::Descriptor m_depthBufferDescriptor;
 
 		Graphics::Fence* m_pFence{ nullptr };
 		Frame m_frames[3];
 		dU32 m_frameIndex{ 0 };
+		dU32 m_frameCount{ 0 };
 		Graphics::Barrier* m_pBarrier{ nullptr };
 
 		void* m_pOnResizeData{ nullptr };

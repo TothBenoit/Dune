@@ -2,6 +2,7 @@
 
 #include "Dune/Core/Graphics/RHI/Resource.h"
 #include "Dune/Core/Graphics/Format.h"
+#include "Dune/Core/Graphics/RHI/Barrier.h"
 
 namespace Dune::Graphics 
 {
@@ -35,8 +36,7 @@ namespace Dune::Graphics
 		dU32 mipLevels{ 1 };
 		EFormat	format{ EFormat::R8G8B8A8_UNORM };
 		float clearValue[4]{ 0.f, 0.f, 0.f, 0.f };
-		void* pData{ nullptr };
-		dU32 initialState{ 0 };
+		EResourceState initialState{ EResourceState::Undefined };
 	};
 
 	class Texture : public Resource
@@ -45,14 +45,15 @@ namespace Dune::Graphics
 		void Initialize(Device* pDevice, const TextureDesc& desc);
 		void Destroy();
 
-		[[nodiscard]] const dU32* GetDimensions() const { return m_dimensions; }
-		[[nodiscard]] const float* GetClearValue() const { return m_clearValue; }
-		[[nodiscard]] EFormat GetFormat() const { return m_format; }
+		[[nodiscard]] const dU32* GetDimensions() const { return m_desc.dimensions; }
+		[[nodiscard]] const float* GetClearValue() const { return m_desc.clearValue; }
+		[[nodiscard]] EFormat GetFormat() const { return m_desc.format; }
+		[[nodiscard]] dU32 GetMipLevels() const { return m_desc.mipLevels; }
+
+		dU64 GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource);
 	private:		
-		ETextureUsage		m_usage;
-		EFormat				m_format;
-		dU32				m_dimensions[3];
-		float				m_clearValue[4];
-		dU32				m_state{0};
+		friend class Swapchain;
+
+		TextureDesc m_desc;
 	};
 }

@@ -4,6 +4,7 @@ namespace Dune::Graphics
 {
 	class Buffer;
 	class Device;
+	class CommandList;
 
 	struct Vertex
 	{
@@ -14,12 +15,12 @@ namespace Dune::Graphics
 	class Mesh
 	{
 	public:
-		void Initialize(Device* pDevice, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
-		void Initialize(Device* pDevice, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
+		void Initialize(Device* pDevice, CommandList* pCommandList, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
+		void Initialize(Device* pDevice, CommandList* pCommandList, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
 		void Destroy();
 
-		[[nodiscard]] Buffer*			GetIndexBuffer() const { return m_pIndexBuffer; }
-		[[nodiscard]] Buffer*			GetVertexBuffer() const { return m_pVertexBuffer; }
+		[[nodiscard]] Buffer&			GetIndexBuffer() const { return *m_pIndexBuffer; }
+		[[nodiscard]] Buffer&			GetVertexBuffer() const { return *m_pVertexBuffer; }
 		[[nodiscard]] dU32				GetIndexCount() const { return m_indexCount; }
 		[[nodiscard]] dU32				GetVertexCount() const { return m_vertexCount; }
 
@@ -28,5 +29,6 @@ namespace Dune::Graphics
 		dU32 m_vertexCount{ 0 };
 		Buffer* m_pIndexBuffer;
 		Buffer* m_pVertexBuffer;
+		Buffer* m_pUploadBuffer;
 	};
 }

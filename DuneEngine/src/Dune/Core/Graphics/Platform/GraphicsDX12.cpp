@@ -301,67 +301,6 @@ namespace Dune::Graphics
 		dU64 m_lastFenceValue{ 0 };
 	};
 
-	//struct Device
-	//{
-	//	IDXGIFactory7*	pFactory{ nullptr };
-	//	ID3D12Device*	pDevice{ nullptr };
-	//#ifdef _DEBUG
-	//	IDXGIDebug1*	pDebug{ nullptr };
-	//	ID3D12InfoQueue* pInfoQueue{ nullptr };
-	//#endif
-
-	//	CommandAllocator* pCopyCommandAllocator{ nullptr };
-	//	CommandList* pCopyCommandList{ nullptr };
-
-	//	RingBufferAllocator ringBufferAllocator;
-
-	//	void CopyBufferRegion(ID3D12Resource* pDestBuffer, dU64 dstOffset, ID3D12Resource* pSrcBuffer, dU64 srcOffset, dU64 size)
-	//	{
-	//		pCopyCommandAllocator->Reset();
-	//		pCopyCommandList->Reset(*pCopyCommandAllocator);
-
-	//		ToCommandList(pCopyCommandList->Get())->CopyBufferRegion(pDestBuffer, dstOffset, pSrcBuffer, srcOffset, size);
-	//		pCopyCommandList->Close();
-
-	//		copyQueue.pCommandQueue->ExecuteCommandLists(pCopyCommandList, 1);
-	//		copyQueue.Signal();
-	//		WaitForCopy();
-	//	}
-
-	//	void UploadTexture(ID3D12Resource* pDest, ID3D12Resource* pUploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 subresourceCount, D3D12_SUBRESOURCE_DATA* pSrcData)
-	//	{
-	//		pCopyCommandAllocator->Reset();
-	//		pCopyCommandList->Reset(*pCopyCommandAllocator);
-
-	//		UpdateSubresources(ToCommandList(pCopyCommandList->Get()), pDest, pUploadBuffer, uploadByteOffset, firstSubresource, subresourceCount, pSrcData);
-	//		pCopyCommandList->Close();
-
-	//		copyQueue.pCommandQueue->ExecuteCommandLists(pCopyCommandList, 1);
-	//		copyQueue.Signal();
-	//		WaitForCopy();
-	//	}
-
-	//	void ReleaseResource(ID3D12Object* pResource)
-	//	{
-	//		std::lock_guard lock{ releaseLock };
-	//		dyingResources.push({ pResource, directQueue.fenceValue });
-	//	}
-
-	//	void ReleaseDyingResources()
-	//	{
-	//		std::lock_guard lock{ releaseLock };
-	//		while (!dyingResources.empty())
-	//		{
-	//			const auto& [pRes, fenceValue] = dyingResources.front();
-	//			if (directQueue.pFence->GetValue() < fenceValue)
-	//				break;
-
-	//			pRes->Release();
-	//			dyingResources.pop();
-	//		}
-	//	}
-	//};
-
 	struct DeviceInternal
 	{
 		IDXGIFactory7* pFactory{ nullptr };
@@ -374,9 +313,9 @@ namespace Dune::Graphics
 	void Device::Initialize()
 	{
 		UINT dxgiFactoryFlags{ 0 };
-#ifdef _DEBUG
+	#ifdef _DEBUG
 		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-#endif // _DEBUG
+	#endif // _DEBUG
 
 		DeviceInternal* pInternal = new DeviceInternal();
 
@@ -384,7 +323,7 @@ namespace Dune::Graphics
 		ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&pFactory)));
 		pInternal->pFactory = pFactory;
 
-#ifdef _DEBUG
+	#ifdef _DEBUG
 		ID3D12Debug* pDebugInterface{ nullptr };
 		ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugInterface)));
 		ID3D12Debug1* pDebugController{ nullptr };
@@ -392,7 +331,7 @@ namespace Dune::Graphics
 		pDebugController->EnableDebugLayer();
 		pDebugController->SetEnableGPUBasedValidation(true);
 		pDebugInterface->Release();
-#endif // _DEBUG
+	#endif // _DEBUG
 
 		// TODO : Allow the app to choose which GPU to use.
 		IDXGIAdapter1* pAdapter{ nullptr };
@@ -416,7 +355,7 @@ namespace Dune::Graphics
 		pAdapter->Release();
 		m_pResource = pDevice;
 
-#ifdef _DEBUG
+	#ifdef _DEBUG
 		IDXGIDebug1* pDebug{ nullptr };
 		ID3D12InfoQueue* pInfoQueue{ nullptr };
 		DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDebug));
@@ -424,12 +363,14 @@ namespace Dune::Graphics
 		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
 		pInternal->pDebug = pDebug;
 		pInternal->pInfoQueue = pInfoQueue;
-#endif // _DEBUG
+	#endif // _DEBUG
 		m_pInternal = pInternal;
 	}
 
 	void Device::Destroy()
 	{
+		ID3D12Device* pDevice{ (ID3D12Device*)m_pResource };
+		pDevice->Release();
 		DeviceInternal* pInternal = (DeviceInternal*)m_pInternal;
 		pInternal->pFactory->Release();
 #ifdef _DEBUG
@@ -437,9 +378,81 @@ namespace Dune::Graphics
 		pInternal->pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
 		pInternal->pDebug->Release();
 #endif // _DEBUG
-		delete(m_pInternal);
-		ID3D12Device* pDevice{ (ID3D12Device*)m_pResource };
-		pDevice->Release();
+		delete pInternal;
+	}
+
+	void Device::CreateSRV(Descriptor& descriptor, Texture& texture, const SRVDesc& desc)
+	{
+		ID3D12Device* pDevice{ ToDevice(Get()) };
+
+		const dU32* pDimensions = texture.GetDimensions();
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		srvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
+
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		if (pDimensions[2] > 1)
+		{
+			srvDesc.Texture2DArray.ArraySize = pDimensions[2];
+			srvDesc.Texture2DArray.FirstArraySlice = 0;
+			srvDesc.Texture2DArray.MipLevels = desc.mipLevels;
+			srvDesc.Texture2DArray.MostDetailedMip = desc.mipStart;
+			srvDesc.Texture2DArray.PlaneSlice = 0;
+			srvDesc.Texture2DArray.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+		}
+		else
+		{
+			srvDesc.Texture2D.MipLevels = desc.mipLevels;
+			srvDesc.Texture2D.MostDetailedMip = desc.mipStart;
+			srvDesc.Texture2D.PlaneSlice = 0;
+			srvDesc.Texture2D.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		}
+
+		pDevice->CreateShaderResourceView(ToResource(texture.Get()), &srvDesc, { descriptor.cpuAddress });
+	}
+
+	void Device::CreateSRV(Descriptor& descriptor, Buffer& buffer)
+	{
+		ID3D12Device* pDevice{ ToDevice(Get()) };
+		
+		dU32 byteStride = buffer.GetByteStride();
+		dU32 elementCount = (dU32)(buffer.GetByteSize() / byteStride);
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc
+		{
+			.Format = DXGI_FORMAT_UNKNOWN,
+			.ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
+			.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+			.Buffer
+			{
+				.NumElements = elementCount,
+				.StructureByteStride = byteStride,
+				.Flags = D3D12_BUFFER_SRV_FLAG_NONE,
+			}
+		};
+
+		pDevice->CreateShaderResourceView(ToResource(buffer.Get()), &srvDesc, { descriptor.cpuAddress });
+	}
+
+	void Device::CreateRTV(Descriptor& descriptor, Texture& texture, const RTVDesc& desc)
+	{
+		ID3D12Device* pDevice{ ToDevice(Get()) };
+
+		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+		rtvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		pDevice->CreateRenderTargetView(ToResource(texture.Get()), &rtvDesc, { descriptor.cpuAddress });
+	}
+
+	void Device::CreateDSV(Descriptor& descriptor, Texture& texture, const DSVDesc& desc)
+	{
+		ID3D12Device* pDevice{ ToDevice(Get()) };
+
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+		dsvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
+		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		pDevice->CreateDepthStencilView(ToResource(texture.Get()), &dsvDesc, { descriptor.cpuAddress });
 	}
 
 	void Barrier::Initialize(dU32 barrierCapacity)
@@ -514,6 +527,51 @@ namespace Dune::Graphics
 		ToCommandList(Get())->Close();
 	}
 
+	void CommandList::SetPrimitiveTopology(EPrimitiveTopology primitiveTopology)
+	{
+		ToCommandList(Get())->IASetPrimitiveTopology((D3D12_PRIMITIVE_TOPOLOGY)primitiveTopology);
+	}
+
+	void CommandList::SetViewports(dU32 numViewport, Viewport* pViewports )
+	{
+		ToCommandList(Get())->RSSetViewports(numViewport, (const D3D12_VIEWPORT*)pViewports);
+	}
+
+	void CommandList::SetScissors(dU32 numScissors, Scissor* scissors)
+	{
+		ToCommandList(Get())->RSSetScissorRects(numScissors, (const D3D12_RECT*)scissors);
+	}
+
+	void CommandList::CopyBufferRegion(Buffer& destBuffer, dU64 dstOffset, Buffer& srcBuffer, dU64 srcOffset, dU64 size)
+	{
+		ToCommandList(Get())->CopyBufferRegion(ToResource(destBuffer.Get()), dstOffset, ToResource(srcBuffer.Get()), srcOffset, size);
+	}
+
+	void CommandList::UploadTexture(Texture& destTexture, Buffer& uploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 numSubresource, void* pSrcData)
+	{
+		ID3D12Resource* pResource = ToResource(destTexture.Get());
+		D3D12_RESOURCE_DESC desc = pResource->GetDesc();
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layouts[16];
+		dU32 rowsCount[16];
+		dU64 rowsSizeInBytes[16];
+		dU64 byteSize = 0;
+		ID3D12Device* pDevice{ nullptr };
+		pResource->GetDevice(IID_PPV_ARGS(&pDevice));
+		pDevice->GetCopyableFootprints(&desc, 0, numSubresource, 0, layouts, rowsCount, rowsSizeInBytes, &byteSize);
+
+		D3D12_SUBRESOURCE_DATA srcDatas[16];
+		LONG_PTR prevSlice = 0;
+		for (dU32 i = 0; i < numSubresource; i++)
+		{
+			LONG_PTR slicePitch = rowsSizeInBytes[i] * rowsCount[i];
+			srcDatas[i] = { .pData = (dU8*)pSrcData + prevSlice, .RowPitch = (LONG_PTR)rowsSizeInBytes[i], .SlicePitch = slicePitch };
+			prevSlice += slicePitch;
+		}
+
+		UpdateSubresources(ToCommandList(Get()), pResource, ToResource(uploadBuffer.Get()), uploadByteOffset, firstSubresource, numSubresource, srcDatas);
+	}
+
 	void CommandList::Transition(const Barrier& barrier)
 	{
 		ToCommandList(Get())->ResourceBarrier(barrier.GetBarrierCount(), (const D3D12_RESOURCE_BARRIER*)barrier.Get());
@@ -586,7 +644,7 @@ namespace Dune::Graphics
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		D3D12_INDEX_BUFFER_VIEW ibv
 		{
-			.BufferLocation = indexBuffer.GetGPUAddress(),
+			.BufferLocation = ToResource(indexBuffer.Get())->GetGPUVirtualAddress(),
 			.SizeInBytes = indexBuffer.GetByteSize(),
 			.Format = (indexBuffer.GetByteStride() == sizeof(dU32)) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT
 		};
@@ -598,7 +656,7 @@ namespace Dune::Graphics
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		D3D12_VERTEX_BUFFER_VIEW vbv
 		{
-			.BufferLocation = vertexBuffer.GetGPUAddress(),
+			.BufferLocation = ToResource(vertexBuffer.Get())->GetGPUVirtualAddress(),
 			.SizeInBytes = vertexBuffer.GetByteSize(),
 			.StrideInBytes = vertexBuffer.GetByteStride()
 		};
@@ -786,35 +844,37 @@ namespace Dune::Graphics
 		ThrowIfFailed(pFactory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER));
 		ThrowIfFailed(swapChain.As(&pSwapChain));
 
-		ID3D12Resource** pBackBuffers = new ID3D12Resource * [m_latency];
+		m_pBackBuffers = new Texture[m_latency];
 		for (UINT i = 0; i < m_latency; i++)
 		{
-			ThrowIfFailed(pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffers[i])));
-			NameDXObjectIndexed(pBackBuffers[i], i, L"BackBuffers");
+			Texture& backBuffer = m_pBackBuffers[i];
+			ID3D12Resource* pResource{ nullptr };
+			ThrowIfFailed(pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pResource)));
+			NameDXObjectIndexed(pResource, i, L"BackBuffers");
+			backBuffer.m_pResource = pResource;
+			backBuffer.m_desc.format = EFormat::R8G8B8A8_UNORM;
+			backBuffer.m_desc.dimensions[2] = 1;
 		}
 
-		m_pBackBuffers = pBackBuffers;
 		m_pResource = pSwapChain.Detach();
 	}
 
 	void Swapchain::Destroy()
 	{
-		ID3D12Resource** pBackBuffers = (ID3D12Resource**)m_pBackBuffers;
 		for (dU32 i = 0; i < m_latency; i++)
-			pBackBuffers[i]->Release();
+			m_pBackBuffers[i].Destroy();
 
-		delete[](ID3D12Resource**)m_pBackBuffers;
+		delete[] m_pBackBuffers;
 		ToSwapchain(Get())->Release();
 	}
 
 	void Swapchain::Resize(dU32 width, dU32 height)
 	{
-		ID3D12Resource** pBackBuffers = (ID3D12Resource**)m_pBackBuffers;
 		for (dU32 i = 0; i < m_latency; i++)
-			pBackBuffers[i]->Release();
+			m_pBackBuffers[i].Destroy();
 
-		IDXGISwapChain4* pSwapchain{ ToSwapchain(Get()) };
-		ThrowIfFailed(pSwapchain->ResizeBuffers(
+		IDXGISwapChain4* pSwapChain{ ToSwapchain(Get()) };
+		ThrowIfFailed(pSwapChain->ResizeBuffers(
 			m_latency,
 			width, height,
 			DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -823,11 +883,14 @@ namespace Dune::Graphics
 
 		for (dU32 i = 0; i < m_latency; i++)
 		{
-			ThrowIfFailed(pSwapchain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffers[i])));
-			NameDXObjectIndexed(pBackBuffers[i], i, L"BackBuffers");
+			Texture& backBuffer = m_pBackBuffers[i];
+			ID3D12Resource* pResource{ nullptr };
+			ThrowIfFailed(pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pResource)));
+			NameDXObjectIndexed(pResource, i, L"BackBuffers");
+			backBuffer.m_pResource = pResource;
+			backBuffer.m_desc.dimensions[0] = width;
+			backBuffer.m_desc.dimensions[1] = height;
 		}
-
-		m_pBackBuffers = pBackBuffers;
 	}
 
 	void Swapchain::Present()
@@ -835,10 +898,10 @@ namespace Dune::Graphics
 		ToSwapchain(Get())->Present(1, 0);
 	}
 
-	void* Swapchain::GetBackBuffer(dU32 index)
+	Texture& Swapchain::GetBackBuffer(dU32 index)
 	{
-		Assert(index < m_latency);
-		return ((ID3D12Resource**)m_pBackBuffers)[index];
+		Assert(m_latency > index); 
+		return m_pBackBuffers[index];
 	}
 
 	dU32 Swapchain::GetCurrentBackBufferIndex()
@@ -852,10 +915,9 @@ namespace Dune::Graphics
 		m_memory = desc.memory;
 		m_byteSize = desc.byteSize;
 		m_byteStride = desc.byteStride;
-		m_currentBuffer = 0;
 
 		D3D12_HEAP_PROPERTIES heapProps{};
-		D3D12_RESOURCE_STATES resourceState{};
+		D3D12_RESOURCE_STATES resourceState{ ToResourceState(desc.initialState) };
 
 		if (m_usage == EBufferUsage::Constant)
 		{
@@ -863,19 +925,11 @@ namespace Dune::Graphics
 		}
 
 		if (m_memory == EBufferMemory::CPU)
-		{
 			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-			resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
-		}
 		else
-		{
 			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-			resourceState = D3D12_RESOURCE_STATE_COMMON;
-		}
 
-		dU32 bufferCount = (m_memory == EBufferMemory::GPUStatic) ? 1 : 3;
-
-		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(bufferCount * m_byteSize) };
+		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(m_byteSize) };
 
 		ID3D12Resource* pResource;
 		ThrowIfFailed(ToDevice(pDeviceInterface->Get())->CreateCommittedResource(
@@ -894,26 +948,24 @@ namespace Dune::Graphics
 		ToResource(Get())->Release();
 	}
 
-	dU64 Buffer::GetGPUAddress()
+	void Buffer::Map(dU32 byteOffset, dU32 byteSize, void** pCpuAddress)
 	{
-		return ToResource(Get())->GetGPUVirtualAddress() + GetOffset();
+		Assert(byteSize <= m_byteSize);
+		D3D12_RANGE readRange{ byteOffset, byteOffset + byteSize };
+		ThrowIfFailed(ToResource(Get())->Map(0, &readRange, pCpuAddress));
 	}
 
-	dU32 Buffer::CycleBuffer()
+	void Buffer::Unmap(dU32 byteOffset, dU32 byteSize)
 	{
-		Assert(m_memory != EBufferMemory::GPUStatic);
-
-		m_currentBuffer = (m_currentBuffer + 1) % 3;
-		return m_currentBuffer * m_byteSize;
+		Assert(byteSize <= m_byteSize);
+		D3D12_RANGE readRange{ byteOffset, byteOffset + byteSize };
+		ToResource(Get())->Unmap(0, &readRange);
 	}
 
 	void Texture::Initialize(Device* pDeviceInterface, const TextureDesc& desc)
 	{
-		m_usage = desc.usage;
-		m_format = desc.format;
-		memcpy(m_dimensions, desc.dimensions, sizeof(float) * 3);
-		memcpy(m_clearValue, desc.clearValue, sizeof(float) * 4);
-
+		m_desc = desc;
+		
 		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
 		D3D12_CLEAR_VALUE clearValue{};
 		D3D12_CLEAR_VALUE* pClearValue{ nullptr };
@@ -921,26 +973,26 @@ namespace Dune::Graphics
 		DXGI_FORMAT format{ (DXGI_FORMAT)desc.format };
 		D3D12_RESOURCE_FLAGS resourceFlag{ D3D12_RESOURCE_FLAG_NONE };
  		
-		if ((m_usage & ETextureUsage::RenderTarget) != ETextureUsage::Invalid)
+		if ((m_desc.usage & ETextureUsage::RenderTarget) != ETextureUsage::Invalid)
 			resourceFlag |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		if ((m_usage & ETextureUsage::DepthStencil) != ETextureUsage::Invalid)
+		if ((m_desc.usage & ETextureUsage::DepthStencil) != ETextureUsage::Invalid)
 			resourceFlag |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		if ((m_usage & ETextureUsage::UnorderedAccess) != ETextureUsage::Invalid)
+		if ((m_desc.usage & ETextureUsage::UnorderedAccess) != ETextureUsage::Invalid)
 			resourceFlag |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-		if ((m_usage & (ETextureUsage::RenderTarget | ETextureUsage::DepthStencil)) != ETextureUsage::Invalid)
+		if ((m_desc.usage & (ETextureUsage::RenderTarget | ETextureUsage::DepthStencil)) != ETextureUsage::Invalid)
 		{
-			clearValue = CD3DX12_CLEAR_VALUE{ format, m_clearValue };
+			clearValue = CD3DX12_CLEAR_VALUE{ format, m_desc.clearValue };
 			pClearValue = &clearValue;
 		}
 
 		CD3DX12_RESOURCE_DESC textureResourceDesc(
 			D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 			0,
-			m_dimensions[0],
-			m_dimensions[1],
-			m_dimensions[2],
-			desc.mipLevels,
+			m_desc.dimensions[0],
+			m_desc.dimensions[1],
+			m_desc.dimensions[2],
+			m_desc.mipLevels,
 			format,
 			1,
 			0,
@@ -954,7 +1006,7 @@ namespace Dune::Graphics
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&textureResourceDesc,
-			D3D12_RESOURCE_STATE_COMMON,
+			ToResourceState(desc.initialState),
 			pClearValue,
 			IID_PPV_ARGS(&pResource)));
 		NameDXObject(pResource, desc.debugName);
@@ -964,6 +1016,20 @@ namespace Dune::Graphics
 	void Texture::Destroy()
 	{
 		ToResource(Get())->Release();
+	}
+
+	dU64 Texture::GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource)
+	{
+		ID3D12Resource* pResource{ ToResource(Get()) };
+		D3D12_RESOURCE_DESC Desc = pResource->GetDesc();
+		dU64 requiredSize = 0;
+
+		ID3D12Device* pDevice;
+		pResource->GetDevice(IID_PPV_ARGS(&pDevice));
+		pDevice->GetCopyableFootprints(&Desc, firstSubresource, numSubresource, 0, nullptr, nullptr, nullptr, &requiredSize);
+		pDevice->Release();
+
+		return requiredSize;
 	}
 
 	constexpr const wchar_t* GetTargetProfile(EShaderStage type)
@@ -999,7 +1065,9 @@ namespace Dune::Graphics
 		Microsoft::WRL::ComPtr<IDxcCompilerArgs> pArgs{ nullptr };
 		ThrowIfFailed(pUtils->BuildArguments(desc.filePath, desc.entryFunc, GetTargetProfile(desc.stage), desc.args, desc.argsCount, NULL, 0, &pArgs));
 		ThrowIfFailed(pUtils->LoadFile(desc.filePath, &codePage, &pSourceBlob));
+
 		Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };
+
 
 		const DxcBuffer sourceBuffer
 		{
