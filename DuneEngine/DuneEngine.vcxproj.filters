@@ -52,9 +52,6 @@
     <ClInclude Include="include\Dune\Core\JobSystem.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\Graphics.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h">
       <Filter>Dune\Core\Graphics\Platform</Filter>
     </ClInclude>
@@ -75,9 +72,6 @@
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Renderer.h">
       <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Core\Graphics\Format.h">
-      <Filter>Dune\Core\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h">
       <Filter>Dune\Core\Graphics\RHI</Filter>
@@ -106,6 +100,13 @@
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Swapchain.h">
       <Filter>Dune\Core\Graphics\RHI</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Enums.h">
+      <Filter>Dune\Core\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Barrier.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Device.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Shader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Core\Input.cpp">

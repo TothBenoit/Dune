@@ -6,7 +6,6 @@
 #include <assimp/scene.h>
 
 #include "Dune/Core/Graphics/Mesh.h"
-#include "Dune/Core/Graphics.h"
 
 namespace Dune::Graphics
 {
@@ -33,7 +32,7 @@ namespace Dune::Graphics
 		}
 	}
 
-	void ProcessNode(const aiNode* pNode, const aiScene* pScene, dVector<Handle<Mesh>>& meshes)
+	void ProcessNode(const aiNode* pNode, const aiScene* pScene, dVector<Mesh*>& meshes)
 	{
 		dVector<Vertex> vertices;
 		dVector<dU32> indices;
@@ -43,23 +42,21 @@ namespace Dune::Graphics
 			vertices.clear();
 			indices.clear();
 
-			aiMesh* pMesh{ pScene->mMeshes[pNode->mMeshes[i]] };
-			vertices.reserve(pMesh->mNumVertices);
+			aiMesh* pAiMesh{ pScene->mMeshes[pNode->mMeshes[i]] };
+			vertices.reserve(pAiMesh->mNumVertices);
 
 			dSizeT indexCount = 0;
-			for (dU32 i = 0; i < pMesh->mNumFaces; i++)
+			for (dU32 i = 0; i < pAiMesh->mNumFaces; i++)
 			{
-				indexCount += pMesh->mFaces[i].mNumIndices;
+				indexCount += pAiMesh->mFaces[i].mNumIndices;
 			}
 			indices.reserve(indexCount);
 
-			ProcessMesh(pMesh, vertices, indices, pNode->mTransformation);
-			Handle<Mesh> meshHandle{ Graphics::CreateMesh(g_pCurrentDevice, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Vertex))};
+			ProcessMesh(pAiMesh, vertices, indices, pNode->mTransformation);
+			Mesh* pMesh = new Mesh();
+			pMesh->Initialize(g_pCurrentDevice, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Vertex));
 
-			if (meshHandle.IsValid())
-			{
-				meshes.push_back(meshHandle);
-			}
+			meshes.push_back(pMesh);
 		}
 
 		for (dU32 i = 0; i < pNode->mNumChildren; i++)
@@ -68,11 +65,11 @@ namespace Dune::Graphics
 		}
 	}
 
-	dVector<Handle<Mesh>> MeshLoader::Load(Device* pDevice, const char* path)
+	dVector<Mesh*> MeshLoader::Load(Device* pDevice, const char* path)
 	{
 		Assert(pDevice);
 		g_pCurrentDevice = pDevice;
-		dVector<Handle<Mesh>> meshes;
+		dVector<Mesh*> meshes;
 		
 		Assimp::Importer importer;
 		const aiScene* pScene{ importer.ReadFile(path, aiProcess_Triangulate | aiProcess_ConvertToLeftHanded) };

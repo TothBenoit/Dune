@@ -1,10 +1,11 @@
 #pragma once
 
 #include "Dune/Core/Graphics/RHI/Resource.h"
+#include "Dune/Core/Graphics/Format.h"
 
 namespace Dune::Graphics
 {
-	struct Device;
+	class Device;
 	class Shader;
 
 	enum class EShaderVisibility
@@ -100,26 +101,23 @@ namespace Dune::Graphics
 
 	struct GraphicsPipelineDesc
 	{
-		Handle<Shader>			vertexShader;
-		Handle<Shader>			pixelShader;
+		Shader*					pVertexShader{ nullptr };
+		Shader*					pPixelShader{ nullptr };
 		BindingLayout			bindingLayout;
 		// TODO : Use span
 		dVector<VertexInput>	inputLayout;
 		RasterizerState			rasterizerState;
 		DepthStencilState		depthStencilState;
-		// TODO : Use span or array[8] like dx12
-		dVector<EFormat>		renderTargetsFormat;
+
+		dU8						renderTargetCount{ 0 };
+		EFormat					renderTargetsFormat[8];
 		EFormat					depthStencilFormat;
 	};
 
 	class GraphicsPipeline : public Resource
 	{
 	public:
-		GraphicsPipeline(Device* pDevice, const GraphicsPipelineDesc& desc);
-		~GraphicsPipeline();
-		DISABLE_COPY_AND_MOVE(GraphicsPipeline);
+		void Initialize(Device* pDevice, const GraphicsPipelineDesc& desc);
+		void Destroy();
 	};
-
-	[[nodiscard]] Handle<GraphicsPipeline>			CreateGraphicsPipeline(Device* pDevice, const GraphicsPipelineDesc& desc);
-	void									ReleasePipeline(Device* pDevice, Handle<GraphicsPipeline> handle);
 }

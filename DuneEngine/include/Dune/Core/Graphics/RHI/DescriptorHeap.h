@@ -1,10 +1,11 @@
 #pragma once
 
+#include "Dune/Core/Graphics/RHI/Resource.h"
 #include <mutex>
 
 namespace Dune::Graphics
 {
-	struct Device;
+	class Device;
 
 	struct Descriptor
 	{
@@ -17,7 +18,7 @@ namespace Dune::Graphics
 
 	enum class DescriptorHeapType : dU32
 	{
-		SRV_CVB_UAV,
+		SRV_CBV_UAV,
 		Sampler,
 		RTV,
 		DSV
@@ -32,13 +33,12 @@ namespace Dune::Graphics
 	class DescriptorHeap : public Resource
 	{
 	public:
-		DescriptorHeap(Device* pDevice, const DescriptorHeapDesc& desc);
-		~DescriptorHeap();
-		DISABLE_COPY_AND_MOVE(DescriptorHeap);
+		void Initialize(Device* pDevice, const DescriptorHeapDesc& desc);
+		void Destroy();
 
 		[[nodiscard]] inline dU32 GetCapacity() { return m_capacity; }
 		[[nodiscard]] inline dU32 GetSize() { return (dU32)m_freeSlots.size(); }
-		[[nodiscard]] Descriptor Allocate();;
+		[[nodiscard]] Descriptor Allocate();
 		void Free(Descriptor handle);
 
 	private:

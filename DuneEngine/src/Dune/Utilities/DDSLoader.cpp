@@ -2,6 +2,7 @@
 #include <fstream>
 #include "Dune/Utilities/DDSLoader.h"
 #include "Dune/Core/Graphics.h"
+#include "Dune/Core/Graphics/RHI/Texture.h"
 
 namespace Dune::Graphics 
 {
@@ -78,7 +79,7 @@ namespace Dune::Graphics
 		return Load(filePath, *this);
 	}
 
-	Handle<Texture> DDSTexture::CreateTextureFromFile(Device* pDevice, const char* filePath)
+	Graphics::Texture* DDSTexture::CreateTextureFromFile(Device* pDevice, const char* filePath)
 	{
 		Graphics::DDSTexture ddsTexture;
 		Graphics::DDSResult result = ddsTexture.Load(filePath);
@@ -86,9 +87,10 @@ namespace Dune::Graphics
 		void* pData = ddsTexture.GetData();
 		const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
 		const Graphics::DDSHeaderDXT10* pHeaderDXT10 = ddsTexture.GetHeaderDXT10();
-		Handle<Graphics::Texture> texture = Graphics::CreateTexture(pDevice, { .usage = Graphics::ETextureUsage::SRV, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = pHeaderDXT10->format, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pData = pData });
+		Graphics::Texture* pTexture = new Graphics::Texture();
+		pTexture->Initialize(pDevice, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = pHeaderDXT10->format, .clearValue = {0.f, 0.f, 0.f, 0.f}, .pData = pData });
 		ddsTexture.Destroy();
-		return texture;
+		return pTexture;
 	}
 
 	void DDSTexture::Destroy()

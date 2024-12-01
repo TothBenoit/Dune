@@ -2,6 +2,8 @@
 #include <thread>
 #include <chrono>
 #include <Dune/Core/Graphics/Shaders/PBR.h>
+#include <Dune/Core/Graphics/RHI/Texture.h>
+#include <Dune/Core/Graphics/RHI/Device.h>
 #include <Dune/Core/Renderer.h>
 #include <Dune/Utilities/DDSLoader.h>
 
@@ -81,11 +83,13 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
-	Graphics::Device* pDevice{ Graphics::CreateDevice() };
+	Graphics::Device device{};
+	device.Initialize();
 
-	Handle<Graphics::Texture> albedoTexture = Graphics::DDSTexture::CreateTextureFromFile(pDevice, "res\\testAlbedoMips.DDS");
-	Handle<Graphics::Texture> normalTexture = Graphics::DDSTexture::CreateTextureFromFile(pDevice, "res\\testNormalMips.DDS");
-	Handle<Graphics::Mesh> cubeMesh = Graphics::CreateMesh(pDevice, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
+	Graphics::Texture* pAlbedoTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, "res\\testAlbedoMips.DDS");
+	Graphics::Texture* pNormalTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, "res\\testNormalMips.DDS");
+	Graphics::Mesh cube{};
+	cube.Initialize(&device, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
 
 	Scene scene{};
 	entt::entity cubeEntity = scene.CreateEntity("Cube");
@@ -93,16 +97,17 @@ int main(int argc, char** argv)
 	Transform& transform = scene.registry.emplace<Transform>(cubeEntity);
 	transform.position.z = 2;
 	RenderData& renderData = scene.registry.emplace<RenderData>(cubeEntity);
-	renderData.albedo = albedoTexture;
-	renderData.normal = normalTexture;
-	renderData.mesh = cubeMesh;
+	
+	//renderData.pAlbedo = pAlbedoTexture;
+	//renderData.pNormal = pNormalTexture;
+	renderData.pMesh = &cube;
 
 	dVector<std::thread> tests;
-	dU32 windowCount{ 5 };
+	dU32 windowCount{ 1 };
 	tests.reserve(windowCount);
 	for (dU32 i{ 0 }; i < windowCount; i++)
 	{
-		tests.emplace_back(std::thread(&Test, pDevice, &scene));
+		tests.emplace_back(std::thread(&Test, &device, &scene));
 	}
 
 	for (dU32 i{ 0 }; i < windowCount; i++)
@@ -112,11 +117,11 @@ int main(int argc, char** argv)
 
 	scene.registry.destroy(cubeEntity);
 
-	Graphics::ReleaseTexture(pDevice, albedoTexture);
-	Graphics::ReleaseTexture(pDevice, normalTexture);
-	Graphics::ReleaseMesh(pDevice, cubeMesh);
+	delete pAlbedoTexture;
+	delete pNormalTexture;
 
-	Graphics::DestroyDevice(pDevice);
+	cube.Destroy();
+	device.Destroy();
 
 	return 0;
 }

@@ -4,14 +4,13 @@
 
 namespace Dune::Graphics
 {
-	struct Device;
+	class Device;
 
 	class Fence : public Resource
 	{
 	public:
-		Fence(Device* pDevice, dU64 initialValue);
-		~Fence();
-		DISABLE_COPY_AND_MOVE(Fence);
+		void Initialize(Device* pDevice, dU64 initialValue);
+		void Destroy();
 
 		dU64 GetValue();
 		void Wait(dU64 value);

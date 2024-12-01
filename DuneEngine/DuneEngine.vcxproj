@@ -13,6 +13,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Barrier.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Device.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Enums.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Fence.h" />
     <ClInclude Include="include\Dune\Common\Handle.h" />
     <ClInclude Include="include\Dune\Common\ID.h" />
@@ -22,10 +26,10 @@
     <ClInclude Include="include\Dune\Core\Graphics\RHI\DescriptorHeap.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\CommandList.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Resource.h" />
+    <ClInclude Include="include\Dune\Core\Graphics\RHI\Shader.h" />
     <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h" />
     <ClInclude Include="include\Dune\Core\Renderer.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
@@ -33,7 +37,6 @@
     <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
-    <ClInclude Include="include\Dune\Core\Graphics.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\PostProcessGlobals.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Shaders\DirectionalLight.h" />
     <ClInclude Include="include\Dune\Core\Graphics\Mesh.h" />

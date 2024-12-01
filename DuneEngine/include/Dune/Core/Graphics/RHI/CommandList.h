@@ -6,14 +6,14 @@ namespace Dune::Graphics
 {
     class DescriptorHeap;
 	struct Descriptor;
-	class Pipeline;
-	class Texture;
+	class GraphicsPipeline;
 	class CommandAllocator;
 	class Buffer;
-	struct Device;
+	class Device;
 	class Fence;
+	class Barrier;
 
-	enum class CommandType
+	enum class ECommandType
 	{
 		Direct,
 		Compute,
@@ -23,9 +23,8 @@ namespace Dune::Graphics
 	class CommandAllocator : public Resource
 	{
 	public:
-		CommandAllocator(Device* pDevice, CommandType type);
-		~CommandAllocator();
-		DISABLE_COPY_AND_MOVE(CommandAllocator);
+		void Initialize(Device* pDevice, ECommandType type);
+		void Destroy();
 
 		void Reset();
 	};
@@ -33,16 +32,16 @@ namespace Dune::Graphics
 	class CommandList : public Resource
 	{
 	public:
-		CommandList(Device* pDevice, CommandType type, CommandAllocator& CommandAllocator);
-		~CommandList();
-		DISABLE_COPY_AND_MOVE(CommandList);
+		void Initialize(Device* pDevice, ECommandType type, CommandAllocator& CommandAllocator);
+		void Destroy();
 
         void Reset(CommandAllocator& commandAllocator);
         void Reset(CommandAllocator& commandAllocator, const GraphicsPipeline& pipeline);
         void Close();
 
-        void SetDescriptorHeaps(DescriptorHeap& pSrvHeap);
-        void SetDescriptorHeaps(DescriptorHeap& pSrvHeap, DescriptorHeap& pSamplerHeap);
+		void Transition(const Barrier& barrier);
+        void SetDescriptorHeaps(DescriptorHeap& srvHeap);
+        void SetDescriptorHeaps(DescriptorHeap& srvHeap, DescriptorHeap& samplerHeap);
 		void SetGraphicsPipeline(const GraphicsPipeline& pipeline);
 		void SetRenderTarget(const dU64* rtvs, dU32 rtvCount, const dU64* dsv);
 		void ClearRenderTargetView(const Descriptor& rtv, const float clearColor[4]);
@@ -59,9 +58,8 @@ namespace Dune::Graphics
 	class CommandQueue : public Resource
 	{
 	public:
-		CommandQueue(Device* pDevice, CommandType type);
-		~CommandQueue();
-		DISABLE_COPY_AND_MOVE(CommandQueue);
+		void Initialize(Device* pDevice, ECommandType type);
+		void Destroy();
 
 		void ExecuteCommandLists(CommandList* commandLists, dU32 commandListCount);
 		void Signal(Fence& fence, dU64 value);

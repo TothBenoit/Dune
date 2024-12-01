@@ -4,9 +4,7 @@
 
 namespace Dune::Graphics
 {
-	struct Device;
-	class Resource;
-	struct Descriptor;
+	class Device;
 
 	enum class EBufferUsage
 	{
@@ -32,14 +30,14 @@ namespace Dune::Graphics
 		const void*		pData{ nullptr };
 		dU32			byteSize{ 0 };
 		dU32			byteStride{ 0 }; // for structured, vertex and index buffer
+		dU32			initialState{ 0 };
 	};
 
 	class Buffer : public Resource
 	{
 	public:
-		Buffer(Device* pDeviceInterface, const BufferDesc& desc);
-		~Buffer();
-		DISABLE_COPY_AND_MOVE(Buffer);
+		void Initialize(Device* pDeviceInterface, const BufferDesc& desc);
+		void Destroy();
 
 		[[nodiscard]] inline dU32 GetByteSize() const { return m_byteSize; }
 		[[nodiscard]] inline dU32 GetByteStride() const { return m_byteStride; }
@@ -47,28 +45,17 @@ namespace Dune::Graphics
 		[[nodiscard]] dU32 GetOffset() const { return m_currentBuffer * m_byteSize; }
 		[[nodiscard]] dU32 GetCurrentBufferIndex() const { return m_currentBuffer; }
 		[[nodiscard]] dU64 GetGPUAddress();
-		[[nodiscard]] void CreateSRV(Descriptor& srv); // TODO : desc
-		[[nodiscard]] void CreateCBV(Descriptor& cbv); // TODO : desc
-
-		void Map(dU32 byteOffset, dU32 byteSize, void** pCpuAdress);
-		void Unmap(dU32 byteOffset, dU32 byteSize);
-		void UploadData(const void* pData, dU32  byteOffset, dU32 byteSize);
 
 	private:
 
 		dU32 CycleBuffer();
 
 	private:
-		const EBufferUsage	m_usage;
-		const EBufferMemory m_memory;
-		dU32				m_byteSize;
-		dU32				m_byteStride;
-		dU32				m_currentBuffer;
-		Device*				m_pDeviceInterface{ nullptr };
+		EBufferUsage	m_usage;
+		EBufferMemory	m_memory;
+		dU32			m_byteSize;
+		dU32			m_byteStride;
+		dU32			m_currentBuffer;
+		dU32			m_state;
 	};
-
-	[[nodiscard]] Handle<Buffer>	CreateBuffer(Device* pDevice, const BufferDesc& desc);
-	void							ReleaseBuffer(Device* pDevice, Handle<Buffer> handle);
-	void							UploadBuffer(Device* pDevice, Handle<Buffer> handle, const void* pData, dU32 byteOffset, dU32 byteSize);
-	void							MapBuffer(Device* pDevice, Handle<Buffer> handle, const void* pData, dU32 byteOffset, dU32 byteSize);
 }

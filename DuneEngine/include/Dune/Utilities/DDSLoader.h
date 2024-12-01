@@ -1,12 +1,11 @@
 #pragma once
 
-#include "Dune/Common/Handle.h"
 #include "Dune/Core/Graphics/Format.h"
 
 namespace Dune::Graphics
 {
 
-    struct Device;
+    class Device;
     class Texture;
 
     enum class DDSResult
@@ -81,7 +80,7 @@ namespace Dune::Graphics
 	public:
 
 		static DDSResult Load(const char* filePath, DDSTexture& outDDSTexture);
-        static Handle<Texture> CreateTextureFromFile(Device* pDevice, const char* filePath);
+        static Graphics::Texture* CreateTextureFromFile(Device* pDevice, const char* filePath);
 
         DDSResult Load(const char* filePath);
         void Destroy();
