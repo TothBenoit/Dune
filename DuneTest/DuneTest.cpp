@@ -101,9 +101,16 @@ int main(int argc, char** argv)
 	commandAllocator.Reset();
 	commandList.Reset(commandAllocator);
 	cube.Initialize(&device, &commandList, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
-	Graphics::Buffer uploadBuffer;
-	Graphics::Texture* pAlbedoTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, "res\\testAlbedoMips.DDS");
-	Graphics::Texture* pNormalTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, "res\\testNormalMips.DDS");
+	Graphics::Buffer uploadBuffer1;
+	Graphics::Buffer uploadBuffer2;
+	Graphics::Texture* pAlbedoTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer1, "res\\testAlbedoMips.DDS");
+	Graphics::Texture* pNormalTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer2, "res\\testNormalMips.DDS");
+	Graphics::Barrier barrier{};
+	barrier.Initialize(2);
+	barrier.PushTransition(pAlbedoTexture->Get(), Graphics::EResourceState::CopyDest, Graphics::EResourceState::ShaderResource);
+	barrier.PushTransition(pNormalTexture->Get(), Graphics::EResourceState::CopyDest, Graphics::EResourceState::ShaderResource);
+	commandList.Transition(barrier);
+	barrier.Destroy();
 	commandList.Close();
 	commandQueue.ExecuteCommandLists(&commandList, 1);
 	Graphics::Fence fence;
@@ -114,7 +121,8 @@ int main(int argc, char** argv)
 	commandQueue.Destroy();
 	commandAllocator.Destroy();
 	commandList.Destroy();
-	uploadBuffer.Destroy();
+	uploadBuffer1.Destroy();	
+	uploadBuffer2.Destroy();	
 
 	Scene scene{};
 	entt::entity cubeEntity = scene.CreateEntity("Cube");
