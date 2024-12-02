@@ -570,6 +570,7 @@ namespace Dune::Graphics
 		}
 
 		UpdateSubresources(ToCommandList(Get()), pResource, ToResource(uploadBuffer.Get()), uploadByteOffset, firstSubresource, numSubresource, srcDatas);
+		pDevice->Release();
 	}
 
 	void CommandList::Transition(const Barrier& barrier)
