@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Dune/Core/Graphics/RHI/Resource.h"
-#include "Dune/Core/Graphics/Format.h"
+#include "Dune/Graphics/RHI/Resource.h"
+#include "Dune/Graphics/Format.h"
 
 namespace Dune::Graphics
 {

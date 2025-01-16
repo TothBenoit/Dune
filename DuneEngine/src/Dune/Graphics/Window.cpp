@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Dune/Core/Graphics/Window.h"
-#include "Dune/Core/Input.h"
+#include "Dune/Graphics/Window.h"
+#include "Dune/System/Input.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

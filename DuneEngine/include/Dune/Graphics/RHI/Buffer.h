@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Dune/Core/Graphics/RHI/Resource.h"
-#include "Dune/Core/Graphics/RHI/Barrier.h"
+#include "Dune/Graphics/RHI/Resource.h"
+#include "Dune/Graphics/RHI/Barrier.h"
 
 namespace Dune::Graphics
 {

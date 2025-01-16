@@ -1,17 +1,17 @@
 #include "pch.h"
-#include "Dune/Core/Renderer.h"
-#include "Dune/Core/Graphics/Mesh.h"
-#include "Dune/Core/Graphics/Window.h"
-#include <Dune/Core/Graphics/Shaders/PBR.h>
-#include <Dune/Core/Graphics/RHI/Swapchain.h>
-#include <Dune/Core/Graphics/RHI/GraphicsPipeline.h>
-#include <Dune/Core/Graphics/RHI/Fence.h>
-#include <Dune/Core/Graphics/RHI/CommandList.h>
-#include <Dune/Core/Graphics/RHI/Barrier.h>
-#include <Dune/Core/Graphics/RHI/Shader.h>
-#include <Dune/Core/Graphics/RHI/Texture.h>
-#include <Dune/Core/Graphics/RHI/Device.h>
-#include <Dune/Core/Graphics/Format.h>
+#include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/Window.h"
+#include <Dune/Graphics/Shaders/PBR.h>
+#include <Dune/Graphics/RHI/Swapchain.h>
+#include <Dune/Graphics/RHI/GraphicsPipeline.h>
+#include <Dune/Graphics/RHI/Fence.h>
+#include <Dune/Graphics/RHI/CommandList.h>
+#include <Dune/Graphics/RHI/Barrier.h>
+#include <Dune/Graphics/RHI/Shader.h>
+#include <Dune/Graphics/RHI/Texture.h>
+#include <Dune/Graphics/RHI/Device.h>
+#include <Dune/Graphics/Format.h>
 
 
 namespace Dune

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Dune/Core/JobSystem.h"
+#include "Dune/System/JobSystem.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

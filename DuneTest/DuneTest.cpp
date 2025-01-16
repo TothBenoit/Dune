@@ -1,12 +1,12 @@
 #include <Dune.h>
 #include <thread>
 #include <chrono>
-#include <Dune/Core/Graphics/Shaders/PBR.h>
-#include <Dune/Core/Graphics/RHI/Texture.h>
-#include <Dune/Core/Graphics/RHI/Buffer.h>
-#include <Dune/Core/Graphics/RHI/Device.h>
-#include <Dune/Core/Graphics/RHI/Fence.h>
-#include <Dune/Core/Renderer.h>
+#include <Dune/Graphics/Shaders/PBR.h>
+#include <Dune/Graphics/RHI/Texture.h>
+#include <Dune/Graphics/RHI/Buffer.h>
+#include <Dune/Graphics/RHI/Device.h>
+#include <Dune/Graphics/RHI/Fence.h>
+#include <Dune/Graphics/Renderer.h>
 #include <Dune/Utilities/DDSLoader.h>
 
 using namespace Dune;

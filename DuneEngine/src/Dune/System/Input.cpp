@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Dune/Core/Input.h"
+#include "Dune/System/Input.h"
 
 namespace Dune
 {

@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Dune/Core/Graphics/Mesh.h"
-#include "Dune/Core/Graphics/RHI/Buffer.h"
-#include "Dune/Core/Graphics/RHI/CommandList.h"
+#include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/RHI/Buffer.h"
+#include "Dune/Graphics/RHI/CommandList.h"
 
 namespace Dune::Graphics
 {

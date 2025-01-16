@@ -13,55 +13,54 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Dune\Core\Graphics\Format.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Barrier.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Device.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Enums.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Fence.h" />
+    <ClInclude Include="include\Dune\Graphics\Format.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\Barrier.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\Device.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\Fence.h" />
     <ClInclude Include="include\Dune\Common\Handle.h" />
     <ClInclude Include="include\Dune\Common\ID.h" />
     <ClInclude Include="include\Dune\Common\Macro.h" />
     <ClInclude Include="include\Dune\Common\Pool.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Buffer.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\DescriptorHeap.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\CommandList.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Resource.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Shader.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Texture.h" />
-    <ClInclude Include="include\Dune\Core\Renderer.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Camera.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Shaders\PBR.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\Buffer.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\DescriptorHeap.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\CommandList.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\Resource.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\Shader.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\Texture.h" />
+    <ClInclude Include="include\Dune\Graphics\Renderer.h" />
+    <ClInclude Include="include\Dune\Graphics\Camera.h" />
+    <ClInclude Include="include\Dune\Graphics\Shaders\PBR.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\GraphicsPipeline.h" />
-    <ClInclude Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Window.h" />
-    <ClInclude Include="include\Dune\Core\JobSystem.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Shaders\PostProcessGlobals.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Shaders\DirectionalLight.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Mesh.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Shaders\PointLight.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\Shaders\ShaderTypes.h" />
-    <ClInclude Include="include\Dune\Utilities\MeshLoader.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\GraphicsPipeline.h" />
+    <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h" />
+    <ClInclude Include="include\Dune\Graphics\Window.h" />
+    <ClInclude Include="include\Dune\System\JobSystem.h" />
+    <ClInclude Include="include\Dune\Graphics\Shaders\PostProcessGlobals.h" />
+    <ClInclude Include="include\Dune\Graphics\Shaders\DirectionalLight.h" />
+    <ClInclude Include="include\Dune\Graphics\Mesh.h" />
+    <ClInclude Include="include\Dune\Graphics\Shaders\PointLight.h" />
+    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderTypes.h" />
+    <ClInclude Include="include\Dune\Utilities\SceneLoader.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
     <ClInclude Include="include\Dune\Common\Types.h" />
     <ClInclude Include="include\Dune.h" />
-    <ClInclude Include="include\Dune\Core\Input.h" />
-    <ClInclude Include="include\Dune\Core\Logger.h" />
+    <ClInclude Include="include\Dune\System\Input.h" />
+    <ClInclude Include="include\Dune\System\Logger.h" />
     <ClInclude Include="include\Dune\Utilities\Utils.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="include\Dune\Core\Graphics\RHI\Swapchain.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\Swapchain.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Dune\Core\Graphics\Window.cpp" />
-    <ClCompile Include="src\Dune\Core\Renderer.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Window.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
     <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp" />
-    <ClCompile Include="src\Dune\Core\Graphics\Camera.cpp" />
-    <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
-    <ClCompile Include="src\Dune\Core\Graphics\Mesh.cpp" />
-    <ClCompile Include="src\Dune\Core\Graphics\Platform\GraphicsDX12.cpp" />
-    <ClCompile Include="src\Dune\Core\Input.cpp" />
-    <ClCompile Include="src\Dune\Core\Logger.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Camera.cpp" />
+    <ClCompile Include="src\Dune\System\JobSystem.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Platform\GraphicsDX12.cpp" />
+    <ClCompile Include="src\Dune\System\Input.cpp" />
+    <ClCompile Include="src\Dune\System\Logger.cpp" />
     <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp" />
     <ClCompile Include="src\Dune\Utilities\MeshLoader.cpp" />
     <ClCompile Include="pch.cpp">
@@ -70,21 +69,21 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\Dune\Core\Graphics\Shaders\BRDF.hlsli" />
-    <None Include="include\Dune\Core\Graphics\Shaders\Common.hlsli" />
-    <None Include="include\Dune\Core\Graphics\Shaders\Default.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli" />
+    <None Include="include\Dune\Graphics\Shaders\Common.hlsli" />
+    <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="include\Dune\Core\Graphics\Shaders\DepthWrite.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\DepthWrite.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="include\Dune\Core\Graphics\Shaders\PBR.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\PBR.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="include\Dune\Core\Graphics\Shaders\PostProcess.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\PostProcess.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="include\Dune\Core\Graphics\Shaders\Test.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\Test.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="packages.config" />
@@ -161,7 +160,7 @@
     </Lib>
     <PreBuildEvent>
       <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)include\Dune\Core\Graphics\Shaders\*" "$(OutDir)Shaders\"</Command>
+xcopy /y /d "$(ProjectDir)include\Dune\Graphics\Shaders\*" "$(OutDir)Shaders\"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -197,7 +196,7 @@ xcopy /y /d "$(ProjectDir)include\Dune\Core\Graphics\Shaders\*" "$(OutDir)Shader
     </Lib>
     <PreBuildEvent>
       <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)include\Dune\Core\Graphics\Shaders\*" "$(OutDir)Shaders\"</Command>
+xcopy /y /d "$(ProjectDir)include\Dune\Graphics\Shaders\*" "$(OutDir)Shaders\"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

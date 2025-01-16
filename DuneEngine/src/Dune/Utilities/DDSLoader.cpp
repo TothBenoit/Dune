@@ -1,10 +1,10 @@
 #include "pch.h"
 #include <fstream>
 #include "Dune/Utilities/DDSLoader.h"
-#include "Dune/Core/Graphics/RHI/Buffer.h"
-#include "Dune/Core/Graphics/RHI/Texture.h"
-#include "Dune/Core/Graphics/RHI/CommandList.h"
-#include "Dune/Core/Graphics/RHI/Device.h"
+#include "Dune/Graphics/RHI/Buffer.h"
+#include "Dune/Graphics/RHI/Texture.h"
+#include "Dune/Graphics/RHI/CommandList.h"
+#include "Dune/Graphics/RHI/Device.h"
 
 namespace Dune::Graphics 
 {

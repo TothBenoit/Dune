@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Utilities/SimpleCameraController.h"
-#include "Dune/Core/Input.h"
+#include "Dune/System/Input.h"
 
 namespace Dune
 {

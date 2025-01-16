@@ -5,7 +5,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-#include "Dune/Core/Graphics/Mesh.h"
+#include "Dune/Graphics/Mesh.h"
 
 namespace Dune::Graphics
 {

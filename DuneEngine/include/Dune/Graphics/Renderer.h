@@ -3,8 +3,8 @@
 #include "EnTT/entt.hpp"
 #include "Dune/Common/Pool.h"
 #include <Dune/Utilities/SimpleCameraController.h>
-#include <Dune/Core/Graphics/RHI/DescriptorHeap.h>
-#include <Dune/Core/Graphics/RHI/CommandList.h>
+#include <Dune/Graphics/RHI/DescriptorHeap.h>
+#include <Dune/Graphics/RHI/CommandList.h>
 
 namespace Dune
 {
