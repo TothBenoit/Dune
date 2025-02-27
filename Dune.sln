@@ -11,12 +11,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "ThirdParties\src\i
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Optick", "ThirdParties\src\Optick\Optick.vcxproj", "{31FBDCBA-D741-46E6-B840-5E8E96021BDA}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuneEditor", "DuneEditor\DuneEditor.vcxproj", "{8FB578E3-9AE1-4E8B-BC5F-1CA612F00524}"
-	ProjectSection(ProjectDependencies) = postProject
-		{4E8A7BD2-878F-4381-B129-6CE9B232C4E2} = {4E8A7BD2-878F-4381-B129-6CE9B232C4E2}
-		{6423B652-03DA-48CD-8F13-3F946A11EB77} = {6423B652-03DA-48CD-8F13-3F946A11EB77}
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ThirdParties", "ThirdParties", "{834F0B89-F32F-4423-A331-71B876C1B349}"
 EndProject
 Global
@@ -41,10 +35,6 @@ Global
 		{31FBDCBA-D741-46E6-B840-5E8E96021BDA}.Debug|x64.Build.0 = Debug|x64
 		{31FBDCBA-D741-46E6-B840-5E8E96021BDA}.Release|x64.ActiveCfg = Release|x64
 		{31FBDCBA-D741-46E6-B840-5E8E96021BDA}.Release|x64.Build.0 = Release|x64
-		{8FB578E3-9AE1-4E8B-BC5F-1CA612F00524}.Debug|x64.ActiveCfg = Debug|x64
-		{8FB578E3-9AE1-4E8B-BC5F-1CA612F00524}.Debug|x64.Build.0 = Debug|x64
-		{8FB578E3-9AE1-4E8B-BC5F-1CA612F00524}.Release|x64.ActiveCfg = Release|x64
-		{8FB578E3-9AE1-4E8B-BC5F-1CA612F00524}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

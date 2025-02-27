@@ -13,7 +13,7 @@
 #include <d3dx12/d3dx12.h>
 #include <d3d12shader.h>
 
-extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 613; }
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
 extern "C" { __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\"; }
 
 #define ThrowIfFailed(hr) if(FAILED(hr)) { __debugbreak(); assert(false);}

@@ -1,10 +1,10 @@
 #include "pch.h"
-#include <fstream>
 #include "Dune/Utilities/DDSLoader.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RHI/Texture.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
+#include "Dune/System/IO/File.h"
 
 namespace Dune::Graphics 
 {
@@ -15,30 +15,19 @@ namespace Dune::Graphics
 
 	DDSResult DDSTexture::Load(const char* filePath, DDSTexture& outDDSTexture)
 	{
-		Assert(outDDSTexture.m_dds.empty());
+		Assert(!outDDSTexture.m_pFileBuffer);
 
-		std::ifstream file{ filePath, std::ios_base::binary };
-		
-		if (!file.is_open())
+		System::IO::File file;
+		if (!System::IO::File::Open(file, filePath, System::IO::EAccessMode::Read, System::IO::EShareMode::None))
 			return DDSResult::EFailedOpen;
 		
-		dVector<dU8>& dds = outDDSTexture.m_dds;
-		
-		file.seekg(0, std::ios_base::beg);
-		dSizeT begPos = file.tellg();
-		file.seekg(0, std::ios_base::end);
-		dSizeT endPos = file.tellg();
-		file.seekg(0, std::ios_base::beg);
+		dU64 byteSize = file.GetByteSize();
+		dU8* pFileBuffer = new dU8[byteSize];
 
-		dSizeT fileSize = endPos - begPos;
-		dds = dVector<dU8>(fileSize);
-
-		file.read(reinterpret_cast<char*>(dds.data()), fileSize);
-
-		if (file.bad())
+		if ( !file.Read(reinterpret_cast<char*>(pFileBuffer), (dU32)byteSize) )
 		{
-			dds.clear();
-			dds.shrink_to_fit();
+			delete[] pFileBuffer;
+			file.Close();
 			return DDSResult::EFailedRead;
 		}
 
@@ -46,33 +35,37 @@ namespace Dune::Graphics
 
 		for (int i = 0; i < 4; i++) 
 		{
-			if (dds[i] != magicWord[i])
+			if (pFileBuffer[i] != magicWord[i])
 			{
 				return DDSResult::EFailedMagicWord;
 			}
 		}
 
-		if ((sizeof(dU32) + sizeof(DDSHeader)) >= dds.size())
+		if ((sizeof(dU32) + sizeof(DDSHeader)) >= byteSize) 
+		{
+			delete[] pFileBuffer;
+			file.Close();
 			return DDSResult::EFailedSize;
+		}
 		
-		outDDSTexture.m_pHeader = reinterpret_cast<DDSHeader*>(dds.data() + sizeof(dU32));
+		outDDSTexture.m_pHeader = reinterpret_cast<DDSHeader*>(pFileBuffer + sizeof(dU32));
 		DDSHeader& header = *outDDSTexture.m_pHeader;
 
 		bool dxt10Header = false;
 		if ( (header.pixelFormat.flags & dU32(DDSPixelFormatFlagBits::FourCC))  && (MakeFourCC('D', 'X', '1', '0') == header.pixelFormat.fourCC ))
 		{
-			if ((sizeof(dU32) + sizeof(DDSHeader) + sizeof(DDSHeaderDXT10)) >= dds.size())
+			if ((sizeof(dU32) + sizeof(DDSHeader) + sizeof(DDSHeaderDXT10)) >= byteSize)
 				return DDSResult::EFailedSize;
 			
-			outDDSTexture.m_pHeaderDXT10 = reinterpret_cast<DDSHeaderDXT10*>(dds.data() + sizeof(dU32) + sizeof(DDSHeader));
+			outDDSTexture.m_pHeaderDXT10 = reinterpret_cast<DDSHeaderDXT10*>(pFileBuffer + sizeof(dU32) + sizeof(DDSHeader));
 			dxt10Header = true;
 		}
 
 		dU64 offset = sizeof(dU32) + sizeof(DDSHeader) + (dxt10Header ? sizeof(DDSHeaderDXT10) : 0);
-		outDDSTexture.m_pData = reinterpret_cast<void*>(dds.data() + offset);
+		outDDSTexture.m_pData = reinterpret_cast<void*>(pFileBuffer + offset);
+		outDDSTexture.m_pFileBuffer = pFileBuffer;
 
-		file.close();
-
+		file.Close();
 		return DDSResult::ESucceed;
 	}
 
@@ -103,8 +96,8 @@ namespace Dune::Graphics
 
 	void DDSTexture::Destroy()
 	{
-		m_dds.clear();
-		m_dds.shrink_to_fit();
+		delete[] m_pFileBuffer;
+		m_pFileBuffer = nullptr;
 		m_pHeader = nullptr;
 		m_pData = nullptr;
 	}

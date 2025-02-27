@@ -112,6 +112,9 @@
     <ClInclude Include="include\Dune\Graphics\Format.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\System\IO\File.h">
+      <Filter>Dune\System\IO</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\System\Input.cpp">
@@ -150,6 +153,9 @@
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\System\IO\File.cpp">
+      <Filter>Dune\System\IO</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
@@ -167,13 +173,13 @@
     <None Include="include\Dune\Graphics\Shaders\Test.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="packages.config" />
     <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
     <None Include="include\Dune\Graphics\Shaders\Common.hlsli">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">
@@ -199,6 +205,9 @@
     </Filter>
     <Filter Include="Dune\Graphics\Shaders">
       <UniqueIdentifier>{df74b725-f633-452c-9fba-ebcdaa67b2ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\System\IO">
+      <UniqueIdentifier>{110c3097-32b1-473f-8b0a-ffa9333757cb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

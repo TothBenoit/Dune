@@ -92,7 +92,7 @@ namespace Dune::Graphics
         const DDSHeaderDXT10* GetHeaderDXT10() const { return m_pHeaderDXT10; };
 
 	private:
-		dVector<dU8> m_dds;
+        void* m_pFileBuffer{ nullptr };
         DDSHeader* m_pHeader{ nullptr };
         DDSHeaderDXT10* m_pHeaderDXT10{ nullptr };
         void* m_pData{ nullptr };
