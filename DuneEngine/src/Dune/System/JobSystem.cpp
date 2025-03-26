@@ -14,6 +14,16 @@ namespace Dune::Job
     void WaitForCounter_Fiber(const Counter& counter);
     void InitWorker(dU32 workerCount);
 
+    class SpinLock
+    {
+    public:
+        void lock();
+        void unlock();
+
+    private:
+        std::atomic<bool> m_lock{ false };
+    };
+
     // Implementation inspired by WickedEngine blog
     template <typename T, dSizeT capacity>
     class ThreadSafeRingBuffer
@@ -69,7 +79,7 @@ namespace Dune::Job
         friend void WorkerMainLoop(void * pData);
         friend Counter;
 
-        uint64_t GetValue() const { return m_counter.load(); }
+        uint32_t GetValue() const { return m_counter.load(); }
 
         void Decrement()
         {
@@ -85,12 +95,13 @@ namespace Dune::Job
         void Addlistener(Counter& counter) const
         {
             m_waitingCountersLock.lock();
-            m_waitingCounters.push_back(counter.GetPtrValue());
+            m_waitingCounters.push_back(counter.m_pCounterInstance);
             m_waitingCountersLock.unlock();
         }
 
     private:
-        std::atomic<uint64_t> m_counter{ 0 };
+        std::atomic<uint32_t> m_counter{ 0 };
+        std::atomic<uint32_t> m_refCount{ 1 };
         mutable std::vector<CounterInstance*> m_waitingCounters;
         mutable SpinLock m_waitingCountersLock;
     };
@@ -301,7 +312,7 @@ namespace Dune::Job
     void WaitForCounter_Fiber(const Counter& counter)
     {
 		g_waitingFibersLock.lock();
-		g_waitingFibers[counter.GetPtrValue()].push_back(g_pCurrentFiber);
+		g_waitingFibers[counter.m_pCounterInstance].push_back(g_pCurrentFiber);
 		g_waitingFibersLock.unlock();
 
         if (!g_pWorkers[g_workerID]->sleepingFibers.pop_front(g_pCurrentFiber))
@@ -332,7 +343,43 @@ namespace Dune::Job
 
     Counter::Counter()
     {
-        m_pCounterInstance = std::shared_ptr<CounterInstance>{ new CounterInstance() };
+        m_pCounterInstance = new CounterInstance();
+    }
+
+    Counter::Counter(const Counter& other)
+    {
+        m_pCounterInstance = other.m_pCounterInstance;
+        m_pCounterInstance->m_refCount.fetch_add(1);
+    }
+
+    Counter& Counter::operator=(const Counter& other)
+    {
+        if (m_pCounterInstance->m_refCount.fetch_sub(1) == 1)
+            delete m_pCounterInstance;
+        m_pCounterInstance = other.m_pCounterInstance;
+        m_pCounterInstance->m_refCount.fetch_add(1);
+        return *this;
+    }
+
+    Counter::Counter(Counter&& other)
+    {
+        m_pCounterInstance = other.m_pCounterInstance;
+        m_pCounterInstance->m_refCount.fetch_add(1);
+    }
+
+    Counter& Counter::operator=(Counter&& other)
+    {
+        if (m_pCounterInstance->m_refCount.fetch_sub(1) == 1)
+            delete m_pCounterInstance;
+        m_pCounterInstance = other.m_pCounterInstance;
+        m_pCounterInstance->m_refCount.fetch_add(1);
+        return *this;
+    }
+
+    Counter::~Counter() 
+    {
+        if (m_pCounterInstance->m_refCount.fetch_sub(1) == 0)
+            delete m_pCounterInstance;
     }
 
     Counter& Counter::operator++()
@@ -364,26 +411,16 @@ namespace Dune::Job
         return *this;
     }
 
-    uint64_t Counter::GetValue() const 
+    uint32_t Counter::GetValue() const 
     { 
         return m_pCounterInstance->GetValue(); 
-    }
-
-    CounterInstance* Counter::GetPtrValue() const 
-    { 
-        return m_pCounterInstance.get(); 
-    }
-
-    JobBuilder::JobBuilder()
-    {
-        m_counter = Counter();
     }
 
     void JobBuilder::DispatchExplicitFence()
     {
         if (m_counter.GetValue() > 0)
         {
-            m_fence = std::move(m_counter);
+            m_fence = m_counter;
             m_counter = Counter();
         }
     }
