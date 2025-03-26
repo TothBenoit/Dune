@@ -129,8 +129,7 @@ namespace Dune::Job
         ThreadSafeRingBuffer<FiberDecl, g_fiberPerThread> freeFibers;
         ThreadSafeRingBuffer<FiberDecl, g_fiberPerThread> sleepingFibers;
     };
-    
-    dU32 g_workerCount{ 0 };
+
     std::vector<Worker*> g_pWorkers;
     ThreadSafeRingBuffer<JobInstance, 16384> g_jobPool;
 
@@ -156,6 +155,7 @@ namespace Dune::Job
     {
         return (dU32)g_pWorkers.size();
     }
+
 	void Switch_Fiber()
 	{
 		bool result = g_pWorkers[g_workerID]->freeFibers.push_back(g_pCurrentFiber);
@@ -264,9 +264,9 @@ namespace Dune::Job
 
         dU32 numCores{ std::thread::hardware_concurrency() };
 
-        g_workerCount = std::max(numCores - 3u, 1u);
-        g_pWorkers.reserve(g_workerCount);
-        for (dU32 workerID = 0; workerID < g_workerCount; ++workerID)
+        dU32 workerCount = std::max(numCores - 3u, 1u);
+        g_pWorkers.reserve(workerCount);
+        for (dU32 workerID = 0; workerID < workerCount; ++workerID)
         {
             g_pWorkers.push_back(new Worker(&InitWorker));
             g_pWorkers.back()->Run(workerID);
