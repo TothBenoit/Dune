@@ -12,13 +12,15 @@
 #include <Dune/Graphics/RHI/Texture.h>
 #include <Dune/Graphics/RHI/Device.h>
 #include <Dune/Graphics/Format.h>
+#include <Dune/Core/Scene.h>
+#include <Dune/Core/Camera.h>
 
-
-namespace Dune
+namespace Dune::Graphics
 {
-	void Renderer::Initialize(Graphics::Device* pDevice)
+	void Renderer::Initialize(Graphics::Device& device, Graphics::Window& window)
 	{
-		m_pDevice = pDevice;
+		m_pDevice = &device;
+		m_pWindow = &window;
 		const wchar_t* args[] = { L"-Zi", L"-all_resources_bound" };
 
 		Graphics::Shader pbrVertexShader;
@@ -48,14 +50,10 @@ namespace Dune
 				.pPixelShader = &pbrPixelShader,
 				.bindingLayout =
 				{
-					.slots =
-					{
-						{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRGlobals), .visibility = Graphics::EShaderVisibility::All},
-						{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
-						{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
-						{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRInstance), .visibility = Graphics::EShaderVisibility::Vertex},
-					},
-					.slotCount = 4
+					{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRGlobals), .visibility = Graphics::EShaderVisibility::All},
+					{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
+					{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
+					{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRInstance), .visibility = Graphics::EShaderVisibility::Vertex},
 				},
 				.inputLayout =
 					{
@@ -73,8 +71,6 @@ namespace Dune
 		pbrVertexShader.Destroy();
 		pbrPixelShader.Destroy();
 
-		m_pWindow = new Graphics::Window();
-		m_pWindow->Initialize({});
 		m_pDepthBuffer = new Graphics::Texture();
 		m_pDepthBuffer->Initialize( 
 			m_pDevice, 
@@ -175,30 +171,30 @@ namespace Dune
 
 		m_pFence->Destroy();
 		delete m_pFence;
-
-		m_pWindow->Destroy();
-		delete m_pWindow;
 	}
 
 	void Renderer::OnResize(dU32 width, dU32 height) 
 	{
-		m_cameraController.SetAspectRatio((float)width / (float)height);
+		for ( const Frame& f : m_frames )
+			WaitForFrame(f);
+		m_pSwapchain->Resize(width, height);
+		m_frameIndex = m_pSwapchain->GetCurrentBackBufferIndex();
+		for (dU32 i = 0; i < 3; i++)
+			m_pDevice->CreateRTV(m_renderTargetsDescriptors[i], m_pSwapchain->GetBackBuffer(i), {});
 
-		if (m_pDepthBuffer)
-		{
-			m_pDepthBuffer->Destroy();
-			m_pDepthBuffer->Initialize(m_pDevice, { .debugName = L"DepthBuffer", .usage = Graphics::ETextureUsage::DepthStencil, .dimensions = { width, height, 1}, .format = Graphics::EFormat::D16_UNORM, .clearValue = { 1.f, 1.f, 1.f, 1.f } });
-		}
-	}
-
-	bool Renderer::UpdateSceneView(float dt)
-	{
-		if (m_pWindow->Update())
-		{
-			m_cameraController.Update(dt, m_pWindow->GetInput());
-			return true;
-		}
-		return false;
+		m_pDepthBuffer->Destroy();
+		m_pDepthBuffer->Initialize(
+			m_pDevice,
+			{
+				.debugName = L"DepthBuffer",
+				.usage = Graphics::ETextureUsage::DepthStencil,
+				.dimensions = {width, height, 1},
+				.format = Graphics::EFormat::D16_UNORM,
+				.clearValue = {1.f, 1.f, 1.f, 1.f},
+				.initialState = Graphics::EResourceState::DepthStencil
+			}
+		);
+		m_pDevice->CreateDSV(m_depthBufferDescriptor, *m_pDepthBuffer, {});
 	}
 
 	void Renderer::WaitForFrame(const Frame& frame)
@@ -208,7 +204,7 @@ namespace Dune
 			m_pFence->Wait(fenceValue);
 	}
 
-	void Renderer::RenderScene(const Scene& scene)
+	void Renderer::RenderScene(const Core::Scene& scene, const Core::Camera& camera)
 	{
 		Frame& frame = m_frames[m_frameIndex];
 		WaitForFrame(frame);
@@ -236,12 +232,12 @@ namespace Dune
 		frame.commandList.ClearDepthBuffer(dsv, m_pDepthBuffer->GetClearValue()[0], 0);
 
 		Graphics::PBRGlobals globals;
-		Graphics::ComputeViewProjectionMatrix(m_cameraController.GetCamera(), nullptr, nullptr, &globals.viewProjectionMatrix);
+		Core::ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
 		DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
 
 		frame.commandList.PushGraphicsConstants(0, &globals, sizeof(Graphics::PBRGlobals));
 
-		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
+		scene.registry.view<const Core::Transform, const RenderData>().each([&](const Core::Transform& transform, const RenderData& renderData)
 			{
 				const Graphics::Mesh& mesh = *renderData.pMesh;
 				Graphics::PBRInstance instance;

@@ -7,6 +7,9 @@
 #include <Dune/Graphics/RHI/Device.h>
 #include <Dune/Graphics/RHI/Fence.h>
 #include <Dune/Graphics/Renderer.h>
+#include <Dune/Graphics/Window.h>
+#include <Dune/Utilities/SimpleCameraController.h>
+#include <Dune/Core/Scene.h>
 #include <Dune/Utilities/DDSLoader.h>
 
 using namespace Dune;
@@ -62,21 +65,31 @@ static const Vertex cubeVertices[] =
 	{ { 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f } }, // 23
 };
 
-void Test(Graphics::Device* pDevice, Scene* pScene)
+void Test(Graphics::Device* pDevice, Core::Scene* pScene)
 {
-	Renderer renderer;
-	renderer.Initialize(pDevice);
+	Graphics::Window window{};
+	window.Initialize({});
+	Graphics::Renderer renderer;
+	SimpleCameraController camera{};
+	window.SetOnResizeFunc(&renderer, [](void* pData, dU32 width, dU32 height)
+		{
+			Graphics::Renderer* pRenderer = (Graphics::Renderer*)pData;
+			pRenderer->OnResize(width, height);
+		}
+	);
+	renderer.Initialize(*pDevice, window);
 	float dt = 0.f;
-	while (renderer.UpdateSceneView(dt))
+	while (window.Update())
 	{	
+		camera.Update(dt, window.GetInput());
 		auto start = std::chrono::high_resolution_clock::now();
-
-		renderer.RenderScene(*pScene);
+		renderer.RenderScene(*pScene, camera.GetCamera());
 		auto end = std::chrono::high_resolution_clock::now();
 		dt = (float)std::chrono::duration<float>(end - start).count();;
 	}
 
 	renderer.Destroy();
+	window.Destroy();
 }
 
 int main(int argc, char** argv)
@@ -124,12 +137,12 @@ int main(int argc, char** argv)
 	uploadBuffer1.Destroy();	
 	uploadBuffer2.Destroy();	
 
-	Scene scene{};
-	entt::entity cubeEntity = scene.CreateEntity("Cube");
+	Core::Scene scene{};
+	Core::EntityID cubeEntity = scene.registry.create();
 
-	Transform& transform = scene.registry.emplace<Transform>(cubeEntity);
+	Core::Transform& transform = scene.registry.emplace<Core::Transform>(cubeEntity);
 	transform.position.z = 2;
-	RenderData& renderData = scene.registry.emplace<RenderData>(cubeEntity);
+	Graphics::RenderData& renderData = scene.registry.emplace<Graphics::RenderData>(cubeEntity);
 	
 	renderData.pAlbedo = pAlbedoTexture;
 	renderData.pNormal = pNormalTexture;

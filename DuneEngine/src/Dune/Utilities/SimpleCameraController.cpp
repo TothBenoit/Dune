@@ -4,7 +4,7 @@
 
 namespace Dune
 {
-	SimpleCameraController::SimpleCameraController(const Graphics::Camera& camera)
+	SimpleCameraController::SimpleCameraController(const Core::Camera& camera)
 		: m_camera{ camera }
 	{
 		dMatrix4x4 rotationMatrix;

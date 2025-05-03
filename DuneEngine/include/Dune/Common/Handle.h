@@ -10,28 +10,28 @@ namespace Dune
 		Handle() : m_id(ID::invalidID) {}
 		~Handle() = default;
 
-		Handle(const Handle& other) 
+		Handle(const Handle& other)
 		{ 
-			m_id = other.m_id; 
+			m_id = other.m_id;
 		}
 
-		Handle& operator=(const Handle& other) 
+		Handle& operator=(const Handle& other)
 		{ 
-			m_id = other.m_id; 
-			return *this; 
+			m_id = other.m_id;
+			return *this;
 		}
 
-		Handle(Handle&& other) 
+		Handle(Handle&& other)
 		{
-			m_id = other.m_id; 
+			m_id = other.m_id;
 			other.m_id = ID::invalidID;
 		}
 
-		Handle& operator=(Handle&& other) 
+		Handle& operator=(Handle&& other)
 		{ 
 			m_id = other.m_id;
 			other.m_id = ID::invalidID;
-			return *this; 
+			return *this;
 		}
 
 		bool operator==(const Handle& other) const

@@ -1,12 +1,16 @@
 #pragma once
 
-#include "EnTT/entt.hpp"
-#include <Dune/Utilities/SimpleCameraController.h>
 #include <Dune/Graphics/RHI/DescriptorHeap.h>
 #include <Dune/Graphics/RHI/CommandList.h>
 
 namespace Dune
 {
+	namespace Core
+	{
+		struct Scene;
+		struct Camera;
+	}
+
 	namespace Graphics
 	{
 		class Device;
@@ -21,92 +25,58 @@ namespace Dune
 		class CommandAllocator;
 		class CommandQueue;
 		class Barrier;
-	}
 
-	class Renderer;
-	struct SceneView;
-
-	struct Transform
-	{
-		dVec3 position;
-		dQuat rotation;
-		dVec3 scale;
-	};
-
-	struct RenderData
-	{
-		Graphics::Texture* pAlbedo;
-		Graphics::Texture* pNormal;
-		const Graphics::Mesh* pMesh;
-	};
-
-	struct Name
-	{
-		std::string name;
-	};
-
-	struct Scene
-	{
-		inline entt::entity CreateEntity(const char* pName)
+		struct RenderData
 		{
-			entt::entity entity{ registry.create() };
-			registry.emplace<Name>(entity, pName);
-			return entity;
-		}
+			Graphics::Texture* pAlbedo;
+			Graphics::Texture* pNormal;
+			const Graphics::Mesh* pMesh;
+		};
 
-		entt::registry registry;
-	};
+		struct Frame
+		{
+			dU32 fenceValue{ 0 };
+			Graphics::CommandAllocator commandAllocator;
+			Graphics::CommandList commandList;
+			dQueue<Graphics::Descriptor> descriptorsToRelease;
+		};
 
-	struct Frame
-	{
-		dU32 fenceValue{ 0 };
-		Graphics::CommandAllocator commandAllocator;
-		Graphics::CommandList commandList;
-		dQueue<Graphics::Descriptor> descriptorsToRelease;
-	};
+		class Renderer
+		{
+		public:
+			void Initialize(Graphics::Device& device, Graphics::Window& window);
+			void Destroy();
 
-	class Renderer
-	{
-	public:
-		void Initialize(Graphics::Device* pDevice);
-		void Destroy();
+			void OnResize(dU32 width, dU32 height);
+			void RenderScene(const Core::Scene& scene, const Core::Camera& camera);
 
-		void OnResize(dU32 width, dU32 height);
+		private:
+			void WaitForFrame(const Frame& frame);
 
-		bool UpdateSceneView(float dt);
+		private:
+			Graphics::Device* m_pDevice{ nullptr };
 
-		void RenderScene(const Scene& scene);
+			Graphics::Window* m_pWindow{ nullptr };
+			Graphics::Swapchain* m_pSwapchain{ nullptr };
+			Graphics::GraphicsPipeline* m_pPbrPipeline{ nullptr };
+			Graphics::Texture* m_pDepthBuffer{ nullptr };
+			Graphics::CommandQueue* m_pCommandQueue{ nullptr };
 
-	private:
+			Graphics::DescriptorHeap* m_pSrvHeap{ nullptr };
+			Graphics::DescriptorHeap* m_pSamplerHeap{ nullptr };
+			Graphics::DescriptorHeap* m_pRtvHeap{ nullptr };
+			Graphics::DescriptorHeap* m_pDsvHeap{ nullptr };
 
-		void WaitForFrame(const Frame& frame);
+			Graphics::Descriptor m_renderTargetsDescriptors[3];
+			Graphics::Descriptor m_depthBufferDescriptor;
 
-	public:
-		SimpleCameraController m_cameraController; // TODO : Don't use the controller here, put only the camera.
+			Graphics::Fence* m_pFence{ nullptr };
+			Frame m_frames[3];
+			dU32 m_frameIndex{ 0 };
+			dU32 m_frameCount{ 0 };
+			Graphics::Barrier* m_pBarrier{ nullptr };
 
-	private:
-		Graphics::Device* m_pDevice{ nullptr };
-
-		Graphics::Window* m_pWindow{ nullptr };
-		Graphics::Swapchain* m_pSwapchain{ nullptr };
-		Graphics::GraphicsPipeline* m_pPbrPipeline{ nullptr };
-		Graphics::Texture* m_pDepthBuffer{ nullptr };
-		Graphics::CommandQueue* m_pCommandQueue{ nullptr };
-
-		Graphics::DescriptorHeap* m_pSrvHeap{ nullptr };
-		Graphics::DescriptorHeap* m_pSamplerHeap{ nullptr };
-		Graphics::DescriptorHeap* m_pRtvHeap{ nullptr };
-		Graphics::DescriptorHeap* m_pDsvHeap{ nullptr };
-
-		Graphics::Descriptor m_renderTargetsDescriptors[3];
-		Graphics::Descriptor m_depthBufferDescriptor;
-
-		Graphics::Fence* m_pFence{ nullptr };
-		Frame m_frames[3];
-		dU32 m_frameIndex{ 0 };
-		dU32 m_frameCount{ 0 };
-		Graphics::Barrier* m_pBarrier{ nullptr };
-
-		void* m_pOnResizeData{ nullptr };
-	};
+			void* m_pOnResizeData{ nullptr };
+		};
+	}
 }

@@ -179,11 +179,11 @@ namespace Dune
 		}
 
 	private:
-		ID::IDType					m_size{ 0 };
-		ID::IDType					m_nextFreeHandlePosition{ 0 };
-		ID::IDType*					m_freeHandles{nullptr};
-		ID::GenerationType*			m_generations{nullptr};
-		T*							m_datas{nullptr};
-		Mutex						m_lock{};
+		ID::IDType                  m_size{ 0 };
+		ID::IDType                  m_nextFreeHandlePosition{ 0 };
+		ID::IDType*                 m_freeHandles{nullptr};
+		ID::GenerationType*         m_generations{nullptr};
+		T*                          m_datas{nullptr};
+		Mutex                       m_lock{};
 	};
 }

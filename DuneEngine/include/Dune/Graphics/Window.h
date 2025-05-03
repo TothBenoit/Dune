@@ -24,12 +24,12 @@ namespace Dune::Graphics
 		[[nodiscard]] bool Update();
 
 		[[nodiscard]] void* GetHandle() { return m_pHandle; }
-		[[nodiscard]] dU32	GetWidth() const { return m_width; }
-		[[nodiscard]] dU32	GetHeight() const { return m_height; }
+		[[nodiscard]] dU32  GetWidth() const { return m_width; }
+		[[nodiscard]] dU32  GetHeight() const { return m_height; }
 		[[nodiscard]] const Input* GetInput() const { return m_pInput; }
 
 		void WindowProc(dUInt uMsg, void* wParam, void* lParam);
-		void SetOnResizeFunc(void* pData, void (*pOnResize)(void*)) { m_pOnResize = pOnResize;  m_pOnResizeData = pData; };
+		void SetOnResizeFunc(void* pData, void (*pOnResize)(void*, dU32 width, dU32 height)) { m_pOnResize = pOnResize;  m_pOnResizeData = pData; };
 
 	protected:
 		Input* m_pInput{ nullptr };
@@ -37,7 +37,7 @@ namespace Dune::Graphics
 		dU32 m_height;
 
 		void* m_pHandle{ nullptr };
-		void (*m_pOnResize)(void*) { nullptr };
+		void (*m_pOnResize)(void*, dU32 width, dU32 height) { nullptr };
 		void* m_pOnResizeData{ nullptr };
 		bool m_bClosing{ false };
 		dWString m_title;

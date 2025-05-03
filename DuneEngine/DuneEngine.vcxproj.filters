@@ -34,9 +34,6 @@
     <ClInclude Include="pch.h">
       <Filter>Dune</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\SceneLoader.h">
-      <Filter>Dune\Utilities</Filter>
-    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\Shaders\PointLight.h">
       <Filter>Dune\Graphics\Shaders</Filter>
     </ClInclude>
@@ -66,9 +63,6 @@
     </ClInclude>
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h">
       <Filter>Dune\Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Camera.h">
-      <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RHI\Texture.h">
       <Filter>Dune\Graphics\RHI</Filter>
@@ -115,6 +109,12 @@
     <ClInclude Include="include\Dune\System\IO\File.h">
       <Filter>Dune\System\IO</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\Scene.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Camera.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\System\Input.cpp">
@@ -129,9 +129,6 @@
     <ClCompile Include="pch.cpp">
       <Filter>Dune</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\MeshLoader.cpp">
-      <Filter>Dune\Utilities</Filter>
-    </ClCompile>
     <ClCompile Include="src\Dune\System\JobSystem.cpp">
       <Filter>Dune\System</Filter>
     </ClCompile>
@@ -144,9 +141,6 @@
     <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp">
       <Filter>Dune\Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Camera.cpp">
-      <Filter>Dune\Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Window.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
@@ -155,6 +149,9 @@
     </ClCompile>
     <ClCompile Include="src\Dune\System\IO\File.cpp">
       <Filter>Dune\System\IO</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Core\Camera.cpp">
+      <Filter>Dune\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -208,6 +205,9 @@
     </Filter>
     <Filter Include="Dune\System\IO">
       <UniqueIdentifier>{110c3097-32b1-473f-8b0a-ffa9333757cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Core">
+      <UniqueIdentifier>{7b0fdf36-69b2-489a-9039-ef1cffaee027}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

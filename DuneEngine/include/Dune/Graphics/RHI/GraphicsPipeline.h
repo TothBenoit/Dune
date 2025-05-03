@@ -38,17 +38,11 @@ namespace Dune::Graphics
 		EBindingType type;
 		union
 		{
-			BindingGroup	groupDesc;
-			dU32			byteSize;
-			dU32			samplerCount;
+			BindingGroup    groupDesc;
+			dU32            byteSize;
+			dU32            samplerCount;
 		};
 		EShaderVisibility visibility{ EShaderVisibility::All };
-	};
-
-	struct BindingLayout
-	{
-		BindingSlot slots[64];
-		dU8 slotCount{ 0 };
 	};
 
 	enum class ECullingMode
@@ -83,9 +77,9 @@ namespace Dune::Graphics
 
 	struct DepthStencilState
 	{
-		bool		bDepthEnabled : 1 { false };
-		bool		bDepthWrite : 1	{ false };
-		ECompFunc	bDepthFunc{ ECompFunc::LESS_EQUAL };
+		bool        bDepthEnabled : 1 { false };
+		bool        bDepthWrite : 1	{ false };
+		ECompFunc   bDepthFunc{ ECompFunc::LESS_EQUAL };
 		// TODO: Add stencil
 	};
 
@@ -101,17 +95,16 @@ namespace Dune::Graphics
 
 	struct GraphicsPipelineDesc
 	{
-		Shader*					pVertexShader{ nullptr };
-		Shader*					pPixelShader{ nullptr };
-		BindingLayout			bindingLayout;
-		// TODO : Use span
-		dVector<VertexInput>	inputLayout;
-		RasterizerState			rasterizerState;
-		DepthStencilState		depthStencilState;
+		Shader*                 pVertexShader{ nullptr };
+		Shader*                 pPixelShader{ nullptr };
+		dSpan<BindingSlot>      bindingLayout;
+		dSpan<VertexInput>      inputLayout;
+		RasterizerState         rasterizerState;
+		DepthStencilState       depthStencilState;
 
-		dU8						renderTargetCount{ 0 };
-		EFormat					renderTargetsFormat[8];
-		EFormat					depthStencilFormat;
+		dU8                     renderTargetCount{ 0 };
+		EFormat                 renderTargetsFormat[8];
+		EFormat                 depthStencilFormat;
 	};
 
 	class GraphicsPipeline : public Resource

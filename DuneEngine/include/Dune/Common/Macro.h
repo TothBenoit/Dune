@@ -18,4 +18,14 @@
 	#define Assert(condition)
 #endif
 
-#define MAX_ENTITIES 200'000
+// #define PROFILE_ENABLED
+
+//#ifdef PROFILE_ENABLED
+//	#include <Optick/optick.h>
+//	#define ProfileBeginFrame() OPTICK_FRAME("MainThread");
+//	#define Profile(msg) OPTICK_EVENT(msg)
+//	#define ProfileFunc() OPTICK_EVENT(__func__)
+//	#define ProfileBeginThread(threadName) OPTICK_START_THREAD(threadName)
+//#else
+//	#define Profile(msg)
+//#endif

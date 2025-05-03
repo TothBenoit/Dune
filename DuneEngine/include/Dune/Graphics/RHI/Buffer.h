@@ -26,11 +26,11 @@ namespace Dune::Graphics
 	{
 		const wchar_t* debugName{ L"Buffer" };
 
-		EBufferUsage	usage{ EBufferUsage::Constant };
-		EBufferMemory	memory{ EBufferMemory::CPU };
-		dU32			byteSize{ 0 };
-		dU32			byteStride{ 0 }; // for structured, vertex and index buffer
-		EResourceState	initialState{ EResourceState::Undefined };
+		EBufferUsage    usage{ EBufferUsage::Constant };
+		EBufferMemory   memory{ EBufferMemory::CPU };
+		dU32            byteSize{ 0 };
+		dU32            byteStride{ 0 }; // for structured, vertex and index buffer
+		EResourceState  initialState{ EResourceState::Undefined };
 	};
 
 	class Buffer : public Resource
@@ -47,10 +47,10 @@ namespace Dune::Graphics
 		void Unmap(dU32 byteOffset, dU32 byteSize);
 
 	private:
-		EBufferUsage	m_usage;
-		EBufferMemory	m_memory;
-		dU32			m_byteSize;
-		dU32			m_byteStride;
-		dU32			m_state;
+		EBufferUsage    m_usage;
+		EBufferMemory   m_memory;
+		dU32            m_byteSize;
+		dU32            m_byteStride;
+		dU32            m_state;
 	};
 }

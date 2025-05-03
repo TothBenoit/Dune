@@ -51,7 +51,7 @@ namespace Dune::Graphics
 		[[nodiscard]] dU32 GetMipLevels() const { return m_desc.mipLevels; }
 
 		dU64 GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource);
-	private:		
+	private:
 		friend class Swapchain;
 
 		TextureDesc m_desc;

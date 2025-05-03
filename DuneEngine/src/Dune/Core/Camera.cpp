@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Dune/Graphics/Camera.h"
+#include "Dune/Core/Camera.h"
 
-namespace Dune::Graphics
+namespace Dune::Core
 {
 	void ComputeViewProjectionMatrix(const Camera& camera, dMatrix4x4* pView, dMatrix4x4* pProjection, dMatrix4x4* pViewProjection)
 	{

@@ -1134,7 +1134,7 @@ namespace Dune::Graphics
 		return desc;
 	}
 
-	ID3D12RootSignature* ComputeRootSignature(ID3D12Device* pDevice, const BindingLayout& layout, D3D12_ROOT_SIGNATURE_FLAGS flags)
+	ID3D12RootSignature* ComputeRootSignature(ID3D12Device* pDevice, const dSpan<BindingSlot>& layout, D3D12_ROOT_SIGNATURE_FLAGS flags)
 	{
 		// 64 descriptor tables with 3 types of resource at most
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[3 * 64];
@@ -1149,10 +1149,8 @@ namespace Dune::Graphics
 		dU32 samplerRegister[(dU32)EShaderVisibility::Count]{ 0 };
 
 		// TODO : Specify visibility and flags
-		for (dU8 i = 0; i < layout.slotCount; i++)
+		for (const BindingSlot& slot : layout)
 		{
-			const BindingSlot& slot{ layout.slots[i] };
-
 			dU32 bufferRegisterOffset;
 			dU32 resourceRegisterOffset;
 			dU32 uavRegisterOffset;
@@ -1312,7 +1310,7 @@ namespace Dune::Graphics
 
 		D3D12_ROOT_SIGNATURE_FLAGS flags
 		{
-			(desc.inputLayout.empty()) ? D3D12_ROOT_SIGNATURE_FLAG_NONE : D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+			(desc.inputLayout.IsEmpty()) ? D3D12_ROOT_SIGNATURE_FLAG_NONE : D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
@@ -1324,8 +1322,8 @@ namespace Dune::Graphics
 
 		ID3D12RootSignature* pRootSignature{ ComputeRootSignature(pDevice, desc.bindingLayout, flags) };
 
-		D3D12_INPUT_ELEMENT_DESC* pInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[desc.inputLayout.size()];
-		for (dU32 i = 0; i < desc.inputLayout.size(); i++)
+		D3D12_INPUT_ELEMENT_DESC* pInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[desc.inputLayout.GetSize()];
+		for (dU32 i = 0; i < desc.inputLayout.GetSize(); i++)
 		{
 			const VertexInput& input = desc.inputLayout[i];
 			pInputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
@@ -1336,7 +1334,7 @@ namespace Dune::Graphics
 
 		// Describe and create the graphics pipeline state object (PSO).
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
-		psoDesc.InputLayout = { pInputElementDescs, (dU32)desc.inputLayout.size()};
+		psoDesc.InputLayout = { pInputElementDescs, (dU32)desc.inputLayout.GetSize()};
 		psoDesc.pRootSignature = pRootSignature;
 		psoDesc.VS.BytecodeLength = pVSBlob->GetBufferSize();
 		psoDesc.VS.pShaderBytecode = pVSBlob->GetBufferPointer();

@@ -90,7 +90,7 @@ namespace Dune::Graphics
 			m_height = HIWORD(lParam);
 			m_height = (m_height == 0) ? 1 : m_height;
 			if (m_pOnResize)
-				m_pOnResize(m_pOnResizeData);
+				m_pOnResize(m_pOnResizeData, m_width, m_height);
 			break;
 		case WM_PAINT:
 			break;

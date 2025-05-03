@@ -1,7 +1,6 @@
 #pragma once
 
-
-namespace Dune::Graphics
+namespace Dune::Core
 {
 	struct Camera
 	{

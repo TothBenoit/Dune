@@ -13,12 +13,12 @@ namespace Dune::Graphics
 
 	struct ShaderDesc
 	{
-		EShaderStage	stage;
-		const wchar_t*	filePath{ nullptr };
-		const wchar_t*	entryFunc{ nullptr };
+		EShaderStage    stage;
+		const wchar_t*  filePath{ nullptr };
+		const wchar_t*  entryFunc{ nullptr };
 		// TODO : use span
 		const wchar_t** args;
-		dU32			argsCount;
+		dU32            argsCount;
 	};
 
 	class Shader : public Resource
