@@ -12,8 +12,8 @@
 #include <Dune/Graphics/RHI/Texture.h>
 #include <Dune/Graphics/RHI/Device.h>
 #include <Dune/Graphics/Format.h>
-#include <Dune/Core/Scene.h>
-#include <Dune/Core/Camera.h>
+#include <Dune/Scene/Scene.h>
+#include <Dune/Scene/Camera.h>
 
 namespace Dune::Graphics
 {
@@ -53,19 +53,20 @@ namespace Dune::Graphics
 					{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRGlobals), .visibility = Graphics::EShaderVisibility::All},
 					{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
 					{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
+					{.type = Graphics::EBindingType::Group, .groupDesc = {.resourceCount = 1 }, .visibility = Graphics::EShaderVisibility::Pixel },
 					{.type = Graphics::EBindingType::Constant, .byteSize = sizeof(Graphics::PBRInstance), .visibility = Graphics::EShaderVisibility::Vertex},
 				},
 				.inputLayout =
-					{
-						Graphics::VertexInput {.pName = "POSITION", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
-						Graphics::VertexInput {.pName = "NORMAL", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 12, .bPerInstance = false },
-						Graphics::VertexInput {.pName = "TANGENT", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 24, .bPerInstance = false },
-						Graphics::VertexInput {.pName = "UV", .index = 0, .format = Graphics::EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 36, .bPerInstance = false }
-					},
+				{
+					Graphics::VertexInput {.pName = "POSITION", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
+					Graphics::VertexInput {.pName = "NORMAL", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 12, .bPerInstance = false },
+					Graphics::VertexInput {.pName = "TANGENT", .index = 0, .format = Graphics::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 24, .bPerInstance = false },
+					Graphics::VertexInput {.pName = "UV", .index = 0, .format = Graphics::EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 36, .bPerInstance = false }
+				},
 				.depthStencilState = {.bDepthEnabled = true, .bDepthWrite = true },
 				.renderTargetCount = 1,
 				.renderTargetsFormat = { Graphics::EFormat::R8G8B8A8_UNORM },
-				.depthStencilFormat = Graphics::EFormat::D16_UNORM,
+				.depthStencilFormat = Graphics::EFormat::D32_FLOAT,
 				});
 
 		pbrVertexShader.Destroy();
@@ -78,7 +79,7 @@ namespace Dune::Graphics
 				.debugName = L"DepthBuffer", 
 				.usage = Graphics::ETextureUsage::DepthStencil, 
 				.dimensions = { m_pWindow->GetWidth(), m_pWindow->GetHeight(), 1}, 
-				.format = Graphics::EFormat::D16_UNORM, 
+				.format = Graphics::EFormat::D32_FLOAT,
 				.clearValue = {1.f, 1.f, 1.f, 1.f}, 
 				.initialState = Graphics::EResourceState::DepthStencil 
 			}
@@ -189,7 +190,7 @@ namespace Dune::Graphics
 				.debugName = L"DepthBuffer",
 				.usage = Graphics::ETextureUsage::DepthStencil,
 				.dimensions = {width, height, 1},
-				.format = Graphics::EFormat::D16_UNORM,
+				.format = Graphics::EFormat::D32_FLOAT,
 				.clearValue = {1.f, 1.f, 1.f, 1.f},
 				.initialState = Graphics::EResourceState::DepthStencil
 			}
@@ -204,7 +205,7 @@ namespace Dune::Graphics
 			m_pFence->Wait(fenceValue);
 	}
 
-	void Renderer::RenderScene(const Core::Scene& scene, const Core::Camera& camera)
+	void Renderer::Render(Scene& scene, Camera& camera)
 	{
 		Frame& frame = m_frames[m_frameIndex];
 		WaitForFrame(frame);
@@ -232,31 +233,39 @@ namespace Dune::Graphics
 		frame.commandList.ClearDepthBuffer(dsv, m_pDepthBuffer->GetClearValue()[0], 0);
 
 		Graphics::PBRGlobals globals;
-		Core::ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
+		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
 		DirectX::XMStoreFloat3(&globals.sunDirection, DirectX::XMVector3Normalize({ 0.1f, -1.0f, 0.9f }));
+		DirectX::XMStoreFloat3(&globals.cameraPosition, DirectX::XMLoadFloat3(&camera.position));
 
 		frame.commandList.PushGraphicsConstants(0, &globals, sizeof(Graphics::PBRGlobals));
 
-		scene.registry.view<const Core::Transform, const RenderData>().each([&](const Core::Transform& transform, const RenderData& renderData)
+		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
-				const Graphics::Mesh& mesh = *renderData.pMesh;
+				const Graphics::Mesh& mesh = scene.meshes[renderData.meshIdx];
 				Graphics::PBRInstance instance;
 				DirectX::XMStoreFloat4x4(&instance.modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)));
 
+				Graphics::Texture& albedoTexture = scene.textures[renderData.albedoIdx];
+				Graphics::Texture& normalTexture = scene.textures[renderData.normalIdx];
+				Graphics::Texture& roughnessMetalnessTexture = scene.textures[renderData.roughnessMetalnessIdx];
 				Graphics::Descriptor albedo = m_pSrvHeap->Allocate();
-				m_pDevice->CreateSRV(albedo, *renderData.pAlbedo, { .mipLevels = renderData.pAlbedo->GetMipLevels()});
+				m_pDevice->CreateSRV(albedo, albedoTexture, { .mipLevels = albedoTexture.GetMipLevels()});
 				Graphics::Descriptor normal = m_pSrvHeap->Allocate();
-				m_pDevice->CreateSRV(normal, *renderData.pNormal, { .mipLevels = renderData.pNormal->GetMipLevels() });
+				m_pDevice->CreateSRV(normal, normalTexture, { .mipLevels = normalTexture.GetMipLevels() });
+				Graphics::Descriptor roughnessMetalness = m_pSrvHeap->Allocate();
+				m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture, { .mipLevels = roughnessMetalnessTexture.GetMipLevels() });
 
 				frame.commandList.BindGraphicsResource(1, albedo);
 				frame.commandList.BindGraphicsResource(2, normal);
-				frame.commandList.PushGraphicsConstants(3, &instance, sizeof(Graphics::PBRInstance));
+				frame.commandList.BindGraphicsResource(3, roughnessMetalness);
+				frame.commandList.PushGraphicsConstants(4, &instance, sizeof(Graphics::PBRInstance));
 				frame.commandList.BindIndexBuffer(mesh.GetIndexBuffer());
 				frame.commandList.BindVertexBuffer(mesh.GetVertexBuffer());
 				frame.commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
 
 				frame.descriptorsToRelease.push(albedo);
 				frame.descriptorsToRelease.push(normal);
+				frame.descriptorsToRelease.push(roughnessMetalness);
 			});
 
 		m_pBarrier->PushTransition(m_pSwapchain->GetBackBuffer(m_frameIndex).Get(), Graphics::EResourceState::RenderTarget, Graphics::EResourceState::Undefined);

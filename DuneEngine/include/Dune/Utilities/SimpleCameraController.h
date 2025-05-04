@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Dune/Core/Camera.h"
+#include "Dune/Scene/Camera.h"
 
 namespace Dune
 {
@@ -10,10 +10,11 @@ namespace Dune
 	{
 	public :
 		SimpleCameraController() = default;
-		SimpleCameraController( const Core::Camera& camera );
+		SimpleCameraController( const Camera& camera );
 
 		void Update(float deltaTime, const Input* pInput);
-		const Core::Camera& GetCamera() const { return m_camera; }
+		Camera& GetCamera() { return m_camera; }
+		const Camera& GetCamera() const { return m_camera; }
 		void SetFOV(float fov) { m_camera.fov = fov; };
 		void SetAspectRatio(float aspectRatio) { m_camera.aspectRatio = aspectRatio; }
 		void SetNear(float near) { m_camera.near = near; }
@@ -24,7 +25,7 @@ namespace Dune
 		void UpdateEditorControls(float deltaTime, const Input* pInput);
 
 	private:
-		Core::Camera m_camera;
+		Camera m_camera;
 		dVec2 m_rotation;
 		float m_zoomSpeed = 1.15f;
 		float m_minZoom = 0.01f;

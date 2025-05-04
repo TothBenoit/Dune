@@ -15,6 +15,5 @@
 #include <atomic>
 #include <functional>
 #include <algorithm>
-#include "Dune/Common/Macro.h"
-#include "Dune/Common/Types.h"
-#include "Dune/Common/ID.h"
+#include <Dune/Core/Assert.h>
+#include <Dune/Core/Types.h>

@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Dune/Utilities/SimpleCameraController.h"
-#include "Dune/System/Input.h"
+#include "Dune/Core/Input.h"
 
 namespace Dune
 {
-	SimpleCameraController::SimpleCameraController(const Core::Camera& camera)
+	SimpleCameraController::SimpleCameraController(const Camera& camera)
 		: m_camera{ camera }
 	{
 		dMatrix4x4 rotationMatrix;
@@ -79,7 +79,7 @@ namespace Dune
 		);
 
 		//Apply translation
-		const float speed = (pInput->GetKey(KeyCode::ShiftKey)) ? 25.f : 5.f;
+		const float speed = (pInput->GetKey(KeyCode::ShiftKey)) ? 250.f : 25.f;
 		const float velocity = speed * clampedDeltaTime;
 		m_camera.position.x += translate.x * velocity;
 		m_camera.position.y += translate.y * velocity;

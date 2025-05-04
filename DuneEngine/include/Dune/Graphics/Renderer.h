@@ -5,11 +5,8 @@
 
 namespace Dune
 {
-	namespace Core
-	{
-		struct Scene;
-		struct Camera;
-	}
+	struct Scene;
+	struct Camera;
 
 	namespace Graphics
 	{
@@ -26,13 +23,6 @@ namespace Dune
 		class CommandQueue;
 		class Barrier;
 
-		struct RenderData
-		{
-			Graphics::Texture* pAlbedo;
-			Graphics::Texture* pNormal;
-			const Graphics::Mesh* pMesh;
-		};
-
 		struct Frame
 		{
 			dU32 fenceValue{ 0 };
@@ -48,7 +38,7 @@ namespace Dune
 			void Destroy();
 
 			void OnResize(dU32 width, dU32 height);
-			void RenderScene(const Core::Scene& scene, const Core::Camera& camera);
+			void Render(Scene& scene, Camera& camera);
 
 		private:
 			void WaitForFrame(const Frame& frame);
@@ -75,8 +65,6 @@ namespace Dune
 			dU32 m_frameIndex{ 0 };
 			dU32 m_frameCount{ 0 };
 			Graphics::Barrier* m_pBarrier{ nullptr };
-
-			void* m_pOnResizeData{ nullptr };
 		};
 	}
 }

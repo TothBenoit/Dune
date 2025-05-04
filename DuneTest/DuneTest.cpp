@@ -1,71 +1,19 @@
 #include <Dune.h>
 #include <thread>
 #include <chrono>
-#include <Dune/Graphics/Shaders/PBR.h>
 #include <Dune/Graphics/RHI/Texture.h>
-#include <Dune/Graphics/RHI/Buffer.h>
 #include <Dune/Graphics/RHI/Device.h>
-#include <Dune/Graphics/RHI/Fence.h>
+#include <Dune/Graphics/Mesh.h>
 #include <Dune/Graphics/Renderer.h>
 #include <Dune/Graphics/Window.h>
 #include <Dune/Utilities/SimpleCameraController.h>
-#include <Dune/Core/Scene.h>
-#include <Dune/Utilities/DDSLoader.h>
+#include <Dune/Scene/Scene.h>
+#include <Dune/Utilities/SceneLoader.h>
+#include <filesystem>
 
 using namespace Dune;
 
-struct Vertex
-{
-	dVec3 vPos;
-	dVec3 vNormal;
-	dVec3 vTangent;
-	dVec2 vUV;
-};
-
-static const dU16 cubeIndices[]
-{
-	0, 1, 2, 0, 2, 3,			//Face
-	4, 6, 5, 4, 7, 6,			//Back
-	10, 11, 9, 10, 9, 8,		//Left
-	13, 12, 14, 13, 14, 15,		//Right
-	16, 18, 19, 16, 19, 17,		//Top
-	22, 20, 21, 22, 21, 23		//Bottom
-};
-
-static const Vertex cubeVertices[] =
-{
-	{ {-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f, 0.0f } }, // 0
-	{ {-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f } }, // 1
-	{ { 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f } }, // 2
-	{ { 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 1.0f, 0.0f } }, // 3
-
-	{ {-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 0.0f, 0.0f } }, // 4
-	{ {-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f } }, // 5
-	{ { 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f } }, // 6
-	{ { 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 1.0f, 0.0f } }, // 7
-
-	{ {-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f }, { 0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f } }, // 8
-	{ {-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f }, { 0.0f, -1.0f,  0.0f }, { 1.0f, 0.0f } }, // 9
-	{ {-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f }, { 0.0f, -1.0f,  0.0f }, { 0.0f, 1.0f } }, // 10
-	{ {-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f }, { 0.0f, -1.0f,  0.0f }, { 1.0f, 1.0f } }, // 11
-
-	{ { 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 1.0f, 0.0f } }, // 12
-	{ { 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 0.0f, 0.0f } }, // 13
-	{ { 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 1.0f, 1.0f } }, // 14
-	{ { 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f }, { 0.0f, 1.0f } }, // 15
-
-	{ {-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f }, { 0.0f,  0.0f, -1.0f }, { 0.0f, 0.0f } }, // 16
-	{ { 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f }, { 0.0f,  0.0f, -1.0f }, { 1.0f, 0.0f } }, // 17
-	{ {-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f }, { 0.0f,  0.0f, -1.0f }, { 0.0f, 1.0f } }, // 18
-	{ { 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f }, { 0.0f,  0.0f, -1.0f }, { 1.0f, 1.0f } }, // 19
-
-	{ {-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 0.0f, 0.0f } }, // 20
-	{ { 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 1.0f, 0.0f } }, // 21
-	{ {-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 0.0f, 1.0f } }, // 22
-	{ { 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f }, { 0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f } }, // 23
-};
-
-void Test(Graphics::Device* pDevice, Core::Scene* pScene)
+void Test(Graphics::Device* pDevice, Scene* pScene)
 {
 	Graphics::Window window{};
 	window.Initialize({});
@@ -83,7 +31,7 @@ void Test(Graphics::Device* pDevice, Core::Scene* pScene)
 	{	
 		camera.Update(dt, window.GetInput());
 		auto start = std::chrono::high_resolution_clock::now();
-		renderer.RenderScene(*pScene, camera.GetCamera());
+		renderer.Render(*pScene, camera.GetCamera());
 		auto end = std::chrono::high_resolution_clock::now();
 		dt = (float)std::chrono::duration<float>(end - start).count();;
 	}
@@ -101,53 +49,9 @@ int main(int argc, char** argv)
 	Graphics::Device device{};
 	device.Initialize();
 
-	Graphics::Mesh cube{};
-
-	Graphics::ECommandType commandType = Graphics::ECommandType::Direct;
-	Graphics::CommandQueue commandQueue;
-	commandQueue.Initialize(&device, commandType);
-	Graphics::CommandAllocator commandAllocator;
-	commandAllocator.Initialize(&device, commandType);
-	Graphics::CommandList commandList;
-	commandList.Initialize(&device, commandType, commandAllocator);
-	commandList.Close();
-	commandAllocator.Reset();
-	commandList.Reset(commandAllocator);
-	cube.Initialize(&device, &commandList, cubeIndices, _countof(cubeIndices), cubeVertices, _countof(cubeVertices), sizeof(Vertex));
-	Graphics::Buffer uploadBuffer1;
-	Graphics::Buffer uploadBuffer2;
-	Graphics::Texture* pAlbedoTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer1, "res\\testAlbedoMips.DDS");
-	Graphics::Texture* pNormalTexture = Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer2, "res\\testNormalMips.DDS");
-	Graphics::Barrier barrier{};
-	barrier.Initialize(2);
-	barrier.PushTransition(pAlbedoTexture->Get(), Graphics::EResourceState::CopyDest, Graphics::EResourceState::ShaderResource);
-	barrier.PushTransition(pNormalTexture->Get(), Graphics::EResourceState::CopyDest, Graphics::EResourceState::ShaderResource);
-	commandList.Transition(barrier);
-	barrier.Destroy();
-	commandList.Close();
-	commandQueue.ExecuteCommandLists(&commandList, 1);
-	Graphics::Fence fence;
-	fence.Initialize(&device, 0);
-	commandQueue.Signal(fence, 1);
-	fence.Wait(1);
-	fence.Destroy();
-	commandQueue.Destroy();
-	commandAllocator.Destroy();
-	commandList.Destroy();
-	uploadBuffer1.Destroy();	
-	uploadBuffer2.Destroy();	
-
-	Core::Scene scene{};
-	Core::EntityID cubeEntity = scene.registry.create();
-
-	Core::Transform& transform = scene.registry.emplace<Core::Transform>(cubeEntity);
-	transform.position.z = 2;
-	Graphics::RenderData& renderData = scene.registry.emplace<Graphics::RenderData>(cubeEntity);
+	Scene scene{};
+	SceneLoader::Load(std::filesystem::current_path().string().append("\\Resources\\Sponza\\").c_str(), "Sponza.gltf", scene, device);
 	
-	renderData.pAlbedo = pAlbedoTexture;
-	renderData.pNormal = pNormalTexture;
-	renderData.pMesh = &cube;
-
 	dVector<std::thread> tests;
 	dU32 windowCount{ 5 };
 	tests.reserve(windowCount);
@@ -161,14 +65,11 @@ int main(int argc, char** argv)
 		tests[i].join();
 	}
 
-	scene.registry.destroy(cubeEntity);
+	for ( Graphics::Texture& texture : scene.textures)
+		texture.Destroy();
+	for (Graphics::Mesh& mesh : scene.meshes)
+		mesh.Destroy();
 
-	pAlbedoTexture->Destroy();
-	pNormalTexture->Destroy();
-	delete pAlbedoTexture;
-	delete pNormalTexture;
-
-	cube.Destroy();
 	device.Destroy();
 
 	return 0;

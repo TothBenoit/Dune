@@ -4,7 +4,7 @@
 #include "Dune/Graphics/RHI/Texture.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
-#include "Dune/System/IO/File.h"
+#include "Dune/Core/File.h"
 
 namespace Dune::Graphics 
 {
@@ -17,8 +17,8 @@ namespace Dune::Graphics
 	{
 		Assert(!outDDSTexture.m_pFileBuffer);
 
-		System::IO::File file;
-		if (!System::IO::File::Open(file, filePath, System::IO::EAccessMode::Read, System::IO::EShareMode::None))
+		File file;
+		if (!File::Open(file, filePath, File::EAccessMode::Read, File::EShareMode::None))
 			return DDSResult::EFailedOpen;
 		
 		dU64 byteSize = file.GetByteSize();
@@ -74,7 +74,7 @@ namespace Dune::Graphics
 		return Load(filePath, *this);
 	}
 
-	Graphics::Texture* DDSTexture::CreateTextureFromFile(Device* pDevice, CommandList* pCommandList, Buffer& uploadBuffer, const char* filePath)
+	Graphics::Texture DDSTexture::CreateTextureFromFile(Device* pDevice, CommandList* pCommandList, Buffer& uploadBuffer, const char* filePath)
 	{
 		Graphics::DDSTexture ddsTexture;
 		Graphics::DDSResult result = ddsTexture.Load(filePath);
@@ -82,16 +82,16 @@ namespace Dune::Graphics
 		void* pData = ddsTexture.GetData();
 		const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
 		const Graphics::DDSHeaderDXT10* pHeaderDXT10 = ddsTexture.GetHeaderDXT10();
-		Graphics::Texture* pTexture = new Graphics::Texture();
-		pTexture->Initialize(pDevice, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = pHeaderDXT10->format, .clearValue = {0.f, 0.f, 0.f, 0.f} });
+		Graphics::Texture texture = Graphics::Texture();
+		texture.Initialize(pDevice, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = pHeaderDXT10->format, .clearValue = {0.f, 0.f, 0.f, 0.f} });
 
-		dU32 byteSize = (dU32)pTexture->GetRequiredIntermediateSize(0, pHeader->mipMapCount);
+		dU32 byteSize = (dU32)texture.GetRequiredIntermediateSize(0, pHeader->mipMapCount);
 		BufferDesc desc{ L"UploadBuffer",EBufferUsage::Constant, EBufferMemory::CPU, byteSize, byteSize };
 		uploadBuffer.Initialize(pDevice, desc);
-		pCommandList->UploadTexture(*pTexture, uploadBuffer, 0, 0, pHeader->mipMapCount, pData);
+		pCommandList->UploadTexture(texture, uploadBuffer, 0, 0, pHeader->mipMapCount, pData);
 
 		ddsTexture.Destroy();
-		return pTexture;
+		return texture;
 	}
 
 	void DDSTexture::Destroy()

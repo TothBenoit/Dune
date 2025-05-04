@@ -13,14 +13,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Barrier.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Device.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Fence.h" />
-    <ClInclude Include="include\Dune\Common\Handle.h" />
-    <ClInclude Include="include\Dune\Common\ID.h" />
-    <ClInclude Include="include\Dune\Common\Macro.h" />
-    <ClInclude Include="include\Dune\Common\Pool.h" />
+    <ClInclude Include="include\Dune\Core\Assert.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Buffer.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\DescriptorHeap.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\CommandList.h" />
@@ -28,41 +26,42 @@
     <ClInclude Include="include\Dune\Graphics\RHI\Shader.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Texture.h" />
     <ClInclude Include="include\Dune\Graphics\Renderer.h" />
-    <ClInclude Include="include\Dune\Core\Camera.h" />
-    <ClInclude Include="include\Dune\Core\Scene.h" />
+    <ClInclude Include="include\Dune\Scene\Camera.h" />
+    <ClInclude Include="include\Dune\Scene\Scene.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\PBR.h" />
-    <ClInclude Include="include\Dune\System\IO\File.h" />
+    <ClInclude Include="include\Dune\Core\File.h" />
+    <ClInclude Include="include\Dune\Utilities\SceneLoader.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\GraphicsPipeline.h" />
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Graphics\Window.h" />
-    <ClInclude Include="include\Dune\System\JobSystem.h" />
+    <ClInclude Include="include\Dune\Core\JobSystem.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\PostProcessGlobals.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\DirectionalLight.h" />
     <ClInclude Include="include\Dune\Graphics\Mesh.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\PointLight.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\ShaderTypes.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
-    <ClInclude Include="include\Dune\Common\Types.h" />
-    <ClInclude Include="include\Dune.h" />
-    <ClInclude Include="include\Dune\System\Input.h" />
-    <ClInclude Include="include\Dune\System\Logger.h" />
+    <ClInclude Include="include\Dune\Core\Types.h" />
+    <ClInclude Include="include\Dune\Core\Input.h" />
+    <ClInclude Include="include\Dune\Core\Logger.h" />
     <ClInclude Include="include\Dune\Utilities\Utils.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Swapchain.h" />
-    <ClCompile Include="src\Dune\System\IO\File.cpp" />
+    <ClCompile Include="src\Dune\Core\File.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Window.cpp" />
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
+    <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp" />
     <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp" />
-    <ClCompile Include="src\Dune\Core\Camera.cpp" />
-    <ClCompile Include="src\Dune\System\JobSystem.cpp" />
+    <ClCompile Include="src\Dune\Scene\Camera.cpp" />
+    <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Graphics\Platform\GraphicsDX12.cpp" />
-    <ClCompile Include="src\Dune\System\Input.cpp" />
-    <ClCompile Include="src\Dune\System\Logger.cpp" />
+    <ClCompile Include="src\Dune\Core\Input.cpp" />
+    <ClCompile Include="src\Dune\Core\Logger.cpp" />
     <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

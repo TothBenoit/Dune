@@ -5,6 +5,7 @@ ConstantBuffer<PBRGlobals> cGlobals : register(b0);
 ConstantBuffer<PBRInstance> cInstance : register(b1);
 Texture2D tAlbedo : register(t0);
 Texture2D tNormal : register(t1);
+Texture2D tRoughnessMetalness : register(t2);
 
 struct VS_INPUT
 {
@@ -17,6 +18,7 @@ struct VS_INPUT
 struct VS_OUTPUT
 {
     float4 position : SV_Position;
+    float3 worldPosition : WORLDPOSITION;
     float3 normal : NORMAL;
     float4 tangent : TANGENT;
     float2 uv : UV;
@@ -26,8 +28,9 @@ VS_OUTPUT VSMain(VS_INPUT input)
 {
     VS_OUTPUT o;
     
-    float4 wPos = mul(cInstance.modelMatrix, float4(input.position, 1.0f));
-    o.position = mul(cGlobals.viewProjectionMatrix, wPos);
+    float4 worldPosition = mul(cInstance.modelMatrix, float4(input.position, 1.0f));
+    o.worldPosition = worldPosition.xyz;
+    o.position = mul(cGlobals.viewProjectionMatrix, worldPosition);
     o.normal = normalize(mul((float3x3) cInstance.modelMatrix, input.normal));
     o.tangent = float4(mul((float3x3) cInstance.modelMatrix, input.tangent), dot(input.tangent, input.tangent) > 0.5 ? 1. : -1.);
     o.uv = input.uv;
@@ -37,6 +40,7 @@ VS_OUTPUT VSMain(VS_INPUT input)
 struct PS_INPUT
 {
     float4 position : SV_Position;
+    float3 worldPosition : WORLDPOSITION;
     float3 normal : NORMAL;
     float4 tangent : TANGENT;
     float2 uv : UV;
@@ -50,9 +54,12 @@ struct PS_OUTPUT
 PS_OUTPUT PSMain(PS_INPUT input)
 {
     PS_OUTPUT output;
-    const float3 l = normalize(-cGlobals.sunDirection);
-    const float3 v = normalize(mul((float4x3) cGlobals.viewProjectionMatrix, float3(0.0f, 0.0f, 1.0f))).xyz;
+    const float3 albedo = tAlbedo.Sample(sAnisoWrap, input.uv).rgb;
     const float3 nf = tNormal.Sample(sAnisoWrap, input.uv).rgb * 2.0f - 1.0f;
+    const float2 roughnessMetalness = tRoughnessMetalness.Sample(sAnisoWrap, input.uv).gb;
+
+    const float3 l = normalize(-cGlobals.sunDirection);
+    const float3 v = normalize(cGlobals.cameraPosition - input.worldPosition);
     const float3 tanX = input.tangent.xyz;
     const float3 tanY = cross(input.normal, tanX) * -input.tangent.w;
     
@@ -63,19 +70,19 @@ PS_OUTPUT PSMain(PS_INPUT input)
     const float nDotV = saturate(dot(n, v));
     const float nDotH = saturate(dot(n, h));
     const float vDotH = saturate(dot(v, h));
-    const float roughness = 1.0f;
+    const float roughness = roughnessMetalness.r;
     const float alpha = roughness * roughness;
     const float alpha2 = alpha * alpha;
     
+    const float metalness = roughnessMetalness.g;
     const float D = NormalDistributionGGX(alpha2, nDotH);
     const float Vis = VisGeometrySchlickGGX(nDotV, nDotL, roughness);
-    const float3 F = FresnelSchlick(vDotH, float3(1.0f, 1.0f, 1.0f));
+    const float3 F = FresnelSchlick(vDotH,lerp(float3(1.0f, 1.0f, 1.0f) * 0.08f, albedo, metalness));
     
-    const float3 albedo = tAlbedo.Sample(sAnisoWrap, input.uv).rgb;
-    const float3 diffuse = DiffuseLambert(albedo);
+    const float3 diffuse = DiffuseLambert(albedo * (1.0 - metalness));
     const float3 specular = (D * F * Vis);
     
-    const float3 BRDF = (diffuse + specular) * nDotL;
+    const float3 BRDF = (diffuse + specular) * nDotL + diffuse * float3(0.02f, 0.02f, 0.05f);
     const float3 BRDFGammaCorrected = pow(BRDF, 1.0f / 2.2f);
     
     output.color = float4(BRDFGammaCorrected, 1.0f);

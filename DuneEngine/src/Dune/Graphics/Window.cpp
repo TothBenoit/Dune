@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/Window.h"
-#include "Dune/System/Input.h"
+#include "Dune/Core/Input.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -64,7 +64,7 @@ namespace Dune::Graphics
 	bool Window::Update()
 	{
 		MSG msg{};
-		m_pInput->BeginFrame();
+		m_pInput->Update();
 		while (PeekMessage(&msg, (HWND)m_pHandle, 0, 0, PM_REMOVE) > 0)
 		{
 			TranslateMessage(&msg);

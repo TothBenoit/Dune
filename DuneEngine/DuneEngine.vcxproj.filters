@@ -1,35 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="include\Dune\Common\ID.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Common\Handle.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\System\Input.h">
-      <Filter>Dune\System</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\System\Logger.h">
-      <Filter>Dune\System</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Common\Macro.h">
-      <Filter>Dune\Common</Filter>
+    <ClInclude Include="include\Dune\Core\Assert.h">
+      <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\Mesh.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Common\Pool.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
     <ClInclude Include="include\Dune\Utilities\StringUtils.h">
       <Filter>Dune\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Common\Types.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune.h">
-      <Filter>Dune</Filter>
+    <ClInclude Include="include\Dune\Core\Types.h">
+      <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Dune</Filter>
@@ -45,9 +27,6 @@
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\Shaders\PostProcessGlobals.h">
       <Filter>Dune\Graphics\Shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\System\JobSystem.h">
-      <Filter>Dune\System</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h">
       <Filter>Dune\Graphics\Platform</Filter>
@@ -106,31 +85,33 @@
     <ClInclude Include="include\Dune\Graphics\Format.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\System\IO\File.h">
-      <Filter>Dune\System\IO</Filter>
+    <ClInclude Include="include\Dune\Scene\Scene.h">
+      <Filter>Dune\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\Scene.h">
+    <ClInclude Include="include\Dune\Scene\Camera.h">
+      <Filter>Dune\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune.h" />
+    <ClInclude Include="include\Dune\Core\File.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\Camera.h">
+    <ClInclude Include="include\Dune\Core\Input.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\JobSystem.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Logger.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Utilities\SceneLoader.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Dune\System\Input.cpp">
-      <Filter>Dune\System</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\System\Logger.cpp">
-      <Filter>Dune\System</Filter>
-    </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Dune</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\System\JobSystem.cpp">
-      <Filter>Dune\System</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Platform\GraphicsDX12.cpp">
       <Filter>Dune\Graphics\Platform</Filter>
@@ -147,12 +128,22 @@
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\System\IO\File.cpp">
-      <Filter>Dune\System\IO</Filter>
+    <ClCompile Include="src\Dune\Scene\Camera.cpp">
+      <Filter>Dune\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\Camera.cpp">
+    <ClCompile Include="src\Dune\Core\File.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Core\Input.cpp">
+      <Filter>Dune\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Core\JobSystem.cpp">
+      <Filter>Dune\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Core\Logger.cpp">
+      <Filter>Dune\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
@@ -182,9 +173,6 @@
     <Filter Include="Dune">
       <UniqueIdentifier>{11174586-51f2-40d5-90a1-87c4ccbb601b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\Common">
-      <UniqueIdentifier>{b71fb8c9-cd47-4211-8b73-2f3ca412bff7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dune\Utilities">
       <UniqueIdentifier>{bd6dcf96-7182-425d-b008-55e8c5df4a98}</UniqueIdentifier>
     </Filter>
@@ -197,17 +185,14 @@
     <Filter Include="Dune\Graphics\RHI">
       <UniqueIdentifier>{d903048e-0edd-4606-bc55-d2da2aefdff8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\System">
-      <UniqueIdentifier>{694541c6-96f2-4f44-ae4e-601e643b4858}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dune\Graphics\Shaders">
       <UniqueIdentifier>{df74b725-f633-452c-9fba-ebcdaa67b2ba}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\System\IO">
-      <UniqueIdentifier>{110c3097-32b1-473f-8b0a-ffa9333757cb}</UniqueIdentifier>
+    <Filter Include="Dune\Scene">
+      <UniqueIdentifier>{7b0fdf36-69b2-489a-9039-ef1cffaee027}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Core">
-      <UniqueIdentifier>{7b0fdf36-69b2-489a-9039-ef1cffaee027}</UniqueIdentifier>
+      <UniqueIdentifier>{b71fb8c9-cd47-4211-8b73-2f3ca412bff7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
