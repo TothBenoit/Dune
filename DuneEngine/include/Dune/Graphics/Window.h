@@ -17,6 +17,7 @@ namespace Dune::Graphics
 
 	class Window
 	{
+		friend class ImGuiWrapper;
 	public:
 		void Initialize(const WindowDesc& desc);
 		void Destroy();
@@ -31,6 +32,8 @@ namespace Dune::Graphics
 		void WindowProc(dUInt uMsg, void* wParam, void* lParam);
 		void SetOnResizeFunc(void* pData, void (*pOnResize)(void*, dU32 width, dU32 height)) { m_pOnResize = pOnResize;  m_pOnResizeData = pData; };
 
+		ImGuiWrapper* GetImGui() { return m_pImGui; }
+
 	protected:
 		Input* m_pInput{ nullptr };
 		dU32 m_width;
@@ -41,6 +44,8 @@ namespace Dune::Graphics
 		void* m_pOnResizeData{ nullptr };
 		bool m_bClosing{ false };
 		dWString m_title;
+
+		ImGuiWrapper* m_pImGui{ nullptr };
 	};
 
 

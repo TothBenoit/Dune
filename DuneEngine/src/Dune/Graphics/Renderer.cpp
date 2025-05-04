@@ -11,9 +11,12 @@
 #include <Dune/Graphics/RHI/Shader.h>
 #include <Dune/Graphics/RHI/Texture.h>
 #include <Dune/Graphics/RHI/Device.h>
+#include <Dune/Graphics/RHI/ImGUIWrapper.h>
 #include <Dune/Graphics/Format.h>
 #include <Dune/Scene/Scene.h>
 #include <Dune/Scene/Camera.h>
+#include <imgui/imgui_impl_win32.h>
+#include <imgui/imgui_impl_dx12.h>
 
 namespace Dune::Graphics
 {
@@ -267,6 +270,9 @@ namespace Dune::Graphics
 				frame.descriptorsToRelease.push(normal);
 				frame.descriptorsToRelease.push(roughnessMetalness);
 			});
+
+		if (m_pImGui)
+			m_pImGui->Render(frame.commandList);
 
 		m_pBarrier->PushTransition(m_pSwapchain->GetBackBuffer(m_frameIndex).Get(), Graphics::EResourceState::RenderTarget, Graphics::EResourceState::Undefined);
 		frame.commandList.Transition(*m_pBarrier);

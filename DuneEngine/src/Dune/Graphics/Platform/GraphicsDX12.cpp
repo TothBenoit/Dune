@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "GraphicsDX12.h"
 #include "Dune/Graphics/Window.h"
+#include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RHI/Texture.h"
@@ -11,6 +12,7 @@
 #include "Dune/Graphics/RHI/Swapchain.h"
 #include "Dune/Graphics/RHI/Barrier.h"
 #include "Dune/Graphics/RHI/Shader.h"
+#include "Dune/Graphics/RHI/ImGuiWrapper.h"
 #include "Dune/Utilities/Utils.h"
 
 namespace Dune::Graphics
@@ -1378,5 +1380,75 @@ namespace Dune::Graphics
 		pPipelineDX12->pPipelineState->Release();
 
 		delete pPipelineDX12;
+	}
+
+	void ImGuiWrapper::Initialize(Window& window, Renderer& renderer) 
+	{
+		Assert(!window.m_pImGui && !renderer.m_pImGui);
+		Assert(!m_pContext);
+		window.m_pImGui = renderer.m_pImGui = this;
+		m_pRenderer = &renderer;
+		m_pWindow = &window;
+		Lock();
+		IMGUI_CHECKVERSION();
+		m_pContext = ImGui::CreateContext();
+		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		ImGui::StyleColorsDark();
+		ImGui_ImplWin32_Init(window.GetHandle());
+
+		ImGui_ImplDX12_InitInfo init_info = {};
+		init_info.Device = ToDevice(renderer.m_pDevice->Get());
+		init_info.CommandQueue = ToCommandQueue(renderer.m_pCommandQueue->Get());;
+		init_info.NumFramesInFlight = _countof(renderer.m_frames);
+		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
+		init_info.SrvDescriptorHeap = ToDescriptorHeap(renderer.m_pSrvHeap->Get());
+		init_info.UserData = renderer.m_pSrvHeap;
+		init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) 
+			{ 
+				Descriptor descriptor{ ((DescriptorHeap*)info->UserData)->Allocate() };
+				*out_cpu_handle = { descriptor.cpuAddress };
+				*out_gpu_handle = { descriptor.gpuAddress };
+			};
+		init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)
+			{ 
+				Descriptor descriptor{ cpu_handle.ptr, gpu_handle.ptr };
+				((DescriptorHeap*)info->UserData)->Free(descriptor);
+			};
+		ImGui_ImplDX12_Init(&init_info);
+		Unlock();
+	}
+
+	void ImGuiWrapper::NewFrame()
+	{
+		Assert(m_pContext);
+		Lock();
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+		Unlock();
+	}
+
+	void ImGuiWrapper::Render(CommandList& commandList)
+	{
+		Assert(m_pContext);
+		Lock();
+		ImGui::Render();
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ToCommandList(commandList.Get()));
+		Unlock();
+	}
+
+	void ImGuiWrapper::Destroy()
+	{
+		Assert(m_pContext);
+		Lock();
+		ImGui_ImplDX12_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+		Unlock();
+		m_pWindow->m_pImGui = m_pRenderer->m_pImGui = nullptr;
+		m_pContext = nullptr;
+		m_pRenderer = nullptr;
+		m_pWindow = nullptr;
 	}
 }

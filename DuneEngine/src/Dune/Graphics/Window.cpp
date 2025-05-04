@@ -1,17 +1,29 @@
 #include "pch.h"
 #include "Dune/Graphics/Window.h"
+#include "Dune/Graphics/RHI/ImGuiWrapper.h"
 #include "Dune/Core/Input.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
 
+#include <imgui/imgui_impl_win32.h>
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 namespace Dune::Graphics
 {
 	LRESULT CALLBACK InternalWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		Window* window{ (Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA) };
-		window->WindowProc(uMsg, (void*)wParam, (void*)lParam);
+		if (Window* pWindow{ (Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA) })
+		{
+			if (ImGuiWrapper* pImGui{ pWindow->GetImGui() })
+			{
+				if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+					return true;
+			}
+			pWindow->WindowProc(uMsg, (void*)wParam, (void*)lParam);
+		}
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
@@ -65,15 +77,19 @@ namespace Dune::Graphics
 	{
 		MSG msg{};
 		m_pInput->Update();
+		if (m_pImGui)
+			m_pImGui->Lock();
 		while (PeekMessage(&msg, (HWND)m_pHandle, 0, 0, PM_REMOVE) > 0)
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 
 			if (m_bClosing)
-				return false;
+				break;
 		}
-		return true;
+		if (m_pImGui)
+			m_pImGui->Unlock();
+		return !m_bClosing;
 	}
 
 	void Window::WindowProc(dUInt uMsg, void* wParam, void* lParam)

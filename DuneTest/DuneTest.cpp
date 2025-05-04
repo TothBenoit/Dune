@@ -3,6 +3,7 @@
 #include <chrono>
 #include <Dune/Graphics/RHI/Texture.h>
 #include <Dune/Graphics/RHI/Device.h>
+#include <Dune/Graphics/RHI/ImGuiWrapper.h>
 #include <Dune/Graphics/Mesh.h>
 #include <Dune/Graphics/Renderer.h>
 #include <Dune/Graphics/Window.h>
@@ -10,6 +11,7 @@
 #include <Dune/Scene/Scene.h>
 #include <Dune/Utilities/SceneLoader.h>
 #include <filesystem>
+#include <imgui/imgui.h>
 
 using namespace Dune;
 
@@ -27,15 +29,22 @@ void Test(Graphics::Device* pDevice, Scene* pScene)
 	);
 	renderer.Initialize(*pDevice, window);
 	float dt = 0.f;
+	Graphics::ImGuiWrapper imgui{};
+	imgui.Initialize(window, renderer);
 	while (window.Update())
 	{	
+		imgui.NewFrame();
+		imgui.Lock();
+		bool always{ true };
+		ImGui::ShowDemoWindow(&always);
+		imgui.Unlock();
 		camera.Update(dt, window.GetInput());
 		auto start = std::chrono::high_resolution_clock::now();
 		renderer.Render(*pScene, camera.GetCamera());
 		auto end = std::chrono::high_resolution_clock::now();
 		dt = (float)std::chrono::duration<float>(end - start).count();;
 	}
-
+	imgui.Destroy();
 	renderer.Destroy();
 	window.Destroy();
 }

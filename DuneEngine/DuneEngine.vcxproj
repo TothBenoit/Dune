@@ -22,6 +22,7 @@
     <ClInclude Include="include\Dune\Graphics\RHI\Buffer.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\DescriptorHeap.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\CommandList.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\ImGuiWrapper.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Resource.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Shader.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Texture.h" />
@@ -52,6 +53,7 @@
     <ClCompile Include="src\Dune\Core\File.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Graphics\RHI\ImGuiWrapper.cpp" />
     <ClCompile Include="src\Dune\Graphics\Window.cpp" />
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
     <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp" />
@@ -156,7 +158,7 @@
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;imguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration)\;$(SolutionDir)ThirdParties\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
@@ -192,7 +194,7 @@ xcopy /y /d "$(ProjectDir)include\Dune\Graphics\Shaders\*" "$(OutDir)Shaders\"</
       </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mt.lib;imgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParties\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>

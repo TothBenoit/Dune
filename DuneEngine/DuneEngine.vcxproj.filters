@@ -104,7 +104,12 @@
     <ClInclude Include="include\Dune\Core\Logger.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\SceneLoader.h" />
+    <ClInclude Include="include\Dune\Utilities\SceneLoader.h">
+      <Filter>Dune\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\ImGuiWrapper.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
@@ -143,7 +148,12 @@
     <ClCompile Include="src\Dune\Core\Logger.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RHI\ImGuiWrapper.cpp">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp">
+      <Filter>Dune\Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\Default.hlsl">

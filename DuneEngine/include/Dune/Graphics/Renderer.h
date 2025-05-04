@@ -33,6 +33,7 @@ namespace Dune
 
 		class Renderer
 		{
+			friend class ImGuiWrapper;
 		public:
 			void Initialize(Graphics::Device& device, Graphics::Window& window);
 			void Destroy();
@@ -65,6 +66,8 @@ namespace Dune
 			dU32 m_frameIndex{ 0 };
 			dU32 m_frameCount{ 0 };
 			Graphics::Barrier* m_pBarrier{ nullptr };
+
+			Graphics::ImGuiWrapper* m_pImGui{ nullptr };
 		};
 	}
 }

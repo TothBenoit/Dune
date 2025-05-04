@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuneEngine", "DuneEngine\DuneEngine.vcxproj", "{4E8A7BD2-878F-4381-B129-6CE9B232C4E2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6423B652-03DA-48CD-8F13-3F946A11EB77} = {6423B652-03DA-48CD-8F13-3F946A11EB77}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuneTest", "DuneTest\DuneTest.vcxproj", "{8D5FDD05-098D-4FCC-8A16-075C534281CF}"
 EndProject
