@@ -24,7 +24,7 @@ namespace Dune::Graphics
 	{
 		m_pDevice = &device;
 		m_pWindow = &window;
-		const wchar_t* args[] = { L"-Zi", L"-all_resources_bound" };
+		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
 		Graphics::Shader pbrVertexShader;
 		pbrVertexShader.Initialize

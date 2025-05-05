@@ -980,6 +980,8 @@ namespace Dune::Graphics
 			resourceFlag |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		if ((m_desc.usage & ETextureUsage::DepthStencil) != ETextureUsage::Invalid)
 			resourceFlag |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		if ((m_desc.usage & ETextureUsage::ShaderResource) == ETextureUsage::Invalid)
+			resourceFlag |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 		if ((m_desc.usage & ETextureUsage::UnorderedAccess) != ETextureUsage::Invalid)
 			resourceFlag |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
