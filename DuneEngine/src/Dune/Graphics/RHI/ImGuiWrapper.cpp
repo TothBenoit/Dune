@@ -15,7 +15,6 @@ namespace Dune::Graphics
 
 	void ImGuiWrapper::Unlock()
 	{
-		ImGui::SetCurrentContext(nullptr);
 		g_mutex.unlock();
 	}
 }

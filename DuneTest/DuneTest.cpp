@@ -1,6 +1,7 @@
 #include <Dune.h>
 #include <thread>
 #include <chrono>
+#include <Dune/Core/JobSystem.h>
 #include <Dune/Graphics/RHI/Texture.h>
 #include <Dune/Graphics/RHI/Device.h>
 #include <Dune/Graphics/RHI/ImGuiWrapper.h>
@@ -14,6 +15,21 @@
 #include <imgui/imgui.h>
 
 using namespace Dune;
+
+void DrawGUI(Graphics::ImGuiWrapper imgui, Scene& scene)
+{
+	imgui.Lock();
+	imgui.NewFrame();
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("File", true))
+		{
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+	imgui.Unlock();
+}
 
 void Test(Graphics::Device* pDevice, Scene* pScene)
 {
@@ -33,11 +49,7 @@ void Test(Graphics::Device* pDevice, Scene* pScene)
 	imgui.Initialize(window, renderer);
 	while (window.Update())
 	{	
-		imgui.NewFrame();
-		imgui.Lock();
-		bool always{ true };
-		ImGui::ShowDemoWindow(&always);
-		imgui.Unlock();
+		DrawGUI(imgui, *pScene);
 		camera.Update(dt, window.GetInput());
 		auto start = std::chrono::high_resolution_clock::now();
 		renderer.Render(*pScene, camera.GetCamera());
@@ -55,24 +67,18 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
+	dU32 windowCount{ 5 };
+	Job::Initialize(windowCount);
 	Graphics::Device device{};
 	device.Initialize();
 
 	Scene scene{};
 	SceneLoader::Load(std::filesystem::current_path().string().append("\\Resources\\Sponza\\").c_str(), "Sponza.gltf", scene, device);
-	
-	dVector<std::thread> tests;
-	dU32 windowCount{ 5 };
-	tests.reserve(windowCount);
-	for (dU32 i{ 0 }; i < windowCount; i++)
-	{
-		tests.emplace_back(std::thread(&Test, &device, &scene));
-	}
 
-	for (dU32 i{ 0 }; i < windowCount; i++)
-	{
-		tests[i].join();
-	}
+	Job::JobBuilder jobBuilder{};
+	for (dU32 i = 0 ; i < windowCount; i++)
+		jobBuilder.DispatchJob<Job::Fence::None>([&]() { Test(&device, &scene); });
+	Job::Wait();
 
 	for ( Graphics::Texture& texture : scene.textures)
 		texture.Destroy();
@@ -80,6 +86,7 @@ int main(int argc, char** argv)
 		mesh.Destroy();
 
 	device.Destroy();
+	Job::Shutdown();
 
 	return 0;
 }
