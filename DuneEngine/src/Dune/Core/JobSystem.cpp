@@ -258,13 +258,9 @@ namespace Dune::Job
         ::SwitchToFiber(g_pCurrentFiber.pFiber);
     }
 
-    void Initialize()
+    void Initialize(dU32 workerCount)
     {
         g_workerRunning = true;
-
-        dU32 numCores{ std::thread::hardware_concurrency() };
-
-        dU32 workerCount = std::max(numCores - 3u, 1u);
         g_pWorkers.reserve(workerCount);
         for (dU32 workerID = 0; workerID < workerCount; ++workerID)
         {
@@ -378,7 +374,7 @@ namespace Dune::Job
 
     Counter::~Counter() 
     {
-        if (m_pCounterInstance->m_refCount.fetch_sub(1) == 0)
+        if (m_pCounterInstance->m_refCount.fetch_sub(1) == 1)
             delete m_pCounterInstance;
     }
 

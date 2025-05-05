@@ -1,11 +1,13 @@
 #pragma once
 
+#include <functional>
+
 namespace Dune::Job
 {
     class CounterInstance;
     class Counter;
 
-    void Initialize();
+    void Initialize(dU32 workerCount);
     void Shutdown();
     void Wait();
     void WaitForCounter(const Counter& counter);
@@ -28,7 +30,7 @@ namespace Dune::Job
         Counter& operator--(int);
         Counter& operator+=(const Counter& other);
 
-        uint32_t GetValue() const;
+        dU32 GetValue() const;
 
     private:
         friend void WaitForCounter_Fiber(const Counter&);
@@ -55,7 +57,7 @@ namespace Dune::Job
     private:
         void DispatchJobInternal(const std::function<void()>& job);
 
-    private:     
+    private:
         Counter     m_counter;
         Counter     m_fence;
     };
