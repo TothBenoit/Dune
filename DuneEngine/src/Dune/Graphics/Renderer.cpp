@@ -246,7 +246,12 @@ namespace Dune::Graphics
 			{
 				const Graphics::Mesh& mesh = scene.meshes[renderData.meshIdx];
 				Graphics::PBRInstance instance;
-				DirectX::XMStoreFloat4x4(&instance.modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)));
+
+				dMatrix modelMatrix = DirectX::XMMatrixIdentity();
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixScalingFromVector({ transform.scale, transform.scale, transform.scale }));
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixRotationQuaternion(transform.rotation));
+				modelMatrix = DirectX::XMMatrixMultiply(modelMatrix, DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position)));
+				DirectX::XMStoreFloat4x4(&instance.modelMatrix, modelMatrix);
 
 				Graphics::Texture& albedoTexture = scene.textures[renderData.albedoIdx];
 				Graphics::Texture& normalTexture = scene.textures[renderData.normalIdx];

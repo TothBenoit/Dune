@@ -19,8 +19,13 @@ namespace Dune::Graphics
 		{
 			if (ImGuiWrapper* pImGui{ pWindow->GetImGui() })
 			{
-				if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+				pImGui->Lock();
+				if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam)) 
+				{
+					pImGui->Unlock();
 					return true;
+				}
+				pImGui->Unlock();
 			}
 			pWindow->WindowProc(uMsg, (void*)wParam, (void*)lParam);
 		}
@@ -77,8 +82,6 @@ namespace Dune::Graphics
 	{
 		MSG msg{};
 		m_pInput->Update();
-		if (m_pImGui)
-			m_pImGui->Lock();
 		while (PeekMessage(&msg, (HWND)m_pHandle, 0, 0, PM_REMOVE) > 0)
 		{
 			TranslateMessage(&msg);
@@ -87,8 +90,6 @@ namespace Dune::Graphics
 			if (m_bClosing)
 				break;
 		}
-		if (m_pImGui)
-			m_pImGui->Unlock();
 		return !m_bClosing;
 	}
 

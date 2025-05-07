@@ -23,20 +23,18 @@ namespace Dune::SceneLoader
 		aiQuaternion aiRotation;
 		aiVector3D aiPosition;
 		worldTransform.DecomposeNoScaling(aiRotation, aiPosition);
-		Transform transform
-		{
-			.position = { aiPosition.x, aiPosition.y, aiPosition.z },
-			.rotation = { aiRotation.x, aiRotation.y, aiRotation.z, aiRotation.w },
-			.scale = 1.0f
-		};
 
 		for (dSizeT i = 0; i < pNode->mNumMeshes; i++)
 		{
 			dU32 meshIdx = pNode->mMeshes[i];
 			EntityID entity = scene.registry.create();
 
+			Name& name = scene.registry.emplace<Name>(entity);
+			name.name.assign("Mesh");
 			Transform& transform = scene.registry.emplace<Transform>(entity);
-			transform = transform;
+			transform.position = { aiPosition.x, aiPosition.y, aiPosition.z };
+			transform.rotation = { aiRotation.x, aiRotation.y, aiRotation.z, aiRotation.w };
+			transform.scale = 1.0f;
 			RenderData& renderData = scene.registry.emplace<RenderData>(entity);
 			renderData.albedoIdx = meshIdx * 3;
 			renderData.normalIdx = meshIdx * 3 + 1;

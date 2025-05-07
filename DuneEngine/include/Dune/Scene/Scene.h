@@ -25,6 +25,11 @@ namespace Dune
 		dU32 meshIdx;
 	};
 
+	struct Name
+	{
+		dString name;
+	};
+
 	using EntityID = entt::entity;
 
 	struct Scene
