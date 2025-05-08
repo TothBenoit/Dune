@@ -220,7 +220,7 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
-	dU32 testCount{ 1 };
+	dU32 testCount{ 5 };
 	Job::Initialize(testCount);
 	Graphics::Device device{};
 	device.Initialize();
