@@ -71,6 +71,8 @@ namespace Dune::Graphics
 			return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 		case EResourceState::IndirectArgument:
 			return D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+		case EResourceState::Present:
+			return D3D12_RESOURCE_STATE_PRESENT;
 		default:
 			Assert(0);
 			return D3D12_RESOURCE_STATE_COMMON;
@@ -624,10 +626,10 @@ namespace Dune::Graphics
 		pCommandList->SetGraphicsRoot32BitConstants(slot, byteSize / 4, pData, 0);
 	}
 
-	void CommandList::PushGraphicsBuffer(dU32 slot, const Descriptor& cbv)
+	void CommandList::PushGraphicsBuffer(dU32 slot, Buffer& buffer)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
-		pCommandList->SetGraphicsRootConstantBufferView(slot, { cbv.gpuAddress });
+		pCommandList->SetGraphicsRootConstantBufferView(slot, ToResource(buffer.Get())->GetGPUVirtualAddress());
 	}
 
 	void CommandList::PushGraphicsResource(dU32 slot, const Descriptor& srv)

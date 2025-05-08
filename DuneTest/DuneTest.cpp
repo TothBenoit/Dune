@@ -5,6 +5,7 @@
 #include <Dune/Graphics/RHI/Device.h>
 #include <Dune/Graphics/RHI/ImGuiWrapper.h>
 #include <Dune/Graphics/Mesh.h>
+#include <Dune/Graphics/Shaders/ShaderTypes.h>
 #include <Dune/Graphics/Renderer.h>
 #include <Dune/Graphics/Window.h>
 #include <Dune/Utilities/SimpleCameraController.h>
@@ -103,6 +104,24 @@ public:
 		{
 			if (ImGui::Begin("Scene", &m_showScene))
 			{
+				if (ImGui::Button("Add Entity"))
+				{
+					ImGui::OpenPopup("##AddEntity");
+				}
+
+				if (ImGui::BeginPopup("##AddEntity"))
+				{
+					if (ImGui::Button("Point light"))
+					{
+						EntityID id = m_pScene->registry.create();
+						Name& name = m_pScene->registry.emplace<Name>(id);
+						name.name.assign("PointLight");
+						m_pScene->registry.emplace<Graphics::PointLight>(id);
+						ImGui::CloseCurrentPopup();
+					}
+					ImGui::EndPopup();
+				}
+
 				m_pScene->registry.view<Name>().each([&](EntityID entity, Name& name)
 					{
 						bool isSelected = m_selectedEntity == entity;
@@ -120,19 +139,45 @@ public:
 		{
 			ImGui::Begin("Inspector", &m_showInspector);
 
-			if ( m_pScene->registry.all_of<Transform, Name>(m_selectedEntity) )
+			if (Name* pName = m_pScene->registry.try_get<Name>(m_selectedEntity) )
 			{
-				Transform& transform = m_pScene->registry.get<Transform>(m_selectedEntity);
-				Name& name = m_pScene->registry.get<Name>(m_selectedEntity);
-				ImGui::Text("%s", name.name.c_str());
+				ImGui::Text("%s", pName->name.c_str());
 				ImGui::Separator();
 
-				if (ImGui::TreeNodeEx("Transform :"))
+				if (Transform* pTransform = m_pScene->registry.try_get<Transform>(m_selectedEntity))
 				{
-					ImGui::DragFloat3("Position", &transform.position.x, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
-					ImGui::DragFloat4("Rotation", transform.rotation.m128_f32, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
-					ImGui::DragFloat("Scale", &transform.scale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
-					ImGui::TreePop();
+					if (ImGui::TreeNodeEx("Transform :"))
+					{
+						ImGui::DragFloat3("Position", &pTransform->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat4("Rotation", pTransform->rotation.m128_f32, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat("Scale", &pTransform->scale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::TreePop();
+					}
+				}
+
+				if (Graphics::PointLight* pLight = m_pScene->registry.try_get<Graphics::PointLight>(m_selectedEntity))
+				{
+					if (ImGui::TreeNodeEx("PointLight :"))
+					{
+						ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::ColorPicker3("Color", &pLight->color.x);
+						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat("Radius", &pLight->radius, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::TreePop();
+					}
+				}
+
+				if (Graphics::DirectionalLight* pLight = m_pScene->registry.try_get<Graphics::DirectionalLight>(m_selectedEntity))
+				{
+					if (ImGui::TreeNodeEx("DirectionalLight :"))
+					{
+						ImGui::ColorPicker3("Color", &pLight->color.x);
+						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat3("Direction", &pLight->direction.x, 0.01f, -1.0f, 1.0f, "%.2f");
+						if (ImGui::Button("Normalize")) 
+							DirectX::XMStoreFloat3(&pLight->direction, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&pLight->direction)));
+						ImGui::TreePop();
+					}
 				}
 			}
 			ImGui::End();
@@ -175,16 +220,23 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
-	dU32 windowCount{ 5 };
-	Job::Initialize(windowCount);
+	dU32 testCount{ 5 };
+	Job::Initialize(testCount);
 	Graphics::Device device{};
 	device.Initialize();
 
 	Scene scene{};
 	SceneLoader::Load(std::filesystem::current_path().string().append("\\Resources\\Sponza\\").c_str(), "Sponza.gltf", scene, device);
+	EntityID sun = scene.registry.create();
+	Graphics::DirectionalLight& light = scene.registry.emplace<Graphics::DirectionalLight>(sun);
+	light.color = { 1.0f, 1.0f, 1.0f };
+	light.direction = { 0.1f, -1.0f, 0.9f };
+	light.intensity = 1.0f;
+	Name& name = scene.registry.emplace<Name>(sun);
+	name.name.assign("Sun");
 
 	Job::JobBuilder jobBuilder{};
-	for (dU32 i = 0 ; i < windowCount; i++)
+	for (dU32 i = 0 ; i < testCount; i++)
 		jobBuilder.DispatchJob<Job::Fence::None>([&]() { Test(&device, &scene); });
 	Job::Wait();
 

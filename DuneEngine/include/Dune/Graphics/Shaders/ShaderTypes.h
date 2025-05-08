@@ -33,3 +33,35 @@ namespace Dune::Graphics
 #define END_NAMESPACE_SHADER
 
 #endif
+
+BEGIN_NAMESPACE_SHADER
+struct ForwardGlobals
+{
+	float4x4    viewProjectionMatrix;
+	float3      cameraPosition;
+	int         directionalLightCount;
+	float3      ambientColor;
+	int         pointLightCount;
+};
+
+struct InstanceData
+{
+	float4x4 modelMatrix;
+};
+
+struct PointLight
+{
+	float3  color;
+	float   intensity;
+	float3  position;
+	float   radius;
+};
+
+struct DirectionalLight
+{
+	float3      color;
+	float       intensity;
+	float3      direction;
+	float       _padding1;
+};
+END_NAMESPACE_SHADER

@@ -15,6 +15,11 @@ float VisGeometrySchlickGGX( float nDotV, float nDotL, float roughness )
     return (1.0f / (nDotV * (1.0f - k) + k)) * (1.0f / (nDotL * (1.0f - k) + k)) * 0.25f;
 }
 
+float3 ComputeF0( float3 specularColor, float3 albedo, float metalness)
+{
+    return lerp(specularColor, albedo, metalness);
+}
+
 float3 FresnelSchlick( float vDotH, float3 f0 )
 {
     float fc = pow(1.0f - vDotH, 5.0f);

@@ -16,12 +16,6 @@
     <ClInclude Include="pch.h">
       <Filter>Dune</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Shaders\PointLight.h">
-      <Filter>Dune\Graphics\Shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Shaders\DirectionalLight.h">
-      <Filter>Dune\Graphics\Shaders</Filter>
-    </ClInclude>
     <ClInclude Include="include\Dune\Utilities\Utils.h">
       <Filter>Dune\Utilities</Filter>
     </ClInclude>
@@ -30,9 +24,6 @@
     </ClInclude>
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h">
       <Filter>Dune\Graphics\Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Shaders\PBR.h">
-      <Filter>Dune\Graphics\Shaders</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\Shaders\ShaderTypes.h">
       <Filter>Dune\Graphics\Shaders</Filter>
@@ -110,6 +101,8 @@
     <ClInclude Include="include\Dune\Graphics\RHI\ImGuiWrapper.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
@@ -154,21 +147,20 @@
     <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp">
       <Filter>Dune\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RenderPass\Forward.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderPass\DepthPrepass.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\DepthWrite.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\DepthPrepass.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\PBR.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\Forward.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
     <None Include="include\Dune\Graphics\Shaders\PostProcess.hlsl">
-      <Filter>Dune\Graphics\Shaders</Filter>
-    </None>
-    <None Include="include\Dune\Graphics\Shaders\Test.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
     <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli">
@@ -178,6 +170,7 @@
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="include\Dune\Graphics\Shaders\Lighting.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">

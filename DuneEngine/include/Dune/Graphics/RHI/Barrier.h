@@ -21,6 +21,8 @@ namespace Dune::Graphics
         IndexBuffer = 1 << 10,
         ConstantBuffer = 1 << 11,
         IndirectArgument = 1 << 12,
+
+        Present = 1 << 13
     };
 
 	class Barrier : public Resource

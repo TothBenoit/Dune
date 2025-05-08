@@ -15,6 +15,8 @@
   <ItemGroup>
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Barrier.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Device.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Fence.h" />
@@ -29,7 +31,6 @@
     <ClInclude Include="include\Dune\Graphics\Renderer.h" />
     <ClInclude Include="include\Dune\Scene\Camera.h" />
     <ClInclude Include="include\Dune\Scene\Scene.h" />
-    <ClInclude Include="include\Dune\Graphics\Shaders\PBR.h" />
     <ClInclude Include="include\Dune\Core\File.h" />
     <ClInclude Include="include\Dune\Utilities\SceneLoader.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
@@ -39,9 +40,7 @@
     <ClInclude Include="include\Dune\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\PostProcessGlobals.h" />
-    <ClInclude Include="include\Dune\Graphics\Shaders\DirectionalLight.h" />
     <ClInclude Include="include\Dune\Graphics\Mesh.h" />
-    <ClInclude Include="include\Dune\Graphics\Shaders\PointLight.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\ShaderTypes.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
     <ClInclude Include="include\Dune\Core\Types.h" />
@@ -53,6 +52,8 @@
     <ClCompile Include="src\Dune\Core\File.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Graphics\RenderPass\DepthPrepass.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderPass\Forward.cpp" />
     <ClCompile Include="src\Dune\Graphics\RHI\ImGuiWrapper.cpp" />
     <ClCompile Include="src\Dune\Graphics\Window.cpp" />
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
@@ -76,16 +77,14 @@
     <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\DepthWrite.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\DepthPrepass.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\PBR.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\Forward.hlsl">
       <FileType>Document</FileType>
     </None>
+    <None Include="include\Dune\Graphics\Shaders\Lighting.hlsli" />
     <None Include="include\Dune\Graphics\Shaders\PostProcess.hlsl">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="include\Dune\Graphics\Shaders\Test.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="packages.config" />
