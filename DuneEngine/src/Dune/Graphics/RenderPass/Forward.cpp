@@ -46,10 +46,7 @@ namespace Dune::Graphics
 					{.type = EBindingType::Constant, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
 					{.type = EBindingType::Buffer, .visibility = EShaderVisibility::Pixel },
 					{.type = EBindingType::Buffer, .visibility = EShaderVisibility::Pixel },
-					{.type = EBindingType::Group, .groupDesc{ .resourceCount = 1 }, .visibility = EShaderVisibility::Pixel },
-					{.type = EBindingType::Group, .groupDesc{ .resourceCount = 1 }, .visibility = EShaderVisibility::Pixel },
-					{.type = EBindingType::Group, .groupDesc{ .resourceCount = 1 }, .visibility = EShaderVisibility::Pixel },
-					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
+					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::All},
 				},
 				.inputLayout =
 				{
@@ -108,11 +105,11 @@ namespace Dune::Graphics
 				m_pDevice->CreateSRV(normal, normalTexture, { .mipLevels = normalTexture.GetMipLevels() });
 				Descriptor roughnessMetalness = srvHeap.Allocate();
 				m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture, { .mipLevels = roughnessMetalnessTexture.GetMipLevels() });
+				instance.albedoIndex = srvHeap.GetIndex(albedo);
+				instance.normalIndex = srvHeap.GetIndex(normal);
+				instance.roughnessMetalnessIndex = srvHeap.GetIndex(roughnessMetalness);
 
-				commandList.BindGraphicsResource(3, albedo);
-				commandList.BindGraphicsResource(4, normal);
-				commandList.BindGraphicsResource(5, roughnessMetalness);
-				commandList.PushGraphicsConstants(6, &instance, sizeof(InstanceData));
+				commandList.PushGraphicsConstants(3, &instance, sizeof(InstanceData));
 				commandList.BindIndexBuffer(mesh.GetIndexBuffer());
 				commandList.BindVertexBuffer(mesh.GetVertexBuffer());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);

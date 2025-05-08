@@ -15,11 +15,7 @@ struct PointLights
 ConstantBuffer<ForwardGlobals> cGlobals : register(b0);
 ConstantBuffer<DirectionalLights> cDirectionalLights : register(b1);
 ConstantBuffer<PointLights> cPointLights : register(b2);
-ConstantBuffer<InstanceData> cInstance : register(b1);
-
-Texture2D tAlbedo : register(t0);
-Texture2D tNormal : register(t1);
-Texture2D tRoughnessMetalness : register(t2);
+ConstantBuffer<InstanceData> cInstance : register(b3);
 
 struct VS_INPUT
 {
@@ -59,9 +55,12 @@ struct PS_OUTPUT
 PS_OUTPUT PSMain(VSToPS input)
 {
     PS_OUTPUT output;
-    const float3 albedo = tAlbedo.Sample(sAnisoWrap, input.uv).rgb;
-    const float3 nf = tNormal.Sample(sAnisoWrap, input.uv).rgb * 2.0f - 1.0f;
-    const float2 roughnessMetalness = tRoughnessMetalness.Sample(sAnisoWrap, input.uv).gb;
+    Texture2D albedoTexture = ResourceDescriptorHeap[cInstance.albedoIndex];
+    const float3 albedo = albedoTexture.Sample(sAnisoWrap, input.uv).rgb;
+    Texture2D normalTexture = ResourceDescriptorHeap[cInstance.normalIndex];
+    const float3 nf = normalTexture.Sample(sAnisoWrap, input.uv).rgb * 2.0f - 1.0f;
+    Texture2D roughnessMetalnessTexture = ResourceDescriptorHeap[cInstance.roughnessMetalnessIndex];
+    const float2 roughnessMetalness = roughnessMetalnessTexture.Sample(sAnisoWrap, input.uv).gb;
 
     const float3 tanX = input.tangent.xyz;
     const float3 tanY = cross(input.normal, tanX) * -input.tangent.w;

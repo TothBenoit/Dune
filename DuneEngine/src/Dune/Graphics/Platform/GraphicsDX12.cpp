@@ -1163,7 +1163,10 @@ namespace Dune::Graphics
 			dU32 samplerRegisterOffset;
 			if (slot.visibility == EShaderVisibility::All)
 			{
-				bufferRegisterOffset = resourceRegisterOffset = uavRegisterOffset = samplerRegisterOffset = 0;
+				bufferRegisterOffset = bufferRegister[(dU32)EShaderVisibility::Vertex] + bufferRegister[(dU32)EShaderVisibility::Pixel];
+				resourceRegisterOffset = resourceRegister[(dU32)EShaderVisibility::Vertex] + resourceRegister[(dU32)EShaderVisibility::Pixel];
+				uavRegisterOffset = uavRegister[(dU32)EShaderVisibility::Vertex] + uavRegister[(dU32)EShaderVisibility::Pixel];
+				samplerRegisterOffset = samplerRegister[(dU32)EShaderVisibility::Vertex] + samplerRegister[(dU32)EShaderVisibility::Pixel];
 				flags &= ~(D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
 			}
 			else
@@ -1324,6 +1327,7 @@ namespace Dune::Graphics
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
 		};
 
 		ID3D12RootSignature* pRootSignature{ ComputeRootSignature(pDevice, desc.bindingLayout, flags) };

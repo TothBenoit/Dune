@@ -38,6 +38,7 @@ namespace Dune::Graphics
 
 		[[nodiscard]] inline dU32 GetCapacity() { return m_capacity; }
 		[[nodiscard]] inline dU32 GetSize() { return (dU32)m_freeSlots.size(); }
+		[[nodiscard]] inline dU32 GetIndex(Descriptor descriptor) { return (dU32)((descriptor.cpuAddress - m_cpuAddress) / m_descriptorSize); }
 		[[nodiscard]] Descriptor Allocate();
 		void Free(Descriptor handle);
 

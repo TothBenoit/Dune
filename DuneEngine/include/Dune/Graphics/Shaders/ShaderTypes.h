@@ -37,31 +37,34 @@ namespace Dune::Graphics
 BEGIN_NAMESPACE_SHADER
 struct ForwardGlobals
 {
-	float4x4    viewProjectionMatrix;
-	float3      cameraPosition;
-	int         directionalLightCount;
-	float3      ambientColor;
-	int         pointLightCount;
+	float4x4   viewProjectionMatrix;
+	float3     cameraPosition;
+	int        directionalLightCount;
+	float3     ambientColor;
+	int        pointLightCount;
 };
 
 struct InstanceData
 {
-	float4x4 modelMatrix;
+	float4x4   modelMatrix;
+	uint       albedoIndex;
+	uint       normalIndex;
+	uint       roughnessMetalnessIndex;
 };
 
 struct PointLight
 {
-	float3  color;
-	float   intensity;
-	float3  position;
-	float   radius;
+	float3     color;
+	float      intensity;
+	float3     position;
+	float      radius;
 };
 
 struct DirectionalLight
 {
-	float3      color;
-	float       intensity;
-	float3      direction;
-	float       _padding1;
+	float3     color;
+	float      intensity;
+	float3     direction;
+	float      _padding;
 };
 END_NAMESPACE_SHADER
