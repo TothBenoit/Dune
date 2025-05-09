@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Dune/Graphics/RHI/Buffer.h"
+
 namespace Dune::Graphics
 {
 	class Buffer;
@@ -21,16 +23,16 @@ namespace Dune::Graphics
 		void Initialize(Device* pDevice, CommandList* pCommandList, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
 		void Destroy();
 
-		[[nodiscard]] Buffer&           GetIndexBuffer() const { return *m_pIndexBuffer; }
-		[[nodiscard]] Buffer&           GetVertexBuffer() const { return *m_pVertexBuffer; }
+		[[nodiscard]] Buffer&           GetIndexBuffer() { return m_indexBuffer; }
+		[[nodiscard]] Buffer&           GetVertexBuffer() { return m_vertexBuffer; }
 		[[nodiscard]] dU32              GetIndexCount() const { return m_indexCount; }
 		[[nodiscard]] dU32              GetVertexCount() const { return m_vertexCount; }
 
 	private:
 		dU32 m_indexCount{ 0 };
 		dU32 m_vertexCount{ 0 };
-		Buffer* m_pIndexBuffer;
-		Buffer* m_pVertexBuffer;
-		Buffer* m_pUploadBuffer;
+		Buffer m_indexBuffer;
+		Buffer m_vertexBuffer;
+		Buffer m_uploadBuffer;
 	};
 }

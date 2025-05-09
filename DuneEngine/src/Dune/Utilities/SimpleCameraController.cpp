@@ -14,43 +14,43 @@ namespace Dune
 		m_rotation.y = atan2(-rotationMatrix._23, rotationMatrix._22);
 	}
 
-	void SimpleCameraController::Update(float deltaTime, const Input* pInput)
+	void SimpleCameraController::Update(float deltaTime, const Input& input)
 	{
 
-		if (!pInput->GetKey(KeyCode::AltKey) && pInput->GetMouseButton(2))
-			UpdateFirstPersonControls(deltaTime, pInput);
+		if (!input.GetKey(KeyCode::AltKey) && input.GetMouseButton(2))
+			UpdateFirstPersonControls(deltaTime, input);
 		else
-			UpdateEditorControls(deltaTime, pInput);
+			UpdateEditorControls(deltaTime, input);
 	}
 
-	void SimpleCameraController::UpdateFirstPersonControls(float deltaTime, const Input* pInput)
+	void SimpleCameraController::UpdateFirstPersonControls(float deltaTime, const Input& input)
 	{
 		dVec3 translate{ 0.f,0.f,0.f };
 
 		//Get input
-		if (pInput->GetKey(KeyCode::Q))
+		if (input.GetKey(KeyCode::Q))
 		{
 			translate.x = -1.f;
 		}
-		if (pInput->GetKey(KeyCode::D))
+		if (input.GetKey(KeyCode::D))
 		{
 			translate.x = 1.f;
 		}
 
-		if (pInput->GetKey(KeyCode::A))
+		if (input.GetKey(KeyCode::A))
 		{
 			translate.y = -1.f;
 		}
-		if (pInput->GetKey(KeyCode::E))
+		if (input.GetKey(KeyCode::E))
 		{
 			translate.y = 1.f;
 		}
 
-		if (pInput->GetKey(KeyCode::Z))
+		if (input.GetKey(KeyCode::Z))
 		{
 			translate.z = 1.f;
 		}
-		if (pInput->GetKey(KeyCode::S))
+		if (input.GetKey(KeyCode::S))
 		{
 			translate.z = -1.f;
 		}
@@ -60,7 +60,7 @@ namespace Dune
 		//Add rotation
 		constexpr float turnSpeed = DirectX::XMConvertToRadians(45.f);
 		float turnVelocity = turnSpeed * clampedDeltaTime;
-		dVec2 rotation{ pInput->GetMouseDeltaX() * turnVelocity, pInput->GetMouseDeltaY() * turnVelocity };
+		dVec2 rotation{ input.GetMouseDeltaX() * turnVelocity, input.GetMouseDeltaY() * turnVelocity };
 		constexpr float yRotationClampValues[]{ DirectX::XMConvertToRadians(-89.99f), DirectX::XMConvertToRadians(89.99f) };
 		m_rotation.x = std::fmodf(m_rotation.x + rotation.x, DirectX::XM_2PI);
 		m_rotation.y = std::clamp(std::fmodf(m_rotation.y + rotation.y, DirectX::XM_2PI), yRotationClampValues[0], yRotationClampValues[1]);
@@ -79,7 +79,7 @@ namespace Dune
 		);
 
 		//Apply translation
-		const float speed = (pInput->GetKey(KeyCode::ShiftKey)) ? 750.f : 250.f;
+		const float speed = (input.GetKey(KeyCode::ShiftKey)) ? 750.f : 250.f;
 		const float velocity = speed * clampedDeltaTime;
 		m_camera.position.x += translate.x * velocity;
 		m_camera.position.y += translate.y * velocity;
@@ -90,7 +90,7 @@ namespace Dune
 		DirectX::XMStoreFloat3(&m_camera.target, DirectX::XMVectorAdd(eye, DirectX::XMVector3Rotate({ 0.0f, 0.0f, 1.0f }, quat)));
 	}
 
-	void SimpleCameraController::UpdateEditorControls(float deltaTime, const Input* pInput)
+	void SimpleCameraController::UpdateEditorControls(float deltaTime, const Input& input)
 	{
 		// Alt + Left Click : Rotate around target
 		// Alt + Middle Click : Pan

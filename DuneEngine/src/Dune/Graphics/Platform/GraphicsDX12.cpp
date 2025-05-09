@@ -1332,11 +1332,12 @@ namespace Dune::Graphics
 
 		ID3D12RootSignature* pRootSignature{ ComputeRootSignature(pDevice, desc.bindingLayout, flags) };
 
-		D3D12_INPUT_ELEMENT_DESC* pInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[desc.inputLayout.GetSize()];
+		Assert(desc.inputLayout.GetSize() <= 32);
+		D3D12_INPUT_ELEMENT_DESC inputElementDescs[32];
 		for (dU32 i = 0; i < desc.inputLayout.GetSize(); i++)
 		{
 			const VertexInput& input = desc.inputLayout[i];
-			pInputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+			inputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 		}
 
 		IDxcBlob* pVSBlob{ (desc.pVertexShader) ? (IDxcBlob*)desc.pVertexShader->Get() : nullptr };
@@ -1344,7 +1345,7 @@ namespace Dune::Graphics
 
 		// Describe and create the graphics pipeline state object (PSO).
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
-		psoDesc.InputLayout = { pInputElementDescs, (dU32)desc.inputLayout.GetSize()};
+		psoDesc.InputLayout = { inputElementDescs, (dU32)desc.inputLayout.GetSize()};
 		psoDesc.pRootSignature = pRootSignature;
 		psoDesc.VS.BytecodeLength = pVSBlob->GetBufferSize();
 		psoDesc.VS.pShaderBytecode = pVSBlob->GetBufferPointer();
@@ -1376,8 +1377,6 @@ namespace Dune::Graphics
 		pPipeline->pPipelineState = pPipelineState;
 		pPipeline->pRootSignature = pRootSignature;
 		m_pResource = pPipeline;
-
-		delete[] pInputElementDescs;
 	}
 
 	void GraphicsPipeline::Destroy()

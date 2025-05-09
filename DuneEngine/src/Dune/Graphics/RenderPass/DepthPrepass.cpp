@@ -70,7 +70,7 @@ namespace Dune::Graphics
 				);
 
 				commandList.PushGraphicsConstants(1, &instance.modelMatrix, sizeof(InstanceData));
-				const Mesh& mesh = scene.meshes[renderData.meshIdx];
+				Mesh& mesh = scene.meshes[renderData.meshIdx];
 				commandList.BindIndexBuffer(mesh.GetIndexBuffer());
 				commandList.BindVertexBuffer(mesh.GetVertexBuffer());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);

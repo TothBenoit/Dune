@@ -12,7 +12,7 @@ namespace Dune
 		SimpleCameraController() = default;
 		SimpleCameraController( const Camera& camera );
 
-		void Update(float deltaTime, const Input* pInput);
+		void Update(float deltaTime, const Input& input);
 		Camera& GetCamera() { return m_camera; }
 		const Camera& GetCamera() const { return m_camera; }
 		void SetFOV(float fov) { m_camera.fov = fov; };
@@ -21,8 +21,8 @@ namespace Dune
 		void SetFar(float far) { m_camera.far = far; }
 	private:
 		
-		void UpdateFirstPersonControls(float deltaTime, const Input* pInput);
-		void UpdateEditorControls(float deltaTime, const Input* pInput);
+		void UpdateFirstPersonControls(float deltaTime, const Input& input);
+		void UpdateEditorControls(float deltaTime, const Input& input);
 
 	private:
 		Camera m_camera;

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
-#include "Dune/Core/Input.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -37,7 +36,6 @@ namespace Dune::Graphics
 		m_width = desc.width;
 		m_height = desc.height;
 		m_title = desc.title;
-		m_pInput = new Input();
 
 		WNDCLASSEX wc;
 		ZeroMemory(&wc, sizeof(wc));
@@ -75,13 +73,12 @@ namespace Dune::Graphics
 
 	void Window::Destroy()
 	{
-		delete m_pInput;
 	}
 
 	bool Window::Update()
 	{
 		MSG msg{};
-		m_pInput->Update();
+		m_input.Update();
 		while (PeekMessage(&msg, (HWND)m_pHandle, 0, 0, PM_REMOVE) > 0)
 		{
 			TranslateMessage(&msg);
@@ -113,36 +110,36 @@ namespace Dune::Graphics
 			break;
 		case WM_SYSKEYDOWN:
 		case WM_KEYDOWN:
-			m_pInput->SetKeyDown(static_cast<KeyCode>((WPARAM)wParam));
+			m_input.SetKeyDown(static_cast<KeyCode>((WPARAM)wParam));
 			break;
 		case WM_SYSKEYUP:
 		case WM_KEYUP:
-			m_pInput->SetKeyUp(static_cast<KeyCode>((WPARAM)wParam));
+			m_input.SetKeyUp(static_cast<KeyCode>((WPARAM)wParam));
 			break;
 		case WM_MOUSEWHEEL:
-			m_pInput->SetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam));
+			m_input.SetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam));
 			break;
 		case WM_MOUSEMOVE:
-			m_pInput->SetMousePosX((short)LOWORD(lParam));
-			m_pInput->SetMousePosY((short)HIWORD(lParam));
+			m_input.SetMousePosX((short)LOWORD(lParam));
+			m_input.SetMousePosY((short)HIWORD(lParam));
 			break;
 		case WM_LBUTTONDOWN:
-			m_pInput->SetMouseButtonDown(0);
+			m_input.SetMouseButtonDown(0);
 			break;
 		case WM_LBUTTONUP:
-			m_pInput->SetMouseButtonUp(0);
+			m_input.SetMouseButtonUp(0);
 			break;
 		case WM_MBUTTONDOWN:
-			m_pInput->SetMouseButtonDown(1);
+			m_input.SetMouseButtonDown(1);
 			break;
 		case WM_MBUTTONUP:
-			m_pInput->SetMouseButtonUp(1);
+			m_input.SetMouseButtonUp(1);
 			break;
 		case WM_RBUTTONDOWN:
-			m_pInput->SetMouseButtonDown(2);
+			m_input.SetMouseButtonDown(2);
 			break;
 		case WM_RBUTTONUP:
-			m_pInput->SetMouseButtonUp(2);
+			m_input.SetMouseButtonUp(2);
 			break;
 		}
 	}

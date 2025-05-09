@@ -87,7 +87,7 @@ namespace Dune::Graphics
 		commandList.PushGraphicsBuffer(2, pointLights);
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
-				const Mesh& mesh = scene.meshes[renderData.meshIdx];
+				Mesh& mesh = scene.meshes[renderData.meshIdx];
 
 				InstanceData instance;
 				DirectX::XMStoreFloat4x4(&instance.modelMatrix,

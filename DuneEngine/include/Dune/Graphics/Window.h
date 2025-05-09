@@ -1,9 +1,6 @@
 #pragma once
 
-namespace Dune
-{
-	class Input;
-}
+#include "Dune/Core/Input.h"
 
 namespace Dune::Graphics
 {
@@ -27,7 +24,7 @@ namespace Dune::Graphics
 		[[nodiscard]] void* GetHandle() { return m_pHandle; }
 		[[nodiscard]] dU32  GetWidth() const { return m_width; }
 		[[nodiscard]] dU32  GetHeight() const { return m_height; }
-		[[nodiscard]] const Input* GetInput() const { return m_pInput; }
+		[[nodiscard]] const Input& GetInput() const { return m_input; }
 
 		void WindowProc(dUInt uMsg, void* wParam, void* lParam);
 		void SetOnResizeFunc(void* pData, void (*pOnResize)(void*, dU32 width, dU32 height)) { m_pOnResize = pOnResize;  m_pOnResizeData = pData; };
@@ -35,7 +32,7 @@ namespace Dune::Graphics
 		ImGuiWrapper* GetImGui() { return m_pImGui; }
 
 	protected:
-		Input* m_pInput{ nullptr };
+		Input m_input{};
 		dU32 m_width;
 		dU32 m_height;
 
