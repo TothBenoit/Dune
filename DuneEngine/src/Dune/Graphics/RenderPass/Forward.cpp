@@ -88,11 +88,11 @@ namespace Dune::Graphics
 				Texture& normalTexture = scene.textures[renderData.normalIdx];
 				Texture& roughnessMetalnessTexture = scene.textures[renderData.roughnessMetalnessIdx];
 				Descriptor albedo = srvHeap.Allocate();
-				m_pDevice->CreateSRV(albedo, albedoTexture, { .mipLevels = albedoTexture.GetMipLevels() });
+				m_pDevice->CreateSRV(albedo, albedoTexture);
 				Descriptor normal = srvHeap.Allocate();
-				m_pDevice->CreateSRV(normal, normalTexture, { .mipLevels = normalTexture.GetMipLevels() });
+				m_pDevice->CreateSRV(normal, normalTexture);
 				Descriptor roughnessMetalness = srvHeap.Allocate();
-				m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture, { .mipLevels = roughnessMetalnessTexture.GetMipLevels() });
+				m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture);
 				instance.albedoIndex = srvHeap.GetIndex(albedo);
 				instance.normalIndex = srvHeap.GetIndex(normal);
 				instance.roughnessMetalnessIndex = srvHeap.GetIndex(roughnessMetalness);

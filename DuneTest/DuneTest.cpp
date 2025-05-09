@@ -108,7 +108,9 @@ public:
 				{
 					ImGui::OpenPopup("##AddEntity");
 				}
-
+				
+				// This can cause a data race if another window is currently rendering
+				// I didn't decide if the user should be able to modify a scene while another thread is rendering so I don't fix it yet
 				if (ImGui::BeginPopup("##AddEntity"))
 				{
 					if (ImGui::Button("Point light"))
@@ -120,6 +122,18 @@ public:
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.intensity = 1.0f;
 						light.radius = 10.f;
+						ImGui::CloseCurrentPopup();
+					}
+
+					if (ImGui::Button("Directional light"))
+					{
+						EntityID id = m_pScene->registry.create();
+						Name& name = m_pScene->registry.emplace<Name>(id);
+						name.name.assign("DirectionalLight");
+						Graphics::DirectionalLight& light = m_pScene->registry.emplace<Graphics::DirectionalLight>(id);
+						light.color = { 1.0f, 1.0f, 1.0f };
+						light.intensity = 1.0f;
+						light.direction = { 0.0f, -1.0f, 0.0f };
 						ImGui::CloseCurrentPopup();
 					}
 					ImGui::EndPopup();
@@ -233,7 +247,7 @@ int main(int argc, char** argv)
 	EntityID sun = scene.registry.create();
 	Graphics::DirectionalLight& light = scene.registry.emplace<Graphics::DirectionalLight>(sun);
 	light.color = { 1.0f, 1.0f, 1.0f };
-	light.direction = { 0.1f, -1.0f, 0.9f };
+	light.direction = { 0.1f, -1.0f, 0.1f };
 	light.intensity = 1.0f;
 	Name& name = scene.registry.emplace<Name>(sun);
 	name.name.assign("Sun");

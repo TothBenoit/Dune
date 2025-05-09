@@ -67,6 +67,7 @@ namespace Dune::Graphics
 
 		m_forwardPass.Initialize(m_pDevice);
 		m_depthPrepass.Initialize(m_pDevice);
+		m_shadowPass.Initialize(m_pDevice);
 
 		m_directionalLightDescriptor = m_srvHeap.Allocate();
 		m_pointLightDescriptor = m_srvHeap.Allocate();
@@ -95,6 +96,9 @@ namespace Dune::Graphics
 		m_dsvHeap.Free(m_depthBufferDescriptor);
 		m_srvHeap.Free(m_directionalLightDescriptor);
 		m_srvHeap.Free(m_pointLightDescriptor);
+
+		for (Texture& shadow : m_shadowMaps)
+			shadow.Destroy();
 		
 		m_srvHeap.Destroy();
 		m_samplerHeap.Destroy();
@@ -103,6 +107,7 @@ namespace Dune::Graphics
 		m_barrier.Destroy();
 		m_forwardPass.Destroy();
 		m_depthPrepass.Destroy();
+		m_shadowPass.Destroy();
 		m_depthBuffer.Destroy();
 		m_commandQueue.Destroy();
 		m_swapchain.Destroy();
@@ -166,6 +171,9 @@ namespace Dune::Graphics
 		frame.commandList.SetDescriptorHeaps(m_srvHeap, m_samplerHeap);
 
 		ForwardGlobals globals;
+		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
+		globals.ambientColor = { 0.02f, 0.02f, 0.05f };
+		globals.cameraPosition = camera.position;
 
 		Buffer directionalLights{};
 		{
@@ -180,7 +188,7 @@ namespace Dune::Graphics
 						frame.buffersToRelease.push(m_directionalLightBuffer);
 					m_directionalLightBuffer.Initialize(m_pDevice,
 						{
-							.debugName{ L"DirectitonalLightBuffer" },
+							.debugName{ L"DirectionalLightBuffer" },
 							.usage{ EBufferUsage::Constant },
 							.memory{ EBufferMemory::GPU },
 							.byteSize{ byteSize },
@@ -192,7 +200,7 @@ namespace Dune::Graphics
 
 				directionalLights.Initialize(m_pDevice,
 					{
-						.debugName{ L"DirectitonalLightBuffer" },
+						.debugName{ L"DirectionalLightUploadBuffer" },
 						.usage{ EBufferUsage::Constant },
 						.memory{ EBufferMemory::CPU },
 						.byteSize{ byteSize },
@@ -201,9 +209,54 @@ namespace Dune::Graphics
 				void* pData{ nullptr };
 				directionalLights.Map(0, byteSize, &pData);
 				dU32 count{ 0 };
+
+				Viewport viewport{ 0.0, 0.0, SHADOW_MAP_RESOLUTION_F, SHADOW_MAP_RESOLUTION_F, 0.0f, 1.0f };
+				Scissor scissor{ 0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION };
+				frame.commandList.SetViewports(1, &viewport);
+				frame.commandList.SetScissors(1, &scissor);
+
+				if (m_shadowMaps.size() < directionalLightCount)
+					m_shadowMaps.resize(directionalLightCount);
 				view.each([&](const DirectionalLight& light)
 					{
-						memcpy((DirectionalLight*)pData + count++, &light, sizeof(DirectionalLight));
+						Texture& shadowMap = m_shadowMaps[count];
+						if (!shadowMap.Get())
+						{
+							shadowMap.Initialize(m_pDevice,
+								{
+									.debugName = L"DepthBuffer",
+									.usage = ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
+									.dimensions = {SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 1},
+									.format = EFormat::D32_FLOAT,
+									.clearValue = {1.f, 1.f, 1.f, 1.f},
+									.initialState = EResourceState::DepthStencil
+								});
+						}
+						Descriptor srv = m_srvHeap.Allocate();
+						frame.descriptorsToRelease.push(srv);
+						m_pDevice->CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT });
+						Descriptor dsv = m_dsvHeap.Allocate();
+						m_pDevice->CreateDSV(dsv, shadowMap, {});
+						frame.commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
+						frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
+
+						float shadowWidth{ 4500.f }; // Hardcoded for sponza
+						dVec up{ 0.f, 1.f, 0.f, 0.f };
+						dVec at{ DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&light.direction)) };
+						dVec axis = DirectX::XMVector3Cross(up, at);
+						if ( DirectX::XMVector3Equal(axis, {0.0f, 0.0f, 0.0f}))
+							up = { 0.f, 0.f, 1.f, 0.f };
+						dVec eye{ 0.f, 0.f, 0.f };
+						dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, at, up) };
+						dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(shadowWidth, shadowWidth, -shadowWidth, shadowWidth) };
+						dMatrix4x4 viewProjection;
+						DirectX::XMStoreFloat4x4(&viewProjection, viewMatrix * projectionMatrix);
+						m_shadowPass.Render(scene, frame.commandList, viewProjection);
+						m_dsvHeap.Free(dsv);
+						DirectionalLight copyLight = light;
+						copyLight.viewProjection = viewProjection;
+						copyLight.shadowIndex = m_srvHeap.GetIndex(srv);
+						memcpy((DirectionalLight*)pData + count++, &copyLight, sizeof(DirectionalLight));
 					}
 				);
 				directionalLights.Unmap(0, byteSize);
@@ -238,7 +291,7 @@ namespace Dune::Graphics
 				}
 				pointLights.Initialize(m_pDevice,
 					{
-						.debugName{ L"PointLightBuffer" },
+						.debugName{ L"PointLightUploadBuffer" },
 						.usage{ EBufferUsage::Constant },
 						.memory{ EBufferMemory::CPU },
 						.byteSize{ byteSize },
@@ -277,13 +330,9 @@ namespace Dune::Graphics
 		frame.commandList.SetScissors(1, &scissor);
 		
 		frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-		m_depthPrepass.Render(scene, frame.commandList, camera);
+		m_depthPrepass.Render(scene, frame.commandList, globals.viewProjectionMatrix);
 
 		frame.commandList.SetRenderTarget(&rtv.cpuAddress, 1, &dsv.cpuAddress);
-
-		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
-		globals.ambientColor = { 0.02f, 0.02f, 0.05f };
-		globals.cameraPosition = camera.position;
 		m_forwardPass.Render(scene, m_srvHeap, frame.commandList, globals, frame.descriptorsToRelease);
 
 		if (m_pImGui)

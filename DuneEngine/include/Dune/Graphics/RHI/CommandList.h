@@ -77,7 +77,7 @@ namespace Dune::Graphics
 		void SetRenderTarget(const dU64* rtvs, dU32 rtvCount, const dU64* dsv);
 		void ClearRenderTargetView(const Descriptor& rtv, const float clearColor[4]);
 		void ClearDepthBuffer(const Descriptor& dsv, float depth, float stencil);
-		void PushGraphicsConstants(dU32 slot, void* pData, dU32 byteSize);
+		void PushGraphicsConstants(dU32 slot, const void* pData, dU32 byteSize);
 		void PushGraphicsBuffer(dU32 slot, Buffer& buffer);
 		void PushGraphicsResource(dU32 slot, const Descriptor& srv);
 		void BindGraphicsResource(dU32 slot, const Descriptor& srv);

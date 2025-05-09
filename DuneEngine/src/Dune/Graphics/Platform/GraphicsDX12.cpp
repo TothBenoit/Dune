@@ -392,7 +392,7 @@ namespace Dune::Graphics
 		const dU32* pDimensions = texture.GetDimensions();
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-		srvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
+		srvDesc.Format = (DXGI_FORMAT)desc.format;
 
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		if (pDimensions[2] > 1)
@@ -415,6 +415,11 @@ namespace Dune::Graphics
 		}
 
 		pDevice->CreateShaderResourceView(ToResource(texture.Get()), &srvDesc, { descriptor.cpuAddress });
+	}
+
+	void Device::CreateSRV(Descriptor& descriptor, Texture& texture)
+	{
+		CreateSRV(descriptor, texture, { .mipLevels = texture.GetMipLevels(), .format = texture.GetFormat() });
 	}
 
 	void Device::CreateSRV(Descriptor& descriptor, Buffer& buffer)
@@ -620,7 +625,7 @@ namespace Dune::Graphics
 		pCommandList->ClearDepthStencilView({ dsv.cpuAddress }, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, (dU8)stencil, 0, nullptr);
 	}
 
-	void CommandList::PushGraphicsConstants(dU32 slot, void* pData, dU32 byteSize)
+	void CommandList::PushGraphicsConstants(dU32 slot, const void* pData, dU32 byteSize)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		pCommandList->SetGraphicsRoot32BitConstants(slot, byteSize / 4, pData, 0);

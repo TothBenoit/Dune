@@ -35,6 +35,10 @@ namespace Dune::Graphics
 #endif
 
 BEGIN_NAMESPACE_SHADER
+
+#define SHADOW_MAP_RESOLUTION 4096
+#define SHADOW_MAP_RESOLUTION_F float(SHADOW_MAP_RESOLUTION)
+
 struct ForwardGlobals
 {
 	float4x4   viewProjectionMatrix;
@@ -69,6 +73,7 @@ struct DirectionalLight
 	float3     color;
 	float      intensity;
 	float3     direction;
-	float      _padding;
+	uint       shadowIndex;
+	float4x4   viewProjection;
 };
 END_NAMESPACE_SHADER

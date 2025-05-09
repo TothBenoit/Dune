@@ -13,6 +13,7 @@ namespace Dune::Graphics
 		dU32 mipStart{ 0 };
 		dU32 mipLevels{ 1 };
 		float mipBias{ 0.0f };
+		EFormat	format{ EFormat::R8G8B8A8_UNORM };
 	};
 
 	struct SamplerDesc
@@ -37,6 +38,7 @@ namespace Dune::Graphics
 		void* GetInternal() { return m_pInternal; }
 
 		void CreateSRV(Descriptor& descriptor, Texture& texture, const SRVDesc& desc);
+		void CreateSRV(Descriptor& descriptor, Texture& texture);
 		void CreateSRV(Descriptor& descriptor, Buffer& buffer);
 		void CreateSampler(Descriptor& descriptor, const SamplerDesc& desc);
 		void CreateRTV(Descriptor& descriptor, Texture& texture, const RTVDesc& desc);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Dune/Graphics/RenderPass/Shadow.h>
 #include <Dune/Graphics/RenderPass/Forward.h>
 #include <Dune/Graphics/RenderPass/DepthPrepass.h>
 #include <Dune/Graphics/RHI/Barrier.h>
@@ -64,12 +65,15 @@ namespace Dune
 			Descriptor m_directionalLightDescriptor{};
 			Descriptor m_pointLightDescriptor{};
 
+			dVector<Texture> m_shadowMaps{};
+
 			Fence m_fence{};
 			Frame m_frames[3];
 			dU32 m_frameIndex{ 0 };
 			dU32 m_frameCount{ 0 };
 			Barrier m_barrier{};
 
+			Shadow m_shadowPass{};
 			Forward m_forwardPass{};
 			DepthPrepass m_depthPrepass{};
 		};

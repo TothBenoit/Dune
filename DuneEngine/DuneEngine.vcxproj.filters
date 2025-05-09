@@ -107,6 +107,9 @@
     <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RenderPass\Shadow.h">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
@@ -157,12 +160,15 @@
     <ClCompile Include="src\Dune\Graphics\RenderPass\Forward.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RenderPass\Shadow.cpp">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\DepthPrepass.hlsl">
+    <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
     <None Include="include\Dune\Graphics\Shaders\Forward.hlsl">

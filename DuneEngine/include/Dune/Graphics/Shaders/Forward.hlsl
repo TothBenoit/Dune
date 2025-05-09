@@ -68,8 +68,8 @@ PS_OUTPUT PSMain(VSToPS input)
     float3 directLighting = 0.f.xxx;
     StructuredBuffer<DirectionalLight> directionalLights = ResourceDescriptorHeap[cGlobals.directionalLightBufferIndex];
     for (int directionalIndex = 0; directionalIndex < cGlobals.directionalLightCount; directionalIndex++)
-        directLighting += Light(directionalLights[directionalIndex], n, v, albedo, roughnessMetalness.x, roughnessMetalness.y);
-    
+        directLighting += Light(directionalLights[directionalIndex], n, v, input.worldPosition, albedo, roughnessMetalness.x, roughnessMetalness.y);
+
     StructuredBuffer<PointLight> pointLights = ResourceDescriptorHeap[cGlobals.pointLightBufferIndex];
     for (int pointIndex = 0; pointIndex < cGlobals.pointLightCount; pointIndex++)
         directLighting += Light(pointLights[pointIndex], n, v, input.worldPosition, albedo, roughnessMetalness.x, roughnessMetalness.y);

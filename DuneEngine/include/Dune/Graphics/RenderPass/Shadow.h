@@ -9,7 +9,7 @@ namespace Dune
 	namespace Graphics
 	{
 		class CommandList;
-		class DepthPrepass
+		class Shadow
 		{
 		public:
 			void Initialize(Device* pDevice);

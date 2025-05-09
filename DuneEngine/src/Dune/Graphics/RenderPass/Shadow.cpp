@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Dune/Graphics/RenderPass/DepthPrepass.h"
+#include "Dune/Graphics/RenderPass/Shadow.h"
 #include "Dune/Graphics/Shaders/ShaderTypes.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
@@ -11,13 +11,13 @@
 
 namespace Dune::Graphics
 {
-	void DepthPrepass::Initialize(Device* pDevice)
+	void Shadow::Initialize(Device* pDevice)
 	{
 		m_pDevice = pDevice;
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
-		Shader depthPrepassVS;
-		depthPrepassVS.Initialize
+		Shader shadowVS;
+		shadowVS.Initialize
 		({
 			.stage = EShaderStage::Vertex,
 			.filePath = L"Shaders\\DepthOnly.hlsl",
@@ -28,7 +28,7 @@ namespace Dune::Graphics
 
 		m_pipeline.Initialize(pDevice,
 			{
-				.pVertexShader = &depthPrepassVS,
+				.pVertexShader = &shadowVS,
 				.bindingLayout =
 				{
 					{.type = EBindingType::Constant, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::Vertex},
@@ -38,19 +38,20 @@ namespace Dune::Graphics
 				{
 					VertexInput {.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
 				},
+				.rasterizerState = {.depthBias = 10, .slopeScaledDepthBias = 4,.bDepthClipEnable = false},
 				.depthStencilState = {.bDepthEnabled = true, .bDepthWrite = true },
 				.depthStencilFormat = EFormat::D32_FLOAT,
 			}
-		);
-		depthPrepassVS.Destroy();
+			);
+		shadowVS.Destroy();
 	}
 
-	void DepthPrepass::Destroy()
+	void Shadow::Destroy()
 	{
 		m_pipeline.Destroy();
 	}
 
-	void DepthPrepass::Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection)
+	void Shadow::Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection)
 	{
 		commandList.SetGraphicsPipeline(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
@@ -59,7 +60,7 @@ namespace Dune::Graphics
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
 				InstanceData instance;
-				DirectX::XMStoreFloat4x4(&instance.modelMatrix, 
+				DirectX::XMStoreFloat4x4(&instance.modelMatrix,
 					DirectX::XMMatrixScalingFromVector({ transform.scale, transform.scale, transform.scale }) *
 					DirectX::XMMatrixRotationQuaternion(transform.rotation) *
 					DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
