@@ -9,7 +9,7 @@ namespace Dune::Graphics
 	Buffer CreateIndexBuffer(Device* pDevice, dU32 size, dU32 byteStride)
 	{
 		Assert(size != 0);
-		BufferDesc desc{ L"IndexBuffer", EBufferUsage::Index, EBufferMemory::GPUStatic, size * byteStride, byteStride };
+		BufferDesc desc{ L"IndexBuffer", EBufferUsage::Index, EBufferMemory::GPU, size * byteStride, byteStride };
 		Buffer indexBuffer{};
 		indexBuffer.Initialize(pDevice, desc);
 		return indexBuffer;
@@ -18,7 +18,7 @@ namespace Dune::Graphics
 	Buffer CreateVertexBuffer(Device* pDevice, dU32 size, dU32 byteStride)
 	{
 		Assert(size != 0);
-		BufferDesc desc{ L"VertexBuffer",EBufferUsage::Vertex, EBufferMemory::GPUStatic, size * byteStride, byteStride };
+		BufferDesc desc{ L"VertexBuffer",EBufferUsage::Vertex, EBufferMemory::GPU, size * byteStride, byteStride };
 		Buffer vertexBuffer{};
 		vertexBuffer.Initialize(pDevice, desc);
 		return vertexBuffer;

@@ -13,9 +13,7 @@ struct PointLights
 };
 
 ConstantBuffer<ForwardGlobals> cGlobals : register(b0);
-ConstantBuffer<DirectionalLights> cDirectionalLights : register(b1);
-ConstantBuffer<PointLights> cPointLights : register(b2);
-ConstantBuffer<InstanceData> cInstance : register(b3);
+ConstantBuffer<InstanceData> cInstance : register(b1);
 
 struct VS_INPUT
 {
@@ -68,11 +66,13 @@ PS_OUTPUT PSMain(VSToPS input)
     const float3 v = normalize(cGlobals.cameraPosition - input.worldPosition);
 
     float3 directLighting = 0.f.xxx;
+    StructuredBuffer<DirectionalLight> directionalLights = ResourceDescriptorHeap[cGlobals.directionalLightBufferIndex];
     for (int directionalIndex = 0; directionalIndex < cGlobals.directionalLightCount; directionalIndex++)
-        directLighting += Light(cDirectionalLights.lights[directionalIndex], n, v, albedo, roughnessMetalness.x, roughnessMetalness.y);
- 
+        directLighting += Light(directionalLights[directionalIndex], n, v, albedo, roughnessMetalness.x, roughnessMetalness.y);
+    
+    StructuredBuffer<PointLight> pointLights = ResourceDescriptorHeap[cGlobals.pointLightBufferIndex];
     for (int pointIndex = 0; pointIndex < cGlobals.pointLightCount; pointIndex++)
-        directLighting += Light(cPointLights.lights[pointIndex], n, v, input.worldPosition, albedo, roughnessMetalness.x, roughnessMetalness.y);
+        directLighting += Light(pointLights[pointIndex], n, v, input.worldPosition, albedo, roughnessMetalness.x, roughnessMetalness.y);
 
     const float3 indirectLighting = DiffuseLambert(albedo) * cGlobals.ambientColor;
     const float3 BRDF = directLighting + indirectLighting;

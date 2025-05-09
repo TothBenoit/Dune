@@ -116,7 +116,10 @@ public:
 						EntityID id = m_pScene->registry.create();
 						Name& name = m_pScene->registry.emplace<Name>(id);
 						name.name.assign("PointLight");
-						m_pScene->registry.emplace<Graphics::PointLight>(id);
+						Graphics::PointLight& light = m_pScene->registry.emplace<Graphics::PointLight>(id);
+						light.color = { 1.0f, 1.0f, 1.0f };
+						light.intensity = 1.0f;
+						light.radius = 10.f;
 						ImGui::CloseCurrentPopup();
 					}
 					ImGui::EndPopup();
@@ -146,7 +149,7 @@ public:
 
 				if (Transform* pTransform = m_pScene->registry.try_get<Transform>(m_selectedEntity))
 				{
-					if (ImGui::TreeNodeEx("Transform :"))
+					if (ImGui::TreeNodeEx("Transform :", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						ImGui::DragFloat3("Position", &pTransform->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 						ImGui::DragFloat4("Rotation", pTransform->rotation.m128_f32, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
@@ -157,7 +160,7 @@ public:
 
 				if (Graphics::PointLight* pLight = m_pScene->registry.try_get<Graphics::PointLight>(m_selectedEntity))
 				{
-					if (ImGui::TreeNodeEx("PointLight :"))
+					if (ImGui::TreeNodeEx("PointLight :", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 						ImGui::ColorPicker3("Color", &pLight->color.x);
@@ -169,7 +172,7 @@ public:
 
 				if (Graphics::DirectionalLight* pLight = m_pScene->registry.try_get<Graphics::DirectionalLight>(m_selectedEntity))
 				{
-					if (ImGui::TreeNodeEx("DirectionalLight :"))
+					if (ImGui::TreeNodeEx("DirectionalLight :", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						ImGui::ColorPicker3("Color", &pLight->color.x);
 						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");

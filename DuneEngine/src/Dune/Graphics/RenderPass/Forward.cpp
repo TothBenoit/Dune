@@ -8,7 +8,6 @@
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Scene/Scene.h"
-#include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
 {
@@ -44,8 +43,6 @@ namespace Dune::Graphics
 				.bindingLayout =
 				{
 					{.type = EBindingType::Constant, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
-					{.type = EBindingType::Buffer, .visibility = EShaderVisibility::Pixel },
-					{.type = EBindingType::Buffer, .visibility = EShaderVisibility::Pixel },
 					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::All},
 				},
 				.inputLayout =
@@ -71,20 +68,11 @@ namespace Dune::Graphics
 		m_pipeline.Destroy();
 	}
 
-	void Forward::Render(Scene& scene, DescriptorHeap& srvHeap, CommandList& commandList, Camera& camera, Buffer& directionLights, Buffer& pointLights, dQueue<Descriptor>& descriptorsToRelease)
+	void Forward::Render(Scene& scene, DescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals, dQueue<Descriptor>& descriptorsToRelease)
 	{
 		commandList.SetGraphicsPipeline(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
-
-		ForwardGlobals globals;
-		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
-		globals.ambientColor = { 0.02f, 0.02f, 0.05f };
-		globals.directionalLightCount = (dU32)scene.registry.view<const DirectionalLight>().size();
-		globals.pointLightCount = (dU32)scene.registry.view<const PointLight>().size();
-		globals.cameraPosition = camera.position;
 		commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
-		commandList.PushGraphicsBuffer(1, directionLights);
-		commandList.PushGraphicsBuffer(2, pointLights);
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
 				Mesh& mesh = scene.meshes[renderData.meshIdx];
@@ -109,7 +97,7 @@ namespace Dune::Graphics
 				instance.normalIndex = srvHeap.GetIndex(normal);
 				instance.roughnessMetalnessIndex = srvHeap.GetIndex(roughnessMetalness);
 
-				commandList.PushGraphicsConstants(3, &instance, sizeof(InstanceData));
+				commandList.PushGraphicsConstants(1, &instance, sizeof(InstanceData));
 				commandList.BindIndexBuffer(mesh.GetIndexBuffer());
 				commandList.BindVertexBuffer(mesh.GetVertexBuffer());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);

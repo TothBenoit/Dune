@@ -18,8 +18,7 @@ namespace Dune::Graphics
 	enum class EBufferMemory
 	{
 		CPU,
-		GPU,
-		GPUStatic
+		GPU
 	};
 
 	struct BufferDesc

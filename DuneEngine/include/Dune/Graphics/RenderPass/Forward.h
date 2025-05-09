@@ -11,6 +11,7 @@ namespace Dune
 	{
 		class DescriptorHeap;
 		struct Descriptor;
+		struct ForwardGlobals;
 		class CommandList;
 		class Buffer;
 
@@ -20,7 +21,7 @@ namespace Dune
 			void Initialize(Device* pDevice);
 			void Destroy();
 
-			void Render(Scene& scene, DescriptorHeap& srvHeap, CommandList& commandList, Camera& camera, Buffer& directionLights, Buffer& pointLights, dQueue<Descriptor>& descriptorsToRelease);
+			void Render(Scene& scene, DescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals, dQueue<Descriptor>& descriptorsToRelease);
 
 		private:
 			GraphicsPipeline m_pipeline;

@@ -42,6 +42,9 @@ struct ForwardGlobals
 	int        directionalLightCount;
 	float3     ambientColor;
 	int        pointLightCount;
+	uint       directionalLightBufferIndex;
+	uint       pointLightBufferIndex;
+	uint2      _padding;
 };
 
 struct InstanceData
@@ -50,6 +53,7 @@ struct InstanceData
 	uint       albedoIndex;
 	uint       normalIndex;
 	uint       roughnessMetalnessIndex;
+	uint       _padding;
 };
 
 struct PointLight

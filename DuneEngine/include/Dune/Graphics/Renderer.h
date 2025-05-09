@@ -59,6 +59,11 @@ namespace Dune
 			Descriptor m_renderTargetsDescriptors[3];
 			Descriptor m_depthBufferDescriptor;
 			
+			Buffer m_directionalLightBuffer{};
+			Buffer m_pointLightBuffer{};
+			Descriptor m_directionalLightDescriptor{};
+			Descriptor m_pointLightDescriptor{};
+
 			Fence m_fence{};
 			Frame m_frames[3];
 			dU32 m_frameIndex{ 0 };

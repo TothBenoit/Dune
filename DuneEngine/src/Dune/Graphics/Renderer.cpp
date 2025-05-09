@@ -5,6 +5,7 @@
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
 #include <Dune/Graphics/Shaders/ShaderTypes.h>
 #include "Dune/Scene/Scene.h"
+#include "Dune/Scene/Camera.h"
 #include <imgui/imgui_impl_win32.h>
 #include <imgui/imgui_impl_dx12.h>
 
@@ -66,6 +67,9 @@ namespace Dune::Graphics
 
 		m_forwardPass.Initialize(m_pDevice);
 		m_depthPrepass.Initialize(m_pDevice);
+
+		m_directionalLightDescriptor = m_srvHeap.Allocate();
+		m_pointLightDescriptor = m_srvHeap.Allocate();
 	}
 
 	void Renderer::Destroy()
@@ -89,6 +93,8 @@ namespace Dune::Graphics
 			frame.commandAllocator.Destroy();
 		}
 		m_dsvHeap.Free(m_depthBufferDescriptor);
+		m_srvHeap.Free(m_directionalLightDescriptor);
+		m_srvHeap.Free(m_pointLightDescriptor);
 		
 		m_srvHeap.Destroy();
 		m_samplerHeap.Destroy();
@@ -101,6 +107,12 @@ namespace Dune::Graphics
 		m_commandQueue.Destroy();
 		m_swapchain.Destroy();
 		m_fence.Destroy();
+
+		if (m_directionalLightBuffer.Get())
+			m_directionalLightBuffer.Destroy();
+
+		if (m_pointLightBuffer.Get())
+			m_pointLightBuffer.Destroy();
 	}
 
 	void Renderer::OnResize(dU32 width, dU32 height) 
@@ -153,55 +165,100 @@ namespace Dune::Graphics
 		frame.commandList.Reset(frame.commandAllocator);
 		frame.commandList.SetDescriptorHeaps(m_srvHeap, m_samplerHeap);
 
+		ForwardGlobals globals;
+
 		Buffer directionalLights{};
 		{
 			auto view = scene.registry.view<const DirectionalLight>();
 			dU32 directionalLightCount = (dU32)view.size();
-			dU32 byteSize = (dU32)((directionalLightCount == 0 ? 1 : directionalLightCount) * sizeof(DirectionalLight));
-			directionalLights.Initialize(m_pDevice,
+			if (directionalLightCount > 0)
+			{
+				dU32 byteSize = (dU32)((directionalLightCount) * sizeof(DirectionalLight));
+				if (m_directionalLightBuffer.GetByteSize() < byteSize)
 				{
-					.debugName{ L"DirectitonalLightBuffer" },
-					.usage{ EBufferUsage::Constant },
-					.memory{ EBufferMemory::CPU },
-					.byteSize{ byteSize },
-					.initialState{ EResourceState::Undefined }
-				});
-			void* pData{ nullptr };
-			directionalLights.Map(0, byteSize, &pData);
-			dU32 count{ 0 };
-			view.each([&](const DirectionalLight& light)
-				{
-					memcpy((DirectionalLight*)pData + count++, &light, sizeof(DirectionalLight));
+					if (m_directionalLightBuffer.Get())
+						frame.buffersToRelease.push(m_directionalLightBuffer);
+					m_directionalLightBuffer.Initialize(m_pDevice,
+						{
+							.debugName{ L"DirectitonalLightBuffer" },
+							.usage{ EBufferUsage::Constant },
+							.memory{ EBufferMemory::GPU },
+							.byteSize{ byteSize },
+							.byteStride { sizeof(DirectionalLight) },
+							.initialState{ EResourceState::Undefined }
+						});
+					m_pDevice->CreateSRV(m_directionalLightDescriptor, m_directionalLightBuffer);
 				}
-			);
-			directionalLights.Unmap(0, byteSize);
+
+				directionalLights.Initialize(m_pDevice,
+					{
+						.debugName{ L"DirectitonalLightBuffer" },
+						.usage{ EBufferUsage::Constant },
+						.memory{ EBufferMemory::CPU },
+						.byteSize{ byteSize },
+						.initialState{ EResourceState::Undefined }
+					});
+				void* pData{ nullptr };
+				directionalLights.Map(0, byteSize, &pData);
+				dU32 count{ 0 };
+				view.each([&](const DirectionalLight& light)
+					{
+						memcpy((DirectionalLight*)pData + count++, &light, sizeof(DirectionalLight));
+					}
+				);
+				directionalLights.Unmap(0, byteSize);
+				frame.commandList.CopyBufferRegion(m_directionalLightBuffer, 0, directionalLights, 0, byteSize);
+				frame.buffersToRelease.push(directionalLights);
+			}
+			globals.directionalLightCount = directionalLightCount;
+			globals.directionalLightBufferIndex = m_srvHeap.GetIndex(m_directionalLightDescriptor);
 		}
-		frame.buffersToRelease.push(directionalLights);
 
 		Buffer pointLights{};
 		{
 			auto view = scene.registry.view<const PointLight>();
 			dU32 pointLightCount = (dU32)view.size();
-			dU32 byteSize = (dU32)((pointLightCount == 0 ? 1 : pointLightCount) * sizeof(PointLight));
-			pointLights.Initialize(m_pDevice,
+			if (pointLightCount > 0)
+			{
+				dU32 byteSize = (dU32)((pointLightCount) * sizeof(PointLight));
+				if (m_pointLightBuffer.GetByteSize() < byteSize)
 				{
-					.debugName{ L"PointLightBuffer" },
-					.usage{ EBufferUsage::Constant },
-					.memory{ EBufferMemory::CPU },
-					.byteSize{ byteSize },
-					.initialState{ EResourceState::Undefined }
-				});
-			void* pData{ nullptr };
-			pointLights.Map(0, byteSize, &pData);
-			dU32 count{ 0 };
-			view.each([&](const PointLight& light)
-				{
-					memcpy((PointLight*)pData + count++, &light, sizeof(PointLight));
+					if (m_pointLightBuffer.Get())
+						frame.buffersToRelease.push(m_pointLightBuffer);
+					m_pointLightBuffer.Initialize(m_pDevice,
+						{
+							.debugName{ L"PointLightBuffer" },
+							.usage{ EBufferUsage::Constant },
+							.memory{ EBufferMemory::GPU },
+							.byteSize{ byteSize },
+							.byteStride { sizeof(PointLight) },
+							.initialState{ EResourceState::Undefined }
+						});
+					m_pDevice->CreateSRV(m_pointLightDescriptor, m_pointLightBuffer);
 				}
-			);
-			pointLights.Unmap(0, byteSize);
+				pointLights.Initialize(m_pDevice,
+					{
+						.debugName{ L"PointLightBuffer" },
+						.usage{ EBufferUsage::Constant },
+						.memory{ EBufferMemory::CPU },
+						.byteSize{ byteSize },
+						.initialState{ EResourceState::Undefined }
+					});
+				void* pData{ nullptr };
+				pointLights.Map(0, byteSize, &pData);
+				dU32 count{ 0 };
+				view.each([&](const PointLight& light)
+					{
+						memcpy((PointLight*)pData + count++, &light, sizeof(PointLight));
+					}
+				);
+				pointLights.Unmap(0, byteSize);
+				frame.commandList.CopyBufferRegion(m_pointLightBuffer, 0, pointLights, 0, byteSize);
+				frame.buffersToRelease.push(pointLights);
+			}
+			globals.pointLightCount = pointLightCount;
+			globals.pointLightBufferIndex = m_srvHeap.GetIndex(m_pointLightDescriptor);
 		}
-		frame.buffersToRelease.push(pointLights);
 
 		m_barrier.PushTransition(m_swapchain.GetBackBuffer(m_frameIndex).Get(), EResourceState::Present, EResourceState::RenderTarget);
 		frame.commandList.Transition(m_barrier);
@@ -223,7 +280,11 @@ namespace Dune::Graphics
 		m_depthPrepass.Render(scene, frame.commandList, camera);
 
 		frame.commandList.SetRenderTarget(&rtv.cpuAddress, 1, &dsv.cpuAddress);
-		m_forwardPass.Render(scene, m_srvHeap, frame.commandList, camera, directionalLights, pointLights, frame.descriptorsToRelease);
+
+		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
+		globals.ambientColor = { 0.02f, 0.02f, 0.05f };
+		globals.cameraPosition = camera.position;
+		m_forwardPass.Render(scene, m_srvHeap, frame.commandList, globals, frame.descriptorsToRelease);
 
 		if (m_pImGui)
 			m_pImGui->Render(frame.commandList);
