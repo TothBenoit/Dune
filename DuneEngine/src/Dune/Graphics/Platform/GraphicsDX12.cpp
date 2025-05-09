@@ -1406,12 +1406,12 @@ namespace Dune::Graphics
 
 		ImGui_ImplDX12_InitInfo init_info = {};
 		init_info.Device = ToDevice(renderer.m_pDevice->Get());
-		init_info.CommandQueue = ToCommandQueue(renderer.m_pCommandQueue->Get());;
+		init_info.CommandQueue = ToCommandQueue(renderer.m_commandQueue.Get());;
 		init_info.NumFramesInFlight = _countof(renderer.m_frames);
 		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 		init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
-		init_info.SrvDescriptorHeap = ToDescriptorHeap(renderer.m_pSrvHeap->Get());
-		init_info.UserData = renderer.m_pSrvHeap;
+		init_info.SrvDescriptorHeap = ToDescriptorHeap(renderer.m_srvHeap.Get());
+		init_info.UserData = &renderer.m_srvHeap;
 		init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) 
 			{ 
 				Descriptor descriptor{ ((DescriptorHeap*)info->UserData)->Allocate() };
