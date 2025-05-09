@@ -1,213 +1,220 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="src\Dune\Core\ECS\Components\BindingComponent.h">
-      <Filter>Dune\Core\ECS\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\ECS\Components\DirectionalLightComponent.h">
-      <Filter>Dune\Core\ECS\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\ECS\Components\GraphicsComponent.h">
-      <Filter>Dune\Core\ECS\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\ECS\Components\ComponentManager.h">
-      <Filter>Dune\Core\ECS\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\ECS\EntityManager.h">
-      <Filter>Dune\Core\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\Application.h">
+    <ClInclude Include="include\Dune\Core\Assert.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\BufferDesc.h">
+    <ClInclude Include="include\Dune\Graphics\Mesh.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\DescriptorHeap.h">
-      <Filter>Dune\Graphics</Filter>
+    <ClInclude Include="include\Dune\Utilities\StringUtils.h">
+      <Filter>Dune\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Buffer.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\EngineCore.h">
+    <ClInclude Include="include\Dune\Core\Types.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\GraphicsPch.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Common\ID.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Common\Handle.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\Input.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\Logger.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Common\Macro.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Material.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Mesh.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\ECS\Components\PointLightComponent.h">
-      <Filter>Dune\Core\ECS\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Renderer.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Common\Pool.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shader.h">
-      <Filter>Dune\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\SceneGraph.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Utilities\StringUtils.h">
-      <Filter>Dune\Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Common\Types.h">
-      <Filter>Dune\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\ECS\Components\TransformComponent.h">
-      <Filter>Dune\Core\ECS\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\Window.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune\Core\WindowPch.h">
-      <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dune.h">
+    <ClInclude Include="pch.h">
       <Filter>Dune</Filter>
     </ClInclude>
-    <ClInclude Include="src\pch.h">
-      <Filter>Dune</Filter>
+    <ClInclude Include="include\Dune\Utilities\Utils.h">
+      <Filter>Dune\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Utilities\MeshLoader.h">
-      <Filter>Dune\Utility</Filter>
+    <ClInclude Include="include\Dune\Graphics\Shaders\PostProcessGlobals.h">
+      <Filter>Dune\Graphics\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shaders\Common\ShaderTypes.h">
-      <Filter>Dune\Graphics\Shader\Common</Filter>
+    <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h">
+      <Filter>Dune\Graphics\Platform</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shaders\PointLight.h">
-      <Filter>Dune\Graphics\Shader</Filter>
+    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderTypes.h">
+      <Filter>Dune\Graphics\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shaders\DirectionalLight.h">
-      <Filter>Dune\Graphics\Shader</Filter>
+    <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h">
+      <Filter>Dune\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Utilities\Utils.h">
-      <Filter>Dune\Utility</Filter>
+    <ClInclude Include="include\Dune\Utilities\DDSLoader.h">
+      <Filter>Dune\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Texture.h">
+    <ClInclude Include="include\Dune\Graphics\RHI\Texture.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\Buffer.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\Window.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\TextureDesc.h">
+    <ClInclude Include="include\Dune\Graphics\RHI\DescriptorHeap.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\CommandList.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\Resource.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\Fence.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\GraphicsPipeline.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\Swapchain.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\Renderer.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Shaders\PostProcessGlobals.h">
-      <Filter>Dune\Graphics\Shader</Filter>
+    <ClInclude Include="include\Dune\Graphics\RHI\Device.h">
+      <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Core\JobSystem.h">
+    <ClInclude Include="include\Dune\Graphics\RHI\Barrier.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\Shader.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\Format.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Scene\Scene.h">
+      <Filter>Dune\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Scene\Camera.h">
+      <Filter>Dune\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune.h" />
+    <ClInclude Include="include\Dune\Core\File.h">
       <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Input.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\JobSystem.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\Logger.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Utilities\SceneLoader.h">
+      <Filter>Dune\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\ImGuiWrapper.h">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RenderPass\Shadow.h">
+      <Filter>Dune\Graphics\RenderPass</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Dune\Core\ECS\Components\GraphicsComponent.cpp">
-      <Filter>Dune\Core\ECS\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Core\ECS\EntityManager.cpp">
-      <Filter>Dune\Core\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Core\Application.cpp">
-      <Filter>Dune\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\DescriptorHeap.cpp">
-      <Filter>Dune\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Buffer.cpp">
-      <Filter>Dune\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Core\EngineCore.cpp">
-      <Filter>Dune\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Core\Input.cpp">
-      <Filter>Dune\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Core\Logger.cpp">
-      <Filter>Dune\Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
+      <Filter>Dune\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Dune</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\Platform\GraphicsDX12.cpp">
+      <Filter>Dune\Graphics\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp">
+      <Filter>Dune\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp">
+      <Filter>Dune\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\Window.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Shader.cpp">
-      <Filter>Dune\Graphics</Filter>
+    <ClCompile Include="src\Dune\Scene\Camera.cpp">
+      <Filter>Dune\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\SceneGraph.cpp">
+    <ClCompile Include="src\Dune\Core\File.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\Window.cpp">
+    <ClCompile Include="src\Dune\Core\Input.cpp">
       <Filter>Dune\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pch.cpp">
-      <Filter>Dune</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\MeshLoader.cpp">
-      <Filter>Dune\Utility</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Texture.cpp">
-      <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\JobSystem.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Core\Logger.cpp">
+      <Filter>Dune\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RHI\ImGuiWrapper.cpp">
+      <Filter>Dune\Graphics\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp">
+      <Filter>Dune\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RenderPass\DepthPrepass.cpp">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RenderPass\Forward.cpp">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RenderPass\Shadow.cpp">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
+    <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
+    <None Include="include\Dune\Graphics\Shaders\Forward.hlsl">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
+    <None Include="include\Dune\Graphics\Shaders\PostProcess.hlsl">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
+    <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
+    <None Include="include\Dune\Graphics\Shaders\Common.hlsli">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
     <None Include="packages.config" />
+    <None Include="include\Dune\Graphics\Shaders\Lighting.hlsli">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">
       <UniqueIdentifier>{11174586-51f2-40d5-90a1-87c4ccbb601b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\Utility">
+    <Filter Include="Dune\Utilities">
       <UniqueIdentifier>{bd6dcf96-7182-425d-b008-55e8c5df4a98}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Graphics">
       <UniqueIdentifier>{78921c41-9947-4ab1-b553-aab00a88cdea}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\Core">
-      <UniqueIdentifier>{694541c6-96f2-4f44-ae4e-601e643b4858}</UniqueIdentifier>
+    <Filter Include="Dune\Graphics\Platform">
+      <UniqueIdentifier>{7de3f997-37c6-412d-829a-ccf2ebc29c48}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\Core\ECS">
-      <UniqueIdentifier>{3fe98755-a7a4-4c24-8afe-52ccce619281}</UniqueIdentifier>
+    <Filter Include="Dune\Graphics\RHI">
+      <UniqueIdentifier>{d903048e-0edd-4606-bc55-d2da2aefdff8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\Core\ECS\Component">
-      <UniqueIdentifier>{27edc9e7-5f9e-4480-8392-f8c544145144}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Dune\Common">
-      <UniqueIdentifier>{b71fb8c9-cd47-4211-8b73-2f3ca412bff7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Dune\Graphics\Shader">
+    <Filter Include="Dune\Graphics\Shaders">
       <UniqueIdentifier>{df74b725-f633-452c-9fba-ebcdaa67b2ba}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ThirdParty">
-      <UniqueIdentifier>{944a8c62-5430-4610-8571-48df16bac69c}</UniqueIdentifier>
+    <Filter Include="Dune\Scene">
+      <UniqueIdentifier>{7b0fdf36-69b2-489a-9039-ef1cffaee027}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ThirdParty\Optick">
-      <UniqueIdentifier>{683a57f2-db88-4389-a4b5-5e131007cfd5}</UniqueIdentifier>
+    <Filter Include="Dune\Core">
+      <UniqueIdentifier>{b71fb8c9-cd47-4211-8b73-2f3ca412bff7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\Graphics\Shader\Common">
-      <UniqueIdentifier>{e5fd42c7-b8de-433a-b0e8-db486a3636dd}</UniqueIdentifier>
+    <Filter Include="Dune\Graphics\RenderPass">
+      <UniqueIdentifier>{05f7b3e6-873e-48d8-a0e7-7f5b676ab5c6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

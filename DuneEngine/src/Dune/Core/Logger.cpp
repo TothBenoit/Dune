@@ -1,10 +1,8 @@
 #include "pch.h"
-#include "Logger.h"
+#include "Dune/Core/Logger.h"
 
 namespace Dune
 {
-
-
 	Logger& Logger::GetInstance()
 	{
 		static Logger instance{};
@@ -50,7 +48,6 @@ namespace Dune
 
 	void Logger::Log(LogLevel level, const dString& msg)
 	{
-		ProfileFunc();
 		switch (level)
 		{
 		case LogLevel::Info:

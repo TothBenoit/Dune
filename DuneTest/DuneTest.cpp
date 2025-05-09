@@ -1,55 +1,269 @@
 #include <Dune.h>
-#include <DirectXMath.h>
+#include <chrono>
+#include <Dune/Core/JobSystem.h>
+#include <Dune/Graphics/RHI/Texture.h>
+#include <Dune/Graphics/RHI/Device.h>
+#include <Dune/Graphics/RHI/ImGuiWrapper.h>
+#include <Dune/Graphics/Mesh.h>
+#include <Dune/Graphics/Shaders/ShaderTypes.h>
+#include <Dune/Graphics/Renderer.h>
+#include <Dune/Graphics/Window.h>
+#include <Dune/Utilities/SimpleCameraController.h>
+#include <Dune/Scene/Scene.h>
+#include <Dune/Utilities/SceneLoader.h>
+#include <Dune/Utilities/StringUtils.h>
+#include <filesystem>
+#include <imgui/imgui.h>
 
-using namespace DirectX;
+using namespace Dune;
 
-class DuneLauncher : public Dune::Application
+class App
 {
 public:
+	App(Graphics::Device* pDevice, Scene* pScene)
+		: m_pDevice{pDevice}
+		, m_pScene{pScene}
+	{}
 
-	void OnStart() override
+	void Run()
 	{
-		Dune::EntityID entity = Dune::EngineCore::CreateEntity("My cube");
-		Dune::EngineCore::AddComponent<Dune::GraphicsComponent>(entity).mesh = Dune::EngineCore::GetDefaultMesh();
-		
-		Dune::TransformComponent& cubeTransform = Dune::EngineCore::ModifyComponentUnsafe<Dune::TransformComponent>(entity);
-		cubeTransform.position.z = 3.f;
-		cubeTransform.position.y = -1.25f;
+		m_window.Initialize({});
+		m_window.SetOnResizeFunc(&m_renderer, [](void* pData, dU32 width, dU32 height)
+			{
+				Graphics::Renderer* pRenderer = (Graphics::Renderer*)pData;
+				pRenderer->OnResize(width, height);
+			}
+		);
+		m_renderer.Initialize(*m_pDevice, m_window);
+		m_imgui.Initialize(m_window, m_renderer);
 
-		Dune::EntityID sunEntity = Dune::EngineCore::CreateEntity("Sun");
-		Dune::DirectionalLightComponent& light = Dune::EngineCore::AddComponent<Dune::DirectionalLightComponent>(sunEntity);
-		light.intensity = 0.8f;
-		Dune::TransformComponent& lightTransform = Dune::EngineCore::ModifyComponentUnsafe<Dune::TransformComponent>(sunEntity);
-		lightTransform.rotation.y = 180;
-
-		followingLightEntity = Dune::EngineCore::CreateEntity("FollowingLight");
-		Dune::PointLightComponent& followingLight = Dune::EngineCore::AddComponent<Dune::PointLightComponent>(followingLightEntity);
-		followingLight.intensity = 0.38f;
-		followingLight.radius = 100;
-
-		Dune::Camera& camera = Dune::EngineCore::ModifyCamera();
-		camera.rotation.x = 20.f * 3.14f / 180.f;
-	}
-
-	void OnUpdate(float dt) override
-	{
-		if (Dune::EngineCore::IsAlive(followingLightEntity)) // Can be removed by the ImGui interface
+		auto lastFrameTimer = std::chrono::high_resolution_clock::now();
+		while (m_window.Update())
 		{
-			const Dune::Camera& camera{ Dune::EngineCore::GetCamera() };
-			Dune::TransformComponent& lightTransform = Dune::EngineCore::ModifyComponentUnsafe<Dune::TransformComponent>(followingLightEntity);
-			lightTransform.position = camera.position;
+			auto timer = std::chrono::high_resolution_clock::now();
+			m_deltaTime = (float)std::chrono::duration<float>(timer - lastFrameTimer).count();
+			lastFrameTimer = std::chrono::high_resolution_clock::now();
+
+			DrawGUI();
+			m_camera.Update(m_deltaTime, m_window.GetInput());
+			m_renderer.Render(*m_pScene, m_camera.GetCamera());
 		}
+
+		m_imgui.Destroy();
+		m_renderer.Destroy();
+		m_window.Destroy();
 	}
 
-	Dune::EntityID followingLightEntity;
+	void DrawGUI()
+	{
+		m_imgui.Lock();
+		m_imgui.NewFrame();
+
+		ImGui::GetStyle().Colors[ImGuiCol_WindowBg].w = 0.66f;
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->WorkPos);
+		ImGui::SetNextWindowSize(viewport->WorkSize);
+		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+		ImGui::PopStyleVar(3);
+		ImGui::DockSpace(ImGui::GetID("Viewport"), ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode );
+		ImGui::End();
+
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("File", true))
+			{
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Window", true))
+			{
+				bool selected{ false };
+				if (ImGui::Selectable("Scene", &selected))
+					m_showScene = true;
+
+				if (ImGui::Selectable("Inspector", &selected))
+					m_showInspector = true;
+
+				if (ImGui::Selectable("Demo", &selected))
+					m_showDemo = true;
+
+				ImGui::EndMenu();
+			}
+
+			float smoothing = 0.95f;
+			m_framerate = m_framerate * smoothing + (1.0f / m_deltaTime) * (1.0f - smoothing);
+			dString FPSlabel = dStringUtils::printf("FPS : %.0f", m_framerate);
+			ImGui::BeginMenu(FPSlabel.c_str(), false);
+			ImGui::EndMainMenuBar();
+		}
+
+		if (m_showScene)
+		{
+			if (ImGui::Begin("Scene", &m_showScene))
+			{
+				if (ImGui::Button("Add Entity"))
+				{
+					ImGui::OpenPopup("##AddEntity");
+				}
+				
+				// This can cause a data race if another window is currently rendering
+				// I didn't decide if the user should be able to modify a scene while another thread is rendering so I don't fix it yet
+				if (ImGui::BeginPopup("##AddEntity"))
+				{
+					if (ImGui::Button("Point light"))
+					{
+						EntityID id = m_pScene->registry.create();
+						Name& name = m_pScene->registry.emplace<Name>(id);
+						name.name.assign("PointLight");
+						Graphics::PointLight& light = m_pScene->registry.emplace<Graphics::PointLight>(id);
+						light.color = { 1.0f, 1.0f, 1.0f };
+						light.intensity = 1.0f;
+						light.radius = 10.f;
+						ImGui::CloseCurrentPopup();
+					}
+
+					if (ImGui::Button("Directional light"))
+					{
+						EntityID id = m_pScene->registry.create();
+						Name& name = m_pScene->registry.emplace<Name>(id);
+						name.name.assign("DirectionalLight");
+						Graphics::DirectionalLight& light = m_pScene->registry.emplace<Graphics::DirectionalLight>(id);
+						light.color = { 1.0f, 1.0f, 1.0f };
+						light.intensity = 1.0f;
+						light.direction = { 0.0f, -1.0f, 0.0f };
+						ImGui::CloseCurrentPopup();
+					}
+					ImGui::EndPopup();
+				}
+
+				m_pScene->registry.view<Name>().each([&](EntityID entity, Name& name)
+					{
+						bool isSelected = m_selectedEntity == entity;
+						ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ((isSelected) ? ImGuiTreeNodeFlags_Selected : 0);
+						dString id = dStringUtils::printf("%d", entity);
+						ImGui::TreeNodeEx(id.c_str(), flags, name.name.c_str());
+						if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+							m_selectedEntity = entity;
+					});
+			}
+			ImGui::End();
+		}
+
+		if (m_showInspector)
+		{
+			ImGui::Begin("Inspector", &m_showInspector);
+
+			if (Name* pName = m_pScene->registry.try_get<Name>(m_selectedEntity) )
+			{
+				ImGui::Text("%s", pName->name.c_str());
+				ImGui::Separator();
+
+				if (Transform* pTransform = m_pScene->registry.try_get<Transform>(m_selectedEntity))
+				{
+					if (ImGui::TreeNodeEx("Transform :", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::DragFloat3("Position", &pTransform->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat4("Rotation", pTransform->rotation.m128_f32, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat("Scale", &pTransform->scale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::TreePop();
+					}
+				}
+
+				if (Graphics::PointLight* pLight = m_pScene->registry.try_get<Graphics::PointLight>(m_selectedEntity))
+				{
+					if (ImGui::TreeNodeEx("PointLight :", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::ColorPicker3("Color", &pLight->color.x);
+						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat("Radius", &pLight->radius, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::TreePop();
+					}
+				}
+
+				if (Graphics::DirectionalLight* pLight = m_pScene->registry.try_get<Graphics::DirectionalLight>(m_selectedEntity))
+				{
+					if (ImGui::TreeNodeEx("DirectionalLight :", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::ColorPicker3("Color", &pLight->color.x);
+						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat3("Direction", &pLight->direction.x, 0.01f, -1.0f, 1.0f, "%.2f");
+						if (ImGui::Button("Normalize")) 
+							DirectX::XMStoreFloat3(&pLight->direction, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&pLight->direction)));
+						ImGui::TreePop();
+					}
+				}
+			}
+			ImGui::End();
+		}
+
+		if (m_showDemo)
+			ImGui::ShowDemoWindow(&m_showDemo);
+
+		m_imgui.Unlock();
+	}
+
+private:
+	Graphics::Device* m_pDevice;
+	Scene* m_pScene;
+
+	Graphics::Window m_window{};
+	Graphics::Renderer m_renderer{};
+	Graphics::ImGuiWrapper m_imgui{};
+	SimpleCameraController m_camera{};
+
+	float m_deltaTime{ 0.0f };
+	float m_framerate{ 0.0f };
+
+	bool m_showScene{ true };
+	bool m_showInspector{ true };
+	bool m_showDemo{ false };
+
+	EntityID m_selectedEntity{ (EntityID)-1 };
 };
+
+void Test(Graphics::Device* pDevice, Scene* pScene)
+{
+	App app{ pDevice, pScene };
+	app.Run();
+}
 
 int main(int argc, char** argv)
 {
 #ifdef _DEBUG
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
-	DuneLauncher launcher = DuneLauncher();
-	launcher.Start();
+	
+	dU32 testCount{ 5 };
+	Job::Initialize(testCount);
+	Graphics::Device device{};
+	device.Initialize();
+
+	Scene scene{};
+	SceneLoader::Load(std::filesystem::current_path().string().append("\\Resources\\Sponza\\").c_str(), "Sponza.gltf", scene, device);
+	EntityID sun = scene.registry.create();
+	Graphics::DirectionalLight& light = scene.registry.emplace<Graphics::DirectionalLight>(sun);
+	light.color = { 1.0f, 1.0f, 1.0f };
+	light.direction = { 0.1f, -1.0f, 0.1f };
+	light.intensity = 1.0f;
+	Name& name = scene.registry.emplace<Name>(sun);
+	name.name.assign("Sun");
+
+	Job::JobBuilder jobBuilder{};
+	for (dU32 i = 0 ; i < testCount; i++)
+		jobBuilder.DispatchJob<Job::Fence::None>([&]() { Test(&device, &scene); });
+	Job::Wait();
+
+	for (Graphics::Texture& texture : scene.textures)
+		texture.Destroy();
+	for (Graphics::Mesh& mesh : scene.meshes)
+		mesh.Destroy();
+
+	device.Destroy();
+	Job::Shutdown();
+
 	return 0;
 }

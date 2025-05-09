@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Input.h"
+#include "Dune/Core/Input.h"
 
 namespace Dune
 {
@@ -37,7 +37,7 @@ namespace Dune
 	{
 		m_mouseWheelDelta = delta;
 	}
-	void Input::EndFrame()
+	void Input::Update()
 	{
 		memset(m_keyDown, 0, sizeof(m_keyDown));
 		memset(m_keyUp, 0, sizeof(m_keyUp));

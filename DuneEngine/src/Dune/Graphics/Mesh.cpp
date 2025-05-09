@@ -1,44 +1,79 @@
 #include "pch.h"
-#include "Mesh.h"
-#include "Dune/Core/Logger.h"
-#include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/Buffer.h"
+#include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/RHI/Buffer.h"
+#include "Dune/Graphics/RHI/CommandList.h"
 
-namespace Dune
+namespace Dune::Graphics
 {
-	Mesh::Mesh(const dVector<dU16>& indices, const dVector<Vertex>& vertices)
-	{
-		UploadVertexBuffer(vertices.data(), (dU32)vertices.size(), sizeof(Vertex));
-		UploadIndexBuffer(indices.data(), (dU32)indices.size(), sizeof(dU16));
-	}
-	Mesh::Mesh(const dVector<dU32>& indices, const dVector<Vertex>& vertices)
-	{
-		UploadVertexBuffer(vertices.data(), (dU32)vertices.size(), sizeof(Vertex));
-		UploadIndexBuffer(indices.data(), (dU32)indices.size(), sizeof(dU32));
-	}
 
-	Mesh::~Mesh()
-	{
-		Renderer& renderer{ Renderer::GetInstance() };
-		renderer.ReleaseBuffer(m_vertexBufferHandle);
-		renderer.ReleaseBuffer(m_indexBufferHandle);
-	}
-
-	void Mesh::UploadVertexBuffer(const void* pData, dU32 size, dU32 byteStride)
+	Buffer CreateIndexBuffer(Device* pDevice, dU32 size, dU32 byteStride)
 	{
 		Assert(size != 0);
-		BufferDesc desc{ L"VertexBuffer",  size * byteStride, EBufferUsage::Vertex, EBufferMemory::GPUStatic, pData, byteStride };
-		m_vertexBufferHandle = Renderer::GetInstance().CreateBuffer(desc);
-		Assert(m_vertexBufferHandle.IsValid());
+		BufferDesc desc{ L"IndexBuffer", EBufferUsage::Index, EBufferMemory::GPU, size * byteStride, byteStride };
+		Buffer indexBuffer{};
+		indexBuffer.Initialize(pDevice, desc);
+		return indexBuffer;
 	}
 
-	void Mesh::UploadIndexBuffer(const void* pData, dU32 size, dU32 byteStride)
+	Buffer CreateVertexBuffer(Device* pDevice, dU32 size, dU32 byteStride)
 	{
 		Assert(size != 0);
-		BufferDesc desc{ L"IndexBuffer", size * byteStride , EBufferUsage::Index, EBufferMemory::GPUStatic, pData, byteStride};
-		m_indexBufferHandle = Renderer::GetInstance().CreateBuffer(desc);
-		Assert(m_indexBufferHandle.IsValid());
+		BufferDesc desc{ L"VertexBuffer",EBufferUsage::Vertex, EBufferMemory::GPU, size * byteStride, byteStride };
+		Buffer vertexBuffer{};
+		vertexBuffer.Initialize(pDevice, desc);
+		return vertexBuffer;
 	}
 
+	void UploadBuffer(CommandList* pCommandList, Buffer& buffer, Buffer& uploadBuffer, const void* pData, dU32 byteSize, dU32 byteOffset )
+	{
+		void* pCpuAddress{ nullptr };
+		uploadBuffer.Map(0, 0, &pCpuAddress);
+		memcpy((void*)(dU64(pCpuAddress) + byteOffset), pData, byteSize);
+		pCommandList->CopyBufferRegion(buffer, 0, uploadBuffer, byteOffset, byteSize);
+		uploadBuffer.Unmap(0, 0);
+	}
+
+	void Mesh::Initialize(Device* pDevice, CommandList* pCommandList, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
+	{
+		m_indexCount = indexCount;
+		m_vertexCount = vertexCount;
+
+		dU32 vertexByteSize = vertexCount * vertexByteStride;
+		dU32 indexByteSize = indexCount * sizeof(dU16);
+		dU32 uploadByteSize = vertexByteSize + indexByteSize;
+
+		BufferDesc desc{ L"UploadBuffer",EBufferUsage::Constant, EBufferMemory::CPU, uploadByteSize, uploadByteSize };
+		m_uploadBuffer.Initialize(pDevice, desc);
+
+		m_indexBuffer = CreateIndexBuffer(pDevice, indexCount, sizeof(dU16));
+		UploadBuffer(pCommandList, m_indexBuffer, m_uploadBuffer, pIndices, indexByteSize, 0);
+		m_vertexBuffer = CreateVertexBuffer(pDevice, vertexCount, vertexByteStride);
+		UploadBuffer( pCommandList, m_vertexBuffer, m_uploadBuffer, pVertices, vertexByteSize, indexByteSize);
+	}
+
+	void Mesh::Initialize(Device* pDevice, CommandList* pCommandList, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
+	{
+		m_indexCount = indexCount;
+		m_vertexCount = vertexCount;
+
+		dU32 vertexByteSize = vertexCount * vertexByteStride;
+		dU32 indexByteSize = indexCount * sizeof(dU32);
+		dU32 uploadByteSize = vertexByteSize + indexByteSize;
+
+		BufferDesc desc{ L"UploadBuffer",EBufferUsage::Constant, EBufferMemory::CPU, uploadByteSize, uploadByteSize };
+		m_uploadBuffer.Initialize(pDevice, desc);
+
+		m_indexBuffer = CreateIndexBuffer(pDevice, indexCount, sizeof(dU32));
+		UploadBuffer(pCommandList, m_indexBuffer, m_uploadBuffer, pIndices, indexByteSize, 0 );
+		m_vertexBuffer = CreateVertexBuffer(pDevice, vertexCount, vertexByteStride);
+		UploadBuffer(pCommandList, m_vertexBuffer, m_uploadBuffer, pVertices, vertexByteSize, indexByteSize);
+	}
+
+	void Mesh::Destroy()
+	{
+		m_uploadBuffer.Destroy();
+		m_indexBuffer.Destroy();
+		m_vertexBuffer.Destroy();
+	}
 }
 
