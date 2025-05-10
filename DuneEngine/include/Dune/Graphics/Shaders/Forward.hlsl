@@ -1,7 +1,6 @@
 #include "ShaderTypes.h"
 #include "Lighting.hlsli"
 
-
 struct DirectionalLights
 {
     DirectionalLight lights[255];
@@ -74,9 +73,7 @@ PS_OUTPUT PSMain(VSToPS input)
     for (int pointIndex = 0; pointIndex < cGlobals.pointLightCount; pointIndex++)
         directLighting += Light(pointLights[pointIndex], n, v, input.worldPosition, albedo, roughnessMetalness.x, roughnessMetalness.y);
 
-    const float3 indirectLighting = DiffuseLambert(albedo) * cGlobals.ambientColor;
-    const float3 BRDF = directLighting + indirectLighting;
-    const float3 BRDFGammaCorrected = pow(BRDF, 1.0f / 2.2f);    
-    output.color = float4(BRDFGammaCorrected, 1.0f);
+    const float3 indirectLighting = DiffuseLambert(albedo) * cGlobals.ambientColor;  
+    output.color = float4(directLighting + indirectLighting, 1.0f);
     return output;
 }

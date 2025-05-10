@@ -54,7 +54,7 @@ namespace Dune::Graphics
 				},
 				.depthStencilState = {.bDepthEnabled = true, .bDepthWrite = true },
 				.renderTargetCount = 1,
-				.renderTargetsFormat = { EFormat::R8G8B8A8_UNORM },
+				.renderTargetsFormat = { EFormat::R16G16B16A16_FLOAT },
 				.depthStencilFormat = EFormat::D32_FLOAT,
 			}
 		);

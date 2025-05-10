@@ -16,28 +16,38 @@ namespace Dune::Graphics
 		m_pDevice = &device;
 		m_pWindow = &window;
 
-		m_depthBuffer.Initialize( 
-			m_pDevice, 
-			{ 
-				.debugName = L"DepthBuffer", 
-				.usage = ETextureUsage::DepthStencil, 
-				.dimensions = { m_pWindow->GetWidth(), m_pWindow->GetHeight(), 1}, 
+		dU32 width = m_pWindow->GetWidth();
+		dU32 height = m_pWindow->GetHeight();
+		m_depthBuffer.Initialize( m_pDevice, 
+			{
+				.debugName = L"DepthBuffer",
+				.usage = ETextureUsage::DepthStencil,
+				.dimensions = { width, height, 1 },
 				.format = EFormat::D32_FLOAT,
-				.clearValue = {1.f, 1.f, 1.f, 1.f}, 
-				.initialState = EResourceState::DepthStencil 
-			}
-		);
+				.clearValue = {1.f, 1.f, 1.f, 1.f},
+				.initialState = EResourceState::DepthStencil
+			});
 
-		m_fence.Initialize(m_pDevice, 0);
-		m_commandQueue.Initialize(m_pDevice, ECommandType::Direct);
-
+		TextureDesc colorTargetDesc
+		{
+			.debugName = L"ColorTarget",
+			.usage{ ETextureUsage::RenderTarget | ETextureUsage::ShaderResource },
+			.dimensions = { width, height, 1},
+			.mipLevels{ 1 },
+			.format{ EFormat::R16G16B16A16_FLOAT },
+			.initialState{ EResourceState::ShaderResource },
+		};
 		for (Frame& frame : m_frames)
 		{
 			frame.commandAllocator.Initialize(m_pDevice, ECommandType::Direct);
 			frame.commandList.Initialize(m_pDevice, ECommandType::Direct, frame.commandAllocator);
 			frame.commandList.Close();
+			frame.colorTarget.Initialize(m_pDevice, colorTargetDesc);
 		}
+
 		m_barrier.Initialize(16);
+		m_fence.Initialize(m_pDevice, 0);
+		m_commandQueue.Initialize(m_pDevice, ECommandType::Direct);
 		m_swapchain.Initialize(m_pDevice, m_pWindow, &m_commandQueue, { .latency = 3 });
 
 		DescriptorHeapDesc heapDesc = { .type = DescriptorHeapType::SRV_CBV_UAV, .capacity = 4096 };
@@ -55,22 +65,27 @@ namespace Dune::Graphics
 
 		for (dU32 i = 0; i < 3; i++)
 		{
-			Graphics::Descriptor rtv = m_rtvHeap.Allocate();
-			m_pDevice->CreateRTV(rtv, m_swapchain.GetBackBuffer(i), {});
-			m_renderTargetsDescriptors[i] = rtv;
+			Frame& frame = m_frames[i];
+			frame.backBufferRTV = m_rtvHeap.Allocate();
+			frame.colorTargetRTV = m_rtvHeap.Allocate();
+			frame.colorTargetSRV = m_srvHeap.Allocate();
+			m_pDevice->CreateRTV(frame.backBufferRTV, m_swapchain.GetBackBuffer(i), {});
+			m_pDevice->CreateRTV(frame.colorTargetRTV, frame.colorTarget, {});
+			m_pDevice->CreateSRV(frame.colorTargetSRV, frame.colorTarget);
 		}
 
-		m_depthBufferDescriptor = m_dsvHeap.Allocate();
-		m_pDevice->CreateDSV(m_depthBufferDescriptor, m_depthBuffer, {});
+		m_depthBufferDSV = m_dsvHeap.Allocate();
+		m_pDevice->CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
 
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
 		m_forwardPass.Initialize(m_pDevice);
 		m_depthPrepass.Initialize(m_pDevice);
 		m_shadowPass.Initialize(m_pDevice);
+		m_tonemappingPass.Initialize(m_pDevice);
 
-		m_directionalLightDescriptor = m_srvHeap.Allocate();
-		m_pointLightDescriptor = m_srvHeap.Allocate();
+		m_directionalLightSRV = m_srvHeap.Allocate();
+		m_pointLightSRV = m_srvHeap.Allocate();
 	}
 
 	void Renderer::Destroy()
@@ -89,25 +104,30 @@ namespace Dune::Graphics
 				frame.buffersToRelease.pop();
 			}
 			WaitForFrame(frame);
-			m_rtvHeap.Free(m_renderTargetsDescriptors[i]);
+			m_rtvHeap.Free(frame.backBufferRTV);
+			m_rtvHeap.Free(frame.colorTargetRTV);
+			m_srvHeap.Free(frame.colorTargetSRV);
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
+			frame.colorTarget.Destroy();
 		}
-		m_dsvHeap.Free(m_depthBufferDescriptor);
-		m_srvHeap.Free(m_directionalLightDescriptor);
-		m_srvHeap.Free(m_pointLightDescriptor);
+		m_dsvHeap.Free(m_depthBufferDSV);
+		m_srvHeap.Free(m_directionalLightSRV);
+		m_srvHeap.Free(m_pointLightSRV);
 
 		for (Texture& shadow : m_shadowMaps)
 			shadow.Destroy();
 		
+		m_forwardPass.Destroy();
+		m_depthPrepass.Destroy();
+		m_shadowPass.Destroy();
+		m_tonemappingPass.Destroy();
+
 		m_srvHeap.Destroy();
 		m_samplerHeap.Destroy();
 		m_rtvHeap.Destroy();
 		m_dsvHeap.Destroy();
 		m_barrier.Destroy();
-		m_forwardPass.Destroy();
-		m_depthPrepass.Destroy();
-		m_shadowPass.Destroy();
 		m_depthBuffer.Destroy();
 		m_commandQueue.Destroy();
 		m_swapchain.Destroy();
@@ -122,26 +142,41 @@ namespace Dune::Graphics
 
 	void Renderer::OnResize(dU32 width, dU32 height) 
 	{
-		for ( const Frame& f : m_frames )
+		TextureDesc colorTargetDesc
+		{
+			.debugName = L"ColorTarget",
+			.usage{ ETextureUsage::RenderTarget | ETextureUsage::ShaderResource },
+			.dimensions = { width, height, 1},
+			.mipLevels{ 1 },
+			.format{ EFormat::R16G16B16A16_FLOAT },
+			.initialState{ EResourceState::ShaderResource },
+		};
+
+		for (Frame& f : m_frames)
+		{
 			WaitForFrame(f);
+			f.colorTarget.Destroy();
+			f.colorTarget.Initialize(m_pDevice, colorTargetDesc);
+			m_pDevice->CreateSRV(f.colorTargetSRV, f.colorTarget);
+			m_pDevice->CreateRTV(f.colorTargetRTV, f.colorTarget, {});
+		}
+
 		m_swapchain.Resize(width, height);
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 		for (dU32 i = 0; i < 3; i++)
-			m_pDevice->CreateRTV(m_renderTargetsDescriptors[i], m_swapchain.GetBackBuffer(i), {});
+			m_pDevice->CreateRTV(m_frames[i].backBufferRTV, m_swapchain.GetBackBuffer(i), {});
 
 		m_depthBuffer.Destroy();
-		m_depthBuffer.Initialize(
-			m_pDevice,
+		m_depthBuffer.Initialize(m_pDevice, 
 			{
 				.debugName = L"DepthBuffer",
 				.usage = ETextureUsage::DepthStencil,
-				.dimensions = {width, height, 1},
+				.dimensions = { width, height, 1 },
 				.format = EFormat::D32_FLOAT,
 				.clearValue = {1.f, 1.f, 1.f, 1.f},
 				.initialState = EResourceState::DepthStencil
-			}
-		);
-		m_pDevice->CreateDSV(m_depthBufferDescriptor, m_depthBuffer, {});
+			});
+		m_pDevice->CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
 	}
 
 	void Renderer::WaitForFrame(const Frame& frame)
@@ -195,7 +230,7 @@ namespace Dune::Graphics
 							.byteStride { sizeof(DirectionalLight) },
 							.initialState{ EResourceState::Undefined }
 						});
-					m_pDevice->CreateSRV(m_directionalLightDescriptor, m_directionalLightBuffer);
+					m_pDevice->CreateSRV(m_directionalLightSRV, m_directionalLightBuffer);
 				}
 
 				directionalLights.Initialize(m_pDevice,
@@ -264,7 +299,7 @@ namespace Dune::Graphics
 				frame.buffersToRelease.push(directionalLights);
 			}
 			globals.directionalLightCount = directionalLightCount;
-			globals.directionalLightBufferIndex = m_srvHeap.GetIndex(m_directionalLightDescriptor);
+			globals.directionalLightBufferIndex = m_srvHeap.GetIndex(m_directionalLightSRV);
 		}
 
 		Buffer pointLights{};
@@ -287,7 +322,7 @@ namespace Dune::Graphics
 							.byteStride { sizeof(PointLight) },
 							.initialState{ EResourceState::Undefined }
 						});
-					m_pDevice->CreateSRV(m_pointLightDescriptor, m_pointLightBuffer);
+					m_pDevice->CreateSRV(m_pointLightSRV, m_pointLightBuffer);
 				}
 				pointLights.Initialize(m_pDevice,
 					{
@@ -310,18 +345,16 @@ namespace Dune::Graphics
 				frame.buffersToRelease.push(pointLights);
 			}
 			globals.pointLightCount = pointLightCount;
-			globals.pointLightBufferIndex = m_srvHeap.GetIndex(m_pointLightDescriptor);
+			globals.pointLightBufferIndex = m_srvHeap.GetIndex(m_pointLightSRV);
 		}
 
 		m_barrier.PushTransition(m_swapchain.GetBackBuffer(m_frameIndex).Get(), EResourceState::Present, EResourceState::RenderTarget);
+		m_barrier.PushTransition(frame.colorTarget.Get(), EResourceState::ShaderResource, EResourceState::RenderTarget);
 		frame.commandList.Transition(m_barrier);
 		m_barrier.Reset();
 
-		Descriptor rtv = m_renderTargetsDescriptors[m_frameIndex];
-		Descriptor dsv = m_depthBufferDescriptor;
-
-		const float color[4]{ 0.0f, 0.0f, 0.0f, 1.0f };
-		frame.commandList.ClearRenderTargetView(rtv, color);
+		Descriptor dsv = m_depthBufferDSV;
+		frame.commandList.ClearRenderTargetView(frame.colorTargetRTV, frame.colorTarget.GetClearValue());
 		frame.commandList.ClearDepthBuffer(dsv, m_depthBuffer.GetClearValue()[0], 0);
 
 		Viewport viewport{ 0.0, 0.0, (float)m_pWindow->GetWidth(), (float)m_pWindow->GetHeight(), 0.0f, 1.0f };
@@ -332,8 +365,19 @@ namespace Dune::Graphics
 		frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 		m_depthPrepass.Render(scene, frame.commandList, globals.viewProjectionMatrix);
 
-		frame.commandList.SetRenderTarget(&rtv.cpuAddress, 1, &dsv.cpuAddress);
+		frame.commandList.SetRenderTarget(&frame.colorTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
 		m_forwardPass.Render(scene, m_srvHeap, frame.commandList, globals, frame.descriptorsToRelease);
+
+		Descriptor source = m_srvHeap.Allocate();
+		frame.descriptorsToRelease.push(source);
+
+		m_barrier.PushTransition(frame.colorTarget.Get(), EResourceState::RenderTarget, EResourceState::ShaderResource);
+		frame.commandList.Transition(m_barrier);
+		m_barrier.Reset();
+		constexpr float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		frame.commandList.ClearRenderTargetView(frame.backBufferRTV, clearColor);
+		frame.commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
+		m_tonemappingPass.Render(frame.commandList, frame.colorTargetSRV);
 
 		if (m_pImGui)
 			m_pImGui->Render(frame.commandList);

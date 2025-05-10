@@ -3,6 +3,7 @@
 #include <Dune/Graphics/RenderPass/Shadow.h>
 #include <Dune/Graphics/RenderPass/Forward.h>
 #include <Dune/Graphics/RenderPass/DepthPrepass.h>
+#include <Dune/Graphics/RenderPass/Tonemapping.h>
 #include <Dune/Graphics/RHI/Barrier.h>
 #include <Dune/Graphics/RHI/Buffer.h>
 #include <Dune/Graphics/RHI/CommandList.h>
@@ -26,6 +27,10 @@ namespace Dune
 			dU32 fenceValue{ 0 };
 			CommandAllocator commandAllocator;
 			CommandList commandList;
+			Descriptor backBufferRTV;
+			Texture colorTarget;
+			Descriptor colorTargetRTV;
+			Descriptor colorTargetSRV;
 			dQueue<Descriptor> descriptorsToRelease;
 			dQueue<Buffer> buffersToRelease;
 		};
@@ -57,13 +62,12 @@ namespace Dune
 			DescriptorHeap m_rtvHeap{};
 			DescriptorHeap m_dsvHeap{};
 			
-			Descriptor m_renderTargetsDescriptors[3];
-			Descriptor m_depthBufferDescriptor;
+			Descriptor m_depthBufferDSV;
 			
 			Buffer m_directionalLightBuffer{};
 			Buffer m_pointLightBuffer{};
-			Descriptor m_directionalLightDescriptor{};
-			Descriptor m_pointLightDescriptor{};
+			Descriptor m_directionalLightSRV{};
+			Descriptor m_pointLightSRV{};
 
 			dVector<Texture> m_shadowMaps{};
 
@@ -76,6 +80,7 @@ namespace Dune
 			Shadow m_shadowPass{};
 			Forward m_forwardPass{};
 			DepthPrepass m_depthPrepass{};
+			Tonemapping m_tonemappingPass{};
 		};
 	}
 }

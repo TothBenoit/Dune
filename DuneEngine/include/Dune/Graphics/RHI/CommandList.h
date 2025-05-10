@@ -83,6 +83,7 @@ namespace Dune::Graphics
 		void BindGraphicsResource(dU32 slot, const Descriptor& srv);
 		void BindIndexBuffer(Buffer& indexBuffer);
 		void BindVertexBuffer(Buffer& vertexBuffer);
+		void DrawInstanced(dU32 vertexCount, dU32 instanceCount, dU32 vertexStart, dU32 instanceStart);
 		void DrawIndexedInstanced(dU32 indexCount, dU32 instanceCount, dU32 indexStart, dU32 stride, dU32 instanceStart );
 	};
 

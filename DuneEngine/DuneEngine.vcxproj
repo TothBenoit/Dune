@@ -18,6 +18,7 @@
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Shadow.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\Tonemapping.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Barrier.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Device.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Fence.h" />
@@ -56,6 +57,7 @@
     <ClCompile Include="src\Dune\Graphics\RenderPass\DepthPrepass.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Forward.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Shadow.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderPass\Tonemapping.cpp" />
     <ClCompile Include="src\Dune\Graphics\RHI\ImGuiWrapper.cpp" />
     <ClCompile Include="src\Dune\Graphics\Window.cpp" />
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
@@ -90,6 +92,22 @@
       <FileType>Document</FileType>
     </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\Dune\Graphics\Shaders\Tonemapping.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Hull</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Hull</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\Dune\Graphics\Shaders\FullScreenTriangle.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

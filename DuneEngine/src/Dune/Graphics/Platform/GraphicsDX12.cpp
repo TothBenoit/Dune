@@ -673,6 +673,12 @@ namespace Dune::Graphics
 		pCommandList->IASetVertexBuffers(0, 1, &vbv);
 	}
 
+	void CommandList::DrawInstanced(dU32 vertexCount, dU32 instanceCount, dU32 vertexStart, dU32 instanceStart)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->DrawInstanced(vertexCount, instanceCount, vertexStart, instanceStart);
+	}
+
 	void CommandList::DrawIndexedInstanced(dU32 indexCount, dU32 instanceCount, dU32 indexStart, dU32 stride, dU32 instanceStart)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
@@ -1324,7 +1330,7 @@ namespace Dune::Graphics
 
 		D3D12_ROOT_SIGNATURE_FLAGS flags
 		{
-			(desc.inputLayout.IsEmpty()) ? D3D12_ROOT_SIGNATURE_FLAG_NONE : D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+			(desc.inputLayout.IsEmpty() ? D3D12_ROOT_SIGNATURE_FLAG_NONE : D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT)
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
 			| D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
