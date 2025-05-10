@@ -7,43 +7,7 @@ namespace Dune::Graphics
 {
 	class Device;
 	class Shader;
-
-	enum class EShaderVisibility
-	{
-		Vertex,
-		Pixel,
-		All,
-		Count
-	};
-
-	enum class EBindingType
-	{
-		Constant,
-		Buffer,
-		Resource,
-		UAV,
-		Group,
-		Samplers,
-	};
-
-	struct BindingGroup
-	{
-		dU32 bufferCount{ 0 };
-		dU32 uavCount{ 0 };
-		dU32 resourceCount{ 0 };
-	};
-
-	struct BindingSlot
-	{
-		EBindingType type;
-		union
-		{
-			BindingGroup    groupDesc;
-			dU32            byteSize;
-			dU32            samplerCount;
-		};
-		EShaderVisibility visibility{ EShaderVisibility::All };
-	};
+	class RootSignature;
 
 	enum class ECullingMode
 	{
@@ -97,7 +61,8 @@ namespace Dune::Graphics
 	{
 		Shader*                 pVertexShader{ nullptr };
 		Shader*                 pPixelShader{ nullptr };
-		dSpan<BindingSlot>      bindingLayout;
+
+		RootSignature*          pRootSignature{ nullptr };
 		dSpan<VertexInput>      inputLayout;
 		RasterizerState         rasterizerState;
 		DepthStencilState       depthStencilState;
@@ -107,7 +72,7 @@ namespace Dune::Graphics
 		EFormat                 depthStencilFormat;
 	};
 
-	class GraphicsPipeline : public Resource
+	class PipelineState : public Resource
 	{
 	public:
 		void Initialize(Device* pDevice, const GraphicsPipelineDesc& desc);

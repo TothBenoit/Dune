@@ -55,7 +55,7 @@
     <ClInclude Include="include\Dune\Graphics\RHI\Fence.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\RHI\GraphicsPipeline.h">
+    <ClInclude Include="include\Dune\Graphics\RHI\PipelineState.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RHI\Swapchain.h">
@@ -112,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderPass\Tonemapping.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RHI\RootSignature.h">
+      <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

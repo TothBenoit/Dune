@@ -6,7 +6,8 @@ namespace Dune::Graphics
 {
     class DescriptorHeap;
 	struct Descriptor;
-	class GraphicsPipeline;
+	class RootSignature;
+	class PipelineState;
 	class CommandAllocator;
 	class Buffer;
 	class Device;
@@ -60,7 +61,7 @@ namespace Dune::Graphics
 		void Destroy();
 
         void Reset(CommandAllocator& commandAllocator);
-        void Reset(CommandAllocator& commandAllocator, const GraphicsPipeline& pipeline);
+        void Reset(CommandAllocator& commandAllocator, PipelineState& pipeline);
         void Close();
 
 		void SetPrimitiveTopology(EPrimitiveTopology primitiveTopology);
@@ -73,7 +74,8 @@ namespace Dune::Graphics
 		void Transition(const Barrier& barrier);
         void SetDescriptorHeaps(DescriptorHeap& srvHeap);
         void SetDescriptorHeaps(DescriptorHeap& srvHeap, DescriptorHeap& samplerHeap);
-		void SetGraphicsPipeline(const GraphicsPipeline& pipeline);
+		void SetGraphicsRootSignature(RootSignature& rootSignature);
+		void SetGraphicsPipeline(PipelineState& pipeline);
 		void SetRenderTarget(const dU64* rtvs, dU32 rtvCount, const dU64* dsv);
 		void ClearRenderTargetView(const Descriptor& rtv, const float clearColor[4]);
 		void ClearDepthBuffer(const Descriptor& dsv, float depth, float stencil);

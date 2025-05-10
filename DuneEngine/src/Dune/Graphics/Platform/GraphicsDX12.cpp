@@ -8,7 +8,8 @@
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Fence.h"
-#include "Dune/Graphics/RHI/GraphicsPipeline.h"
+#include "Dune/Graphics/RHI/RootSignature.h"
+#include "Dune/Graphics/RHI/PipelineState.h"
 #include "Dune/Graphics/RHI/Swapchain.h"
 #include "Dune/Graphics/RHI/Barrier.h"
 #include "Dune/Graphics/RHI/Shader.h"
@@ -19,12 +20,6 @@ namespace Dune::Graphics
 {
 	class DescriptorHeap;
 	class ViewInternal;
-
-	struct GraphicsPipelineDX12
-	{
-		ID3D12RootSignature* pRootSignature{ nullptr };
-		ID3D12PipelineState* pPipelineState{ nullptr };
-	};
 
 	inline ID3D12Device* ToDevice(void* pDevice)
 	{
@@ -145,14 +140,24 @@ namespace Dune::Graphics
 		return (const ID3D12Fence*)pFence;
 	}
 
-	inline GraphicsPipelineDX12* ToPipeline(void* pPipeline)
+	inline ID3D12RootSignature* ToRootSignature(void* pRootSignature)
 	{
-		return (GraphicsPipelineDX12*)pPipeline;
+		return (ID3D12RootSignature*)pRootSignature;
 	}
 
-	inline const GraphicsPipelineDX12* ToPipeline(const void* pPipeline)
+	inline const ID3D12RootSignature* ToRootSignature(const void* pRootSignature)
 	{
-		return (const GraphicsPipelineDX12*)pPipeline;
+		return (const ID3D12RootSignature*)pRootSignature;
+	}
+
+	inline ID3D12PipelineState* ToPipeline(void* pPipeline)
+	{
+		return (ID3D12PipelineState*)pPipeline;
+	}
+
+	inline const ID3D12PipelineState* ToPipeline(const void* pPipeline)
+	{
+		return (const ID3D12PipelineState*)pPipeline;
 	}
 
 	inline IDXGISwapChain4* ToSwapchain(void* pSwapchain)
@@ -523,12 +528,10 @@ namespace Dune::Graphics
 		ToCommandList(Get())->Reset(ToCommandAllocator(commandAllocator.Get()), nullptr);
 	}
 
-	void CommandList::Reset(CommandAllocator& commandAllocator, const GraphicsPipeline& pipeline)
+	void CommandList::Reset(CommandAllocator& commandAllocator, PipelineState& pipeline)
 	{
-		const GraphicsPipelineDX12* pPipeline{ ToPipeline(pipeline.Get()) };
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
-		pCommandList->Reset(ToCommandAllocator(commandAllocator.Get()), pPipeline->pPipelineState);
-		pCommandList->SetGraphicsRootSignature(pPipeline->pRootSignature);
+		pCommandList->Reset(ToCommandAllocator(commandAllocator.Get()), ToPipeline(pipeline.Get()));
 	}
 
 	void CommandList::Close()
@@ -599,12 +602,16 @@ namespace Dune::Graphics
 		ToCommandList(Get())->SetDescriptorHeaps(2, pDescriptorHeaps);
 	}
 
-	void CommandList::SetGraphicsPipeline(const GraphicsPipeline& pipeline)
+	void CommandList::SetGraphicsRootSignature(RootSignature& rootSignature)
 	{
-		const GraphicsPipelineDX12* pPipline{ ToPipeline(pipeline.Get()) };
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
-		pCommandList->SetGraphicsRootSignature(pPipline->pRootSignature);
-		pCommandList->SetPipelineState(pPipline->pPipelineState);
+		pCommandList->SetGraphicsRootSignature(ToRootSignature(rootSignature.Get()));
+	}
+
+	void CommandList::SetGraphicsPipeline(PipelineState& pipeline)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetPipelineState(ToPipeline(pipeline.Get()));
 	}
 
 	void CommandList::SetRenderTarget(const dU64* rtvs, dU32 rtvCount, const dU64* dsv)
@@ -1151,8 +1158,27 @@ namespace Dune::Graphics
 		return desc;
 	}
 
-	ID3D12RootSignature* ComputeRootSignature(ID3D12Device* pDevice, const dSpan<BindingSlot>& layout, D3D12_ROOT_SIGNATURE_FLAGS flags)
+	void RootSignature::Initialize(Device* pDeviceInterface, const RootSignatureDesc& desc)
 	{
+		D3D12_ROOT_SIGNATURE_FLAGS flags
+		{
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS
+			| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
+		};
+
+		if (desc.bAllowInputLayout)
+			flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+		if (desc.bAllowSamplerHeapIndexing)
+			flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+		if (desc.bAllowSamplerHeapIndexing)
+			flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+
 		// 64 descriptor tables with 3 types of resource at most
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[3 * 64];
 		dU32 rangeIndex{ 0 };
@@ -1166,7 +1192,7 @@ namespace Dune::Graphics
 		dU32 samplerRegister[(dU32)EShaderVisibility::Count]{ 0 };
 
 		// TODO : Specify visibility and flags
-		for (const BindingSlot& slot : layout)
+		for (const BindingSlot& slot : desc.layout)
 		{
 			dU32 bufferRegisterOffset;
 			dU32 resourceRegisterOffset;
@@ -1291,10 +1317,15 @@ namespace Dune::Graphics
 			Assert(0);
 		}
 		ID3D12RootSignature* pRootSignature{ nullptr };
-		ThrowIfFailed(pDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
-		return pRootSignature;
+		ThrowIfFailed(ToDevice(pDeviceInterface->Get())->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
+		m_pResource = pRootSignature;
 	}
 	
+	void RootSignature::Destroy()
+	{
+		ToResource(Get())->Release();
+	}
+
 	constexpr D3D12_COMPARISON_FUNC ConvertDepthFunc(ECompFunc func)
 	{
 		switch (func)
@@ -1323,25 +1354,12 @@ namespace Dune::Graphics
 		return D3D12_COMPARISON_FUNC_NONE;
 	}
 
-	void GraphicsPipeline::Initialize(Device* pDeviceInterface, const GraphicsPipelineDesc& desc)
+	void PipelineState::Initialize(Device* pDeviceInterface, const GraphicsPipelineDesc& desc)
 	{
 		Assert(pDeviceInterface);
 		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
 
-		D3D12_ROOT_SIGNATURE_FLAGS flags
-		{
-			(desc.inputLayout.IsEmpty() ? D3D12_ROOT_SIGNATURE_FLAG_NONE : D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT)
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS
-			| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
-		};
-
-		ID3D12RootSignature* pRootSignature{ ComputeRootSignature(pDevice, desc.bindingLayout, flags) };
+		ID3D12RootSignature* pRootSignature{ ToRootSignature(desc.pRootSignature->Get()) };
 
 		Assert(desc.inputLayout.GetSize() <= 32);
 		D3D12_INPUT_ELEMENT_DESC inputElementDescs[32];
@@ -1384,20 +1402,12 @@ namespace Dune::Graphics
 		ID3D12PipelineState* pPipelineState{ nullptr };
 		ThrowIfFailed(pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pPipelineState)));
 
-		GraphicsPipelineDX12* pPipeline = new GraphicsPipelineDX12();
-		pPipeline->pPipelineState = pPipelineState;
-		pPipeline->pRootSignature = pRootSignature;
-		m_pResource = pPipeline;
+		m_pResource = pPipelineState;
 	}
 
-	void GraphicsPipeline::Destroy()
+	void PipelineState::Destroy()
 	{
-		GraphicsPipelineDX12* pPipelineDX12 = ToPipeline(Get());
-		
-		pPipelineDX12->pRootSignature->Release();
-		pPipelineDX12->pPipelineState->Release();
-
-		delete pPipelineDX12;
+		ToResource(Get())->Release();
 	}
 
 	void ImGuiWrapper::Initialize(Window& window, Renderer& renderer) 

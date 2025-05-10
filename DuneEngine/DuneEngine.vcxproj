@@ -37,7 +37,8 @@
     <ClInclude Include="include\Dune\Utilities\SceneLoader.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
-    <ClInclude Include="include\Dune\Graphics\RHI\GraphicsPipeline.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\PipelineState.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\RootSignature.h" />
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />

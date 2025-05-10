@@ -36,15 +36,22 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 		});
 
-		m_pipeline.Initialize(pDevice,
+		m_rootSignature.Initialize(pDevice,
 			{
-				.pVertexShader = &forwardVS,
-				.pPixelShader = &forwardPS,
-				.bindingLayout =
+				.layout =
 				{
 					{.type = EBindingType::Constant, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
 					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::All},
 				},
+				.bAllowInputLayout = true,
+				.bAllowSRVHeapIndexing = true,
+			});
+
+		m_pipeline.Initialize(pDevice,
+			{
+				.pVertexShader = &forwardVS,
+				.pPixelShader = &forwardPS,
+				.pRootSignature = &m_rootSignature,
 				.inputLayout =
 				{
 					VertexInput {.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
@@ -66,10 +73,12 @@ namespace Dune::Graphics
 	void Forward::Destroy()
 	{
 		m_pipeline.Destroy();
+		m_rootSignature.Destroy();
 	}
 
 	void Forward::Render(Scene& scene, DescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals, dQueue<Descriptor>& descriptorsToRelease)
 	{
+		commandList.SetGraphicsRootSignature(m_rootSignature);
 		commandList.SetGraphicsPipeline(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));

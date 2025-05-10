@@ -37,14 +37,19 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 			});
 
+		m_rootSignature.Initialize(pDevice,
+			{
+				.layout =
+				{
+					{.type = EBindingType::Group, .groupDesc = {.resourceCount = 1}, .visibility = EShaderVisibility::Pixel},
+				},
+			});
+
 		m_pipeline.Initialize(pDevice,
 			{
 				.pVertexShader = &fullScreenTriangleVS,
 				.pPixelShader = &tonemappingPS,
-				.bindingLayout =
-				{
-					{.type = EBindingType::Group, .groupDesc = {.resourceCount = 1}, .visibility = EShaderVisibility::Pixel},
-				},
+				.pRootSignature = &m_rootSignature,
 				.renderTargetCount = 1,
 				.renderTargetsFormat = { EFormat::R8G8B8A8_UNORM },
 			});
@@ -56,10 +61,12 @@ namespace Dune::Graphics
 	void Tonemapping::Destroy()
 	{
 		m_pipeline.Destroy();
+		m_rootSignature.Destroy();
 	}
 
 	void Tonemapping::Render(CommandList& commandList, Descriptor& source)
 	{
+		commandList.SetGraphicsRootSignature(m_rootSignature);
 		commandList.SetGraphicsPipeline(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.BindGraphicsResource(0, source);

@@ -26,14 +26,21 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 			});
 
-		m_pipeline.Initialize(pDevice,
+		m_rootSignature.Initialize(pDevice,
 			{
-				.pVertexShader = &shadowVS,
-				.bindingLayout =
+				.layout =
 				{
 					{.type = EBindingType::Constant, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::Vertex},
 					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
 				},
+				.bAllowInputLayout = true,
+			});
+
+		m_pipeline.Initialize(pDevice,
+			{
+				.pVertexShader = &shadowVS,
+
+				.pRootSignature = &m_rootSignature,
 				.inputLayout =
 				{
 					VertexInput {.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
@@ -49,10 +56,12 @@ namespace Dune::Graphics
 	void Shadow::Destroy()
 	{
 		m_pipeline.Destroy();
+		m_rootSignature.Destroy();
 	}
 
 	void Shadow::Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection)
 	{
+		commandList.SetGraphicsRootSignature(m_rootSignature);
 		commandList.SetGraphicsPipeline(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));

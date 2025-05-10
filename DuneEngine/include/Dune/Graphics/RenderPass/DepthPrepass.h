@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/GraphicsPipeline.h"
+#include "Dune/Graphics/RHI/RootSignature.h"
+#include "Dune/Graphics/RHI/PipelineState.h"
 
 namespace Dune
 {
@@ -18,7 +19,8 @@ namespace Dune
 			void Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection);
 
 		private:
-			GraphicsPipeline m_pipeline;
+			RootSignature m_rootSignature;
+			PipelineState m_pipeline;
 			Device* m_pDevice{ nullptr };
 		};
 	}

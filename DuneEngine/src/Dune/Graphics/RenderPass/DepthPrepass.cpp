@@ -26,14 +26,20 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 			});
 
-		m_pipeline.Initialize(pDevice,
-			{
-				.pVertexShader = &depthPrepassVS,
-				.bindingLayout =
+		m_rootSignature.Initialize(pDevice, 
+			{ 
+				.layout =
 				{
 					{.type = EBindingType::Constant, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::Vertex},
 					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
 				},
+				.bAllowInputLayout = true,
+			});
+
+		m_pipeline.Initialize(pDevice,
+				{
+				.pVertexShader = &depthPrepassVS,
+				.pRootSignature = &m_rootSignature,
 				.inputLayout =
 				{
 					VertexInput {.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
@@ -42,16 +48,19 @@ namespace Dune::Graphics
 				.depthStencilFormat = EFormat::D32_FLOAT,
 			}
 		);
+
 		depthPrepassVS.Destroy();
 	}
 
 	void DepthPrepass::Destroy()
 	{
 		m_pipeline.Destroy();
+		m_rootSignature.Destroy();
 	}
 
 	void DepthPrepass::Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection)
 	{
+		commandList.SetGraphicsRootSignature(m_rootSignature);
 		commandList.SetGraphicsPipeline(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));
