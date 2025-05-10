@@ -72,10 +72,17 @@ namespace Dune::Graphics
 		EFormat                 depthStencilFormat;
 	};
 
+	struct ComputePipelineDesc
+	{
+		Shader*                 pComputeShader{ nullptr };
+		RootSignature*          pRootSignature{ nullptr };
+	};
+
 	class PipelineState : public Resource
 	{
 	public:
 		void Initialize(Device* pDevice, const GraphicsPipelineDesc& desc);
+		void Initialize(Device* pDevice, const ComputePipelineDesc& desc);
 		void Destroy();
 	};
 }

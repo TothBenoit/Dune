@@ -67,7 +67,7 @@ namespace Dune::Graphics
 	void Tonemapping::Render(CommandList& commandList, Descriptor& source)
 	{
 		commandList.SetGraphicsRootSignature(m_rootSignature);
-		commandList.SetGraphicsPipeline(m_pipeline);
+		commandList.SetPipelineState(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.BindGraphicsResource(0, source);
 		commandList.DrawInstanced(3, 1, 0, 0);

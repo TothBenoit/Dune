@@ -75,18 +75,24 @@ namespace Dune::Graphics
         void SetDescriptorHeaps(DescriptorHeap& srvHeap);
         void SetDescriptorHeaps(DescriptorHeap& srvHeap, DescriptorHeap& samplerHeap);
 		void SetGraphicsRootSignature(RootSignature& rootSignature);
-		void SetGraphicsPipeline(PipelineState& pipeline);
+		void SetComputeRootSignature(RootSignature& rootSignature);
+		void SetPipelineState(PipelineState& pipeline);
 		void SetRenderTarget(const dU64* rtvs, dU32 rtvCount, const dU64* dsv);
 		void ClearRenderTargetView(const Descriptor& rtv, const float clearColor[4]);
 		void ClearDepthBuffer(const Descriptor& dsv, float depth, float stencil);
 		void PushGraphicsConstants(dU32 slot, const void* pData, dU32 byteSize);
+		void PushComputeConstants(dU32 slot, const void* pData, dU32 byteSize);
 		void PushGraphicsBuffer(dU32 slot, Buffer& buffer);
+		void PushComputeBuffer(dU32 slot, Buffer& buffer);
 		void PushGraphicsResource(dU32 slot, const Descriptor& srv);
+		void PushComputeResource(dU32 slot, const Descriptor& srv);
 		void BindGraphicsResource(dU32 slot, const Descriptor& srv);
+		void BindComputeResource(dU32 slot, const Descriptor& srv);
 		void BindIndexBuffer(Buffer& indexBuffer);
 		void BindVertexBuffer(Buffer& vertexBuffer);
 		void DrawInstanced(dU32 vertexCount, dU32 instanceCount, dU32 vertexStart, dU32 instanceStart);
 		void DrawIndexedInstanced(dU32 indexCount, dU32 instanceCount, dU32 indexStart, dU32 stride, dU32 instanceStart );
+		void Dispatch(dU32 threadGroupCountX, dU32 threadGroupCountY, dU32 threadGroupCountZ);
 	};
 
 	class CommandQueue : public Resource

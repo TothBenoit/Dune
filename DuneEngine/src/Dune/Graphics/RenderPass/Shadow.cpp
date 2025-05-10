@@ -62,7 +62,7 @@ namespace Dune::Graphics
 	void Shadow::Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection)
 	{
 		commandList.SetGraphicsRootSignature(m_rootSignature);
-		commandList.SetGraphicsPipeline(m_pipeline);
+		commandList.SetPipelineState(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));
 

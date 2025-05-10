@@ -608,7 +608,13 @@ namespace Dune::Graphics
 		pCommandList->SetGraphicsRootSignature(ToRootSignature(rootSignature.Get()));
 	}
 
-	void CommandList::SetGraphicsPipeline(PipelineState& pipeline)
+	void CommandList::SetComputeRootSignature(RootSignature& rootSignature)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetComputeRootSignature(ToRootSignature(rootSignature.Get()));
+	}
+
+	void CommandList::SetPipelineState(PipelineState& pipeline)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		pCommandList->SetPipelineState(ToPipeline(pipeline.Get()));
@@ -638,10 +644,22 @@ namespace Dune::Graphics
 		pCommandList->SetGraphicsRoot32BitConstants(slot, byteSize / 4, pData, 0);
 	}
 
+	void CommandList::PushComputeConstants(dU32 slot, const void* pData, dU32 byteSize)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetComputeRoot32BitConstants(slot, byteSize / 4, pData, 0);
+	}
+
 	void CommandList::PushGraphicsBuffer(dU32 slot, Buffer& buffer)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		pCommandList->SetGraphicsRootConstantBufferView(slot, ToResource(buffer.Get())->GetGPUVirtualAddress());
+	}
+
+	void CommandList::PushComputeBuffer(dU32 slot, Buffer& buffer)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetComputeRootConstantBufferView(slot, ToResource(buffer.Get())->GetGPUVirtualAddress());
 	}
 
 	void CommandList::PushGraphicsResource(dU32 slot, const Descriptor& srv)
@@ -650,10 +668,22 @@ namespace Dune::Graphics
 		pCommandList->SetGraphicsRootShaderResourceView(slot, { srv.gpuAddress });
 	}
 
+	void CommandList::PushComputeResource(dU32 slot, const Descriptor& srv)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetComputeRootShaderResourceView(slot, { srv.gpuAddress });
+	}
+
 	void CommandList::BindGraphicsResource(dU32 slot, const Descriptor& srv)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		pCommandList->SetGraphicsRootDescriptorTable(slot, { srv.gpuAddress });
+	}
+
+	void CommandList::BindComputeResource(dU32 slot, const Descriptor& srv)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetComputeRootDescriptorTable(slot, { srv.gpuAddress });
 	}
 
 	void CommandList::BindIndexBuffer(Buffer& indexBuffer)
@@ -690,6 +720,12 @@ namespace Dune::Graphics
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		pCommandList->DrawIndexedInstanced(indexCount, instanceCount, indexStart, stride, instanceStart);
+	}
+
+	void CommandList::Dispatch(dU32 threadGroupCountX, dU32 threadGroupCountY, dU32 threadGroupCountZ)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
 	}
 
 	void CommandQueue::Initialize(Device* pDeviceInterface, ECommandType type)
@@ -1372,7 +1408,6 @@ namespace Dune::Graphics
 		IDxcBlob* pVSBlob{ (desc.pVertexShader) ? (IDxcBlob*)desc.pVertexShader->Get() : nullptr };
 		IDxcBlob* pPSBlob{ (desc.pPixelShader) ? (IDxcBlob*)desc.pPixelShader->Get() : nullptr };
 
-		// Describe and create the graphics pipeline state object (PSO).
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 		psoDesc.InputLayout = { inputElementDescs, (dU32)desc.inputLayout.GetSize()};
 		psoDesc.pRootSignature = pRootSignature;
@@ -1401,6 +1436,23 @@ namespace Dune::Graphics
 		psoDesc.SampleDesc.Count = 1;
 		ID3D12PipelineState* pPipelineState{ nullptr };
 		ThrowIfFailed(pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pPipelineState)));
+
+		m_pResource = pPipelineState;
+	}
+
+	void PipelineState::Initialize(Device* pDeviceInterface, const ComputePipelineDesc& desc)
+	{
+		Assert(pDeviceInterface);
+		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12RootSignature* pRootSignature{ ToRootSignature(desc.pRootSignature->Get()) };
+		IDxcBlob* pCSBlob{ (IDxcBlob*)desc.pComputeShader->Get() };
+
+		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc{};
+		psoDesc.CS.BytecodeLength = pCSBlob->GetBufferSize();
+		psoDesc.CS.pShaderBytecode = pCSBlob->GetBufferPointer();
+		psoDesc.pRootSignature = pRootSignature;
+		ID3D12PipelineState* pPipelineState{ nullptr };
+		ThrowIfFailed(pDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&pPipelineState)));
 
 		m_pResource = pPipelineState;
 	}

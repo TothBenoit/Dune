@@ -79,7 +79,7 @@ namespace Dune::Graphics
 	void Forward::Render(Scene& scene, DescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals, dQueue<Descriptor>& descriptorsToRelease)
 	{
 		commandList.SetGraphicsRootSignature(m_rootSignature);
-		commandList.SetGraphicsPipeline(m_pipeline);
+		commandList.SetPipelineState(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
