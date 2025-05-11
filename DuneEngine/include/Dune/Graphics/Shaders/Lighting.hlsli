@@ -12,7 +12,7 @@ float Shadow(DirectionalLight light, float3 worldPosition, float3 n, float nDotL
     return shadowMap.SampleCmpLevelZero(sLinearClampComparisonGreater, uv, lightPos.z);
 }
 
-float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, float3 albedo, float roughness, float metalness)
+float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, float3 albedo, float3 f0, float roughness, float metalness)
 {
     const float3 l = normalize(-light.direction);
     const float3 h = normalize(l + v);
@@ -27,7 +27,7 @@ float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, f
     
     const float D = NormalDistributionGGX(alpha2, nDotH);
     const float Vis = VisGeometrySchlickGGX(nDotV, nDotL, roughness);
-    const float3 F = FresnelSchlick(vDotH, ComputeF0(0.04f.xxx, albedo, metalness));
+    const float3 F = FresnelSchlick(vDotH, f0);
     
     const float3 diffuse = DiffuseLambert(albedo);
     const float3 specular = D * Vis * F;
@@ -38,7 +38,7 @@ float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, f
     return lighting * nDotL * light.color * light.intensity * shadow;
 }
 
-float3 Light(PointLight light, float3 n, float3 v, float3 worldPosition, float3 albedo, float roughness, float metalness)
+float3 Light(PointLight light, float3 n, float3 v, float3 worldPosition, float3 albedo, float3 f0, float roughness, float metalness)
 {
     const float3 L = light.position - worldPosition;
     
@@ -58,7 +58,7 @@ float3 Light(PointLight light, float3 n, float3 v, float3 worldPosition, float3 
     
     const float D = NormalDistributionGGX(alpha2, nDotH);
     const float Vis = VisGeometrySchlickGGX(nDotV, nDotL, roughness);
-    const float3 F = FresnelSchlick(vDotH, ComputeF0(0.04f.xxx, albedo, metalness));
+    const float3 F = FresnelSchlick(vDotH, f0);
     
     float3 lighting = DiffuseLambert(albedo) + D * Vis * F;
     return lighting * nDotL * attenuation * light.color * light.intensity;

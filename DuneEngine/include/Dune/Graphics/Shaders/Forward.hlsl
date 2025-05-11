@@ -53,7 +53,7 @@ PS_OUTPUT PSMain(VSToPS input)
 {
     PS_OUTPUT output;
     Texture2D albedoTexture = ResourceDescriptorHeap[cInstance.albedoIndex];
-    const float3 albedo = albedoTexture.Sample(sAnisoWrap, input.uv).rgb;
+    const float3 baseColor = albedoTexture.Sample(sAnisoWrap, input.uv).rgb;
     Texture2D normalTexture = ResourceDescriptorHeap[cInstance.normalIndex];
     const float3 nf = normalTexture.Sample(sAnisoWrap, input.uv).rgb * 2.0f - 1.0f;
     Texture2D roughnessMetalnessTexture = ResourceDescriptorHeap[cInstance.roughnessMetalnessIndex];
@@ -64,16 +64,21 @@ PS_OUTPUT PSMain(VSToPS input)
     const float3 n = normalize(nf.x * tanX + nf.y * tanY + nf.z * input.normal);
     const float3 v = normalize(cGlobals.cameraPosition - input.worldPosition);
 
+    const float roughness = roughnessMetalness.r;
+    const float metalness = roughnessMetalness.g;
+    const float3 f0 = ComputeF0(0.04.xxx, baseColor, metalness);
+    const float3 albedo = baseColor * (1.0 - roughnessMetalness.g);
+    
     float3 directLighting = 0.f.xxx;
     StructuredBuffer<DirectionalLight> directionalLights = ResourceDescriptorHeap[cGlobals.directionalLightBufferIndex];
     for (int directionalIndex = 0; directionalIndex < cGlobals.directionalLightCount; directionalIndex++)
-        directLighting += Light(directionalLights[directionalIndex], n, v, input.worldPosition, albedo, roughnessMetalness.x, roughnessMetalness.y);
+        directLighting += Light(directionalLights[directionalIndex], n, v, input.worldPosition, albedo, f0, roughness, metalness);
 
     StructuredBuffer<PointLight> pointLights = ResourceDescriptorHeap[cGlobals.pointLightBufferIndex];
     for (int pointIndex = 0; pointIndex < cGlobals.pointLightCount; pointIndex++)
-        directLighting += Light(pointLights[pointIndex], n, v, input.worldPosition, albedo, roughnessMetalness.x, roughnessMetalness.y);
+        directLighting += Light(pointLights[pointIndex], n, v, input.worldPosition, albedo, f0, roughness, metalness);
 
-    const float3 indirectLighting = DiffuseLambert(albedo) * cGlobals.ambientColor;  
+    const float3 indirectLighting = DiffuseLambert(albedo) * cGlobals.ambientColor;
     output.color = float4(directLighting + indirectLighting, 1.0f);
     return output;
 }
