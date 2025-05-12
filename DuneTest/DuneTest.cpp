@@ -237,7 +237,7 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
-	dU32 testCount{ 5 };
+	dU32 testCount{ 1 };
 	Job::Initialize(testCount);
 	Graphics::Device device{};
 	device.Initialize();
@@ -246,7 +246,7 @@ int main(int argc, char** argv)
 	SceneLoader::Load(std::filesystem::current_path().string().append("\\Resources\\Sponza\\").c_str(), "Sponza.gltf", scene, device);
 	EntityID sun = scene.registry.create();
 	Graphics::DirectionalLight& light = scene.registry.emplace<Graphics::DirectionalLight>(sun);
-	light.color = { 1.0f, 1.0f, 1.0f };
+	light.color = { 1.1f, 0.977f, 0.937f };
 	light.direction = { 0.1f, -1.0f, 0.1f };
 	light.intensity = 1.0f;
 	Name& name = scene.registry.emplace<Name>(sun);

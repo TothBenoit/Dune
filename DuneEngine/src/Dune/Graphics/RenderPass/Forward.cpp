@@ -41,7 +41,8 @@ namespace Dune::Graphics
 				.layout =
 				{
 					{.type = EBindingType::Constant, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
-					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::All},
+					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
+					{.type = EBindingType::Constant, .byteSize = sizeof(MaterialData), .visibility = EShaderVisibility::Pixel},
 				},
 				.bAllowInputLayout = true,
 				.bAllowSRVHeapIndexing = true,
@@ -85,6 +86,7 @@ namespace Dune::Graphics
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
 				Mesh& mesh = scene.meshes[renderData.meshIdx];
+				MaterialData material = scene.materials[renderData.materialIdx];
 
 				InstanceData instance;
 				DirectX::XMStoreFloat4x4(&instance.modelMatrix,
@@ -93,20 +95,21 @@ namespace Dune::Graphics
 					DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
 				);
 
-				Texture& albedoTexture = scene.textures[renderData.albedoIdx];
-				Texture& normalTexture = scene.textures[renderData.normalIdx];
-				Texture& roughnessMetalnessTexture = scene.textures[renderData.roughnessMetalnessIdx];
+				Texture& albedoTexture = scene.textures[material.albedoIdx];
+				Texture& normalTexture = scene.textures[material.normalIdx];
+				Texture& roughnessMetalnessTexture = scene.textures[material.roughnessMetalnessIdx];
 				Descriptor albedo = srvHeap.Allocate();
 				m_pDevice->CreateSRV(albedo, albedoTexture);
 				Descriptor normal = srvHeap.Allocate();
 				m_pDevice->CreateSRV(normal, normalTexture);
 				Descriptor roughnessMetalness = srvHeap.Allocate();
 				m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture);
-				instance.albedoIndex = srvHeap.GetIndex(albedo);
-				instance.normalIndex = srvHeap.GetIndex(normal);
-				instance.roughnessMetalnessIndex = srvHeap.GetIndex(roughnessMetalness);
+				material.albedoIdx = srvHeap.GetIndex(albedo);
+				material.normalIdx = srvHeap.GetIndex(normal);
+				material.roughnessMetalnessIdx = srvHeap.GetIndex(roughnessMetalness);
 
 				commandList.PushGraphicsConstants(1, &instance, sizeof(InstanceData));
+				commandList.PushGraphicsConstants(2, &material, sizeof(MaterialData));
 				commandList.BindIndexBuffer(mesh.GetIndexBuffer());
 				commandList.BindVertexBuffer(mesh.GetVertexBuffer());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);

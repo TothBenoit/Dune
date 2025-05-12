@@ -7,6 +7,7 @@
 #include <Dune/Graphics/RHI/Fence.h>
 #include <Dune/Graphics/RHI/DescriptorHeap.h>
 #include <Dune/Graphics/RHI/CommandList.h>
+#include <Dune/Graphics/Shaders/ShaderTypes.h>
 #include <Dune/Graphics/Mesh.h>
 #include <Dune/Utilities/DDSLoader.h>
 #include <Dune/Core/Logger.h>
@@ -36,10 +37,8 @@ namespace Dune::SceneLoader
 			transform.rotation = { aiRotation.x, aiRotation.y, aiRotation.z, aiRotation.w };
 			transform.scale = 1.0f;
 			RenderData& renderData = scene.registry.emplace<RenderData>(entity);
-			renderData.albedoIdx = meshIdx * 3;
-			renderData.normalIdx = meshIdx * 3 + 1;
-			renderData.roughnessMetalnessIdx = meshIdx * 3 + 2;
 			renderData.meshIdx = meshIdx;
+			renderData.materialIdx = meshIdx;
 		}
 
 		dU32 childCount = pNode->mNumChildren;
@@ -118,12 +117,12 @@ namespace Dune::SceneLoader
 				dString path{ dirPath };
 				path.append(texturePath.length == 0 ? "defaultAlbedo.DDS" : texturePath.C_Str());
 				Graphics::Buffer& uploadBuffer = uploadBuffers.emplace_back();
-				scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str()));
+				scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str(), true));
 			}
 
 			{
 				aiString texturePath;
-				pMaterial->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &texturePath);
+				pMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath);
 				Graphics::Buffer& uploadBuffer = uploadBuffers.emplace_back();
 				dString path{ dirPath };
 				path.append( texturePath.length == 0 ? "defaultNormal.DDS" : texturePath.C_Str());
@@ -138,6 +137,19 @@ namespace Dune::SceneLoader
 				path.append(texturePath.length == 0 ? "defaultRoughnessMetalness.DDS" : texturePath.C_Str());
 				scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str()));
 			}
+
+			Graphics::MaterialData material;
+			aiUVTransform data;
+			pMaterial->Get(AI_MATKEY_BASE_COLOR, data);
+			material.baseColor = *((dVec3*)&data);
+			pMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, data);
+			material.roughnessFactor = *(float*)(&data);
+			pMaterial->Get(AI_MATKEY_METALLIC_FACTOR, data);
+			material.metalnessFactor = *(float*)(&data);
+			material.albedoIdx = meshIdx * 3;
+			material.normalIdx = meshIdx * 3 + 1;
+			material.roughnessMetalnessIdx = meshIdx * 3 + 2;
+			scene.materials.push_back(material);
 		}
 
 		const aiNode* pCurNode = pScene->mRootNode;

@@ -207,7 +207,7 @@ namespace Dune::Graphics
 
 		ForwardGlobals globals;
 		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
-		globals.ambientColor = { 0.02f, 0.02f, 0.05f };
+		globals.ambientColor = { 0.01f, 0.01f, 0.01f };
 		globals.cameraPosition = camera.position;
 
 		Buffer directionalLights{};

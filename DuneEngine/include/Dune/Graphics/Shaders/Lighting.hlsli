@@ -12,11 +12,11 @@ float Shadow(DirectionalLight light, float3 worldPosition, float3 n, float nDotL
     return shadowMap.SampleCmpLevelZero(sLinearClampComparisonGreater, uv, lightPos.z);
 }
 
-float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, float3 albedo, float3 f0, float roughness, float metalness)
+float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
 {
     const float3 l = normalize(-light.direction);
     const float3 h = normalize(l + v);
-        
+
     const float nDotL = saturate(dot(n, l));
     const float nDotV = saturate(dot(n, v));
     const float nDotH = saturate(dot(n, h));
@@ -28,17 +28,16 @@ float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, f
     const float D = NormalDistributionGGX(alpha2, nDotH);
     const float Vis = VisGeometrySchlickGGX(nDotV, nDotL, roughness);
     const float3 F = FresnelSchlick(vDotH, f0);
-    
-    const float3 diffuse = DiffuseLambert(albedo);
     const float3 specular = D * Vis * F;
-    const float3 lighting = diffuse + specular;
-    
+   
     const float shadow = 1.0 - Shadow(light, worldPosition, n, nDotL);
+    const float3 lightColor = shadow * light.color * light.intensity;
 
-    return lighting * nDotL * light.color * light.intensity * shadow;
+    const float3 BRDF = DiffuseLambert(diffuseColor) + specular;
+    return BRDF * lightColor * nDotL;
 }
 
-float3 Light(PointLight light, float3 n, float3 v, float3 worldPosition, float3 albedo, float3 f0, float roughness, float metalness)
+float3 Light(PointLight light, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
 {
     const float3 L = light.position - worldPosition;
     
@@ -59,7 +58,10 @@ float3 Light(PointLight light, float3 n, float3 v, float3 worldPosition, float3 
     const float D = NormalDistributionGGX(alpha2, nDotH);
     const float Vis = VisGeometrySchlickGGX(nDotV, nDotL, roughness);
     const float3 F = FresnelSchlick(vDotH, f0);
+    const float3 specular = D * Vis * F;
     
-    float3 lighting = DiffuseLambert(albedo) + D * Vis * F;
-    return lighting * nDotL * attenuation * light.color * light.intensity;
+    const float3 lightColor = attenuation * light.color * light.intensity;
+    
+    const float3 BRDF = DiffuseLambert(diffuseColor) + specular;
+    return BRDF * lightColor * nDotL;
 }

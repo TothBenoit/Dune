@@ -1,12 +1,11 @@
 #pragma once
 
-#include "Dune/Graphics/Format.h"
+#include "Dune/Graphics/RHI/Texture.h"
 
 namespace Dune::Graphics
 {
 
     class Device;
-    class Texture;
     class CommandList;
     class Buffer;
 
@@ -17,6 +16,7 @@ namespace Dune::Graphics
         EFailedRead,
         EFailedMagicWord,
         EFailedSize,
+        EFailedFormat,
     };
 
     enum class DDSTextureDimension : dU32 {
@@ -82,7 +82,7 @@ namespace Dune::Graphics
 	public:
 
 		static DDSResult Load(const char* filePath, DDSTexture& outDDSTexture);
-        static Graphics::Texture CreateTextureFromFile(Device* pDevice, CommandList* pCommandList, Buffer& uploadBuffer, const char* filePath);
+        static Graphics::Texture CreateTextureFromFile(Device* pDevice, CommandList* pCommandList, Buffer& uploadBuffer, const char* filePath, bool sRGB = false);
 
         DDSResult Load(const char* filePath);
         void Destroy();
@@ -96,6 +96,7 @@ namespace Dune::Graphics
         DDSHeader* m_pHeader{ nullptr };
         DDSHeaderDXT10* m_pHeaderDXT10{ nullptr };
         void* m_pData{ nullptr };
+        Graphics::EFormat m_format;
 	};
 
 }

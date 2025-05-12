@@ -54,10 +54,16 @@ struct ForwardGlobals
 struct InstanceData
 {
 	float4x4   modelMatrix;
-	uint       albedoIndex;
-	uint       normalIndex;
-	uint       roughnessMetalnessIndex;
-	uint       _padding;
+};
+
+struct MaterialData
+{
+	float3     baseColor;
+	float      metalnessFactor;
+	float      roughnessFactor;
+	uint       albedoIdx;
+	uint       normalIdx;
+	uint       roughnessMetalnessIdx;
 };
 
 struct PointLight

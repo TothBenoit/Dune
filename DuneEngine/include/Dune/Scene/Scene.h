@@ -8,6 +8,7 @@ namespace Dune
 	{
 		class Mesh;
 		class Texture;
+		struct MaterialData;
 	}
 
 	struct Transform
@@ -19,9 +20,7 @@ namespace Dune
 
 	struct RenderData
 	{
-		dU32 albedoIdx;
-		dU32 normalIdx;
-		dU32 roughnessMetalnessIdx;
+		dU32 materialIdx;
 		dU32 meshIdx;
 	};
 
@@ -38,5 +37,6 @@ namespace Dune
 
 		dVector<Graphics::Mesh> meshes;
 		dVector<Graphics::Texture> textures;
+		dVector<Graphics::MaterialData> materials;
 	};
 }

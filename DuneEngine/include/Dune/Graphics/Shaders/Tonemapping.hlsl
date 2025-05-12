@@ -10,7 +10,7 @@ float3 FilmicTonemapping(float3 color )
     const float c = 2.43f;
     const float d = 0.59f;
     const float e = 0.14f;
-    return saturate((color * (a * color + b)) / (color * (c * color + d) + e));
+    return (color * (a * color + b)) / (color * (c * color + d) + e);
 }
 
 float3 GammaCorrection(float3 color)

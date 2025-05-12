@@ -14,3 +14,16 @@ SamplerComparisonState sLinearWrapComparisonGreater     : register(s10,   space1
 
 static const float PI = 3.14159265358979323846f;
 static const float InvPI = 0.31830988618379067154f;
+
+float3x3 TangentToWorld(float3 normal, float4 tangent)
+{
+    float3 T = tangent.xyz;
+    float3 B = cross(normal, T) * tangent.w;
+    float3x3 TBN = float3x3(T, B, normal);
+    return TBN;
+}
+
+float3 UnpackNormal(float2 packedNormal)
+{
+    return normalize(float3(packedNormal * 2.0f - 1.0f, sqrt(1 - saturate(dot(packedNormal.xy, packedNormal.xy)))));
+}
