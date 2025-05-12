@@ -100,6 +100,8 @@ public:
 			ImGui::EndMainMenuBar();
 		}
 
+		const entt::registry& kRegistry = m_pScene->registry;
+		entt::registry& registry = m_pScene->registry;
 		if (m_showScene)
 		{
 			if (ImGui::Begin("Scene", &m_showScene))
@@ -115,10 +117,10 @@ public:
 				{
 					if (ImGui::Button("Point light"))
 					{
-						EntityID id = m_pScene->registry.create();
-						Name& name = m_pScene->registry.emplace<Name>(id);
+						EntityID id = registry.create();
+						Name& name = registry.emplace<Name>(id);
 						name.name.assign("PointLight");
-						Graphics::PointLight& light = m_pScene->registry.emplace<Graphics::PointLight>(id);
+						Graphics::PointLight& light = registry.emplace<Graphics::PointLight>(id);
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.intensity = 1.0f;
 						light.radius = 10.f;
@@ -127,10 +129,10 @@ public:
 
 					if (ImGui::Button("Directional light"))
 					{
-						EntityID id = m_pScene->registry.create();
-						Name& name = m_pScene->registry.emplace<Name>(id);
+						EntityID id = registry.create();
+						Name& name = registry.emplace<Name>(id);
 						name.name.assign("DirectionalLight");
-						Graphics::DirectionalLight& light = m_pScene->registry.emplace<Graphics::DirectionalLight>(id);
+						Graphics::DirectionalLight& light = registry.emplace<Graphics::DirectionalLight>(id);
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.intensity = 1.0f;
 						light.direction = { 0.0f, -1.0f, 0.0f };
@@ -138,8 +140,7 @@ public:
 					}
 					ImGui::EndPopup();
 				}
-
-				m_pScene->registry.view<Name>().each([&](EntityID entity, Name& name)
+				kRegistry.view<const Name>().each([&](EntityID entity, const Name& name)
 					{
 						bool isSelected = m_selectedEntity == entity;
 						ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ((isSelected) ? ImGuiTreeNodeFlags_Selected : 0);
@@ -156,12 +157,12 @@ public:
 		{
 			ImGui::Begin("Inspector", &m_showInspector);
 
-			if (Name* pName = m_pScene->registry.try_get<Name>(m_selectedEntity) )
+			if (const Name* pName = kRegistry.try_get<Name>(m_selectedEntity) )
 			{
 				ImGui::Text("%s", pName->name.c_str());
 				ImGui::Separator();
 
-				if (Transform* pTransform = m_pScene->registry.try_get<Transform>(m_selectedEntity))
+				if (Transform* pTransform = registry.try_get<Transform>(m_selectedEntity))
 				{
 					if (ImGui::TreeNodeEx("Transform :", ImGuiTreeNodeFlags_DefaultOpen))
 					{
@@ -172,7 +173,7 @@ public:
 					}
 				}
 
-				if (Graphics::PointLight* pLight = m_pScene->registry.try_get<Graphics::PointLight>(m_selectedEntity))
+				if (Graphics::PointLight* pLight = registry.try_get<Graphics::PointLight>(m_selectedEntity))
 				{
 					if (ImGui::TreeNodeEx("PointLight :", ImGuiTreeNodeFlags_DefaultOpen))
 					{
@@ -184,7 +185,7 @@ public:
 					}
 				}
 
-				if (Graphics::DirectionalLight* pLight = m_pScene->registry.try_get<Graphics::DirectionalLight>(m_selectedEntity))
+				if (Graphics::DirectionalLight* pLight = registry.try_get<Graphics::DirectionalLight>(m_selectedEntity))
 				{
 					if (ImGui::TreeNodeEx("DirectionalLight :", ImGuiTreeNodeFlags_DefaultOpen))
 					{
@@ -243,13 +244,14 @@ int main(int argc, char** argv)
 	device.Initialize();
 
 	Scene scene{};
+	entt::registry& registry = scene.registry;
 	SceneLoader::Load(std::filesystem::current_path().string().append("\\Resources\\Sponza\\").c_str(), "Sponza.gltf", scene, device);
-	EntityID sun = scene.registry.create();
-	Graphics::DirectionalLight& light = scene.registry.emplace<Graphics::DirectionalLight>(sun);
+	EntityID sun = registry.create();
+	Graphics::DirectionalLight& light = registry.emplace<Graphics::DirectionalLight>(sun);
 	light.color = { 1.1f, 0.977f, 0.937f };
 	light.direction = { 0.1f, -1.0f, 0.1f };
 	light.intensity = 1.0f;
-	Name& name = scene.registry.emplace<Name>(sun);
+	Name& name = registry.emplace<Name>(sun);
 	name.name.assign("Sun");
 
 	Job::JobBuilder jobBuilder{};

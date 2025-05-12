@@ -83,7 +83,9 @@ namespace Dune::Graphics
 		commandList.SetPipelineState(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
-		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
+
+		const entt::registry& kRegistry = scene.registry;
+		kRegistry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
 				Mesh& mesh = scene.meshes[renderData.meshIdx];
 				MaterialData material = scene.materials[renderData.materialIdx];

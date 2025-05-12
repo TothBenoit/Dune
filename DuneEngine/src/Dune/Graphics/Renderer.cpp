@@ -211,8 +211,9 @@ namespace Dune::Graphics
 		globals.cameraPosition = camera.position;
 
 		Buffer directionalLights{};
+		const entt::registry& kRegistry = scene.registry;
 		{
-			auto view = scene.registry.view<const DirectionalLight>();
+			auto view = kRegistry.view<const DirectionalLight>();
 			dU32 directionalLightCount = (dU32)view.size();
 			if (directionalLightCount > 0)
 			{
@@ -304,7 +305,7 @@ namespace Dune::Graphics
 
 		Buffer pointLights{};
 		{
-			auto view = scene.registry.view<const PointLight>();
+			auto view = kRegistry.view<const PointLight>();
 			dU32 pointLightCount = (dU32)view.size();
 			if (pointLightCount > 0)
 			{

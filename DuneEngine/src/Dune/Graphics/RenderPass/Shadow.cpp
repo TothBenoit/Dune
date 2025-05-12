@@ -66,7 +66,8 @@ namespace Dune::Graphics
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));
 
-		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
+		const entt::registry& kRegistry = scene.registry;
+		kRegistry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
 				InstanceData instance;
 				DirectX::XMStoreFloat4x4(&instance.modelMatrix,

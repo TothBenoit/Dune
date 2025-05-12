@@ -24,7 +24,7 @@ namespace Dune::Graphics
 			.entryFunc = L"VSMain",
 			.args = args,
 			.argsCount = _countof(args),
-			});
+		});
 
 
 		Shader tonemappingPS;
@@ -35,7 +35,7 @@ namespace Dune::Graphics
 			.entryFunc = L"PSMain",
 			.args = args,
 			.argsCount = _countof(args),
-			});
+		});
 
 		m_rootSignature.Initialize(pDevice,
 			{
