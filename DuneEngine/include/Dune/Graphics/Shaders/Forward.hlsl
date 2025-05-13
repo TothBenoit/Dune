@@ -1,16 +1,6 @@
 #include "ShaderTypes.h"
 #include "Lighting.hlsli"
 
-struct DirectionalLights
-{
-    DirectionalLight lights[255];
-};
-
-struct PointLights
-{
-    PointLight lights[255];
-};
-
 ConstantBuffer<ForwardGlobals> cGlobals : register(b0);
 ConstantBuffer<InstanceData> cInstance : register(b1);
 ConstantBuffer<MaterialData> cMaterial : register(b1);
@@ -57,7 +47,7 @@ PS_OUTPUT PSMain(VSToPS input)
     const float3 albedo = cMaterial.baseColor * albedoTexture.Sample(sAnisoWrap, input.uv).rgb;
 
     Texture2D normalTexture = ResourceDescriptorHeap[cMaterial.normalIdx];
-    const float2 sampledNormal = normalTexture.Sample(sAnisoWrap, input.uv);
+    const float2 sampledNormal = normalTexture.Sample(sAnisoWrap, input.uv).xy;
 
     Texture2D roughnessMetalnessTexture = ResourceDescriptorHeap[cMaterial.roughnessMetalnessIdx];
     const float2 roughnessMetalness = roughnessMetalnessTexture.Sample(sAnisoWrap, input.uv).gb;
@@ -81,8 +71,11 @@ PS_OUTPUT PSMain(VSToPS input)
     StructuredBuffer<PointLight> pointLights = ResourceDescriptorHeap[cGlobals.pointLightBufferIndex];
     for (int pointIndex = 0; pointIndex < cGlobals.pointLightCount; pointIndex++)
         directLighting += Light(pointLights[pointIndex], n, v, input.worldPosition, diffuseColor, f0, roughness);
+    
+    StructuredBuffer<SpotLight> spotLights = ResourceDescriptorHeap[cGlobals.spotLightBufferIndex];
+    for (int spotIndex = 0; spotIndex < cGlobals.spotLightCount; spotIndex++)
+        directLighting += Light(spotLights[spotIndex], n, v, input.worldPosition, diffuseColor, f0, roughness);
 
-    const float3 indirectLighting = DiffuseLambert(albedo) * cGlobals.ambientColor;
-    output.color = float4(directLighting + indirectLighting, 1.0f);
+    output.color = float4(directLighting, 1.0f);
     return output;
 }

@@ -12,6 +12,14 @@ float Shadow(DirectionalLight light, float3 worldPosition, float3 n, float nDotL
     return shadowMap.SampleCmpLevelZero(sLinearClampComparisonGreater, uv, lightPos.z);
 }
 
+float RadialAttenuation(float3 L, float range)
+{
+    const float distanceSq = dot(L, L);
+    const float distanceAttenuation = rcp(distanceSq + 1.0);
+    const float window = Square(saturate(1.0 - Square(distanceSq * Square(rcp(range)))));
+    return distanceAttenuation * window;
+}
+
 float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
 {
     const float3 l = normalize(-light.direction);
@@ -40,12 +48,40 @@ float3 Light(DirectionalLight light, float3 n, float3 v, float3 worldPosition, f
 float3 Light(PointLight light, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
 {
     const float3 L = light.position - worldPosition;
-    
-    float distance = length(L);
-    float attenuation = 1 - saturate(distance / light.radius);
-    attenuation = attenuation * attenuation;
+    const float attenuation = RadialAttenuation(L, light.radius);
     
     const float3 l = normalize(L);
+    const float3 h = normalize(l + v);
+    const float nDotL = saturate(dot(n, l));
+    const float nDotV = saturate(dot(n, v));
+    const float nDotH = saturate(dot(n, h));
+    const float vDotH = saturate(dot(v, h));
+    
+    const float alpha = roughness * roughness;
+    const float alpha2 = alpha * alpha;
+    
+    const float D = NormalDistributionGGX(alpha2, nDotH);
+    const float Vis = VisGeometrySchlickGGX(nDotV, nDotL, roughness);
+    const float3 F = FresnelSchlick(vDotH, f0);
+    const float3 specular = D * Vis * F;
+    
+    const float3 lightColor = attenuation * light.color * light.intensity;
+    
+    const float3 BRDF = DiffuseLambert(diffuseColor) + specular;
+    return BRDF * lightColor * nDotL;
+}
+
+float3 Light(SpotLight light, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
+{
+    const float3 L = light.position - worldPosition;
+    const float rangeAttenuation = RadialAttenuation(L, light.range);
+    
+    const float3 l = normalize(L);
+    const float cosAngle = dot(light.direction, -l);
+    const float angleAttenuation = Square(saturate((cosAngle - light.angle) * light.penumbra));
+    
+    const float attenuation = rangeAttenuation * angleAttenuation;
+    
     const float3 h = normalize(l + v);
     const float nDotL = saturate(dot(n, l));
     const float nDotV = saturate(dot(n, v));

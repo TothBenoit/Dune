@@ -27,11 +27,14 @@ public:
 
 	void Run()
 	{
+		m_camera.SetNear(1.0f);
+		m_camera.SetFar(50000.0f);
 		m_window.Initialize({});
-		m_window.SetOnResizeFunc(&m_renderer, [](void* pData, dU32 width, dU32 height)
+		m_window.SetOnResizeFunc(this, [](void* pData, dU32 width, dU32 height)
 			{
-				Graphics::Renderer* pRenderer = (Graphics::Renderer*)pData;
-				pRenderer->OnResize(width, height);
+				App* pApp = (App*)pData;
+				pApp->m_renderer.OnResize(width, height);
+				pApp->m_camera.SetAspectRatio((float)width / height);
 			}
 		);
 		m_renderer.Initialize(*m_pDevice, m_window);
@@ -121,9 +124,10 @@ public:
 						Name& name = registry.emplace<Name>(id);
 						name.name.assign("PointLight");
 						Graphics::PointLight& light = registry.emplace<Graphics::PointLight>(id);
+						light.position = { 0.0f, 0.0f, 0.0f };
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.intensity = 1.0f;
-						light.radius = 10.f;
+						light.radius = 100.f;
 						ImGui::CloseCurrentPopup();
 					}
 
@@ -135,7 +139,23 @@ public:
 						Graphics::DirectionalLight& light = registry.emplace<Graphics::DirectionalLight>(id);
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.intensity = 1.0f;
-						light.direction = { 0.0f, -1.0f, 0.0f };
+						light.direction = { 0.0f, 0.0f, 90.0f };
+						ImGui::CloseCurrentPopup();
+					}
+
+					if (ImGui::Button("Spot light"))
+					{
+						EntityID id = registry.create();
+						Name& name = registry.emplace<Name>(id);
+						name.name.assign("SpotLight");
+						Graphics::SpotLight& light = registry.emplace<Graphics::SpotLight>(id);
+						light.position = { 0.0f, 0.0f, 0.0f };
+						light.intensity = 1.0f;
+						light.color = { 1.0f, 1.0f, 1.0f };
+						light.range = 10.f;
+						light.direction = { 0.0f, 0.0f, 75.0f };
+						light.angle = -45.0f;
+						light.penumbra = 0.0f;
 						ImGui::CloseCurrentPopup();
 					}
 					ImGui::EndPopup();
@@ -179,8 +199,10 @@ public:
 					{
 						ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 						ImGui::ColorPicker3("Color", &pLight->color.x);
-						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
-						ImGui::DragFloat("Radius", &pLight->radius, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						pLight->intensity *= 1.0f / (100.f * 100.f);
+						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f");
+						pLight->intensity *= 100.f * 100.f;
+						ImGui::DragFloat("Radius", &pLight->radius, 0.5f, 0.0f, +FLT_MAX, "%.2f");
 						ImGui::TreePop();
 					}
 				}
@@ -190,10 +212,26 @@ public:
 					if (ImGui::TreeNodeEx("DirectionalLight :", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						ImGui::ColorPicker3("Color", &pLight->color.x);
-						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
-						ImGui::DragFloat3("Direction", &pLight->direction.x, 0.01f, -1.0f, 1.0f, "%.2f");
-						if (ImGui::Button("Normalize")) 
-							DirectX::XMStoreFloat3(&pLight->direction, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&pLight->direction)));
+						// The Sponza scene is in centimeters.
+						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f");
+						ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::TreePop();
+					}
+				}
+
+				if (Graphics::SpotLight* pLight = registry.try_get<Graphics::SpotLight>(m_selectedEntity))
+				{
+					if (ImGui::TreeNodeEx("SpotLight :", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::ColorPicker3("Color", &pLight->color.x);
+						pLight->intensity *= 1.0f / (100.f * 100.f);
+						ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f");
+						pLight->intensity *= 100.f * 100.f;
+						ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat("Range", &pLight->range, 0.5f, 0.f, +FLT_MAX, "%.2f");
+						ImGui::DragFloat("Angle", &pLight->angle, 0.5f, 0, 180.f, "%.2f");
+						ImGui::DragFloat("Penumbra", &pLight->penumbra, 0.001f, 0.0000001f, 1.0f, "%.2f");
 						ImGui::TreePop();
 					}
 				}
@@ -246,13 +284,32 @@ int main(int argc, char** argv)
 	Scene scene{};
 	entt::registry& registry = scene.registry;
 	SceneLoader::Load(std::filesystem::current_path().string().append("\\Resources\\Sponza\\").c_str(), "Sponza.gltf", scene, device);
+
 	EntityID sun = registry.create();
-	Graphics::DirectionalLight& light = registry.emplace<Graphics::DirectionalLight>(sun);
-	light.color = { 1.1f, 0.977f, 0.937f };
-	light.direction = { 0.1f, -1.0f, 0.1f };
-	light.intensity = 1.0f;
-	Name& name = registry.emplace<Name>(sun);
-	name.name.assign("Sun");
+	Graphics::DirectionalLight& sunLight = registry.emplace<Graphics::DirectionalLight>(sun);
+	registry.emplace<Name>(sun, "Sun");
+	sunLight.color = { 1.1f, 0.977f, 0.937f };
+	sunLight.direction = { -15.0f, 0.0f, -85.f };
+	sunLight.intensity = 4.0f;
+
+	EntityID ambient = registry.create();
+	registry.emplace<Name>(ambient, "Ambient");
+	Graphics::PointLight& ambientLight = registry.emplace<Graphics::PointLight>(ambient);
+	ambientLight.color = { 0.937f, 0.977f, 1.1f };
+	ambientLight.position = { 0.0f, 650.0f, 0.0f };
+	ambientLight.intensity = 50.0f * (100.f * 100.f);
+	ambientLight.radius = 20000.0f;
+
+	EntityID spot = registry.create();
+	registry.emplace<Name>(spot, "Spot");
+	Graphics::SpotLight& spotLight = registry.emplace<Graphics::SpotLight>(spot);
+	spotLight.position = { 1000.0f, 350.0f, 25.0f };
+	spotLight.intensity = 50.0f * (100.f * 100.f);
+	spotLight.color = { 1.0f, 1.0f, 1.0f };
+	spotLight.range = 750.f;
+	spotLight.direction = { 0.0f, 0.0f, -45.0f};
+	spotLight.angle = 45.0f;
+	spotLight.penumbra = 0.5f;
 
 	Job::JobBuilder jobBuilder{};
 	for (dU32 i = 0 ; i < testCount; i++)

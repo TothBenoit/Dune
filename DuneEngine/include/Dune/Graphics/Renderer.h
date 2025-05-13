@@ -66,8 +66,10 @@ namespace Dune
 			
 			Buffer m_directionalLightBuffer{};
 			Buffer m_pointLightBuffer{};
+			Buffer m_spotLightBuffer{};
 			Descriptor m_directionalLightSRV{};
 			Descriptor m_pointLightSRV{};
+			Descriptor m_spotLightSRV{};
 
 			dVector<Texture> m_shadowMaps{};
 

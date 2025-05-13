@@ -29,3 +29,9 @@ float3 UnpackNormal(float2 packedNormal)
     const float normalZ = sqrt(1 - saturate(dot(packedNormal.xy, packedNormal.xy)));
     return float3(normalXY, normalZ);
 }
+
+template<typename T>
+T Square(T x)
+{
+    return x * x;
+}

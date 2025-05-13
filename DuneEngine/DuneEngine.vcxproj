@@ -79,9 +79,6 @@
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli" />
     <None Include="include\Dune\Graphics\Shaders\Common.hlsli" />
-    <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
-      <FileType>Document</FileType>
-    </None>
     <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">
       <FileType>Document</FileType>
     </None>

@@ -44,11 +44,12 @@ struct ForwardGlobals
 	float4x4   viewProjectionMatrix;
 	float3     cameraPosition;
 	int        directionalLightCount;
-	float3     ambientColor;
 	int        pointLightCount;
+	int        spotLightCount;
 	uint       directionalLightBufferIndex;
 	uint       pointLightBufferIndex;
-	uint2      _padding;
+	uint       spotLightBufferIndex;
+	uint3      _padding;
 };
 
 struct InstanceData
@@ -81,5 +82,17 @@ struct DirectionalLight
 	float3     direction;
 	uint       shadowIndex;
 	float4x4   viewProjection;
+};
+
+struct SpotLight
+{
+	float3     color;
+	float      intensity;
+	float3     position;
+	float      range;
+	float3     direction;
+	float      angle;
+	float      penumbra;
+	float3     _padding;
 };
 END_NAMESPACE_SHADER

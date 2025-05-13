@@ -174,9 +174,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\Dune\Graphics\Shaders\Default.hlsl">
-      <Filter>Dune\Graphics\Shaders</Filter>
-    </None>
     <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>

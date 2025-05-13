@@ -86,6 +86,7 @@ namespace Dune::Graphics
 
 		m_directionalLightSRV = m_srvHeap.Allocate();
 		m_pointLightSRV = m_srvHeap.Allocate();
+		m_spotLightSRV = m_srvHeap.Allocate();
 	}
 
 	void Renderer::Destroy()
@@ -114,6 +115,7 @@ namespace Dune::Graphics
 		m_dsvHeap.Free(m_depthBufferDSV);
 		m_srvHeap.Free(m_directionalLightSRV);
 		m_srvHeap.Free(m_pointLightSRV);
+		m_srvHeap.Free(m_spotLightSRV);
 
 		for (Texture& shadow : m_shadowMaps)
 			shadow.Destroy();
@@ -138,6 +140,9 @@ namespace Dune::Graphics
 
 		if (m_pointLightBuffer.Get())
 			m_pointLightBuffer.Destroy();
+
+		if (m_spotLightBuffer.Get())
+			m_spotLightBuffer.Destroy();
 	}
 
 	void Renderer::OnResize(dU32 width, dU32 height) 
@@ -207,7 +212,6 @@ namespace Dune::Graphics
 
 		ForwardGlobals globals;
 		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
-		globals.ambientColor = { 0.01f, 0.01f, 0.01f };
 		globals.cameraPosition = camera.position;
 
 		Buffer directionalLights{};
@@ -277,8 +281,8 @@ namespace Dune::Graphics
 						frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 
 						float shadowWidth{ 4500.f }; // Hardcoded for sponza
-						dVec up{ 0.f, 1.f, 0.f, 0.f };
-						dVec at{ DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&light.direction)) };
+						dVec up{ 0.f, 1.f, 0.f, 0.f };						
+						dVec at{ DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(light.direction.x),DirectX::XMConvertToRadians(light.direction.y),DirectX::XMConvertToRadians(light.direction.z)))) };
 						dVec axis = DirectX::XMVector3Cross(up, at);
 						if ( DirectX::XMVector3Equal(axis, {0.0f, 0.0f, 0.0f}))
 							up = { 0.f, 0.f, 1.f, 0.f };
@@ -290,6 +294,7 @@ namespace Dune::Graphics
 						m_shadowPass.Render(scene, frame.commandList, viewProjection);
 						m_dsvHeap.Free(dsv);
 						DirectionalLight copyLight = light;
+						DirectX::XMStoreFloat3(&copyLight.direction, at);
 						copyLight.viewProjection = viewProjection;
 						copyLight.shadowIndex = m_srvHeap.GetIndex(srv);
 						memcpy((DirectionalLight*)pData + count++, &copyLight, sizeof(DirectionalLight));
@@ -349,6 +354,56 @@ namespace Dune::Graphics
 			globals.pointLightBufferIndex = m_srvHeap.GetIndex(m_pointLightSRV);
 		}
 
+		Buffer spotLights{};
+		{
+			auto view = kRegistry.view<const SpotLight>();
+			dU32 spotLightCount = (dU32)view.size();
+			if (spotLightCount > 0)
+			{
+				dU32 byteSize = (dU32)((spotLightCount) * sizeof(SpotLight));
+				if (m_spotLightBuffer.GetByteSize() < byteSize)
+				{
+					if (m_spotLightBuffer.Get())
+						frame.buffersToRelease.push(m_spotLightBuffer);
+					m_spotLightBuffer.Initialize(m_pDevice,
+						{
+							.debugName{ L"SpotLightBuffer" },
+							.usage{ EBufferUsage::Constant },
+							.memory{ EBufferMemory::GPU },
+							.byteSize{ byteSize },
+							.byteStride { sizeof(SpotLight) },
+							.initialState{ EResourceState::Undefined }
+						});
+					m_pDevice->CreateSRV(m_spotLightSRV, m_spotLightBuffer);
+				}
+				spotLights.Initialize(m_pDevice,
+					{
+						.debugName{ L"SpotLightUploadBuffer" },
+						.usage{ EBufferUsage::Constant },
+						.memory{ EBufferMemory::CPU },
+						.byteSize{ byteSize },
+						.initialState{ EResourceState::Undefined }
+					});
+				void* pData{ nullptr };
+				spotLights.Map(0, byteSize, &pData);
+				dU32 count{ 0 };
+				view.each([&](const SpotLight& light)
+					{
+						SpotLight copyLight = light;
+						DirectX::XMStoreFloat3(&copyLight.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(light.direction.x), DirectX::XMConvertToRadians(light.direction.y), DirectX::XMConvertToRadians(light.direction.z)))));
+						copyLight.angle = DirectX::XMScalarCos(DirectX::XMConvertToRadians(light.angle));
+						copyLight.penumbra = 1.0f / (DirectX::XMScalarCos(DirectX::XMConvertToRadians(light.angle * (1.0f - light.penumbra)))- copyLight.angle);
+						memcpy((SpotLight*)pData + count++, &copyLight, sizeof(SpotLight));
+					}
+				);
+				spotLights.Unmap(0, byteSize);
+				frame.commandList.CopyBufferRegion(m_spotLightBuffer, 0, spotLights, 0, byteSize);
+				frame.buffersToRelease.push(spotLights);
+			}
+			globals.spotLightCount = spotLightCount;
+			globals.spotLightBufferIndex = m_srvHeap.GetIndex(m_spotLightSRV);
+		}
+
 		m_barrier.PushTransition(m_swapchain.GetBackBuffer(m_frameIndex).Get(), EResourceState::Present, EResourceState::RenderTarget);
 		m_barrier.PushTransition(frame.colorTarget.Get(), EResourceState::ShaderResource, EResourceState::RenderTarget);
 		frame.commandList.Transition(m_barrier);
@@ -375,8 +430,6 @@ namespace Dune::Graphics
 		m_barrier.PushTransition(frame.colorTarget.Get(), EResourceState::RenderTarget, EResourceState::ShaderResource);
 		frame.commandList.Transition(m_barrier);
 		m_barrier.Reset();
-		constexpr float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		frame.commandList.ClearRenderTargetView(frame.backBufferRTV, clearColor);
 		frame.commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
 		m_tonemappingPass.Render(frame.commandList, frame.colorTargetSRV);
 
