@@ -19,9 +19,6 @@
     <ClInclude Include="include\Dune\Utilities\Utils.h">
       <Filter>Dune\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Shaders\PostProcessGlobals.h">
-      <Filter>Dune\Graphics\Shaders</Filter>
-    </ClInclude>
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h">
       <Filter>Dune\Graphics\Platform</Filter>
     </ClInclude>
@@ -178,9 +175,6 @@
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
     <None Include="include\Dune\Graphics\Shaders\Forward.hlsl">
-      <Filter>Dune\Graphics\Shaders</Filter>
-    </None>
-    <None Include="include\Dune\Graphics\Shaders\PostProcess.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
     <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli">

@@ -64,14 +64,14 @@ namespace Dune
 			
 			Descriptor m_depthBufferDSV;
 			
-			Buffer m_directionalLightBuffer{};
-			Buffer m_pointLightBuffer{};
-			Buffer m_spotLightBuffer{};
-			Descriptor m_directionalLightSRV{};
-			Descriptor m_pointLightSRV{};
-			Descriptor m_spotLightSRV{};
+			Buffer m_lightBuffer{};
+			Buffer m_lightMatricesBuffer{};
+			Descriptor m_lightsSRV{};
+			Descriptor m_lightMatricesSRV{};
 
 			dVector<Texture> m_shadowMaps{};
+			dVector<Texture> m_cubeShadowMaps{};
+			dVector<dMatrix4x4> m_lightMatrices{};
 
 			Fence m_fence{};
 			Frame m_frames[3];

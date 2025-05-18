@@ -398,25 +398,65 @@ namespace Dune::Graphics
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 		srvDesc.Format = (DXGI_FORMAT)desc.format;
-
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		if (pDimensions[2] > 1)
+
+		switch (desc.dimension)
 		{
-			srvDesc.Texture2DArray.ArraySize = pDimensions[2];
-			srvDesc.Texture2DArray.FirstArraySlice = 0;
+		case ESRVDimension::Texture1D:
+			srvDesc.Texture1D.MipLevels = desc.mipLevels;
+			srvDesc.Texture1D.MostDetailedMip = desc.mipStart;
+			srvDesc.Texture1D.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+			break;
+		case ESRVDimension::Texture1DArray:
+			srvDesc.Texture1DArray.ArraySize = desc.arraySize;
+			srvDesc.Texture1DArray.FirstArraySlice = desc.firstArraySlice;
+			srvDesc.Texture1DArray.MipLevels = desc.mipLevels;
+			srvDesc.Texture1DArray.MostDetailedMip = desc.mipStart;
+			srvDesc.Texture1DArray.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+			break;
+		case ESRVDimension::Texture2D:
+			srvDesc.Texture2D.MipLevels = desc.mipLevels;
+			srvDesc.Texture2D.MostDetailedMip = desc.mipStart;
+			srvDesc.Texture2D.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.Texture2D.PlaneSlice = 0;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			break;
+		case ESRVDimension::Texture2DArray:
+			srvDesc.Texture2DArray.ArraySize = desc.arraySize;
+			srvDesc.Texture2DArray.FirstArraySlice = desc.firstArraySlice;
+			srvDesc.Texture2DArray.MipLevels = desc.mipLevels;
+			srvDesc.Texture2DArray.MostDetailedMip = desc.mipStart;
+			srvDesc.Texture2DArray.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+			break;
+		case ESRVDimension::Texture3D:
+			srvDesc.Texture3D.MipLevels = desc.mipLevels;
+			srvDesc.Texture3D.MostDetailedMip = desc.mipStart;
+			srvDesc.Texture3D.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+			break;
+		case ESRVDimension::TextureCube:
+			srvDesc.Texture2DArray.ArraySize = desc.arraySize;
+			srvDesc.Texture2DArray.FirstArraySlice = desc.firstArraySlice;
 			srvDesc.Texture2DArray.MipLevels = desc.mipLevels;
 			srvDesc.Texture2DArray.MostDetailedMip = desc.mipStart;
 			srvDesc.Texture2DArray.PlaneSlice = 0;
 			srvDesc.Texture2DArray.ResourceMinLODClamp = desc.mipBias;
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-		}
-		else
-		{
-			srvDesc.Texture2D.MipLevels = desc.mipLevels;
-			srvDesc.Texture2D.MostDetailedMip = desc.mipStart;
-			srvDesc.Texture2D.PlaneSlice = 0;
-			srvDesc.Texture2D.ResourceMinLODClamp = desc.mipBias;
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			break;
+		case ESRVDimension::TextureCubeArray:
+			srvDesc.TextureCubeArray.First2DArrayFace = desc.firstArraySlice;
+			srvDesc.TextureCubeArray.MipLevels = desc.mipLevels;
+			srvDesc.TextureCubeArray.MostDetailedMip = desc.mipStart;
+			srvDesc.TextureCubeArray.NumCubes = desc.arraySize;
+			srvDesc.TextureCubeArray.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+			break;
+		default:
+			Assert(0);
+			break;
 		}
 
 		pDevice->CreateShaderResourceView(ToResource(texture.Get()), &srvDesc, { descriptor.cpuAddress });
@@ -462,10 +502,38 @@ namespace Dune::Graphics
 	void Device::CreateDSV(Descriptor& descriptor, Texture& texture, const DSVDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
+		const dU32* pDimensions = texture.GetDimensions();
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 		dsvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
-		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+
+		switch (desc.dimension)
+		{
+		case EDSVDimension::Texture1D:
+			dsvDesc.Texture1D.MipSlice = desc.mipSlice;
+			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+			break;
+		case EDSVDimension::Texture1DArray:
+			dsvDesc.Texture1DArray.ArraySize = desc.arraySize;
+			dsvDesc.Texture1DArray.FirstArraySlice = desc.firstArraySlice;
+			dsvDesc.Texture1DArray.MipSlice = desc.mipSlice;
+			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+			break;
+		case EDSVDimension::Texture2D:
+			dsvDesc.Texture2D.MipSlice = desc.mipSlice;
+			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			break;
+		case EDSVDimension::Texture2DArray:
+			dsvDesc.Texture2DArray.ArraySize = desc.arraySize;
+			dsvDesc.Texture2DArray.FirstArraySlice = desc.firstArraySlice;
+			dsvDesc.Texture2DArray.MipSlice = desc.mipSlice;
+			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+			break;
+		default:
+			Assert(0);
+			break;
+		}
+
 		pDevice->CreateDepthStencilView(ToResource(texture.Get()), &dsvDesc, { descriptor.cpuAddress });
 	}
 

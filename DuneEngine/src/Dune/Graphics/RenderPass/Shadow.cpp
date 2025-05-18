@@ -45,7 +45,7 @@ namespace Dune::Graphics
 				{
 					VertexInput {.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
 				},
-				.rasterizerState = {.depthBias = 10, .slopeScaledDepthBias = 4,.bDepthClipEnable = false},
+				.rasterizerState = {.depthBias = 10, .slopeScaledDepthBias = 4, .bDepthClipEnable = false},
 				.depthStencilState = {.bDepthEnabled = true, .bDepthWrite = true },
 				.depthStencilFormat = EFormat::D32_FLOAT,
 			}

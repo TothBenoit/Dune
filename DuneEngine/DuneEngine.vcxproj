@@ -42,7 +42,6 @@
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="include\Dune\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
-    <ClInclude Include="include\Dune\Graphics\Shaders\PostProcessGlobals.h" />
     <ClInclude Include="include\Dune\Graphics\Mesh.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\ShaderTypes.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
@@ -86,9 +85,6 @@
       <FileType>Document</FileType>
     </None>
     <None Include="include\Dune\Graphics\Shaders\Lighting.hlsli" />
-    <None Include="include\Dune\Graphics\Shaders\PostProcess.hlsl">
-      <FileType>Document</FileType>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

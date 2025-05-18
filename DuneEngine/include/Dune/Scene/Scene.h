@@ -29,6 +29,26 @@ namespace Dune
 		dString name;
 	};
 
+	enum ELightType
+	{
+		Directional,
+		Point,
+		Spot
+	};
+
+	struct Light
+	{
+		dVec3       color;
+		float       intensity;
+		dVec3       position;
+		float       range;
+		dVec3       direction;
+		float       angle;
+		float       penumbra;
+		ELightType  type;
+		bool        castShadow;
+	};
+
 	using EntityID = entt::entity;
 
 	struct Scene

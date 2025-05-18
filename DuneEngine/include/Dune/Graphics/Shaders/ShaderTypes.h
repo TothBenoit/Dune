@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef __cplusplus
-#define BEGIN_NAMESPACE_SHADER namespace Dune::Graphics {
+#define BEGIN_NAMESPACE_SHADER(n) namespace n {
 #define END_NAMESPACE_SHADER }
 
 namespace Dune::Graphics
@@ -29,12 +29,12 @@ namespace Dune::Graphics
 
 #else
 
-#define BEGIN_NAMESPACE_SHADER
+#define BEGIN_NAMESPACE_SHADER(n)
 #define END_NAMESPACE_SHADER
 
 #endif
 
-BEGIN_NAMESPACE_SHADER
+BEGIN_NAMESPACE_SHADER(Dune::Graphics)
 
 #define SHADOW_MAP_RESOLUTION 4096
 #define SHADOW_MAP_RESOLUTION_F float(SHADOW_MAP_RESOLUTION)
@@ -43,13 +43,10 @@ struct ForwardGlobals
 {
 	float4x4   viewProjectionMatrix;
 	float3     cameraPosition;
-	int        directionalLightCount;
-	int        pointLightCount;
-	int        spotLightCount;
-	uint       directionalLightBufferIndex;
-	uint       pointLightBufferIndex;
-	uint       spotLightBufferIndex;
-	uint3      _padding;
+	int        lightCount;
+	uint       lightBufferIndex;
+	uint       lightMatricesIndex;
+	uint2      _padding;
 };
 
 struct InstanceData
@@ -67,24 +64,11 @@ struct MaterialData
 	uint       roughnessMetalnessIdx;
 };
 
-struct PointLight
-{
-	float3     color;
-	float      intensity;
-	float3     position;
-	float      radius;
-};
+static const uint fIsPoint      = 1 << 0;
+static const uint fIsSpot       = 1 << 1;
+static const uint fCastShadow   = 1 << 2;
 
-struct DirectionalLight
-{
-	float3     color;
-	float      intensity;
-	float3     direction;
-	uint       shadowIndex;
-	float4x4   viewProjection;
-};
-
-struct SpotLight
+struct Light
 {
 	float3     color;
 	float      intensity;
@@ -93,6 +77,16 @@ struct SpotLight
 	float3     direction;
 	float      angle;
 	float      penumbra;
-	float3     _padding;
+
+	uint       flags;
+	uint       shadowIndex;
+	uint       matrixIndex;
 };
+
+#ifndef __cplusplus
+bool IsPoint(Light light) { return (light.flags & fIsPoint) != 0; }
+bool IsSpot(Light light) { return (light.flags & fIsSpot) != 0; }
+bool HasShadow(Light light) { return (light.flags & fCastShadow) != 0; }
+#endif
+
 END_NAMESPACE_SHADER

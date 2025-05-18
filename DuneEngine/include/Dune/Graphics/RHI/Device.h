@@ -8,12 +8,27 @@ namespace Dune::Graphics
 	class Buffer;
 	struct Descriptor;
 
+	enum class ESRVDimension
+	{
+		Buffer,
+		Texture1D,
+		Texture1DArray,
+		Texture2D,
+		Texture2DArray,
+		Texture3D,
+		TextureCube,
+		TextureCubeArray
+	};
+
 	struct SRVDesc
 	{
 		dU32 mipStart{ 0 };
 		dU32 mipLevels{ 1 };
 		float mipBias{ 0.0f };
+		dU32 firstArraySlice{ 0 };
+		dU32 arraySize{ (dU32)-1 };
 		EFormat	format{ EFormat::R8G8B8A8_UNORM };
+		ESRVDimension dimension{ ESRVDimension::Texture2D };
 	};
 
 	struct SamplerDesc
@@ -25,8 +40,20 @@ namespace Dune::Graphics
 	{
 	};
 
+	enum class EDSVDimension
+	{
+		Texture1D,
+		Texture1DArray,
+		Texture2D,
+		Texture2DArray,
+	};
+
 	struct DSVDesc
 	{
+		dU32 mipSlice{ 0 };
+		dU32 firstArraySlice{ 0 };
+		dU32 arraySize{ (dU32)-1 };
+		EDSVDimension dimension{ EDSVDimension::Texture2D };
 	};
 
 	class Device : public Resource
