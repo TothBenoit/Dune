@@ -10,10 +10,12 @@
 #include <Dune/Graphics/Window.h>
 #include <Dune/Utilities/SimpleCameraController.h>
 #include <Dune/Scene/Scene.h>
+#include <Dune/Scene/Camera.h>
 #include <Dune/Utilities/SceneLoader.h>
 #include <Dune/Utilities/StringUtils.h>
 #include <filesystem>
 #include <imgui/imgui.h>
+#include <ImGuizmo/ImGuizmo.h>
 
 using namespace Dune;
 
@@ -57,10 +59,71 @@ public:
 		m_window.Destroy();
 	}
 
+	dMatrix4x4 ComputeTransformMatrix(dVec3& position, dQuat& rotation, float scale)
+	{
+		dMatrix4x4 worldTransform{};
+		DirectX::XMStoreFloat4x4(&worldTransform,
+			DirectX::XMMatrixScalingFromVector({ scale, scale, scale }) *
+			DirectX::XMMatrixRotationQuaternion(rotation) *
+			DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&position))
+		);
+		return worldTransform;
+	}
+
+	dVec3 ToEulerAngles(dQuat& rotation)
+	{
+		dVec4 r;
+		DirectX::XMStoreFloat4(&r, rotation);
+
+		const float xx = r.x * r.x;
+		const float yy = r.y * r.y;
+		const float zz = r.z * r.z;
+
+		const float m31 = 2.f * r.x * r.z + 2.f * r.y * r.w;
+		const float m32 = 2.f * r.y * r.z - 2.f * r.x * r.w;
+		const float m33 = 1.f - 2.f * xx - 2.f * yy;
+
+		const float cy = sqrtf(m33 * m33 + m31 * m31);
+		const float cx = atan2f(-m32, cy);
+		if (cy > 16.f * FLT_EPSILON)
+		{
+			const float m12 = 2.f * r.x * r.y + 2.f * r.z * r.w;
+			const float m22 = 1.f - 2.f * xx - 2.f * zz;
+
+			return { cx, atan2f(m31, m33), atan2f(m12, m22) };
+		}
+		else
+		{
+			const float m11 = 1.f - 2.f * yy - 2.f * zz;
+			const float m21 = 2.f * r.x * r.y - 2.f * r.z * r.w;
+
+			return { cx, 0.f, atan2f(-m21, m11) };
+		}
+	}
+
+	bool DrawGizmo(dMatrix4x4& worldTransform)
+	{
+		if (ImGui::IsKeyPressed(ImGuiKey_Z))
+			m_gizmoOperation = ImGuizmo::TRANSLATE;
+		if (ImGui::IsKeyPressed(ImGuiKey_E))
+			m_gizmoOperation = ImGuizmo::ROTATE;
+		if (ImGui::IsKeyPressed(ImGuiKey_R))
+			m_gizmoOperation = ImGuizmo::SCALEU;
+
+		Camera& camera = m_camera.GetCamera();
+		dMatrix4x4 view{};
+		ComputeViewMatrix(camera, &view);
+		dMatrix4x4 proj{};
+		ComputeProjectionMatrix(camera, &proj);
+		
+		return ImGuizmo::Manipulate(&view.m[0][0], &proj.m[0][0], m_gizmoOperation, ImGuizmo::WORLD, &worldTransform.m[0][0], nullptr, nullptr, nullptr, nullptr);
+	}
+
 	void DrawGUI()
 	{
 		m_imgui.Lock();
 		m_imgui.NewFrame();
+		ImGuizmo::BeginFrame();
 
 		ImGui::GetStyle().Colors[ImGuiCol_WindowBg].w = 0.66f;
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -73,7 +136,13 @@ public:
 		ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
 		ImGui::PopStyleVar(3);
 		ImGui::DockSpace(ImGui::GetID("Viewport"), ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode );
+		
+		ImVec2 viewportOrigin = ImGui::GetItemRectMin();
+		ImVec2 viewportExtents = ImGui::GetItemRectSize();
+		ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
 		ImGui::End();
+
+		ImGuizmo::SetRect(viewportOrigin.x, viewportOrigin.y, viewportExtents.x, viewportExtents.y);
 
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -195,6 +264,23 @@ public:
 						ImGui::DragFloat3("Position", &pTransform->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 						ImGui::DragFloat4("Rotation", pTransform->rotation.m128_f32, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
 						ImGui::DragFloat("Scale", &pTransform->scale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
+
+						dMatrix4x4 worldTransform = ComputeTransformMatrix(pTransform->position, pTransform->rotation, pTransform->scale);
+						if (DrawGizmo(worldTransform))
+						{
+							dVec position, scale;
+							DirectX::XMMatrixDecompose(&scale, &pTransform->rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
+							DirectX::XMStoreFloat3(&pTransform->position, position);
+							dVec3 scale3{};
+							DirectX::XMStoreFloat3(&scale3, scale);
+							if (pTransform->scale != scale3.x)
+								pTransform->scale = scale3.x;
+							else if (pTransform->scale != scale3.y)
+								pTransform->scale = scale3.y;
+							else if (pTransform->scale != scale3.z)
+								pTransform->scale = scale3.z;
+						}
+
 						ImGui::TreePop();
 					}
 				}
@@ -213,16 +299,47 @@ public:
 							pLight->intensity *= 100.f * 100.f;
 							ImGui::DragFloat("Radius", &pLight->range, 0.5f, 0.0f, +FLT_MAX, "%.2f");
 							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
+
+							dVec quatIdentity = DirectX::XMQuaternionIdentity();
+							dMatrix4x4 worldTransform = ComputeTransformMatrix(pLight->position, quatIdentity, pLight->range);
+							if (DrawGizmo(worldTransform))
+							{
+								dVec position, scale, rotation;
+								DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
+								DirectX::XMStoreFloat3(&pLight->position, position);
+								dVec3 scale3{};
+								DirectX::XMStoreFloat3(&scale3, scale);
+								if (pLight->range != scale3.x)
+									pLight->range = scale3.x;
+								else if (pLight->range != scale3.y)
+									pLight->range = scale3.y;
+								else if (pLight->range != scale3.z)
+									pLight->range = scale3.z;
+							}
+
 							ImGui::TreePop();
 						}
 						break;
 					case ELightType::Directional:
 						if (ImGui::TreeNodeEx("DirectionalLight :", ImGuiTreeNodeFlags_DefaultOpen))
 						{
+							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 							ImGui::ColorPicker3("Color", &pLight->color.x);
 							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f");
-							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
+
+							dVec quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pLight->direction.x), DirectX::XMConvertToRadians(pLight->direction.y), DirectX::XMConvertToRadians(pLight->direction.z));
+							dMatrix4x4 worldTransform = ComputeTransformMatrix(pLight->position, quat, 1.0f);
+							if (DrawGizmo(worldTransform))
+							{
+								dVec position, scale, rotation;
+								DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
+								dVec3 eulerAngles = ToEulerAngles(rotation);
+								pLight->direction.x = DirectX::XMConvertToDegrees(eulerAngles.x);
+								pLight->direction.y = DirectX::XMConvertToDegrees(eulerAngles.y);
+								pLight->direction.z = DirectX::XMConvertToDegrees(eulerAngles.z);
+							}
+
 							ImGui::TreePop();
 						}
 						break;
@@ -230,15 +347,37 @@ public:
 						if (ImGui::TreeNodeEx("SpotLight :", ImGuiTreeNodeFlags_DefaultOpen))
 						{
 							ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 							ImGui::ColorPicker3("Color", &pLight->color.x);
 							pLight->intensity *= 1.0f / (100.f * 100.f);
 							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f");
 							pLight->intensity *= 100.f * 100.f;
-							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 							ImGui::DragFloat("Range", &pLight->range, 0.5f, 0.f, +FLT_MAX, "%.2f");
 							ImGui::DragFloat("Angle", &pLight->angle, 0.5f, 0, 180.f, "%.2f");
 							ImGui::DragFloat("Penumbra", &pLight->penumbra, 0.001f, 0.0000001f, 1.0f, "%.2f");
 							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
+
+							dVec quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pLight->direction.x), DirectX::XMConvertToRadians(pLight->direction.y), DirectX::XMConvertToRadians(pLight->direction.z));
+							dMatrix4x4 worldTransform = ComputeTransformMatrix(pLight->position, quat, pLight->range);
+							if (DrawGizmo(worldTransform))
+							{
+								dVec position, scale, rotation;
+								DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
+								DirectX::XMStoreFloat3(&pLight->position, position);
+								dVec3 scale3{};
+								DirectX::XMStoreFloat3(&scale3, scale);
+								if (pLight->range != scale3.x )
+									pLight->range = scale3.x;
+								else if (pLight->range != scale3.y)
+									pLight->range = scale3.y;
+								else if (pLight->range != scale3.z)
+									pLight->range = scale3.z;
+								dVec3 eulerAngles = ToEulerAngles(rotation);
+								pLight->direction.x = DirectX::XMConvertToDegrees(eulerAngles.x);
+								pLight->direction.y = DirectX::XMConvertToDegrees(eulerAngles.y);
+								pLight->direction.z = DirectX::XMConvertToDegrees(eulerAngles.z);
+							}
+
 							ImGui::TreePop();
 						}
 						break;
@@ -271,6 +410,8 @@ private:
 	bool m_showDemo{ false };
 
 	EntityID m_selectedEntity{ (EntityID)-1 };
+
+	ImGuizmo::OPERATION m_gizmoOperation{ ImGuizmo::ROTATE };
 };
 
 void Test(Graphics::Device* pDevice, Scene* pScene)

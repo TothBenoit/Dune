@@ -46,11 +46,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\Dune$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin-int\$(Configuration)\$(ProjectName)</IntDir>
+    <IntDir>$(SolutionDir)bin-int\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IntDir>$(SolutionDir)bin-int\$(Configuration)\$(ProjectName)</IntDir>
+    <IntDir>$(SolutionDir)bin-int\$(Configuration)\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)bin\Dune$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -103,6 +103,9 @@
   <ItemGroup>
     <ProjectReference Include="..\DuneEngine\DuneEngine.vcxproj">
       <Project>{4e8a7bd2-878f-4381-b129-6ce9b232c4e2}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ThirdParties\ImGuizmo\ImGuizmo.vcxproj">
+      <Project>{62471fc0-2d1d-49a7-8c5e-d288095cac23}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

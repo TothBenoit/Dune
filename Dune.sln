@@ -16,6 +16,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "ThirdParties\imgui
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Optick", "ThirdParties\Optick\Optick.vcxproj", "{31FBDCBA-D741-46E6-B840-5E8E96021BDA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImGuizmo", "ThirdParties\ImGuizmo\ImGuizmo.vcxproj", "{62471FC0-2D1D-49A7-8C5E-D288095CAC23}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6423B652-03DA-48CD-8F13-3F946A11EB77} = {6423B652-03DA-48CD-8F13-3F946A11EB77}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -38,6 +43,10 @@ Global
 		{31FBDCBA-D741-46E6-B840-5E8E96021BDA}.Debug|x64.Build.0 = Debug|x64
 		{31FBDCBA-D741-46E6-B840-5E8E96021BDA}.Release|x64.ActiveCfg = Release|x64
 		{31FBDCBA-D741-46E6-B840-5E8E96021BDA}.Release|x64.Build.0 = Release|x64
+		{62471FC0-2D1D-49A7-8C5E-D288095CAC23}.Debug|x64.ActiveCfg = Debug|x64
+		{62471FC0-2D1D-49A7-8C5E-D288095CAC23}.Debug|x64.Build.0 = Debug|x64
+		{62471FC0-2D1D-49A7-8C5E-D288095CAC23}.Release|x64.ActiveCfg = Release|x64
+		{62471FC0-2D1D-49A7-8C5E-D288095CAC23}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -45,6 +54,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{6423B652-03DA-48CD-8F13-3F946A11EB77} = {834F0B89-F32F-4423-A331-71B876C1B349}
 		{31FBDCBA-D741-46E6-B840-5E8E96021BDA} = {834F0B89-F32F-4423-A331-71B876C1B349}
+		{62471FC0-2D1D-49A7-8C5E-D288095CAC23} = {834F0B89-F32F-4423-A331-71B876C1B349}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DECCD3B3-ADFA-4CC6-AFBE-9135A15220D1}
