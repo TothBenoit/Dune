@@ -11,39 +11,29 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\optick.config.h" />
-    <ClInclude Include="include\optick.h" />
-    <ClInclude Include="include\optick_capi.h" />
-    <ClInclude Include="include\optick_common.h" />
-    <ClInclude Include="include\optick_core.freebsd.h" />
-    <ClInclude Include="include\optick_core.h" />
-    <ClInclude Include="include\optick_core.linux.h" />
-    <ClInclude Include="include\optick_core.macos.h" />
-    <ClInclude Include="include\optick_core.platform.h" />
-    <ClInclude Include="include\optick_core.win.h" />
-    <ClInclude Include="include\optick_gpu.h" />
-    <ClInclude Include="include\optick_memory.h" />
-    <ClInclude Include="include\optick_message.h" />
-    <ClInclude Include="include\optick_miniz.h" />
-    <ClInclude Include="include\optick_serialization.h" />
-    <ClInclude Include="include\optick_server.h" />
+    <ClInclude Include="include\imconfig.h" />
+    <ClInclude Include="include\imgui.h" />
+    <ClInclude Include="include\imgui_impl_dx12.h" />
+    <ClInclude Include="include\imgui_impl_win32.h" />
+    <ClInclude Include="include\imgui_internal.h" />
+    <ClInclude Include="include\imstb_rectpack.h" />
+    <ClInclude Include="include\imstb_textedit.h" />
+    <ClInclude Include="include\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="optick_capi.cpp" />
-    <ClCompile Include="optick_core.cpp" />
-    <ClCompile Include="optick_gpu.cpp" />
-    <ClCompile Include="optick_gpu.d3d12.cpp" />
-    <ClCompile Include="optick_gpu.vulkan.cpp" />
-    <ClCompile Include="optick_message.cpp" />
-    <ClCompile Include="optick_miniz.cpp" />
-    <ClCompile Include="optick_serialization.cpp" />
-    <ClCompile Include="optick_server.cpp" />
+    <ClCompile Include="imgui.cpp" />
+    <ClCompile Include="imgui_demo.cpp" />
+    <ClCompile Include="imgui_draw.cpp" />
+    <ClCompile Include="imgui_impl_dx12.cpp" />
+    <ClCompile Include="imgui_impl_win32.cpp" />
+    <ClCompile Include="imgui_tables.cpp" />
+    <ClCompile Include="imgui_widgets.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{31fbdcba-d741-46e6-b840-5e8e96021bda}</ProjectGuid>
-    <RootNamespace>Optick</RootNamespace>
+    <ProjectGuid>{6423b652-03da-48cd-8f13-3f946a11eb77}</ProjectGuid>
+    <RootNamespace>imgui</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -73,13 +63,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)ThirdParties\lib\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin-int\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>$(ProjectName)d</TargetName>
+    <OutDir>$(SolutionDir)ThirdParties\lib\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin-int\$(Configuration)\$(ProjectName)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)ThirdParties\lib\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin-int\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)bin-int\$(Configuration)\$(ProjectName)</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -90,9 +80,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParties\include\Optick\;</AdditionalIncludeDirectories>
-      <ExceptionHandling>false</ExceptionHandling>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <ExceptionHandling>false</ExceptionHandling>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParties\include\imgui\;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -111,9 +101,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParties\include\Optick\;</AdditionalIncludeDirectories>
       <ExceptionHandling>false</ExceptionHandling>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParties\include\imgui\;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
