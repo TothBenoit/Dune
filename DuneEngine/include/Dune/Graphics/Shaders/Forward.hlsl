@@ -43,23 +43,34 @@ struct PS_OUTPUT
 PS_OUTPUT PSMain(VSToPS input)
 {
     PS_OUTPUT output;
-    Texture2D albedoTexture = ResourceDescriptorHeap[cMaterial.albedoIdx];
-    const float3 albedo = cMaterial.baseColor * albedoTexture.Sample(sAnisoWrap, input.uv).rgb;
+    float3 albedo = cMaterial.baseColor;
+    if (IsValid(cMaterial.albedoIdx))
+    {
+        Texture2D albedoTexture = ResourceDescriptorHeap[cMaterial.albedoIdx];
+        albedo *= albedoTexture.Sample(sAnisoWrap, input.uv).rgb;
+    }
 
-    Texture2D normalTexture = ResourceDescriptorHeap[cMaterial.normalIdx];
-    const float2 sampledNormal = normalTexture.Sample(sAnisoWrap, input.uv).xy;
+    float3 n = input.normal;
+    if (IsValid(cMaterial.normalIdx))
+    {
+        Texture2D normalTexture = ResourceDescriptorHeap[cMaterial.normalIdx];
+        const float2 sampledNormal = normalTexture.Sample(sAnisoWrap, input.uv).xy;
+        const float3x3 TBN = TangentToWorld(input.normal, float4(normalize(input.tangent.xyz), input.tangent.w));
+        const float3 nf = UnpackNormal(sampledNormal);
+        n = mul(nf, TBN);
+    }
 
-    Texture2D roughnessMetalnessTexture = ResourceDescriptorHeap[cMaterial.roughnessMetalnessIdx];
-    const float2 roughnessMetalness = roughnessMetalnessTexture.Sample(sAnisoWrap, input.uv).gb;
+    float roughness = cMaterial.roughnessFactor;
+    float metalness = cMaterial.metalnessFactor;
+    if (IsValid(cMaterial.roughnessMetalnessIdx))
+    {
+        Texture2D roughnessMetalnessTexture = ResourceDescriptorHeap[cMaterial.roughnessMetalnessIdx];
+        const float2 roughnessMetalness = roughnessMetalnessTexture.Sample(sAnisoWrap, input.uv).gb;
+        roughness *= roughnessMetalness.x;
+        metalness *= roughnessMetalness.y;
+    }
 
-    const float3x3 TBN = TangentToWorld(input.normal, float4(normalize(input.tangent.xyz), input.tangent.w));
-    const float3 nf = UnpackNormal(sampledNormal);
-    const float3 n = mul(nf, TBN);
-    
     const float3 v = normalize(cGlobals.cameraPosition - input.worldPosition);
-
-    const float roughness = cMaterial.roughnessFactor * roughnessMetalness.r;
-    const float metalness = cMaterial.metalnessFactor * roughnessMetalness.g;
     const float3 f0 = ComputeF0(0.04.xxx, albedo, metalness);
     const float3 diffuseColor = albedo * (1.0 - metalness);
  

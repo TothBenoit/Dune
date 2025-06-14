@@ -81,12 +81,14 @@ struct Light
 	uint       flags;
 	uint       shadowIndex;
 	uint       matrixIndex;
+
+	bool IsPoint() { return (flags & fIsPoint) != 0; }
+	bool IsSpot() { return (flags & fIsSpot) != 0; }
+	bool HasShadow() { return (flags & fCastShadow) != 0; }
 };
 
 #ifndef __cplusplus
-bool IsPoint(Light light) { return (light.flags & fIsPoint) != 0; }
-bool IsSpot(Light light) { return (light.flags & fIsSpot) != 0; }
-bool HasShadow(Light light) { return (light.flags & fCastShadow) != 0; }
+bool IsValid(uint index) { return index != uint(-1); }
 #endif
 
 END_NAMESPACE_SHADER

@@ -25,7 +25,7 @@ float Shadow(Light light, uint lightMatricesIndex, float3 worldPosition, float3 
     StructuredBuffer<float4x4> lightMatrices = ResourceDescriptorHeap[lightMatricesIndex];
     float4x4 lightMatrix = lightMatrices[light.matrixIndex];
     
-    if ( IsPoint(light) )
+    if (light.IsPoint())
     {
         const float3 lightToWorld = worldPosition - light.position;
         const float3 uv = normalize(lightToWorld);
@@ -55,7 +55,7 @@ float3 ComputeLight(Light light, uint lightMatricesIndex, float3 n, float3 v, fl
     float3 l = -light.direction;
     float attenuation = 1.f;
     
-    if (IsPoint(light) || IsSpot(light))
+    if (light.IsPoint() || light.IsSpot())
     {
         float3 L = light.position - worldPosition;
         const float distanceSq = dot(L, L);
@@ -63,14 +63,14 @@ float3 ComputeLight(Light light, uint lightMatricesIndex, float3 n, float3 v, fl
         
         l = L * rsqrt(distanceSq);
         
-        if (IsSpot(light))
+        if (light.IsSpot())
         {
             const float cosAngle = dot(light.direction, -l);
             attenuation *= Square(saturate((cosAngle - light.angle) * light.penumbra));
         }
     }
 
-    if (HasShadow(light))
+    if (light.HasShadow())
     {
         const float nDotL = saturate(dot(n, l));
         attenuation *= 1.0f - Shadow(light, lightMatricesIndex, worldPosition, n, nDotL);

@@ -51,7 +51,7 @@ namespace Dune::SceneLoader
 		Assimp::Importer importer;
 		dString path{ dirPath };
 		path.append(fileName);
-		const aiScene* pScene{ importer.ReadFile(path, aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_CalcTangentSpace) };
+		const aiScene* pScene{ importer.ReadFile(path, aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_CalcTangentSpace ) };
 		if (!pScene) {
 			LOG_ERROR(importer.GetErrorString());
 			return false;
@@ -109,46 +109,62 @@ namespace Dune::SceneLoader
 			Graphics::Mesh& mesh = scene.meshes[meshIdx];
 			mesh.Initialize(&device, &commandList, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Graphics::Vertex));
 
+			Graphics::MaterialData material
+			{
+				.baseColor = { 1.0f, 1.0f, 1.0f },
+				.metalnessFactor = 1.0f,
+				.roughnessFactor = 1.0f,
+				.albedoIdx = dU32(-1),
+				.normalIdx = dU32(-1),
+				.roughnessMetalnessIdx = dU32(-1),
+			};
+
 			dU32 materialIdx = pMesh->mMaterialIndex;
 			const aiMaterial* pMaterial = pScene->mMaterials[materialIdx];
 			{
 				aiString texturePath;
-				pMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &texturePath);
-				dString path{ dirPath };
-				path.append(texturePath.length == 0 ? "defaultAlbedo.DDS" : texturePath.C_Str());
-				Graphics::Buffer& uploadBuffer = uploadBuffers.emplace_back();
-				scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str(), true));
+				if (pMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &texturePath) == aiReturn_SUCCESS)
+				{
+					material.albedoIdx = (dU32)scene.textures.size();
+					dString path{ dirPath };
+					path.append(texturePath.C_Str());
+					Graphics::Buffer& uploadBuffer = uploadBuffers.emplace_back();					
+					scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str(), true));
+				}
 			}
 
 			{
 				aiString texturePath;
-				pMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath);
-				Graphics::Buffer& uploadBuffer = uploadBuffers.emplace_back();
-				dString path{ dirPath };
-				path.append( texturePath.length == 0 ? "defaultNormal.DDS" : texturePath.C_Str());
-				scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str()));
+				if ( pMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == aiReturn_SUCCESS ) 
+				{
+					material.normalIdx = (dU32)scene.textures.size();
+					dString path{ dirPath };
+					path.append(texturePath.C_Str());
+					Graphics::Buffer& uploadBuffer = uploadBuffers.emplace_back();
+					scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str()));
+				}
 			}
 
 			{
 				aiString texturePath;
-				pMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath);
-				Graphics::Buffer& uploadBuffer = uploadBuffers.emplace_back();
-				dString path{ dirPath };
-				path.append(texturePath.length == 0 ? "defaultRoughnessMetalness.DDS" : texturePath.C_Str());
-				scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str()));
+				if (pMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath) == aiReturn_SUCCESS)
+				{
+					material.roughnessMetalnessIdx = (dU32)scene.textures.size();
+					dString path{ dirPath };
+					path.append(texturePath.C_Str());
+					Graphics::Buffer& uploadBuffer = uploadBuffers.emplace_back();
+					scene.textures.push_back(Graphics::DDSTexture::CreateTextureFromFile(&device, &commandList, uploadBuffer, path.c_str()));
+				}
 			}
 
-			Graphics::MaterialData material;
 			aiUVTransform data;
-			pMaterial->Get(AI_MATKEY_BASE_COLOR, data);
-			material.baseColor = *((dVec3*)&data);
-			pMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, data);
-			material.roughnessFactor = *(float*)(&data);
-			pMaterial->Get(AI_MATKEY_METALLIC_FACTOR, data);
-			material.metalnessFactor = *(float*)(&data);
-			material.albedoIdx = meshIdx * 3;
-			material.normalIdx = meshIdx * 3 + 1;
-			material.roughnessMetalnessIdx = meshIdx * 3 + 2;
+			if ( pMaterial->Get(AI_MATKEY_BASE_COLOR, data) == aiReturn_SUCCESS ) 
+				material.baseColor = *((dVec3*)&data);
+			if ( pMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, data) == aiReturn_SUCCESS )
+				material.roughnessFactor = *(float*)(&data);
+			if ( pMaterial->Get(AI_MATKEY_METALLIC_FACTOR, data) == aiReturn_SUCCESS )
+				material.metalnessFactor = *(float*)(&data);
+
 			scene.materials.push_back(material);
 		}
 

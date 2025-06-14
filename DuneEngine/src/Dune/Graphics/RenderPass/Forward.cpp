@@ -97,28 +97,38 @@ namespace Dune::Graphics
 					DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
 				);
 
-				Texture& albedoTexture = scene.textures[material.albedoIdx];
-				Texture& normalTexture = scene.textures[material.normalIdx];
-				Texture& roughnessMetalnessTexture = scene.textures[material.roughnessMetalnessIdx];
-				Descriptor albedo = srvHeap.Allocate();
-				m_pDevice->CreateSRV(albedo, albedoTexture);
-				Descriptor normal = srvHeap.Allocate();
-				m_pDevice->CreateSRV(normal, normalTexture);
-				Descriptor roughnessMetalness = srvHeap.Allocate();
-				m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture);
-				material.albedoIdx = srvHeap.GetIndex(albedo);
-				material.normalIdx = srvHeap.GetIndex(normal);
-				material.roughnessMetalnessIdx = srvHeap.GetIndex(roughnessMetalness);
+				if (material.albedoIdx != dU32(-1))
+				{
+					Texture& albedoTexture = scene.textures[material.albedoIdx];
+					Descriptor albedo = srvHeap.Allocate();
+					m_pDevice->CreateSRV(albedo, albedoTexture);
+					material.albedoIdx = srvHeap.GetIndex(albedo);
+					descriptorsToRelease.push(albedo);
+				}
+
+				if (material.normalIdx != dU32(-1))
+				{
+					Texture& normalTexture = scene.textures[material.normalIdx];
+					Descriptor normal = srvHeap.Allocate();
+					m_pDevice->CreateSRV(normal, normalTexture);
+					material.normalIdx = srvHeap.GetIndex(normal);
+					descriptorsToRelease.push(normal);
+				}
+
+				if (material.roughnessMetalnessIdx != dU32(-1))
+				{
+					Texture& roughnessMetalnessTexture = scene.textures[material.roughnessMetalnessIdx];
+					Descriptor roughnessMetalness = srvHeap.Allocate();
+					m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture);
+					material.roughnessMetalnessIdx = srvHeap.GetIndex(roughnessMetalness);
+					descriptorsToRelease.push(roughnessMetalness);
+				}
 
 				commandList.PushGraphicsConstants(1, &instance, sizeof(InstanceData));
 				commandList.PushGraphicsConstants(2, &material, sizeof(MaterialData));
 				commandList.BindIndexBuffer(mesh.GetIndexBuffer());
 				commandList.BindVertexBuffer(mesh.GetVertexBuffer());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
-
-				descriptorsToRelease.push(albedo);
-				descriptorsToRelease.push(normal);
-				descriptorsToRelease.push(roughnessMetalness);
 			});
 	}
 }
