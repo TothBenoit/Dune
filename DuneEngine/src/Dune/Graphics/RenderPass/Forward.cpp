@@ -77,7 +77,7 @@ namespace Dune::Graphics
 		m_rootSignature.Destroy();
 	}
 
-	void Forward::Render(Scene& scene, DescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals, dQueue<Descriptor>& descriptorsToRelease)
+	void Forward::Render(Scene& scene, TransientDescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals)
 	{
 		commandList.SetGraphicsRootSignature(m_rootSignature);
 		commandList.SetPipelineState(m_pipeline);
@@ -100,28 +100,25 @@ namespace Dune::Graphics
 				if (material.albedoIdx != dU32(-1))
 				{
 					Texture& albedoTexture = scene.textures[material.albedoIdx];
-					Descriptor albedo = srvHeap.Allocate();
+					Descriptor albedo = srvHeap.Allocate(1);
 					m_pDevice->CreateSRV(albedo, albedoTexture);
 					material.albedoIdx = srvHeap.GetIndex(albedo);
-					descriptorsToRelease.push(albedo);
 				}
 
 				if (material.normalIdx != dU32(-1))
 				{
 					Texture& normalTexture = scene.textures[material.normalIdx];
-					Descriptor normal = srvHeap.Allocate();
+					Descriptor normal = srvHeap.Allocate(1);
 					m_pDevice->CreateSRV(normal, normalTexture);
 					material.normalIdx = srvHeap.GetIndex(normal);
-					descriptorsToRelease.push(normal);
 				}
 
 				if (material.roughnessMetalnessIdx != dU32(-1))
 				{
 					Texture& roughnessMetalnessTexture = scene.textures[material.roughnessMetalnessIdx];
-					Descriptor roughnessMetalness = srvHeap.Allocate();
+					Descriptor roughnessMetalness = srvHeap.Allocate(1);
 					m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture);
 					material.roughnessMetalnessIdx = srvHeap.GetIndex(roughnessMetalness);
-					descriptorsToRelease.push(roughnessMetalness);
 				}
 
 				commandList.PushGraphicsConstants(1, &instance, sizeof(InstanceData));

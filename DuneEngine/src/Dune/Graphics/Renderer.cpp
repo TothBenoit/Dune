@@ -43,6 +43,8 @@ namespace Dune::Graphics
 			frame.commandList.Initialize(m_pDevice, ECommandType::Direct, frame.commandAllocator);
 			frame.commandList.Close();
 			frame.colorTarget.Initialize(m_pDevice, colorTargetDesc);
+			frame.srvHeap.Initialize(m_pDevice, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 4096, .isShaderVisible = true });
+			frame.samplerHeap.Initialize(m_pDevice, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
 		}
 
 		m_barrier.Initialize(16);
@@ -50,17 +52,16 @@ namespace Dune::Graphics
 		m_commandQueue.Initialize(m_pDevice, ECommandType::Direct);
 		m_swapchain.Initialize(m_pDevice, m_pWindow, &m_commandQueue, { .latency = 3 });
 
-		DescriptorHeapDesc heapDesc = { .type = DescriptorHeapType::SRV_CBV_UAV, .capacity = 4096 };
+		DescriptorHeapDesc heapDesc { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 64, .isShaderVisible = true };
+		m_srvImGuiHeap.Initialize(m_pDevice, heapDesc);
+
+		heapDesc.isShaderVisible = false;
 		m_srvHeap.Initialize(m_pDevice, heapDesc);
 
-		heapDesc.capacity = 64;
-		heapDesc.type = DescriptorHeapType::Sampler;
-		m_samplerHeap.Initialize(m_pDevice, heapDesc);
-
-		heapDesc.type = DescriptorHeapType::RTV;
+		heapDesc.type = EDescriptorHeapType::RTV;
 		m_rtvHeap.Initialize(m_pDevice, heapDesc);
 
-		heapDesc.type = DescriptorHeapType::DSV;
+		heapDesc.type = EDescriptorHeapType::DSV;
 		m_dsvHeap.Initialize(m_pDevice, heapDesc);
 
 		for (dU32 i = 0; i < 3; i++)
@@ -93,11 +94,6 @@ namespace Dune::Graphics
 		for (dU32 i = 0; i < 3; i++) 
 		{
 			Frame& frame = m_frames[i];
-			while (!frame.descriptorsToRelease.empty())
-			{
-				m_srvHeap.Free(frame.descriptorsToRelease.front());
-				frame.descriptorsToRelease.pop();
-			}
 			while (!frame.buffersToRelease.empty())
 			{
 				frame.buffersToRelease.front().Destroy();
@@ -110,6 +106,8 @@ namespace Dune::Graphics
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
 			frame.colorTarget.Destroy();
+			frame.srvHeap.Destroy();
+			frame.samplerHeap.Destroy();
 		}
 		m_dsvHeap.Free(m_depthBufferDSV);
 		m_srvHeap.Free(m_lightsSRV);
@@ -126,7 +124,7 @@ namespace Dune::Graphics
 		m_tonemappingPass.Destroy();
 
 		m_srvHeap.Destroy();
-		m_samplerHeap.Destroy();
+		m_srvImGuiHeap.Destroy();
 		m_rtvHeap.Destroy();
 		m_dsvHeap.Destroy();
 		m_barrier.Destroy();
@@ -192,20 +190,19 @@ namespace Dune::Graphics
 	{
 		Frame& frame = m_frames[m_frameIndex];
 		WaitForFrame(frame);
-		while ( !frame.descriptorsToRelease.empty() )
-		{
-			m_srvHeap.Free(frame.descriptorsToRelease.front());
-			frame.descriptorsToRelease.pop();
-		}
 		while (!frame.buffersToRelease.empty())
 		{
 			frame.buffersToRelease.front().Destroy();
 			frame.buffersToRelease.pop();
 		}
-
 		frame.commandAllocator.Reset();
 		frame.commandList.Reset(frame.commandAllocator);
-		frame.commandList.SetDescriptorHeaps(m_srvHeap, m_samplerHeap);
+		frame.commandList.SetDescriptorHeaps(frame.srvHeap, frame.samplerHeap);
+		frame.srvHeap.Reset();
+		frame.samplerHeap.Reset();
+
+		m_pDevice->CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
+		frame.srvHeap.Allocate(m_srvHeap.GetCapacity());
 
 		ForwardGlobals globals;
 		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
@@ -233,6 +230,7 @@ namespace Dune::Graphics
 							.initialState{ EResourceState::Undefined }
 						});
 					m_pDevice->CreateSRV(m_lightsSRV, m_lightBuffer);
+					m_pDevice->CopyDescriptors(1, m_lightsSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightsSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 				}
 
 				uploadBuffer.Initialize(m_pDevice,
@@ -284,8 +282,7 @@ namespace Dune::Graphics
 						{
 							light.flags |= fCastShadow;
 							Descriptor dsv = m_dsvHeap.Allocate();
-							Descriptor srv = m_srvHeap.Allocate();
-							frame.descriptorsToRelease.push(srv);
+							Descriptor srv = frame.srvHeap.Allocate(1);
 
 							if (sceneLight.type == ELightType::Point)
 							{
@@ -308,9 +305,15 @@ namespace Dune::Graphics
 											.initialState = EResourceState::DepthStencil
 										});
 								}
+								else
+								{
+									m_barrier.PushTransition(shadowMap.Get(), EResourceState::ShaderResource, EResourceState::DepthStencil);
+									frame.commandList.Transition(m_barrier);
+									m_barrier.Reset();
+								}
 
 								m_pDevice->CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT, .dimension = ESRVDimension::TextureCube });
-								light.shadowIndex = m_srvHeap.GetIndex(srv);
+								light.shadowIndex = frame.srvHeap.GetIndex(srv);
 
 								dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), 1.0f, 0.1f, sceneLight.range) };
 								dVec eye{ sceneLight.position.x, sceneLight.position.y, sceneLight.position.z };
@@ -332,6 +335,9 @@ namespace Dune::Graphics
 									DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrices[faceIndex] * projectionMatrix);
 									m_shadowPass.Render(scene, frame.commandList, lightMatrix);
 								}
+								m_barrier.PushTransition(shadowMap.Get(), EResourceState::DepthStencil, EResourceState::ShaderResource);
+								frame.commandList.Transition(m_barrier);
+								m_barrier.Reset();
 								DirectX::XMStoreFloat4x4(&lightMatrix, projectionMatrix);
 							} 
 							else 
@@ -354,6 +360,12 @@ namespace Dune::Graphics
 											.clearValue = {1.f, 1.f, 1.f, 1.f},
 											.initialState = EResourceState::DepthStencil
 										});
+								}
+								else 
+								{
+									m_barrier.PushTransition(shadowMap.Get(), EResourceState::ShaderResource, EResourceState::DepthStencil);
+									frame.commandList.Transition(m_barrier);
+									m_barrier.Reset();
 								}
 
 								m_pDevice->CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT });
@@ -387,7 +399,10 @@ namespace Dune::Graphics
 								}
 
 								m_shadowPass.Render(scene, frame.commandList, lightMatrix);
-								light.shadowIndex = m_srvHeap.GetIndex(srv);
+								light.shadowIndex = frame.srvHeap.GetIndex(srv);
+								m_barrier.PushTransition(shadowMap.Get(), EResourceState::DepthStencil, EResourceState::ShaderResource);
+								frame.commandList.Transition(m_barrier);
+								m_barrier.Reset();
 							}
 							m_dsvHeap.Free(dsv);
 						}
@@ -415,6 +430,7 @@ namespace Dune::Graphics
 								.initialState{ EResourceState::Undefined }
 							});
 						m_pDevice->CreateSRV(m_lightMatricesSRV, m_lightMatricesBuffer);
+						m_pDevice->CopyDescriptors(1, m_lightMatricesSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightMatricesSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 					}
 
 					Buffer matricesUploadBuffer{};
@@ -457,19 +473,22 @@ namespace Dune::Graphics
 		m_depthPrepass.Render(scene, frame.commandList, globals.viewProjectionMatrix);
 
 		frame.commandList.SetRenderTarget(&frame.colorTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
-		m_forwardPass.Render(scene, m_srvHeap, frame.commandList, globals, frame.descriptorsToRelease);
+		m_forwardPass.Render(scene, frame.srvHeap, frame.commandList, globals);
 
-		Descriptor source = m_srvHeap.Allocate();
-		frame.descriptorsToRelease.push(source);
+		Descriptor source = frame.srvHeap.Allocate(1);
 
 		m_barrier.PushTransition(frame.colorTarget.Get(), EResourceState::RenderTarget, EResourceState::ShaderResource);
 		frame.commandList.Transition(m_barrier);
 		m_barrier.Reset();
 		frame.commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
-		m_tonemappingPass.Render(frame.commandList, frame.colorTargetSRV);
+		Descriptor colorTargetSRV = frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(frame.colorTargetSRV));
+		m_tonemappingPass.Render(frame.commandList, colorTargetSRV);
 
-		if (m_pImGui)
+		if (m_pImGui) 
+		{
+			frame.commandList.SetDescriptorHeaps(m_srvImGuiHeap);
 			m_pImGui->Render(frame.commandList);
+		}
 
 		m_barrier.PushTransition(m_swapchain.GetBackBuffer(m_frameIndex).Get(), EResourceState::RenderTarget, EResourceState::Present);
 		frame.commandList.Transition(m_barrier);

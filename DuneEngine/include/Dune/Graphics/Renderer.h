@@ -31,7 +31,8 @@ namespace Dune
 			Texture colorTarget;
 			Descriptor colorTargetRTV;
 			Descriptor colorTargetSRV;
-			dQueue<Descriptor> descriptorsToRelease;
+			TransientDescriptorHeap srvHeap;
+			TransientDescriptorHeap samplerHeap;
 			dQueue<Buffer> buffersToRelease;
 		};
 
@@ -57,10 +58,10 @@ namespace Dune
 			Texture m_depthBuffer{};
 			CommandQueue m_commandQueue{};
 			
-			DescriptorHeap m_srvHeap{};
-			DescriptorHeap m_samplerHeap{};
-			DescriptorHeap m_rtvHeap{};
-			DescriptorHeap m_dsvHeap{};
+			PersistentDescriptorHeap m_srvHeap{};
+			PersistentDescriptorHeap m_srvImGuiHeap{};
+			PersistentDescriptorHeap m_rtvHeap{};
+			PersistentDescriptorHeap m_dsvHeap{};
 			
 			Descriptor m_depthBufferDSV;
 			

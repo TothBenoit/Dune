@@ -10,7 +10,7 @@ namespace Dune
 
 	namespace Graphics
 	{
-		class DescriptorHeap;
+		class TransientDescriptorHeap;
 		struct Descriptor;
 		struct ForwardGlobals;
 		class CommandList;
@@ -22,7 +22,7 @@ namespace Dune
 			void Initialize(Device* pDevice);
 			void Destroy();
 
-			void Render(Scene& scene, DescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals, dQueue<Descriptor>& descriptorsToRelease);
+			void Render(Scene& scene, TransientDescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals);
 
 		private:
 			RootSignature m_rootSignature;

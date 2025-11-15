@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Dune/Graphics/RHI/Resource.h"
+#include "Dune/Graphics/RHI/DescriptorHeap.h"
 
 namespace Dune::Graphics
 {
 	class Texture;
 	class Buffer;
-	struct Descriptor;
 
 	enum class ESRVDimension
 	{
@@ -70,6 +70,8 @@ namespace Dune::Graphics
 		void CreateSampler(Descriptor& descriptor, const SamplerDesc& desc);
 		void CreateRTV(Descriptor& descriptor, Texture& texture, const RTVDesc& desc);
 		void CreateDSV(Descriptor& descriptor, Texture& texture, const DSVDesc& desc);
+
+		void CopyDescriptors(dU32 count, dU64 cpuAddressSrc, dU64 cpuAddressDst, EDescriptorHeapType type);
 
 	private:
 		void* m_pInternal{ nullptr };
