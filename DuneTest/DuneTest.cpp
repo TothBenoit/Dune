@@ -195,7 +195,7 @@ public:
 						Light& light = registry.emplace<Light>(id);
 						light.position = { 0.0f, 0.0f, 0.0f };
 						light.color = { 1.0f, 1.0f, 1.0f };
-						light.intensity = 1.0f * 100.f * 100.f;
+						light.intensity = 12.0f;
 						light.range = 100.f;
 						light.type = ELightType::Point;
 						light.castShadow = true;
@@ -209,7 +209,7 @@ public:
 						name.name.assign("DirectionalLight");
 						Light& light = registry.emplace<Light>(id);
 						light.color = { 1.0f, 1.0f, 1.0f };
-						light.intensity = 1.0f;
+						light.intensity = 6.0f;
 						light.direction = { 0.0f, 0.0f, -90.0f };
 						light.type = ELightType::Directional;
 						light.castShadow = true;
@@ -223,7 +223,7 @@ public:
 						name.name.assign("SpotLight");
 						Light& light = registry.emplace<Light>(id);
 						light.position = { 0.0f, 0.0f, 0.0f };
-						light.intensity = 1.0f * 100.f * 100.f;
+						light.intensity = 620.0f;
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.range = 10.f;
 						light.direction = { 0.0f, 0.0f, 75.0f };
@@ -261,7 +261,7 @@ public:
 				{
 					if (ImGui::TreeNodeEx("Transform :", ImGuiTreeNodeFlags_DefaultOpen))
 					{
-						ImGui::DragFloat3("Position", &pTransform->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+						ImGui::DragFloat3("Position", &pTransform->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f cm");
 						ImGui::DragFloat4("Rotation", pTransform->rotation.m128_f32, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
 						ImGui::DragFloat("Scale", &pTransform->scale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
 
@@ -292,12 +292,10 @@ public:
 					case ELightType::Point:
 						if (ImGui::TreeNodeEx("PointLight :", ImGuiTreeNodeFlags_DefaultOpen))
 						{
-							ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+							ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f cm");
 							ImGui::ColorPicker3("Color", &pLight->color.x);
-							pLight->intensity *= 1.0f / (100.f * 100.f);
-							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f");
-							pLight->intensity *= 100.f * 100.f;
-							ImGui::DragFloat("Radius", &pLight->range, 0.5f, 0.0f, +FLT_MAX, "%.2f");
+							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.0f lm");
+							ImGui::DragFloat("Radius", &pLight->range, 0.5f, 0.0f, +FLT_MAX, "%.2f cm");
 							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
 
 							dVec quatIdentity = DirectX::XMQuaternionIdentity();
@@ -325,7 +323,7 @@ public:
 						{
 							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 							ImGui::ColorPicker3("Color", &pLight->color.x);
-							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f");
+							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f lux");
 							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
 
 							dVec quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pLight->direction.x), DirectX::XMConvertToRadians(pLight->direction.y), DirectX::XMConvertToRadians(pLight->direction.z));
@@ -346,13 +344,11 @@ public:
 					case ELightType::Spot:
 						if (ImGui::TreeNodeEx("SpotLight :", ImGuiTreeNodeFlags_DefaultOpen))
 						{
-							ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+							ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f cm");
 							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 							ImGui::ColorPicker3("Color", &pLight->color.x);
-							pLight->intensity *= 1.0f / (100.f * 100.f);
-							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f");
-							pLight->intensity *= 100.f * 100.f;
-							ImGui::DragFloat("Range", &pLight->range, 0.5f, 0.f, +FLT_MAX, "%.2f");
+							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.0f lm");
+							ImGui::DragFloat("Range", &pLight->range, 0.5f, 0.f, +FLT_MAX, "%.2f cm");
 							ImGui::DragFloat("Angle", &pLight->angle, 0.5f, 0, 180.f, "%.2f");
 							ImGui::DragFloat("Penumbra", &pLight->penumbra, 0.001f, 0.0000001f, 1.0f, "%.2f");
 							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
@@ -438,27 +434,37 @@ int main(int argc, char** argv)
 	EntityID sun = registry.create();
 	Light& sunLight = registry.emplace<Light>(sun);
 	registry.emplace<Name>(sun, "Sun");
-	sunLight.color = { 1.1f, 0.977f, 0.937f };
+	sunLight.color = { 1.0f, 1.0f, 0.984f };
 	sunLight.direction = { -15.0f, 0.0f, -85.f };
-	sunLight.intensity = 4.0f;
+	sunLight.intensity = 6.f;
 	sunLight.type = ELightType::Directional;
 	sunLight.castShadow = true;
 
 	EntityID ambient = registry.create();
 	registry.emplace<Name>(ambient, "Ambient");
 	Light& ambientLight = registry.emplace<Light>(ambient);
-	ambientLight.color = { 0.937f, 0.977f, 1.1f };
+	ambientLight.color = { 0.937f, 0.977f, 1.0f };
 	ambientLight.position = { 0.0f, 650.0f, 0.0f };
-	ambientLight.intensity = 50.0f * (100.f * 100.f);
-	ambientLight.range = 20000.0f;
+	ambientLight.intensity = 100.f;
+	ambientLight.range = 200000.0f;
 	ambientLight.type = ELightType::Point;
-	ambientLight.castShadow = true;
+	ambientLight.castShadow = false;
+
+	EntityID candle = registry.create();
+	registry.emplace<Name>(candle, "Candle");
+	Light& candleLight = registry.emplace<Light>(candle);
+	candleLight.color = { 1.0f, 0.576f, 0.16f };
+	candleLight.position = { -1285.f, 170.f, 35.f };
+	candleLight.intensity = 12.f;
+	candleLight.range = 500.f;
+	candleLight.type = ELightType::Point;
+	candleLight.castShadow = true;
 
 	EntityID spot = registry.create();
 	registry.emplace<Name>(spot, "Spot");
 	Light& spotLight = registry.emplace<Light>(spot);
 	spotLight.position = { 1000.0f, 350.0f, 25.0f };
-	spotLight.intensity = 50.0f * (100.f * 100.f);
+	spotLight.intensity = 620.0f;
 	spotLight.color = { 1.0f, 1.0f, 1.0f };
 	spotLight.range = 750.f;
 	spotLight.direction = { 0.0f, 0.0f, -45.0f};

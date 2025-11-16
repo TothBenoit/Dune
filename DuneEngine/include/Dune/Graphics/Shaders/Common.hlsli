@@ -26,7 +26,7 @@ float3x3 TangentToWorld(float3 normal, float4 tangent)
 float3 UnpackNormal(float2 packedNormal)
 {
     const float2 normalXY = packedNormal * 2.0f - 1.0f;
-    const float normalZ = sqrt(1 - saturate(dot(packedNormal.xy, packedNormal.xy)));
+    const float normalZ = sqrt(1 - saturate(dot(normalXY.xy, normalXY.xy)));
     return float3(normalXY, normalZ);
 }
 

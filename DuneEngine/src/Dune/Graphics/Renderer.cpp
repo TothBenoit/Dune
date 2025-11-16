@@ -255,20 +255,24 @@ namespace Dune::Graphics
 				dU32 matrixIndex{ 0 };
 				view.each([&](const Dune::Light& sceneLight)
 					{
+						if (sceneLight.intensity <= 0.0f)
+							return;
 						Light light{};
 						light.color = sceneLight.color;
-						light.intensity = sceneLight.intensity;
 						switch (sceneLight.type)
 						{
 						case ELightType::Directional:
+							light.intensity = sceneLight.intensity;
 							DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
 							break;
 						case ELightType::Point:
+							light.intensity = sceneLight.intensity / (4.0f * DirectX::XM_PI * 0.01f * 0.01f);
 							light.range = sceneLight.range;
 							light.position = sceneLight.position;
 							light.flags |= fIsPoint;
 							break;
 						case ELightType::Spot:
+							light.intensity = sceneLight.intensity / (DirectX::XM_PI * 0.01f * 0.01f);
 							light.range = sceneLight.range;
 							light.position = sceneLight.position;
 							DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
@@ -426,7 +430,7 @@ namespace Dune::Graphics
 								.usage{ EBufferUsage::Constant },
 								.memory{ EBufferMemory::GPU },
 								.byteSize{ matricesByteSize  },
-								.byteStride { sizeof(Light) },
+								.byteStride { sizeof(dMatrix4x4) },
 								.initialState{ EResourceState::Undefined }
 							});
 						m_pDevice->CreateSRV(m_lightMatricesSRV, m_lightMatricesBuffer);

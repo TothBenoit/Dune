@@ -20,7 +20,7 @@ float3 GetFaceDirection(const float3 v)
     return localDirection;
 }
 
-float Shadow(Light light, uint lightMatricesIndex, float3 worldPosition, float3 n, float nDotL)
+float Shadow(Light light, uint lightMatricesIndex, float3 worldPosition, float3 n)
 {
     StructuredBuffer<float4x4> lightMatrices = ResourceDescriptorHeap[lightMatricesIndex];
     float4x4 lightMatrix = lightMatrices[light.matrixIndex];
@@ -45,8 +45,8 @@ float Shadow(Light light, uint lightMatricesIndex, float3 worldPosition, float3 
 
 float RangeAttenuation(float distanceSq, float range)
 {
-    const float distanceAttenuation = rcp(distanceSq + 1.0);
-    const float window = Square(saturate(1.0 - Square(distanceSq * Square(rcp(range)))));
+    const float distanceAttenuation = rcp(max(distanceSq, 1.0f));
+    const float window = Square(saturate(1.0f - Square(distanceSq * Square(rcp(range)))));
     return distanceAttenuation * window;
 }
 
@@ -72,26 +72,30 @@ float3 ComputeLight(Light light, uint lightMatricesIndex, float3 n, float3 v, fl
 
     if (light.HasShadow())
     {
-        const float nDotL = saturate(dot(n, l));
-        attenuation *= 1.0f - Shadow(light, lightMatricesIndex, worldPosition, n, nDotL);
+        attenuation *= 1.0f - Shadow(light, lightMatricesIndex, worldPosition, n);
     }
-
-    const float3 h = normalize(l + v);
+    
+    if ( attenuation <= 0.0f )
+        return 0.0f;
+    
+    float3 BRDF = DiffuseLambert(diffuseColor);
     const float nDotL = saturate(dot(n, l));
-    const float nDotV = saturate(dot(n, v));
-    const float nDotH = saturate(dot(n, h));
-    const float vDotH = saturate(dot(v, h));
+    if (nDotL > 0.0f)
+    {
+        const float3 h = normalize(l + v);
+        const float nDotV = saturate(dot(n, v));
+        const float nDotH = saturate(dot(n, h));
+        const float vDotH = saturate(dot(v, h));
+
+        const float alpha = Square(roughness);
+        const float alpha2 = Square(alpha);
     
-    const float alpha = roughness * roughness;
-    const float alpha2 = alpha * alpha;
-    
-    const float D = NormalDistributionGGX(alpha2, nDotH);
-    const float Vis = VisGeometrySchlickGGX(nDotV, nDotL, roughness);
-    const float3 F = FresnelSchlick(vDotH, f0);
-    const float3 specular = D * Vis * F;
+        const float D = NormalDistributionGGX(alpha2, nDotH);
+        const float Vis = saturate(VisGeometrySchlickGGX(nDotV, nDotL, roughness));
+        const float3 F = saturate(FresnelSchlick(vDotH, f0));
+        BRDF += D * Vis * F;
+    }
     
     const float3 lightColor = attenuation * light.color * light.intensity;
-    
-    const float3 BRDF = DiffuseLambert(diffuseColor) + specular;
     return BRDF * lightColor * nDotL;
 }
