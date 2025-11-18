@@ -40,9 +40,9 @@ namespace Dune::Graphics
 			{
 				.layout =
 				{
-					{.type = EBindingType::Constant, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
-					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
-					{.type = EBindingType::Constant, .byteSize = sizeof(MaterialData), .visibility = EShaderVisibility::Pixel},
+					{.type = EBindingType::Uniform, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
+					{.type = EBindingType::Uniform, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
+					{.type = EBindingType::Uniform, .byteSize = sizeof(MaterialData), .visibility = EShaderVisibility::Pixel},
 				},
 				.bAllowInputLayout = true,
 				.bAllowSRVHeapIndexing = true,
@@ -123,8 +123,8 @@ namespace Dune::Graphics
 
 				commandList.PushGraphicsConstants(1, &instance, sizeof(InstanceData));
 				commandList.PushGraphicsConstants(2, &material, sizeof(MaterialData));
-				commandList.BindIndexBuffer(mesh.GetIndexBuffer());
-				commandList.BindVertexBuffer(mesh.GetVertexBuffer());
+				commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
+				commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
 			});
 	}

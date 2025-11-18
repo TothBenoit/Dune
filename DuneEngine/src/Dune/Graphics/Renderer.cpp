@@ -42,7 +42,7 @@ namespace Dune::Graphics
 			frame.commandAllocator.Initialize(m_pDevice, ECommandType::Direct);
 			frame.commandList.Initialize(m_pDevice, ECommandType::Direct, frame.commandAllocator);
 			frame.commandList.Close();
-			frame.colorTarget.Initialize(m_pDevice, colorTargetDesc);
+			frame.hdrTarget.Initialize(m_pDevice, colorTargetDesc);
 			frame.srvHeap.Initialize(m_pDevice, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 4096, .isShaderVisible = true });
 			frame.samplerHeap.Initialize(m_pDevice, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
 		}
@@ -68,11 +68,11 @@ namespace Dune::Graphics
 		{
 			Frame& frame = m_frames[i];
 			frame.backBufferRTV = m_rtvHeap.Allocate();
-			frame.colorTargetRTV = m_rtvHeap.Allocate();
-			frame.colorTargetSRV = m_srvHeap.Allocate();
+			frame.hdrTargetRTV = m_rtvHeap.Allocate();
+			frame.hdrTargetSRV = m_srvHeap.Allocate();
 			m_pDevice->CreateRTV(frame.backBufferRTV, m_swapchain.GetBackBuffer(i), {});
-			m_pDevice->CreateRTV(frame.colorTargetRTV, frame.colorTarget, {});
-			m_pDevice->CreateSRV(frame.colorTargetSRV, frame.colorTarget);
+			m_pDevice->CreateRTV(frame.hdrTargetRTV, frame.hdrTarget, {});
+			m_pDevice->CreateSRV(frame.hdrTargetSRV, frame.hdrTarget);
 		}
 
 		m_depthBufferDSV = m_dsvHeap.Allocate();
@@ -101,11 +101,11 @@ namespace Dune::Graphics
 			}
 			WaitForFrame(frame);
 			m_rtvHeap.Free(frame.backBufferRTV);
-			m_rtvHeap.Free(frame.colorTargetRTV);
-			m_srvHeap.Free(frame.colorTargetSRV);
+			m_rtvHeap.Free(frame.hdrTargetRTV);
+			m_srvHeap.Free(frame.hdrTargetSRV);
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
-			frame.colorTarget.Destroy();
+			frame.hdrTarget.Destroy();
 			frame.srvHeap.Destroy();
 			frame.samplerHeap.Destroy();
 		}
@@ -142,9 +142,9 @@ namespace Dune::Graphics
 
 	void Renderer::OnResize(dU32 width, dU32 height) 
 	{
-		TextureDesc colorTargetDesc
+		TextureDesc hdrTargetDesc
 		{
-			.debugName = L"ColorTarget",
+			.debugName = L"HDRTarget",
 			.usage{ ETextureUsage::RenderTarget | ETextureUsage::ShaderResource },
 			.dimensions = { width, height, 1},
 			.mipLevels{ 1 },
@@ -155,10 +155,10 @@ namespace Dune::Graphics
 		for (Frame& f : m_frames)
 		{
 			WaitForFrame(f);
-			f.colorTarget.Destroy();
-			f.colorTarget.Initialize(m_pDevice, colorTargetDesc);
-			m_pDevice->CreateSRV(f.colorTargetSRV, f.colorTarget);
-			m_pDevice->CreateRTV(f.colorTargetRTV, f.colorTarget, {});
+			f.hdrTarget.Destroy();
+			f.hdrTarget.Initialize(m_pDevice, hdrTargetDesc);
+			m_pDevice->CreateSRV(f.hdrTargetSRV, f.hdrTarget);
+			m_pDevice->CreateRTV(f.hdrTargetRTV, f.hdrTarget, {});
 		}
 
 		m_swapchain.Resize(width, height);
@@ -223,20 +223,17 @@ namespace Dune::Graphics
 					m_lightBuffer.Initialize(m_pDevice,
 						{
 							.debugName{ L"LightBuffer" },
-							.usage{ EBufferUsage::Constant },
 							.memory{ EBufferMemory::GPU },
 							.byteSize{ lightByteSize  },
-							.byteStride { sizeof(Light) },
 							.initialState{ EResourceState::Undefined }
 						});
-					m_pDevice->CreateSRV(m_lightsSRV, m_lightBuffer);
+					m_pDevice->CreateSRV(m_lightsSRV, m_lightBuffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
 					m_pDevice->CopyDescriptors(1, m_lightsSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightsSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 				}
 
 				uploadBuffer.Initialize(m_pDevice,
 					{
 						.debugName{ L"LightUploadBuffer" },
-						.usage{ EBufferUsage::Constant },
 						.memory{ EBufferMemory::CPU },
 						.byteSize{ lightByteSize  },
 						.initialState{ EResourceState::Undefined }
@@ -427,13 +424,11 @@ namespace Dune::Graphics
 						m_lightMatricesBuffer.Initialize(m_pDevice,
 							{
 								.debugName{ L"LightMatricesBuffer" },
-								.usage{ EBufferUsage::Constant },
 								.memory{ EBufferMemory::GPU },
 								.byteSize{ matricesByteSize  },
-								.byteStride { sizeof(dMatrix4x4) },
 								.initialState{ EResourceState::Undefined }
 							});
-						m_pDevice->CreateSRV(m_lightMatricesSRV, m_lightMatricesBuffer);
+						m_pDevice->CreateSRV(m_lightMatricesSRV, m_lightMatricesBuffer, { .elementCount = matrixIndex, .byteStride = sizeof(dMatrix4x4) });
 						m_pDevice->CopyDescriptors(1, m_lightMatricesSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightMatricesSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 					}
 
@@ -441,7 +436,6 @@ namespace Dune::Graphics
 					matricesUploadBuffer.Initialize(m_pDevice,
 						{
 							.debugName{ L"MatricesUploadBuffer" },
-							.usage{ EBufferUsage::Constant },
 							.memory{ EBufferMemory::CPU },
 							.byteSize{ matricesByteSize  },
 							.initialState{ EResourceState::Undefined }
@@ -460,12 +454,12 @@ namespace Dune::Graphics
 		}
 
 		m_barrier.PushTransition(m_swapchain.GetBackBuffer(m_frameIndex).Get(), EResourceState::Present, EResourceState::RenderTarget);
-		m_barrier.PushTransition(frame.colorTarget.Get(), EResourceState::ShaderResource, EResourceState::RenderTarget);
+		m_barrier.PushTransition(frame.hdrTarget.Get(), EResourceState::ShaderResource, EResourceState::RenderTarget);
 		frame.commandList.Transition(m_barrier);
 		m_barrier.Reset();
 
 		Descriptor dsv = m_depthBufferDSV;
-		frame.commandList.ClearRenderTargetView(frame.colorTargetRTV, frame.colorTarget.GetClearValue());
+		frame.commandList.ClearRenderTargetView(frame.hdrTargetRTV, frame.hdrTarget.GetClearValue());
 		frame.commandList.ClearDepthBuffer(dsv, m_depthBuffer.GetClearValue()[0], 0);
 
 		Viewport viewport{ 0.0, 0.0, (float)m_pWindow->GetWidth(), (float)m_pWindow->GetHeight(), 0.0f, 1.0f };
@@ -476,17 +470,17 @@ namespace Dune::Graphics
 		frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 		m_depthPrepass.Render(scene, frame.commandList, globals.viewProjectionMatrix);
 
-		frame.commandList.SetRenderTarget(&frame.colorTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
+		frame.commandList.SetRenderTarget(&frame.hdrTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
 		m_forwardPass.Render(scene, frame.srvHeap, frame.commandList, globals);
 
 		Descriptor source = frame.srvHeap.Allocate(1);
 
-		m_barrier.PushTransition(frame.colorTarget.Get(), EResourceState::RenderTarget, EResourceState::ShaderResource);
+		m_barrier.PushTransition(frame.hdrTarget.Get(), EResourceState::RenderTarget, EResourceState::ShaderResource);
 		frame.commandList.Transition(m_barrier);
 		m_barrier.Reset();
 		frame.commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
-		Descriptor colorTargetSRV = frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(frame.colorTargetSRV));
-		m_tonemappingPass.Render(frame.commandList, colorTargetSRV);
+		Descriptor hdrTargetSRV = frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(frame.hdrTargetSRV));
+		m_tonemappingPass.Render(frame.commandList,hdrTargetSRV);
 
 		if (m_pImGui) 
 		{

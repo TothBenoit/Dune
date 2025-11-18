@@ -390,7 +390,7 @@ namespace Dune::Graphics
 		delete pInternal;
 	}
 
-	void Device::CreateSRV(Descriptor& descriptor, Texture& texture, const SRVDesc& desc)
+	void Device::CreateSRV(Descriptor& descriptor, Texture& texture, const SRVTextureDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
 
@@ -467,26 +467,45 @@ namespace Dune::Graphics
 		CreateSRV(descriptor, texture, { .mipLevels = texture.GetMipLevels(), .format = texture.GetFormat() });
 	}
 
-	void Device::CreateSRV(Descriptor& descriptor, Buffer& buffer)
+	void Device::CreateSRV(Descriptor& descriptor, Buffer& buffer, const SRVBufferDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
 		
-		dU32 byteStride = buffer.GetByteStride();
-		dU32 elementCount = (dU32)(buffer.GetByteSize() / byteStride);
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc
 		{
-			.Format = DXGI_FORMAT_UNKNOWN,
+			.Format = (DXGI_FORMAT)desc.format,
 			.ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
 			.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
 			.Buffer
 			{
-				.NumElements = elementCount,
-				.StructureByteStride = byteStride,
+				.FirstElement = desc.firstElement,
+				.NumElements = desc.elementCount,
+				.StructureByteStride = desc.byteStride,
 				.Flags = D3D12_BUFFER_SRV_FLAG_NONE,
 			}
 		};
 
 		pDevice->CreateShaderResourceView(ToResource(buffer.Get()), &srvDesc, { descriptor.cpuAddress });
+	}
+
+	void Device::CreateUAV(Descriptor& descriptor, Buffer& buffer, const UAVBufferDesc& desc)
+	{
+		ID3D12Device* pDevice{ ToDevice(Get()) };
+
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc
+		{
+			.Format = (DXGI_FORMAT)desc.format,
+			.ViewDimension = D3D12_UAV_DIMENSION_BUFFER,
+			.Buffer
+			{
+				.FirstElement = desc.firstElement,
+				.NumElements = desc.elementCount,
+				.StructureByteStride = desc.byteStride,
+				.Flags = D3D12_BUFFER_UAV_FLAG_NONE,
+			}
+		};
+
+		pDevice->CreateUnorderedAccessView(ToResource(buffer.Get()), nullptr, &uavDesc, { descriptor.cpuAddress });
 	}
 
 	void Device::CreateRTV(Descriptor& descriptor, Texture& texture, const RTVDesc& desc)
@@ -554,6 +573,14 @@ namespace Dune::Graphics
 	{
 		D3D12_RESOURCE_BARRIER* barriers = (D3D12_RESOURCE_BARRIER*)Get();
 		delete[] barriers;
+	}
+
+	void Barrier::PushUAV(void* pResource)
+	{
+		Assert(m_barrierCount < m_barrierCapacity);
+		D3D12_RESOURCE_BARRIER* barriers = (D3D12_RESOURCE_BARRIER*)Get();
+		D3D12_RESOURCE_BARRIER& barrier = barriers[m_barrierCount++];
+		barrier = CD3DX12_RESOURCE_BARRIER::UAV((ID3D12Resource*)pResource);
 	}
 
 	void Barrier::PushTransition(void* pResource, EResourceState stateBefore, EResourceState stateAfter)
@@ -712,6 +739,13 @@ namespace Dune::Graphics
 		pCommandList->ClearDepthStencilView({ dsv.cpuAddress }, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, (dU8)stencil, 0, nullptr);
 	}
 
+	void CommandList::ClearUAVUInt(dU64 gpuAddress, dU64 cpuAddress, void* pResource, dU32 value)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		dU32 values[4] = { value, value, value, value };
+		pCommandList->ClearUnorderedAccessViewUint((D3D12_GPU_DESCRIPTOR_HANDLE)gpuAddress, (D3D12_CPU_DESCRIPTOR_HANDLE)cpuAddress, (ID3D12Resource*)pResource, values, 0, nullptr);
+	}
+
 	void CommandList::PushGraphicsConstants(dU32 slot, const void* pData, dU32 byteSize)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
@@ -736,50 +770,62 @@ namespace Dune::Graphics
 		pCommandList->SetComputeRootConstantBufferView(slot, ToResource(buffer.Get())->GetGPUVirtualAddress());
 	}
 
-	void CommandList::PushGraphicsResource(dU32 slot, const Descriptor& srv)
+	void CommandList::PushGraphicsSRV(dU32 slot, Buffer& buffer)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
-		pCommandList->SetGraphicsRootShaderResourceView(slot, { srv.gpuAddress });
+		pCommandList->SetGraphicsRootShaderResourceView(slot, ToResource(buffer.Get())->GetGPUVirtualAddress());
 	}
 
-	void CommandList::PushComputeResource(dU32 slot, const Descriptor& srv)
+	void CommandList::PushComputeSRV(dU32 slot, Buffer& buffer)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
-		pCommandList->SetComputeRootShaderResourceView(slot, { srv.gpuAddress });
+		pCommandList->SetComputeRootShaderResourceView(slot, ToResource(buffer.Get())->GetGPUVirtualAddress());
 	}
 
-	void CommandList::BindGraphicsResource(dU32 slot, const Descriptor& srv)
+	void CommandList::PushGraphicsUAV(dU32 slot, Buffer& buffer)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetGraphicsRootUnorderedAccessView(slot, ToResource(buffer.Get())->GetGPUVirtualAddress());
+	}
+
+	void CommandList::PushComputeUAV(dU32 slot, Buffer& buffer)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		pCommandList->SetComputeRootUnorderedAccessView(slot, ToResource(buffer.Get())->GetGPUVirtualAddress());
+	}
+
+	void CommandList::BindGraphicsGroup(dU32 slot, const Descriptor& srv)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		pCommandList->SetGraphicsRootDescriptorTable(slot, { srv.gpuAddress });
 	}
 
-	void CommandList::BindComputeResource(dU32 slot, const Descriptor& srv)
+	void CommandList::BindComputeGroup(dU32 slot, const Descriptor& srv)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		pCommandList->SetComputeRootDescriptorTable(slot, { srv.gpuAddress });
 	}
 
-	void CommandList::BindIndexBuffer(Buffer& indexBuffer)
+	void CommandList::BindIndexBuffer(Buffer& indexBuffer, bool is32bits )
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		D3D12_INDEX_BUFFER_VIEW ibv
 		{
 			.BufferLocation = ToResource(indexBuffer.Get())->GetGPUVirtualAddress(),
 			.SizeInBytes = indexBuffer.GetByteSize(),
-			.Format = (indexBuffer.GetByteStride() == sizeof(dU32)) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT
+			.Format = is32bits ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT
 		};
 		pCommandList->IASetIndexBuffer(&ibv);
 	}
 
-	void CommandList::BindVertexBuffer(Buffer& vertexBuffer)
+	void CommandList::BindVertexBuffer(Buffer& vertexBuffer, dU32 byteStride)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		D3D12_VERTEX_BUFFER_VIEW vbv
 		{
 			.BufferLocation = ToResource(vertexBuffer.Get())->GetGPUVirtualAddress(),
 			.SizeInBytes = vertexBuffer.GetByteSize(),
-			.StrideInBytes = vertexBuffer.GetByteStride()
+			.StrideInBytes = byteStride
 		};
 		pCommandList->IASetVertexBuffers(0, 1, &vbv);
 	}
@@ -1088,25 +1134,29 @@ namespace Dune::Graphics
 
 	void Buffer::Initialize(Device* pDeviceInterface, const BufferDesc& desc)
 	{
-		m_usage = desc.usage;
-		m_memory = desc.memory;
 		m_byteSize = desc.byteSize;
-		m_byteStride = desc.byteStride;
 
 		D3D12_HEAP_PROPERTIES heapProps{};
 		D3D12_RESOURCE_STATES resourceState{ ToResourceState(desc.initialState) };
 
-		if (m_usage == EBufferUsage::Constant)
-		{
+		dU32 usageBits = (dU32)desc.usage;
+		dU32 uniformMask = (dU32)EBufferFlags::Uniform;
+		bool isUniform = (usageBits & uniformMask) != 0;
+		if (isUniform)
 			m_byteSize = Utils::AlignTo(m_byteSize, 256);
-		}
 
-		if (m_memory == EBufferMemory::CPU)
+		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+		dU32 uavBufferMask = (dU32)EBufferFlags::UAV;
+		bool isUAV = (usageBits & uavBufferMask) != 0;
+		if (isUAV)
+			flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(m_byteSize, flags) };
+
+		if (desc.memory == EBufferMemory::CPU)
 			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 		else
 			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-
-		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(m_byteSize) };
 
 		ID3D12Resource* pResource;
 		ThrowIfFailed(ToDevice(pDeviceInterface->Get())->CreateCommittedResource(
@@ -1384,7 +1434,7 @@ namespace Dune::Graphics
 			D3D12_SHADER_VISIBILITY visibility{ ConvertShaderVisibility( slot.visibility ) };
 			switch (slot.type)
 			{
-			case EBindingType::Constant:
+			case EBindingType::Uniform:
 			{
 				rootParameters[rootParamCount++].InitAsConstants( slot.byteSize >> 2, bufferRegisterOffset + bufferRegister[(dU32)slot.visibility]++, 0u, visibility) ;
 				break;
@@ -1395,7 +1445,7 @@ namespace Dune::Graphics
 				break;
 			}
 
-			case EBindingType::Resource:
+			case EBindingType::SRV:
 			{
 				rootParameters[rootParamCount++].InitAsShaderResourceView( resourceRegisterOffset + resourceRegister[(dU32)slot.visibility]++, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility );
 				break;

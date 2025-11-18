@@ -20,7 +20,7 @@ namespace Dune::Graphics
 		TextureCubeArray
 	};
 
-	struct SRVDesc
+	struct SRVTextureDesc
 	{
 		dU32 mipStart{ 0 };
 		dU32 mipLevels{ 1 };
@@ -29,6 +29,22 @@ namespace Dune::Graphics
 		dU32 arraySize{ (dU32)-1 };
 		EFormat	format{ EFormat::R8G8B8A8_UNORM };
 		ESRVDimension dimension{ ESRVDimension::Texture2D };
+	};
+
+	struct SRVBufferDesc
+	{
+		EFormat	format{ EFormat::Unknown };
+		dU64 firstElement{ 0 };
+		dU32 elementCount{ 0 };
+		dU32 byteStride{ 0 };
+	};
+
+	struct UAVBufferDesc
+	{
+		EFormat	format{ EFormat::Unknown };
+		dU64 firstElement{ 0 };
+		dU32 elementCount{ 0 };
+		dU32 byteStride{ 0 };
 	};
 
 	struct SamplerDesc
@@ -64,9 +80,10 @@ namespace Dune::Graphics
 
 		void* GetInternal() { return m_pInternal; }
 
-		void CreateSRV(Descriptor& descriptor, Texture& texture, const SRVDesc& desc);
+		void CreateSRV(Descriptor& descriptor, Texture& texture, const SRVTextureDesc& desc);
 		void CreateSRV(Descriptor& descriptor, Texture& texture);
-		void CreateSRV(Descriptor& descriptor, Buffer& buffer);
+		void CreateSRV(Descriptor& descriptor, Buffer& buffer, const SRVBufferDesc& desc);
+		void CreateUAV(Descriptor& descriptor, Buffer& buffer, const UAVBufferDesc& desc);
 		void CreateSampler(Descriptor& descriptor, const SamplerDesc& desc);
 		void CreateRTV(Descriptor& descriptor, Texture& texture, const RTVDesc& desc);
 		void CreateDSV(Descriptor& descriptor, Texture& texture, const DSVDesc& desc);

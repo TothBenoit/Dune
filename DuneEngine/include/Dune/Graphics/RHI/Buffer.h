@@ -7,12 +7,11 @@ namespace Dune::Graphics
 {
 	class Device;
 
-	enum class EBufferUsage
+	enum class EBufferFlags
 	{
-		Index,
-		Vertex,
-		Constant,
-		Structured
+		None  = 0,
+		Uniform  = 1 << 0,
+		UAV      = 1 << 1,
 	};
 
 	enum class EBufferMemory
@@ -25,10 +24,9 @@ namespace Dune::Graphics
 	{
 		const wchar_t* debugName{ L"Buffer" };
 
-		EBufferUsage    usage{ EBufferUsage::Constant };
+		EBufferFlags    usage{ EBufferFlags::None };
 		EBufferMemory   memory{ EBufferMemory::CPU };
 		dU32            byteSize{ 0 };
-		dU32            byteStride{ 0 }; // for structured, vertex and index buffer
 		EResourceState  initialState{ EResourceState::Undefined };
 	};
 
@@ -39,17 +37,12 @@ namespace Dune::Graphics
 		void Destroy();
 
 		[[nodiscard]] inline dU32 GetByteSize() const { return m_byteSize; }
-		[[nodiscard]] inline dU32 GetByteStride() const { return m_byteStride; }
-		[[nodiscard]] inline EBufferUsage GetUsage() const { return m_usage; }
 
 		void Map(dU32 byteOffset, dU32 byteSize, void** pCpuAdress);
 		void Unmap(dU32 byteOffset, dU32 byteSize);
 
 	private:
-		EBufferUsage    m_usage;
-		EBufferMemory   m_memory;
 		dU32            m_byteSize;
-		dU32            m_byteStride;
 		dU32            m_state;
 	};
 }

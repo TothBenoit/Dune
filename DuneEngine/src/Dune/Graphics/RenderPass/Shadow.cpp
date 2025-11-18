@@ -30,8 +30,8 @@ namespace Dune::Graphics
 			{
 				.layout =
 				{
-					{.type = EBindingType::Constant, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::Vertex},
-					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
+					{.type = EBindingType::Uniform, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::Vertex},
+					{.type = EBindingType::Uniform, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
 				},
 				.bAllowInputLayout = true,
 			});
@@ -78,8 +78,8 @@ namespace Dune::Graphics
 
 				commandList.PushGraphicsConstants(1, &instance.modelMatrix, sizeof(InstanceData));
 				Mesh& mesh = scene.meshes[renderData.meshIdx];
-				commandList.BindIndexBuffer(mesh.GetIndexBuffer());
-				commandList.BindVertexBuffer(mesh.GetVertexBuffer());
+				commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
+				commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
 			});
 	}

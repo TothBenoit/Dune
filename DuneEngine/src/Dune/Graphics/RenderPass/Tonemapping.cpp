@@ -69,7 +69,7 @@ namespace Dune::Graphics
 		commandList.SetGraphicsRootSignature(m_rootSignature);
 		commandList.SetPipelineState(m_pipeline);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
-		commandList.BindGraphicsResource(0, source);
+		commandList.BindGraphicsGroup(0, source);
 		commandList.DrawInstanced(3, 1, 0, 0);
 	}
 }

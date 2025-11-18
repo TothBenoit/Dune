@@ -6,19 +6,19 @@
 namespace Dune::Graphics
 {
 
-	Buffer CreateIndexBuffer(Device* pDevice, dU32 size, dU32 byteStride)
+	Buffer CreateIndexBuffer(Device* pDevice, dU32 byteSize)
 	{
-		Assert(size != 0);
-		BufferDesc desc{ L"IndexBuffer", EBufferUsage::Index, EBufferMemory::GPU, size * byteStride, byteStride };
+		Assert(byteSize != 0);
+		BufferDesc desc{ L"IndexBuffer", EBufferFlags::None, EBufferMemory::GPU, byteSize };
 		Buffer indexBuffer{};
 		indexBuffer.Initialize(pDevice, desc);
 		return indexBuffer;
 	}
 
-	Buffer CreateVertexBuffer(Device* pDevice, dU32 size, dU32 byteStride)
+	Buffer CreateVertexBuffer(Device* pDevice, dU32 byteSize)
 	{
-		Assert(size != 0);
-		BufferDesc desc{ L"VertexBuffer",EBufferUsage::Vertex, EBufferMemory::GPU, size * byteStride, byteStride };
+		Assert(byteSize != 0);
+		BufferDesc desc{ L"VertexBuffer", EBufferFlags::None, EBufferMemory::GPU, byteSize };
 		Buffer vertexBuffer{};
 		vertexBuffer.Initialize(pDevice, desc);
 		return vertexBuffer;
@@ -37,17 +37,19 @@ namespace Dune::Graphics
 	{
 		m_indexCount = indexCount;
 		m_vertexCount = vertexCount;
+		m_vertexByteStride = vertexByteStride;
+		m_isIndex32bits = false;
 
 		dU32 vertexByteSize = vertexCount * vertexByteStride;
 		dU32 indexByteSize = indexCount * sizeof(dU16);
 		dU32 uploadByteSize = vertexByteSize + indexByteSize;
 
-		BufferDesc desc{ L"UploadBuffer",EBufferUsage::Constant, EBufferMemory::CPU, uploadByteSize, uploadByteSize };
+		BufferDesc desc{ L"UploadBuffer", EBufferFlags::None, EBufferMemory::CPU, uploadByteSize };
 		m_uploadBuffer.Initialize(pDevice, desc);
 
-		m_indexBuffer = CreateIndexBuffer(pDevice, indexCount, sizeof(dU16));
+		m_indexBuffer = CreateIndexBuffer(pDevice, indexByteSize);
 		UploadBuffer(pCommandList, m_indexBuffer, m_uploadBuffer, pIndices, indexByteSize, 0);
-		m_vertexBuffer = CreateVertexBuffer(pDevice, vertexCount, vertexByteStride);
+		m_vertexBuffer = CreateVertexBuffer(pDevice, vertexByteSize);
 		UploadBuffer( pCommandList, m_vertexBuffer, m_uploadBuffer, pVertices, vertexByteSize, indexByteSize);
 	}
 
@@ -55,17 +57,19 @@ namespace Dune::Graphics
 	{
 		m_indexCount = indexCount;
 		m_vertexCount = vertexCount;
+		m_vertexByteStride = vertexByteStride;
+		m_isIndex32bits = true;
 
 		dU32 vertexByteSize = vertexCount * vertexByteStride;
 		dU32 indexByteSize = indexCount * sizeof(dU32);
 		dU32 uploadByteSize = vertexByteSize + indexByteSize;
 
-		BufferDesc desc{ L"UploadBuffer",EBufferUsage::Constant, EBufferMemory::CPU, uploadByteSize, uploadByteSize };
+		BufferDesc desc{ L"UploadBuffer", EBufferFlags::None, EBufferMemory::CPU, uploadByteSize };
 		m_uploadBuffer.Initialize(pDevice, desc);
 
-		m_indexBuffer = CreateIndexBuffer(pDevice, indexCount, sizeof(dU32));
+		m_indexBuffer = CreateIndexBuffer(pDevice, indexByteSize);
 		UploadBuffer(pCommandList, m_indexBuffer, m_uploadBuffer, pIndices, indexByteSize, 0 );
-		m_vertexBuffer = CreateVertexBuffer(pDevice, vertexCount, vertexByteStride);
+		m_vertexBuffer = CreateVertexBuffer(pDevice, vertexByteSize);
 		UploadBuffer(pCommandList, m_vertexBuffer, m_uploadBuffer, pVertices, vertexByteSize, indexByteSize);
 	}
 

@@ -31,6 +31,7 @@ namespace Dune::Graphics
 		void Initialize(dU32 barrierCapacity);
 		void Destroy();
 
+        void PushUAV(void* pResource);
         void PushTransition(void* pResource, EResourceState stateBefore, EResourceState stateAfter);
         void Reset() { m_barrierCount = 0; }
 

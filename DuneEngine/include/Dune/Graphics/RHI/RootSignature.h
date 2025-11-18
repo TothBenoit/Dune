@@ -16,9 +16,9 @@ namespace Dune::Graphics
 
 	enum class EBindingType
 	{
-		Constant,
+		Uniform,
 		Buffer,
-		Resource,
+		SRV,
 		UAV,
 		Group,
 		Samplers,

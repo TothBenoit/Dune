@@ -27,10 +27,14 @@ namespace Dune::Graphics
 		[[nodiscard]] Buffer&           GetVertexBuffer() { return m_vertexBuffer; }
 		[[nodiscard]] dU32              GetIndexCount() const { return m_indexCount; }
 		[[nodiscard]] dU32              GetVertexCount() const { return m_vertexCount; }
+		[[nodiscard]] dU32              GetVertexByteStride() const { return m_vertexByteStride; }
+		[[nodiscard]] bool              IsIndex32bits() const { return m_isIndex32bits; }
 
 	private:
 		dU32 m_indexCount{ 0 };
 		dU32 m_vertexCount{ 0 };
+		dU32 m_vertexByteStride{ 0 };
+		bool m_isIndex32bits{ 0 };
 		Buffer m_indexBuffer;
 		Buffer m_vertexBuffer;
 		Buffer m_uploadBuffer;

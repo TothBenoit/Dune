@@ -28,9 +28,9 @@ namespace Dune
 			CommandAllocator commandAllocator;
 			CommandList commandList;
 			Descriptor backBufferRTV;
-			Texture colorTarget;
-			Descriptor colorTargetRTV;
-			Descriptor colorTargetSRV;
+			Texture hdrTarget;
+			Descriptor hdrTargetRTV;
+			Descriptor hdrTargetSRV;
 			TransientDescriptorHeap srvHeap;
 			TransientDescriptorHeap samplerHeap;
 			dQueue<Buffer> buffersToRelease;
