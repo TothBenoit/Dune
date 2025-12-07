@@ -3,7 +3,7 @@
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
-#include <Dune/Graphics/Shaders/ShaderTypes.h>
+#include <Dune/Graphics/Shaders/ShaderInterop.h>
 #include "Dune/Scene/Scene.h"
 #include "Dune/Scene/Camera.h"
 #include <imgui/imgui_impl_win32.h>
@@ -83,7 +83,7 @@ namespace Dune::Graphics
 		m_forwardPass.Initialize(m_pDevice);
 		m_depthPrepass.Initialize(m_pDevice);
 		m_shadowPass.Initialize(m_pDevice);
-		m_tonemappingPass.Initialize(m_pDevice);
+		m_tonemappingPass.Initialize(*this);
 
 		m_lightsSRV = m_srvHeap.Allocate();
 		m_lightMatricesSRV = m_srvHeap.Allocate();
@@ -480,7 +480,7 @@ namespace Dune::Graphics
 		m_barrier.Reset();
 		frame.commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
 		Descriptor hdrTargetSRV = frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(frame.hdrTargetSRV));
-		m_tonemappingPass.Render(frame.commandList,hdrTargetSRV);
+		m_tonemappingPass.Render(*this, frame.commandList, hdrTargetSRV);
 
 		if (m_pImGui) 
 		{

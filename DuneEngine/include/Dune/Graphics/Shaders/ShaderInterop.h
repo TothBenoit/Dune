@@ -36,8 +36,26 @@ namespace Dune::Graphics
 
 BEGIN_NAMESPACE_SHADER(Dune::Graphics)
 
+#define NUM_HISTOGRAM_BINS 256
 #define SHADOW_MAP_RESOLUTION 4096
 #define SHADOW_MAP_RESOLUTION_F float(SHADOW_MAP_RESOLUTION)
+
+struct LuminanceAverageParams
+{
+	uint  pixelCount;
+	float minLogLuminance;
+	float logLuminanceRange;
+	float timeDelta;
+	float tau;
+};
+
+struct LuminanceHistogramParams
+{
+	uint width;
+	uint height;
+	float minLogLuminance;
+	float oneOverLogLuminanceRange;
+};
 
 struct ForwardGlobals
 {

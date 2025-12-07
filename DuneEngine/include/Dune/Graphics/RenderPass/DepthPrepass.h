@@ -19,8 +19,8 @@ namespace Dune
 			void Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection);
 
 		private:
-			RootSignature m_rootSignature;
-			PipelineState m_pipeline;
+			RootSignature m_depthRS;
+			PipelineState m_depthPSO;
 			Device* m_pDevice{ nullptr };
 		};
 	}

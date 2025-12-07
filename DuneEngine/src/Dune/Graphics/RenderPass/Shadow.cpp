@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
-#include "Dune/Graphics/Shaders/ShaderTypes.h"
+#include "Dune/Graphics/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
@@ -26,21 +26,21 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 			});
 
-		m_rootSignature.Initialize(pDevice,
+		m_shadowRS.Initialize(pDevice,
 			{
 				.layout =
 				{
-					{.type = EBindingType::Uniform, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::Vertex},
-					{.type = EBindingType::Uniform, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
+					{.type = EBindingType::Constant, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::Vertex},
+					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
 				},
 				.bAllowInputLayout = true,
 			});
 
-		m_pipeline.Initialize(pDevice,
+		m_shadowPSO.Initialize(pDevice,
 			{
 				.pVertexShader = &shadowVS,
 
-				.pRootSignature = &m_rootSignature,
+				.pRootSignature = &m_shadowRS,
 				.inputLayout =
 				{
 					VertexInput {.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
@@ -55,14 +55,14 @@ namespace Dune::Graphics
 
 	void Shadow::Destroy()
 	{
-		m_pipeline.Destroy();
-		m_rootSignature.Destroy();
+		m_shadowPSO.Destroy();
+		m_shadowRS.Destroy();
 	}
 
 	void Shadow::Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection)
 	{
-		commandList.SetGraphicsRootSignature(m_rootSignature);
-		commandList.SetPipelineState(m_pipeline);
+		commandList.SetGraphicsRootSignature(m_shadowRS);
+		commandList.SetPipelineState(m_shadowPSO);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));
 

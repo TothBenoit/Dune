@@ -5,7 +5,7 @@
 #include <Dune/Graphics/RHI/Device.h>
 #include <Dune/Graphics/RHI/ImGuiWrapper.h>
 #include <Dune/Graphics/Mesh.h>
-#include <Dune/Graphics/Shaders/ShaderTypes.h>
+#include <Dune/Graphics/Shaders/ShaderInterop.h>
 #include <Dune/Graphics/Renderer.h>
 #include <Dune/Graphics/Window.h>
 #include <Dune/Utilities/SimpleCameraController.h>

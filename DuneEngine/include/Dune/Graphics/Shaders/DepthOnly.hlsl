@@ -1,4 +1,4 @@
-#include "ShaderTypes.h"
+#include "ShaderInterop.h"
 
 struct Camera
 {

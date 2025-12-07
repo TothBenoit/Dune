@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/Forward.h"
-#include "Dune/Graphics/Shaders/ShaderTypes.h"
+#include "Dune/Graphics/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Texture.h"
@@ -36,23 +36,23 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 		});
 
-		m_rootSignature.Initialize(pDevice,
+		m_forwardRS.Initialize(pDevice,
 			{
 				.layout =
 				{
-					{.type = EBindingType::Uniform, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
-					{.type = EBindingType::Uniform, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
-					{.type = EBindingType::Uniform, .byteSize = sizeof(MaterialData), .visibility = EShaderVisibility::Pixel},
+					{.type = EBindingType::Constant, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
+					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
+					{.type = EBindingType::Constant, .byteSize = sizeof(MaterialData), .visibility = EShaderVisibility::Pixel},
 				},
 				.bAllowInputLayout = true,
 				.bAllowSRVHeapIndexing = true,
 			});
 
-		m_pipeline.Initialize(pDevice,
+		m_forwardPSO.Initialize(pDevice,
 			{
 				.pVertexShader = &forwardVS,
 				.pPixelShader = &forwardPS,
-				.pRootSignature = &m_rootSignature,
+				.pRootSignature = &m_forwardRS,
 				.inputLayout =
 				{
 					VertexInput {.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
@@ -73,14 +73,14 @@ namespace Dune::Graphics
 
 	void Forward::Destroy()
 	{
-		m_pipeline.Destroy();
-		m_rootSignature.Destroy();
+		m_forwardPSO.Destroy();
+		m_forwardRS.Destroy();
 	}
 
 	void Forward::Render(Scene& scene, TransientDescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals)
 	{
-		commandList.SetGraphicsRootSignature(m_rootSignature);
-		commandList.SetPipelineState(m_pipeline);
+		commandList.SetGraphicsRootSignature(m_forwardRS);
+		commandList.SetPipelineState(m_forwardPSO);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
 

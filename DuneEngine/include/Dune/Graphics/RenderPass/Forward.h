@@ -25,8 +25,8 @@ namespace Dune
 			void Render(Scene& scene, TransientDescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals);
 
 		private:
-			RootSignature m_rootSignature;
-			PipelineState m_pipeline;
+			RootSignature m_forwardRS;
+			PipelineState m_forwardPSO;
 			Device* m_pDevice{ nullptr };
 		};
 	}

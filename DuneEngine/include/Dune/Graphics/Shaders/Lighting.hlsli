@@ -1,4 +1,4 @@
-#include "ShaderTypes.h"
+#include "ShaderInterop.h"
 #include "BRDF.hlsli"
 
 float3 GetFaceDirection(const float3 v)

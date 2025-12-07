@@ -46,6 +46,13 @@ namespace Dune
 			void OnResize(dU32 width, dU32 height);
 			void Render(Scene& scene, Camera& camera);
 
+			[[nodiscard]] inline Device* GetDevice() { return m_pDevice; }
+			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
+			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
+			[[nodiscard]] inline PersistentDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
+			[[nodiscard]] inline PersistentDescriptorHeap& GetRTVHeap() { return m_rtvHeap; }
+			[[nodiscard]] inline PersistentDescriptorHeap& GetDSVHeap() { return m_dsvHeap; }
+
 		private:
 			void WaitForFrame(const Frame& frame);
 

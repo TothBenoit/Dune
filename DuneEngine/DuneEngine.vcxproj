@@ -31,6 +31,7 @@
     <ClInclude Include="include\Dune\Graphics\RHI\Shader.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Texture.h" />
     <ClInclude Include="include\Dune\Graphics\Renderer.h" />
+    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderInterop.h" />
     <ClInclude Include="include\Dune\Scene\Camera.h" />
     <ClInclude Include="include\Dune\Scene\Scene.h" />
     <ClInclude Include="include\Dune\Core\File.h" />
@@ -43,7 +44,6 @@
     <ClInclude Include="include\Dune\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
     <ClInclude Include="include\Dune\Graphics\Mesh.h" />
-    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderTypes.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
     <ClInclude Include="include\Dune\Core\Types.h" />
     <ClInclude Include="include\Dune\Core\Input.h" />
@@ -77,6 +77,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli" />
+    <None Include="include\Dune\Graphics\Shaders\ColorUtils.hlsli" />
     <None Include="include\Dune\Graphics\Shaders\Common.hlsli" />
     <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">
       <FileType>Document</FileType>
@@ -94,6 +95,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\FullScreenTriangle.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\Dune\Graphics\Shaders\LuminanceHistogram.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\Dune\Graphics\Shaders\LuminanceAverage.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

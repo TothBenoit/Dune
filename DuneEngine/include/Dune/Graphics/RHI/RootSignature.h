@@ -16,8 +16,8 @@ namespace Dune::Graphics
 
 	enum class EBindingType
 	{
-		Uniform,
-		Buffer,
+		Constant,
+		ConstantBuffer,
 		SRV,
 		UAV,
 		Group,
@@ -42,7 +42,6 @@ namespace Dune::Graphics
 		};
 		EShaderVisibility visibility{ EShaderVisibility::All };
 	};
-
 
 	struct RootSignatureDesc
 	{

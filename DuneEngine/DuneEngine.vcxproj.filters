@@ -22,9 +22,6 @@
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h">
       <Filter>Dune\Graphics\Platform</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderTypes.h">
-      <Filter>Dune\Graphics\Shaders</Filter>
-    </ClInclude>
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h">
       <Filter>Dune\Utilities</Filter>
     </ClInclude>
@@ -113,6 +110,7 @@
     <ClInclude Include="include\Dune\Graphics\RHI\RootSignature.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderInterop.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
@@ -193,6 +191,9 @@
     <None Include="include\Dune\Graphics\Shaders\FullScreenTriangle.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
+    <None Include="include\Dune\Graphics\Shaders\ColorUtils.hlsli" />
+    <None Include="include\Dune\Graphics\Shaders\LuminanceAverage.hlsl" />
+    <None Include="include\Dune\Graphics\Shaders\LuminanceHistogram.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">

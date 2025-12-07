@@ -1140,13 +1140,13 @@ namespace Dune::Graphics
 		D3D12_RESOURCE_STATES resourceState{ ToResourceState(desc.initialState) };
 
 		dU32 usageBits = (dU32)desc.usage;
-		dU32 uniformMask = (dU32)EBufferFlags::Uniform;
+		dU32 uniformMask = (dU32)EBufferUsage::Uniform;
 		bool isUniform = (usageBits & uniformMask) != 0;
 		if (isUniform)
 			m_byteSize = Utils::AlignTo(m_byteSize, 256);
 
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-		dU32 uavBufferMask = (dU32)EBufferFlags::UAV;
+		dU32 uavBufferMask = (dU32)EBufferUsage::UAV;
 		bool isUAV = (usageBits & uavBufferMask) != 0;
 		if (isUAV)
 			flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -1434,14 +1434,14 @@ namespace Dune::Graphics
 			D3D12_SHADER_VISIBILITY visibility{ ConvertShaderVisibility( slot.visibility ) };
 			switch (slot.type)
 			{
-			case EBindingType::Uniform:
+			case EBindingType::Constant:
 			{
-				rootParameters[rootParamCount++].InitAsConstants( slot.byteSize >> 2, bufferRegisterOffset + bufferRegister[(dU32)slot.visibility]++, 0u, visibility) ;
+				rootParameters[rootParamCount++].InitAsConstants( slot.byteSize >> 2, bufferRegisterOffset + bufferRegister[(dU32)slot.visibility]++, 0u, visibility);
 				break;
 			}
-			case EBindingType::Buffer:
+			case EBindingType::ConstantBuffer:
 			{
-				rootParameters[rootParamCount++].InitAsConstantBufferView( bufferRegisterOffset+ bufferRegister[(dU32)slot.visibility]++, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility );
+				rootParameters[rootParamCount++].InitAsConstantBufferView( bufferRegisterOffset + bufferRegister[(dU32)slot.visibility]++, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility );
 				break;
 			}
 

@@ -7,9 +7,9 @@ namespace Dune::Graphics
 {
 	class Device;
 
-	enum class EBufferFlags
+	enum class EBufferUsage
 	{
-		None  = 0,
+		Default  = 0,
 		Uniform  = 1 << 0,
 		UAV      = 1 << 1,
 	};
@@ -24,7 +24,7 @@ namespace Dune::Graphics
 	{
 		const wchar_t* debugName{ L"Buffer" };
 
-		EBufferFlags    usage{ EBufferFlags::None };
+		EBufferUsage    usage{ EBufferUsage::Default };
 		EBufferMemory   memory{ EBufferMemory::CPU };
 		dU32            byteSize{ 0 };
 		EResourceState  initialState{ EResourceState::Undefined };

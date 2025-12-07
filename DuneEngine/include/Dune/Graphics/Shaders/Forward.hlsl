@@ -1,9 +1,8 @@
-#include "ShaderTypes.h"
+#include "ShaderInterop.h"
 #include "Lighting.hlsli"
 
 ConstantBuffer<ForwardGlobals> cGlobals : register(b0);
 ConstantBuffer<InstanceData> cInstance : register(b1);
-ConstantBuffer<MaterialData> cMaterial : register(b1);
 
 struct VS_INPUT
 {
@@ -34,6 +33,8 @@ VSToPS VSMain(VS_INPUT input)
     o.uv = input.uv;
     return o;
 }
+
+ConstantBuffer<MaterialData> cMaterial : register(b1);
 
 struct PS_OUTPUT
 {

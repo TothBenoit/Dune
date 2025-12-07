@@ -7,7 +7,7 @@
 #include <Dune/Graphics/RHI/Fence.h>
 #include <Dune/Graphics/RHI/DescriptorHeap.h>
 #include <Dune/Graphics/RHI/CommandList.h>
-#include <Dune/Graphics/Shaders/ShaderTypes.h>
+#include <Dune/Graphics/Shaders/ShaderInterop.h>
 #include <Dune/Graphics/Mesh.h>
 #include <Dune/Utilities/DDSLoader.h>
 #include <Dune/Core/Logger.h>

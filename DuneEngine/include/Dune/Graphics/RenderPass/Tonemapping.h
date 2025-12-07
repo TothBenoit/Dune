@@ -2,22 +2,39 @@
 
 #include "Dune/Graphics/RHI/RootSignature.h"
 #include "Dune/Graphics/RHI/PipelineState.h"
+#include "Dune/Graphics/RHI/DescriptorHeap.h"
+#include "Dune/Graphics/RHI/Buffer.h"
 
 namespace Dune::Graphics
 {
+	class Renderer;
 	class CommandList;
-	struct Descriptor;
 	class Tonemapping
 	{
 	public:
-		void Initialize(Device* pDevice);
+		void Initialize(Renderer& renderer);
 		void Destroy();
 
-		void Render(CommandList& commandList, Descriptor& source);
+		void Render(Renderer& renderer, CommandList& commandList, Descriptor& hdrTargetSRV);
 
+		inline static float minLogLuminance{ -5.0f };
+		inline static float maxLogLuminance{ 24.0f };
+		inline static float tau{ 1.0f };
 	private:
-		RootSignature m_rootSignature;
-		PipelineState m_pipeline;
-		Device* m_pDevice{ nullptr };
+
+		RootSignature m_averageRS;
+		PipelineState m_averagePSO;
+		RootSignature m_histogramRS;
+		PipelineState m_histogramPSO;
+		Descriptor m_histogramUAV;
+		Buffer m_histogramBuffer;
+		Buffer m_luminanceBuffer;
+
+		RootSignature m_tonemapRS;
+		PipelineState m_tonemapPSO;
+
+		PersistentDescriptorHeap m_heap;
+
+		Barrier m_barrier;
 	};
 }
