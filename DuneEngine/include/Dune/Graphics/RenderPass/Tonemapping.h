@@ -17,10 +17,10 @@ namespace Dune::Graphics
 
 		void Render(Renderer& renderer, CommandList& commandList, Descriptor& hdrTargetSRV);
 
-		inline static float minLogLuminance{ -5.0f };
-		inline static float maxLogLuminance{ 24.0f };
-		inline static float tau{ 1.0f };
 	private:
+		float m_minLogLuminance{ -5.0f };
+		float m_maxLogLuminance{ 24.0f };
+		float m_tau{ 1.0f };
 
 		RootSignature m_averageRS;
 		PipelineState m_averagePSO;

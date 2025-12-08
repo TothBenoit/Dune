@@ -154,12 +154,12 @@ namespace Dune::Graphics
 		pDevice->CopyDescriptors(1, m_histogramUAV.cpuAddress, histogramUAV.cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 		commandList.ClearUAVUInt(histogramUAV.gpuAddress, m_histogramUAV.cpuAddress, m_histogramBuffer.Get(), 0);
 
-		float logLuminanceRange = maxLogLuminance - minLogLuminance;
+		float logLuminanceRange = m_maxLogLuminance - m_minLogLuminance;
 		LuminanceHistogramParams histogramParams
 		{
 			.width = pWindow->GetWidth(),
 			.height = pWindow->GetWidth(),
-			.minLogLuminance = minLogLuminance,
+			.minLogLuminance = m_minLogLuminance,
 			.oneOverLogLuminanceRange = 1.0f / logLuminanceRange,
 		};
 		
@@ -177,10 +177,10 @@ namespace Dune::Graphics
 		LuminanceAverageParams averageParams
 		{
 			.pixelCount = histogramParams.width * histogramParams.height,
-			.minLogLuminance = minLogLuminance,
+			.minLogLuminance = m_minLogLuminance,
 			.logLuminanceRange = logLuminanceRange,
 			.timeDelta = 0.016f,
-			.tau = tau
+			.tau = m_tau
 		};
 
 		commandList.SetComputeRootSignature(m_averageRS);
