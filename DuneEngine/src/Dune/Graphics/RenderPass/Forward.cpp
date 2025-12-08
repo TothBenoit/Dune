@@ -77,7 +77,7 @@ namespace Dune::Graphics
 		m_forwardRS.Destroy();
 	}
 
-	void Forward::Render(Scene& scene, TransientDescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals)
+	void Forward::Render(Scene& scene, ScratchDescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals)
 	{
 		commandList.SetGraphicsRootSignature(m_forwardRS);
 		commandList.SetPipelineState(m_forwardPSO);

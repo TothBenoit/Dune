@@ -33,7 +33,7 @@ namespace Dune::Graphics
 		RootSignature m_tonemapRS;
 		PipelineState m_tonemapPSO;
 
-		PersistentDescriptorHeap m_heap;
+		BlockDescriptorHeap m_heap;
 
 		Barrier m_barrier;
 	};

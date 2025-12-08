@@ -31,8 +31,8 @@ namespace Dune
 			Texture hdrTarget;
 			Descriptor hdrTargetRTV;
 			Descriptor hdrTargetSRV;
-			TransientDescriptorHeap srvHeap;
-			TransientDescriptorHeap samplerHeap;
+			ScratchDescriptorHeap srvHeap;
+			ScratchDescriptorHeap samplerHeap;
 			dQueue<Buffer> buffersToRelease;
 		};
 
@@ -49,9 +49,9 @@ namespace Dune
 			[[nodiscard]] inline Device* GetDevice() { return m_pDevice; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
-			[[nodiscard]] inline PersistentDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
-			[[nodiscard]] inline PersistentDescriptorHeap& GetRTVHeap() { return m_rtvHeap; }
-			[[nodiscard]] inline PersistentDescriptorHeap& GetDSVHeap() { return m_dsvHeap; }
+			[[nodiscard]] inline BlockDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
+			[[nodiscard]] inline BlockDescriptorHeap& GetRTVHeap() { return m_rtvHeap; }
+			[[nodiscard]] inline BlockDescriptorHeap& GetDSVHeap() { return m_dsvHeap; }
 
 		private:
 			void WaitForFrame(const Frame& frame);
@@ -65,10 +65,10 @@ namespace Dune
 			Texture m_depthBuffer{};
 			CommandQueue m_commandQueue{};
 			
-			PersistentDescriptorHeap m_srvHeap{};
-			PersistentDescriptorHeap m_srvImGuiHeap{};
-			PersistentDescriptorHeap m_rtvHeap{};
-			PersistentDescriptorHeap m_dsvHeap{};
+			BlockDescriptorHeap m_srvHeap{};
+			BlockDescriptorHeap m_srvImGuiHeap{};
+			BlockDescriptorHeap m_rtvHeap{};
+			BlockDescriptorHeap m_dsvHeap{};
 			
 			Descriptor m_depthBufferDSV;
 			

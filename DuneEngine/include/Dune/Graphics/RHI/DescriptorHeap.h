@@ -47,7 +47,7 @@ namespace Dune::Graphics
 		dU32 m_capacity{ 0 };
 	};
 
-	class TransientDescriptorHeap : public DescriptorHeap
+	class ScratchDescriptorHeap : public DescriptorHeap
 	{
 	public:
 		void Initialize(Device* pDevice, const DescriptorHeapDesc& desc);
@@ -60,7 +60,7 @@ namespace Dune::Graphics
 		dU32 m_count;
 	};
 
-	class PersistentDescriptorHeap : public DescriptorHeap
+	class BlockDescriptorHeap : public DescriptorHeap
 	{
 	public:
 		void Initialize(Device* pDevice, const DescriptorHeapDesc& desc);
