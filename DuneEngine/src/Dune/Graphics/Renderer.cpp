@@ -446,6 +446,7 @@ namespace Dune::Graphics
 					matricesUploadBuffer.Unmap(0, matricesByteSize);
 					frame.commandList.CopyBufferRegion(m_lightMatricesBuffer, 0, matricesUploadBuffer, 0, matricesByteSize);
 					frame.buffersToRelease.push(matricesUploadBuffer);
+					m_barrier.PushTransition(m_lightMatricesBuffer.Get(), EResourceState::CopyDest, EResourceState::ShaderResource);
 				}
 			}
 			globals.lightCount = lightCount;
