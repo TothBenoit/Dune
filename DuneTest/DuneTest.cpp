@@ -121,8 +121,8 @@ public:
 
 	void DrawGUI()
 	{
-		m_imgui.Lock();
-		m_imgui.NewFrame();
+		Graphics::ImGuiWrapper::LockGuard guard = m_imgui.AcquireContext();
+		m_imgui.NewFrame(guard);
 		ImGuizmo::BeginFrame();
 
 		ImGui::GetStyle().Colors[ImGuiCol_WindowBg].w = 0.66f;
@@ -385,8 +385,6 @@ public:
 
 		if (m_showDemo)
 			ImGui::ShowDemoWindow(&m_showDemo);
-
-		m_imgui.Unlock();
 	}
 
 private:

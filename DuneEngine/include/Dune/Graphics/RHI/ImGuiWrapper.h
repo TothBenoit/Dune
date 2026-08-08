@@ -11,11 +11,27 @@ namespace Dune::Graphics
 	class ImGuiWrapper
 	{
 	public:
+		class [[nodiscard]] LockGuard
+		{
+		public:
+			LockGuard(LockGuard&&) = delete;
+			LockGuard& operator=(LockGuard&&) = delete;
+			LockGuard(const LockGuard&) = delete;
+			LockGuard& operator=(const LockGuard&) = delete;
+			~LockGuard() { m_pWrapper->Unlock(); }
+		private:
+			friend class ImGuiWrapper;
+			explicit LockGuard(ImGuiWrapper& wrapper) : m_pWrapper(&wrapper) {}
+			ImGuiWrapper* m_pWrapper;
+		};
+
 		void Initialize(Window& window, Renderer& renderer);
-		void NewFrame();
+		[[nodiscard]] LockGuard AcquireContext();
+		void NewFrame(const LockGuard& guard);
 		void Render(CommandList& commandList);
 		void Destroy();
-		
+
+	private:
 		void Lock();
 		void Unlock();
 

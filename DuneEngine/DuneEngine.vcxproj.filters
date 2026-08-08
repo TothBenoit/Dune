@@ -181,7 +181,6 @@
     <None Include="include\Dune\Graphics\Shaders\Common.hlsli">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="packages.config" />
     <None Include="include\Dune\Graphics\Shaders\Lighting.hlsli">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
@@ -194,6 +193,7 @@
     <None Include="include\Dune\Graphics\Shaders\ColorUtils.hlsli" />
     <None Include="include\Dune\Graphics\Shaders\LuminanceAverage.hlsl" />
     <None Include="include\Dune\Graphics\Shaders\LuminanceHistogram.hlsl" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">

@@ -349,8 +349,11 @@ namespace Dune::Graphics
 			DXGI_ADAPTER_DESC1 desc{};
 			pAdapter->GetDesc1(&desc);
 
-			if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+			if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) 
+			{
+				pAdapter->Release();
 				continue;
+			}
 
 			if (SUCCEEDED(D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)))
 				break;
@@ -374,6 +377,7 @@ namespace Dune::Graphics
 		pInternal->pInfoQueue = pInfoQueue;
 	#endif // _DEBUG
 		m_pInternal = pInternal;
+
 	}
 
 	void Device::Destroy()
@@ -393,8 +397,6 @@ namespace Dune::Graphics
 	void Device::CreateSRV(Descriptor& descriptor, Texture& texture, const SRVTextureDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
-
-		const dU32* pDimensions = texture.GetDimensions();
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 		srvDesc.Format = (DXGI_FORMAT)desc.format;
@@ -521,7 +523,6 @@ namespace Dune::Graphics
 	void Device::CreateDSV(Descriptor& descriptor, Texture& texture, const DSVDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
-		const dU32* pDimensions = texture.GetDimensions();
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 		dsvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
@@ -662,6 +663,7 @@ namespace Dune::Graphics
 
 	void CommandList::UploadTexture(Texture& destTexture, Buffer& uploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 numSubresource, void* pSrcData)
 	{
+		Assert(numSubresource <= 16);
 		ID3D12Resource* pResource = ToResource(destTexture.Get());
 		D3D12_RESOURCE_DESC desc = pResource->GetDesc();
 
@@ -953,7 +955,7 @@ namespace Dune::Graphics
 	Descriptor ScratchDescriptorHeap::Allocate(dU32 count)
 	{
 		Assert(count > 0);
-		Assert(m_count + count < m_capacity);
+		Assert(m_count + count <= m_capacity);
 		dU32 offset = m_count * m_descriptorSize;
 		m_count += count;
 		return { .cpuAddress = m_cpuAddress + offset, .gpuAddress = m_gpuAddress > 0 ? m_gpuAddress + offset : 0 };
@@ -1378,10 +1380,10 @@ namespace Dune::Graphics
 
 		if (desc.bAllowInputLayout)
 			flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		if (desc.bAllowSamplerHeapIndexing)
+		if (desc.bAllowSRVHeapIndexing)
 			flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
 		if (desc.bAllowSamplerHeapIndexing)
-			flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+			flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
 		// 64 descriptor tables with 3 types of resource at most
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[3 * 64];
@@ -1561,6 +1563,7 @@ namespace Dune::Graphics
 	void PipelineState::Initialize(Device* pDeviceInterface, const GraphicsPipelineDesc& desc)
 	{
 		Assert(pDeviceInterface);
+		Assert(desc.pVertexShader);
 		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
 
 		ID3D12RootSignature* pRootSignature{ ToRootSignature(desc.pRootSignature->Get()) };
@@ -1573,7 +1576,7 @@ namespace Dune::Graphics
 			inputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 		}
 
-		IDxcBlob* pVSBlob{ (desc.pVertexShader) ? (IDxcBlob*)desc.pVertexShader->Get() : nullptr };
+		IDxcBlob* pVSBlob{ (IDxcBlob*)desc.pVertexShader->Get() };
 		IDxcBlob* pPSBlob{ (desc.pPixelShader) ? (IDxcBlob*)desc.pPixelShader->Get() : nullptr };
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
@@ -1667,14 +1670,19 @@ namespace Dune::Graphics
 		Unlock();
 	}
 
-	void ImGuiWrapper::NewFrame()
+	ImGuiWrapper::LockGuard ImGuiWrapper::AcquireContext() 
 	{
-		Assert(m_pContext);
 		Lock();
+		return LockGuard(*this);
+	}
+
+	void ImGuiWrapper::NewFrame(const LockGuard& guard)
+	{
+		Assert(guard.m_pWrapper == this);
+		Assert(m_pContext);
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-		Unlock();
 	}
 
 	void ImGuiWrapper::Render(CommandList& commandList)

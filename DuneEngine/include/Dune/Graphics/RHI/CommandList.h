@@ -98,6 +98,8 @@ namespace Dune::Graphics
 		void Dispatch(dU32 threadGroupCountX, dU32 threadGroupCountY, dU32 threadGroupCountZ);
 	};
 
+	static_assert(sizeof(CommandList) == sizeof(void*));
+
 	class CommandQueue : public Resource
 	{
 	public:

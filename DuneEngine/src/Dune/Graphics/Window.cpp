@@ -18,13 +18,9 @@ namespace Dune::Graphics
 		{
 			if (ImGuiWrapper* pImGui{ pWindow->GetImGui() })
 			{
-				pImGui->Lock();
+				ImGuiWrapper::LockGuard guard = pImGui->AcquireContext();
 				if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam)) 
-				{
-					pImGui->Unlock();
 					return true;
-				}
-				pImGui->Unlock();
 			}
 			pWindow->WindowProc(uMsg, (void*)wParam, (void*)lParam);
 		}
