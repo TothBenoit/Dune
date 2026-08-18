@@ -241,6 +241,7 @@ namespace Dune
 		void SetMousePosY(float posY);
 		void SetMouseWheelDelta(float delta);
 		
+		void Update();
 		void ClearInput();
 
 	private:
