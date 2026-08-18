@@ -26,26 +26,32 @@ namespace Dune::Graphics
 			return DDSResult::EFailedOpen;
 		
 		dU64 byteSize = file.GetByteSize();
-		dU8* pFileBuffer = new dU8[byteSize];
+		constexpr char magicWord[4] = { 'D', 'D', 'S', ' ' };
+		if (byteSize < sizeof(magicWord))
+		{
+			file.Close();
+			return DDSResult::EFailedSize;
+		}
 
-		if ( !file.Read(reinterpret_cast<char*>(pFileBuffer), (dU32)byteSize) )
+		dU8* pFileBuffer = new dU8[byteSize];
+		if (!file.Read(reinterpret_cast<char*>(pFileBuffer), (dU32)byteSize))
 		{
 			delete[] pFileBuffer;
 			file.Close();
 			return DDSResult::EFailedRead;
 		}
 
-		constexpr char magicWord[4] = { 'D', 'D', 'S', ' ' };
-
 		for (int i = 0; i < 4; i++) 
 		{
 			if (pFileBuffer[i] != magicWord[i])
 			{
+				delete[] pFileBuffer;
+				file.Close();
 				return DDSResult::EFailedMagicWord;
 			}
 		}
 
-		if ((sizeof(dU32) + sizeof(DDSHeader)) >= byteSize) 
+		if ((sizeof(dU32) + sizeof(DDSHeader)) >= byteSize)
 		{
 			delete[] pFileBuffer;
 			file.Close();
@@ -59,7 +65,11 @@ namespace Dune::Graphics
 		if ( (header.pixelFormat.flags & dU32(DDSPixelFormatFlagBits::FourCC))  && (MakeFourCC('D', 'X', '1', '0') == header.pixelFormat.fourCC ))
 		{
 			if ((sizeof(dU32) + sizeof(DDSHeader) + sizeof(DDSHeaderDXT10)) >= byteSize)
+			{
+				delete[] pFileBuffer;
+				file.Close();
 				return DDSResult::EFailedSize;
+			}
 			
 			outDDSTexture.m_pHeaderDXT10 = reinterpret_cast<DDSHeaderDXT10*>(pFileBuffer + sizeof(dU32) + sizeof(DDSHeader));
 			outDDSTexture.m_format = outDDSTexture.m_pHeaderDXT10->format;
@@ -86,9 +96,13 @@ namespace Dune::Graphics
 				{
 					format = Graphics::EFormat::B8G8R8A8_UNORM;
 					break;
-				}
+				} 
+				delete[] pFileBuffer;
+				file.Close();
 				return DDSResult::EFailedFormat;
 			default:
+				delete[] pFileBuffer;
+				file.Close();
 				return DDSResult::EFailedFormat;
 			}
 			outDDSTexture.m_format = format;
@@ -115,8 +129,10 @@ namespace Dune::Graphics
 		void* pData = ddsTexture.GetData();
 		const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
 		dU32 format = (dU32)ddsTexture.m_format;
-		if (sRGB)
+		if (sRGB) 
 			format++;
+		if (const Graphics::DDSHeaderDXT10* pHeader10 = ddsTexture.GetHeaderDXT10())
+			Assert(pHeader10->resourceDimension != DDSTextureDimension::ETexture3D && pHeader10->arraySize <= 1); // TODO support
 		Graphics::Texture texture{};
 		texture.Initialize(device, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = (Graphics::EFormat)format, .clearValue = {0.f, 0.f, 0.f, 0.f} });
 
