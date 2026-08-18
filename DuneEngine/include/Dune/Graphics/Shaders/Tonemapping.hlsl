@@ -33,7 +33,7 @@ void PSMain(float4 position : SV_Position, float2 uv : TEXCOORD, out float4 colo
 	
 	float averageLuminance = asfloat(bLuminanceAverage.Load(0));
 	float exposure = Exposure(EV100FromLuminance(averageLuminance));
-	hdrColor = hdrColor * (exposure + 1);
+	hdrColor = hdrColor * exposure;
 	
 	color.xyz = LinearToSRGB(FilmicTonemapping(hdrColor));
 	color.w = 1.0f;

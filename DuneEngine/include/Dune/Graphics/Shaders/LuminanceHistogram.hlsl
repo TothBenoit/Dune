@@ -29,7 +29,7 @@ void CSMain(uint groupIndex : SV_GroupIndex, uint3 threadId : SV_DispatchThreadI
 	
 	GroupMemoryBarrierWithGroupSync();
 	
-	if (threadId.x < cParams.height && threadId.y < cParams.height)
+	if (threadId.x < cParams.width && threadId.y < cParams.height)
 	{
 		float3 hdrColor = tSource.Load(int3(threadId.xy, 0)).rgb;
 		uint binIndex = HDRToHistogramBin(hdrColor);

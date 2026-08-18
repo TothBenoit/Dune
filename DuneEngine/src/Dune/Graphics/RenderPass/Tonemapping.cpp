@@ -159,7 +159,7 @@ namespace Dune::Graphics
 		LuminanceHistogramParams histogramParams
 		{
 			.width = pWindow->GetWidth(),
-			.height = pWindow->GetWidth(),
+			.height = pWindow->GetHeight(),
 			.minLogLuminance = m_minLogLuminance,
 			.oneOverLogLuminanceRange = 1.0f / logLuminanceRange,
 		};
