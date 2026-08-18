@@ -1024,6 +1024,7 @@ namespace Dune::Graphics
 	{
 		Assert(handle.IsValid());
 		dU32 slot{ (dU32)((handle.cpuAddress - m_cpuAddress) / m_descriptorSize) };
+		Assert(std::find(m_freeSlots.begin(), m_freeSlots.end(), slot) == m_freeSlots.end());
 		m_freeSlots.push_back(slot);
 	}
 
