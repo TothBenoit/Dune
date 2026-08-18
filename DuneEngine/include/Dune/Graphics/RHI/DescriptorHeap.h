@@ -50,7 +50,7 @@ namespace Dune::Graphics
 	class ScratchDescriptorHeap : public DescriptorHeap
 	{
 	public:
-		void Initialize(Device* pDevice, const DescriptorHeapDesc& desc);
+		void Initialize(Device& device, const DescriptorHeapDesc& desc);
 		void Destroy();
 
 		Descriptor Allocate(dU32 count);
@@ -63,7 +63,7 @@ namespace Dune::Graphics
 	class BlockDescriptorHeap : public DescriptorHeap
 	{
 	public:
-		void Initialize(Device* pDevice, const DescriptorHeapDesc& desc);
+		void Initialize(Device& device, const DescriptorHeapDesc& desc);
 		void Destroy();
 
 		[[nodiscard]] Descriptor Allocate();

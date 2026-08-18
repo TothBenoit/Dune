@@ -42,7 +42,7 @@ namespace Dune::Graphics
 	class Texture : public Resource
 	{
 	public:
-		void Initialize(Device* pDevice, const TextureDesc& desc);
+		void Initialize(Device& device, const TextureDesc& desc);
 		void Destroy();
 
 		[[nodiscard]] const dU32* GetDimensions() const { return m_desc.dimensions; }

@@ -1,142 +1,63 @@
 #include "pch.h"
 #include "Dune/Graphics/Window.h"
-#include "Dune/Graphics/RHI/ImGuiWrapper.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
-
-#include <imgui/imgui_impl_win32.h>
-
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Dune::Graphics
 {
-	LRESULT CALLBACK InternalWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	dU32 Window::RegisterHook(void* pData, WindowHook pHook, dU32 priority)
 	{
-		if (Window* pWindow{ (Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA) })
+		dU32 handle = m_nextHookHandle++;
+		HookEntry entry{ pData, pHook, priority, handle };
+		auto it = std::upper_bound(m_hooks.begin(), m_hooks.end(), entry,
+			[](const HookEntry& a, const HookEntry& b) { return a.priority > b.priority; });
+		m_hooks.insert(it, entry);
+		return handle;
+	}
+
+	void Window::UnregisterHook(dU32 handle)
+	{
+		auto it = std::find_if(m_hooks.begin(), m_hooks.end(), [handle](const HookEntry& e) { return e.handle == handle; });
+		if (it != m_hooks.end())
+			m_hooks.erase(it);
+	}
+
+	dU32 Window::RegisterEvent(void* pData, WindowEvent pEvent, EWindowMessageType type)
+	{
+		dU32 handle = m_nextEventHandle++;
+		m_events[(dU32)type].push_back({ pData, pEvent, handle });
+		return handle;
+	}
+
+	void Window::UnregisterEvent(EWindowMessageType msgType, dU32 handle)
+	{
+		dVector<EventEntry>& events = m_events[(dU32)msgType];
+		dU32 eventCount = (dU32)events.size();
+		for (dU32 i = 0; i < eventCount; i++)
 		{
-			if (ImGuiWrapper* pImGui{ pWindow->GetImGui() })
+			const EventEntry& event = events[i];
+			if (event.handle == handle)
 			{
-				ImGuiWrapper::LockGuard guard = pImGui->AcquireContext();
-				if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam)) 
-					return true;
-			}
-			pWindow->WindowProc(uMsg, (void*)wParam, (void*)lParam);
-		}
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
-	}
-
-	void Window::Initialize(const WindowDesc& desc)
-	{
-		m_width = desc.width;
-		m_height = desc.height;
-		m_title = desc.title;
-
-		WNDCLASSEX wc;
-		ZeroMemory(&wc, sizeof(wc));
-		wc.cbSize = sizeof(WNDCLASSEX);
-		wc.style = CS_HREDRAW | CS_VREDRAW;
-		wc.lpfnWndProc = InternalWindowProc;
-		wc.cbClsExtra = 0;
-		wc.cbWndExtra = sizeof(Window*);
-		wc.hInstance = 0;
-		wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-		wc.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));
-		wc.lpszMenuName = NULL;
-		wc.lpszClassName = L"DuneWindow";
-		wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-
-		RegisterClassEx(&wc);
-
-		m_pHandle = CreateWindowEx(
-			0,
-			wc.lpszClassName,
-			desc.title.c_str(),
-			(desc.parent) ? WS_CHILDWINDOW : WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, desc.width, desc.height,
-			(HWND)desc.parent,
-			NULL,
-			NULL,
-			NULL
-		);
-
-		Assert(m_pHandle != NULL);
-		SetWindowLongPtr((HWND)m_pHandle, GWLP_USERDATA, (LONG_PTR)this);
-		ShowWindow((HWND)m_pHandle, 1);
-	}
-
-	void Window::Destroy()
-	{
-	}
-
-	bool Window::Update()
-	{
-		MSG msg{};
-		m_input.Update();
-		while (PeekMessage(&msg, (HWND)m_pHandle, 0, 0, PM_REMOVE) > 0)
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-
-			if (m_bClosing)
+				if (i < eventCount - 1)
+				{
+					events[i] = events.back();
+				}
+				events.pop_back();
 				break;
+			}
 		}
-		return !m_bClosing;
 	}
 
-	void Window::WindowProc(dUInt uMsg, void* wParam, void* lParam)
+	bool Window::InvokeHooks(void* pNativeEvent) const
 	{
-		switch (uMsg)
-		{
-		case WM_DESTROY:
-			m_bClosing = true;
-			break;
-		case WM_SIZE:
-			// Thought : Should Window::Update return flags like EResize, EDestroy, ..., instead of handling Resize here ? A current issue is that we resize multiple times during the same Update.
-			m_width = LOWORD(lParam);
-			m_width = (m_width == 0) ? 1 : m_width;
-			m_height = HIWORD(lParam);
-			m_height = (m_height == 0) ? 1 : m_height;
-			if (m_pOnResize)
-				m_pOnResize(m_pOnResizeData, m_width, m_height);
-			break;
-		case WM_PAINT:
-			break;
-		case WM_SYSKEYDOWN:
-		case WM_KEYDOWN:
-			m_input.SetKeyDown(static_cast<KeyCode>((WPARAM)wParam));
-			break;
-		case WM_SYSKEYUP:
-		case WM_KEYUP:
-			m_input.SetKeyUp(static_cast<KeyCode>((WPARAM)wParam));
-			break;
-		case WM_MOUSEWHEEL:
-			m_input.SetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam));
-			break;
-		case WM_MOUSEMOVE:
-			m_input.SetMousePosX((short)LOWORD(lParam));
-			m_input.SetMousePosY((short)HIWORD(lParam));
-			break;
-		case WM_LBUTTONDOWN:
-			m_input.SetMouseButtonDown(0);
-			break;
-		case WM_LBUTTONUP:
-			m_input.SetMouseButtonUp(0);
-			break;
-		case WM_MBUTTONDOWN:
-			m_input.SetMouseButtonDown(1);
-			break;
-		case WM_MBUTTONUP:
-			m_input.SetMouseButtonUp(1);
-			break;
-		case WM_RBUTTONDOWN:
-			m_input.SetMouseButtonDown(2);
-			break;
-		case WM_RBUTTONUP:
-			m_input.SetMouseButtonUp(2);
-			break;
-		}
+		for (const HookEntry& entry : m_hooks)
+			if (entry.pHook(entry.pData, pNativeEvent))
+				return true;
+		return false;
+	}
+
+	void Window::OnEvent(EWindowMessageType type, const WindowMessage& message) const
+	{
+		const dVector<EventEntry>& events = m_events[(dU32)type];
+		for (const EventEntry& entry : events)
+			entry.pEvent(entry.pData, message);
 	}
 }

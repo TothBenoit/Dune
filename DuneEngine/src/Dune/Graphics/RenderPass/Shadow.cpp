@@ -6,14 +6,14 @@
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Format.h"
 #include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Scene/Scene.h"
 #include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
 {
-	void Shadow::Initialize(Device* pDevice)
+	void Shadow::Initialize(Device& device)
 	{
-		m_pDevice = pDevice;
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
 		Shader shadowVS;
@@ -26,7 +26,7 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 			});
 
-		m_shadowRS.Initialize(pDevice,
+		m_shadowRS.Initialize(device,
 			{
 				.layout =
 				{
@@ -36,7 +36,7 @@ namespace Dune::Graphics
 				.bAllowInputLayout = true,
 			});
 
-		m_shadowPSO.Initialize(pDevice,
+		m_shadowPSO.Initialize(device,
 			{
 				.pVertexShader = &shadowVS,
 
@@ -59,7 +59,7 @@ namespace Dune::Graphics
 		m_shadowRS.Destroy();
 	}
 
-	void Shadow::Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection)
+	void Shadow::Render(Scene& scene, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection)
 	{
 		commandList.SetGraphicsRootSignature(m_shadowRS);
 		commandList.SetPipelineState(m_shadowPSO);
@@ -77,7 +77,7 @@ namespace Dune::Graphics
 				);
 
 				commandList.PushGraphicsConstants(1, &instance.modelMatrix, sizeof(InstanceData));
-				Mesh& mesh = scene.meshes[renderData.meshIdx];
+				Mesh& mesh = resourceManager.GetMesh(renderData.meshIdx);
 				commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
 				commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);

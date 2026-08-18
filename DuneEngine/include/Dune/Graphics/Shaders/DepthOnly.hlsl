@@ -2,7 +2,7 @@
 
 struct Camera
 {
-    float4x4 viewProjectionMatrix;
+	float4x4 viewProjectionMatrix;
 };
 
 ConstantBuffer<Camera> cCamera : register(b0);
@@ -21,7 +21,7 @@ struct VS_OUTPUT
 VS_OUTPUT VSMain(VS_INPUT input)
 {
 	VS_OUTPUT o;
-    float4 wPos = mul(cModel.modelMatrix, float4(input.vPos, 1.0f));
-    o.position = mul(cCamera.viewProjectionMatrix, wPos);
+	float4 wPos = mul(cModel.modelMatrix, float4(input.vPos, 1.0f));
+	o.position = mul(cCamera.viewProjectionMatrix, wPos);
 	return o;
 }

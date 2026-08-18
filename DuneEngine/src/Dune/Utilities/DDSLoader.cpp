@@ -107,7 +107,7 @@ namespace Dune::Graphics
 		return Load(filePath, *this);
 	}
 
-	Graphics::Texture DDSTexture::CreateTextureFromFile(Device* pDevice, CommandList* pCommandList, Buffer& uploadBuffer, const char* filePath, bool sRGB)
+	Graphics::Texture DDSTexture::CreateTextureFromFile(Device& device, CommandList& commandList, Buffer& uploadBuffer, const char* filePath, bool sRGB)
 	{
 		Graphics::DDSTexture ddsTexture;
 		Graphics::DDSResult result = ddsTexture.Load(filePath);
@@ -118,12 +118,12 @@ namespace Dune::Graphics
 		if (sRGB)
 			format++;
 		Graphics::Texture texture{};
-		texture.Initialize(pDevice, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = (Graphics::EFormat)format, .clearValue = {0.f, 0.f, 0.f, 0.f} });
+		texture.Initialize(device, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = (Graphics::EFormat)format, .clearValue = {0.f, 0.f, 0.f, 0.f} });
 
 		dU32 byteSize = (dU32)texture.GetRequiredIntermediateSize(0, pHeader->mipMapCount);
 		BufferDesc desc{ L"UploadBuffer", EBufferUsage::Default, EBufferMemory::CPU, byteSize };
-		uploadBuffer.Initialize(pDevice, desc);
-		pCommandList->UploadTexture(texture, uploadBuffer, 0, 0, pHeader->mipMapCount, pData);
+		uploadBuffer.Initialize(device, desc);
+		commandList.UploadTexture(texture, uploadBuffer, 0, 0, pHeader->mipMapCount, pData);
 
 		ddsTexture.Destroy();
 		return texture;
@@ -137,4 +137,3 @@ namespace Dune::Graphics
 		m_pData = nullptr;
 	}
 }
-

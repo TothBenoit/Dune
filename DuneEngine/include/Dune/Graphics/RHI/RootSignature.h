@@ -54,8 +54,7 @@ namespace Dune::Graphics
 	class RootSignature : public Resource
 	{
 	public:
-		void Initialize(Device* pDevice, const RootSignatureDesc& desc);
+		void Initialize(Device& device, const RootSignatureDesc& desc);
 		void Destroy();
-
 	};
 }

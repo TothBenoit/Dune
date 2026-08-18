@@ -16,7 +16,7 @@ namespace Dune::Graphics
 	class Swapchain : public Resource 
 	{
 	public:
-		void Initialize(Device* pDevice, Window* pWindow, CommandQueue* pCommandQueue, const SwapchainDesc& desc);
+		void Initialize(Device& device, Window* pWindow, CommandQueue* pCommandQueue, const SwapchainDesc& desc);
 		void Destroy();
 
 		void Resize(dU32 width, dU32 height);

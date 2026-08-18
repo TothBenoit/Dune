@@ -6,6 +6,7 @@
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Format.h"
 #include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/Window.h"
 #include "Dune/Scene/Scene.h"
 #include "Dune/Scene/Camera.h"
@@ -14,11 +15,11 @@ namespace Dune::Graphics
 {
 	void Tonemapping::Initialize(Renderer& renderer)
 	{
-		Device* pDevice = renderer.GetDevice();
+		Device& device = renderer.GetRenderContext()->GetDevice();
 
 		m_barrier.Initialize(1);
 
-		m_heap.Initialize(pDevice, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 1, .isShaderVisible = false });
+		m_heap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 1, .isShaderVisible = false });
 
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
@@ -43,7 +44,7 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 		});
 
-		m_tonemapRS.Initialize(pDevice,
+		m_tonemapRS.Initialize(device,
 			{
 				.layout =
 				{
@@ -52,7 +53,7 @@ namespace Dune::Graphics
 				},
 			});
 
-		m_tonemapPSO.Initialize(pDevice,
+		m_tonemapPSO.Initialize(device,
 			{
 				.pVertexShader = &fullScreenTriangleVS,
 				.pPixelShader = &tonemappingPS,
@@ -71,7 +72,7 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 		});
 
-		m_histogramRS.Initialize(pDevice,
+		m_histogramRS.Initialize(device,
 			{
 				.layout =
 				{
@@ -81,15 +82,15 @@ namespace Dune::Graphics
 				}
 			});
 
-		m_histogramPSO.Initialize(pDevice,
+		m_histogramPSO.Initialize(device,
 			{
 				.pComputeShader = &histogramCS,
 				.pRootSignature = &m_histogramRS
 			});
 
-		m_histogramBuffer.Initialize(pDevice, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32) });
+		m_histogramBuffer.Initialize(device, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32) });
 		m_histogramUAV = m_heap.Allocate();
-		pDevice->CreateUAV(m_histogramUAV, m_histogramBuffer, { .format = EFormat::R32_UINT, .elementCount = 256 });
+		device.CreateUAV(m_histogramUAV, m_histogramBuffer, { .format = EFormat::R32_UINT, .elementCount = 256 });
 
 		Shader averageCS;
 		averageCS.Initialize
@@ -101,7 +102,7 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 		});
 
-		m_averageRS.Initialize(pDevice,
+		m_averageRS.Initialize(device,
 			{
 				.layout =
 				{
@@ -111,13 +112,13 @@ namespace Dune::Graphics
 				}
 			});
 
-		m_averagePSO.Initialize(pDevice,
+		m_averagePSO.Initialize(device,
 			{
 				.pComputeShader = &averageCS,
 				.pRootSignature = &m_averageRS
 			});
 
-		m_luminanceBuffer.Initialize(pDevice, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = sizeof(dU32) });
+		m_luminanceBuffer.Initialize(device, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = sizeof(dU32) });
 
 		fullScreenTriangleVS.Destroy();
 		tonemappingPS.Destroy();
@@ -148,10 +149,10 @@ namespace Dune::Graphics
 	{
 		Frame& frame = renderer.GetCurrentFrame();
 		Descriptor histogramUAV = frame.srvHeap.Allocate(1);
-		Device* pDevice = renderer.GetDevice();
+		Device& device = renderer.GetRenderContext()->GetDevice();
 		Window* pWindow = renderer.GetWindow();
 
-		pDevice->CopyDescriptors(1, m_histogramUAV.cpuAddress, histogramUAV.cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+		device.CopyDescriptors(1, m_histogramUAV.cpuAddress, histogramUAV.cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 		commandList.ClearUAVUInt(histogramUAV.gpuAddress, m_histogramUAV.cpuAddress, m_histogramBuffer.Get(), 0);
 
 		float logLuminanceRange = m_maxLogLuminance - m_minLogLuminance;

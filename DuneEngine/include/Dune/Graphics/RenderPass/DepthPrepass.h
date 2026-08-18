@@ -5,23 +5,23 @@
 
 namespace Dune
 {
-	struct Scene;
+	class Scene;
 
 	namespace Graphics
 	{
 		class CommandList;
+		class ResourceManager;
 		class DepthPrepass
 		{
 		public:
-			void Initialize(Device* pDevice);
+			void Initialize(Device& device);
 			void Destroy();
 
-			void Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection);
+			void Render(Scene& scene, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection);
 
 		private:
 			RootSignature m_depthRS;
 			PipelineState m_depthPSO;
-			Device* m_pDevice{ nullptr };
 		};
 	}
 }

@@ -6,14 +6,14 @@
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Format.h"
 #include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Scene/Scene.h"
 #include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
 {
-	void DepthPrepass::Initialize(Device* pDevice)
+	void DepthPrepass::Initialize(Device& device)
 	{
-		m_pDevice = pDevice;
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
 		Shader depthPrepassVS;
@@ -26,7 +26,7 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 		});
 
-		m_depthRS.Initialize(pDevice,
+		m_depthRS.Initialize(device,
 			{ 
 				.layout =
 				{
@@ -36,7 +36,7 @@ namespace Dune::Graphics
 				.bAllowInputLayout = true,
 			});
 
-		m_depthPSO.Initialize(pDevice,
+		m_depthPSO.Initialize(device,
 			{
 				.pVertexShader = &depthPrepassVS,
 				.pRootSignature = &m_depthRS,
@@ -58,7 +58,7 @@ namespace Dune::Graphics
 		m_depthRS.Destroy();
 	}
 
-	void DepthPrepass::Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection)
+	void DepthPrepass::Render(Scene& scene, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection)
 	{
 		commandList.SetGraphicsRootSignature(m_depthRS);
 		commandList.SetPipelineState(m_depthPSO);
@@ -76,7 +76,7 @@ namespace Dune::Graphics
 				);
 
 				commandList.PushGraphicsConstants(1, &instance.modelMatrix, sizeof(InstanceData));
-				Mesh& mesh = scene.meshes[renderData.meshIdx];
+				Mesh& mesh = resourceManager.GetMesh(renderData.meshIdx);
 				commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
 				commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
 				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);

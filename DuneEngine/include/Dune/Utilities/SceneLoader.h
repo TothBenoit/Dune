@@ -1,16 +1,16 @@
 #pragma once
 
-namespace Dune 
+namespace Dune
 {
-	struct Scene;
+	class Scene;
 
 	namespace Graphics
 	{
-		class Device;
+		class ResourceManager;
 	}
 
 	namespace SceneLoader
 	{
-		bool Load(const char* dirPath, const char* fileName, Scene& scene, Graphics::Device& device);
+		bool Load(const char* path, Scene& scene, Graphics::ResourceManager& resourceManager);
 	}
 }

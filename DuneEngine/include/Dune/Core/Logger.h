@@ -41,6 +41,3 @@ namespace Dune
 #define LOG_ERROR(msg)		Logger::Error(msg);
 #define LOG_CRITICAL(msg)	Logger::Critical(msg);
 }
-
-
-

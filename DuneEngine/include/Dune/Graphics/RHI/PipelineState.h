@@ -81,8 +81,8 @@ namespace Dune::Graphics
 	class PipelineState : public Resource
 	{
 	public:
-		void Initialize(Device* pDevice, const GraphicsPipelineDesc& desc);
-		void Initialize(Device* pDevice, const ComputePipelineDesc& desc);
+		void Initialize(Device& device, const GraphicsPipelineDesc& desc);
+		void Initialize(Device& device, const ComputePipelineDesc& desc);
 		void Destroy();
 	};
 }

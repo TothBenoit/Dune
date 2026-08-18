@@ -17,21 +17,21 @@ static const float InvPI = 0.31830988618379067154f;
 
 float3x3 TangentToWorld(float3 normal, float4 tangent)
 {
-    float3 T = tangent.xyz;
-    float3 B = cross(normal, T) * tangent.w;
-    float3x3 TBN = float3x3(T, B, normal);
-    return TBN;
+	float3 T = tangent.xyz;
+	float3 B = cross(normal, T) * tangent.w;
+	float3x3 TBN = float3x3(T, B, normal);
+	return TBN;
 }
 
 float3 UnpackNormal(float2 packedNormal)
 {
-    const float2 normalXY = packedNormal * 2.0f - 1.0f;
-    const float normalZ = sqrt(1 - saturate(dot(normalXY.xy, normalXY.xy)));
-    return float3(normalXY, normalZ);
+	const float2 normalXY = packedNormal * 2.0f - 1.0f;
+	const float normalZ = sqrt(1 - saturate(dot(normalXY.xy, normalXY.xy)));
+	return float3(normalXY, normalZ);
 }
 
 template<typename T>
 T Square(T x)
 {
-    return x * x;
+	return x * x;
 }

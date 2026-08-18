@@ -5,29 +5,28 @@
 
 namespace Dune
 {
-	struct Scene;
+	class Scene;
 	struct Camera;
 
 	namespace Graphics
 	{
-		class ScratchDescriptorHeap;
 		struct Descriptor;
 		struct ForwardGlobals;
 		class CommandList;
 		class Buffer;
+		class Renderer;
 
 		class Forward
 		{
 		public:
-			void Initialize(Device* pDevice);
+			void Initialize(Device& device);
 			void Destroy();
 
-			void Render(Scene& scene, ScratchDescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals);
+			void Render(Scene& scene, Renderer& renderer, CommandList& commandList, ForwardGlobals& globals);
 
 		private:
 			RootSignature m_forwardRS;
 			PipelineState m_forwardPSO;
-			Device* m_pDevice{ nullptr };
 		};
 	}
 }

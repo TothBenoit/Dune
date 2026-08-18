@@ -5,35 +5,34 @@
 
 namespace Dune::Graphics
 {
-
-	Buffer CreateIndexBuffer(Device* pDevice, dU32 byteSize)
+	Buffer CreateIndexBuffer(Device& device, dU32 byteSize)
 	{
 		Assert(byteSize != 0);
 		BufferDesc desc{ L"IndexBuffer", EBufferUsage::Default, EBufferMemory::GPU, byteSize };
 		Buffer indexBuffer{};
-		indexBuffer.Initialize(pDevice, desc);
+		indexBuffer.Initialize(device, desc);
 		return indexBuffer;
 	}
 
-	Buffer CreateVertexBuffer(Device* pDevice, dU32 byteSize)
+	Buffer CreateVertexBuffer(Device& device, dU32 byteSize)
 	{
 		Assert(byteSize != 0);
 		BufferDesc desc{ L"VertexBuffer", EBufferUsage::Default, EBufferMemory::GPU, byteSize };
 		Buffer vertexBuffer{};
-		vertexBuffer.Initialize(pDevice, desc);
+		vertexBuffer.Initialize(device, desc);
 		return vertexBuffer;
 	}
 
-	void UploadBuffer(CommandList* pCommandList, Buffer& buffer, Buffer& uploadBuffer, const void* pData, dU32 byteSize, dU32 byteOffset )
+	void UploadBuffer(CommandList& commandList, Buffer& buffer, Buffer& uploadBuffer, const void* pData, dU32 byteSize, dU32 byteOffset )
 	{
 		void* pCpuAddress{ nullptr };
 		uploadBuffer.Map(0, 0, &pCpuAddress);
 		memcpy((void*)(dU64(pCpuAddress) + byteOffset), pData, byteSize);
-		pCommandList->CopyBufferRegion(buffer, 0, uploadBuffer, byteOffset, byteSize);
+		commandList.CopyBufferRegion(buffer, 0, uploadBuffer, byteOffset, byteSize);
 		uploadBuffer.Unmap(0, 0);
 	}
 
-	void Mesh::Initialize(Device* pDevice, CommandList* pCommandList, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
+	void Mesh::Initialize(Device& device, CommandList& commandList, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
 	{
 		m_indexCount = indexCount;
 		m_vertexCount = vertexCount;
@@ -45,15 +44,15 @@ namespace Dune::Graphics
 		dU32 uploadByteSize = vertexByteSize + indexByteSize;
 
 		BufferDesc desc{ L"UploadBuffer", EBufferUsage::Default, EBufferMemory::CPU, uploadByteSize };
-		m_uploadBuffer.Initialize(pDevice, desc);
+		m_uploadBuffer.Initialize(device, desc);
 
-		m_indexBuffer = CreateIndexBuffer(pDevice, indexByteSize);
-		UploadBuffer(pCommandList, m_indexBuffer, m_uploadBuffer, pIndices, indexByteSize, 0);
-		m_vertexBuffer = CreateVertexBuffer(pDevice, vertexByteSize);
-		UploadBuffer( pCommandList, m_vertexBuffer, m_uploadBuffer, pVertices, vertexByteSize, indexByteSize);
+		m_indexBuffer = CreateIndexBuffer(device, indexByteSize);
+		UploadBuffer(commandList, m_indexBuffer, m_uploadBuffer, pIndices, indexByteSize, 0);
+		m_vertexBuffer = CreateVertexBuffer(device, vertexByteSize);
+		UploadBuffer(commandList, m_vertexBuffer, m_uploadBuffer, pVertices, vertexByteSize, indexByteSize);
 	}
 
-	void Mesh::Initialize(Device* pDevice, CommandList* pCommandList, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
+	void Mesh::Initialize(Device& device, CommandList& commandList, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
 	{
 		m_indexCount = indexCount;
 		m_vertexCount = vertexCount;
@@ -65,12 +64,12 @@ namespace Dune::Graphics
 		dU32 uploadByteSize = vertexByteSize + indexByteSize;
 
 		BufferDesc desc{ L"UploadBuffer", EBufferUsage::Default, EBufferMemory::CPU, uploadByteSize };
-		m_uploadBuffer.Initialize(pDevice, desc);
+		m_uploadBuffer.Initialize(device, desc);
 
-		m_indexBuffer = CreateIndexBuffer(pDevice, indexByteSize);
-		UploadBuffer(pCommandList, m_indexBuffer, m_uploadBuffer, pIndices, indexByteSize, 0 );
-		m_vertexBuffer = CreateVertexBuffer(pDevice, vertexByteSize);
-		UploadBuffer(pCommandList, m_vertexBuffer, m_uploadBuffer, pVertices, vertexByteSize, indexByteSize);
+		m_indexBuffer = CreateIndexBuffer(device, indexByteSize);
+		UploadBuffer(commandList, m_indexBuffer, m_uploadBuffer, pIndices, indexByteSize, 0 );
+		m_vertexBuffer = CreateVertexBuffer(device, vertexByteSize);
+		UploadBuffer(commandList, m_vertexBuffer, m_uploadBuffer, pVertices, vertexByteSize, indexByteSize);
 	}
 
 	void Mesh::Destroy()
@@ -80,4 +79,3 @@ namespace Dune::Graphics
 		m_vertexBuffer.Destroy();
 	}
 }
-

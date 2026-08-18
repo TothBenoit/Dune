@@ -7,13 +7,15 @@
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/RenderContext.h"
+#include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Scene/Scene.h"
 
 namespace Dune::Graphics
 {
-	void Forward::Initialize(Device* pDevice)
+	void Forward::Initialize(Device& device)
 	{
-		m_pDevice = pDevice;
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
 		Shader forwardVS;
@@ -36,7 +38,7 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 		});
 
-		m_forwardRS.Initialize(pDevice,
+		m_forwardRS.Initialize(device,
 			{
 				.layout =
 				{
@@ -48,7 +50,7 @@ namespace Dune::Graphics
 				.bAllowSRVHeapIndexing = true,
 			});
 
-		m_forwardPSO.Initialize(pDevice,
+		m_forwardPSO.Initialize(device,
 			{
 				.pVertexShader = &forwardVS,
 				.pPixelShader = &forwardPS,
@@ -77,18 +79,23 @@ namespace Dune::Graphics
 		m_forwardRS.Destroy();
 	}
 
-	void Forward::Render(Scene& scene, ScratchDescriptorHeap& srvHeap, CommandList& commandList, ForwardGlobals& globals)
+	void Forward::Render(Scene& scene, Renderer& renderer, CommandList& commandList, ForwardGlobals& globals)
 	{
 		commandList.SetGraphicsRootSignature(m_forwardRS);
 		commandList.SetPipelineState(m_forwardPSO);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
 
+		ScratchDescriptorHeap& srvHeap = renderer.GetCurrentFrame().srvHeap;
+		RenderContext* pContext = renderer.GetRenderContext();
+		ResourceManager& resourceManager = pContext->GetResourceManager();
+		Device& device = pContext->GetDevice();
+
 		const entt::registry& kRegistry = scene.registry;
 		kRegistry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 			{
-				Mesh& mesh = scene.meshes[renderData.meshIdx];
-				MaterialData material = scene.materials[renderData.materialIdx];
+				Mesh& mesh = resourceManager.GetMesh(renderData.meshIdx);
+				MaterialData material = resourceManager.GetMaterial(renderData.materialIdx);
 
 				InstanceData instance;
 				DirectX::XMStoreFloat4x4(&instance.modelMatrix,
@@ -99,25 +106,25 @@ namespace Dune::Graphics
 
 				if (material.albedoIdx != dU32(-1))
 				{
-					Texture& albedoTexture = scene.textures[material.albedoIdx];
+					Texture& albedoTexture = resourceManager.GetTexture(material.albedoIdx);
 					Descriptor albedo = srvHeap.Allocate(1);
-					m_pDevice->CreateSRV(albedo, albedoTexture);
+					device.CreateSRV(albedo, albedoTexture);
 					material.albedoIdx = srvHeap.GetIndex(albedo);
 				}
 
 				if (material.normalIdx != dU32(-1))
 				{
-					Texture& normalTexture = scene.textures[material.normalIdx];
+					Texture& normalTexture = resourceManager.GetTexture(material.normalIdx);
 					Descriptor normal = srvHeap.Allocate(1);
-					m_pDevice->CreateSRV(normal, normalTexture);
+					device.CreateSRV(normal, normalTexture);
 					material.normalIdx = srvHeap.GetIndex(normal);
 				}
 
 				if (material.roughnessMetalnessIdx != dU32(-1))
 				{
-					Texture& roughnessMetalnessTexture = scene.textures[material.roughnessMetalnessIdx];
+					Texture& roughnessMetalnessTexture = resourceManager.GetTexture(material.roughnessMetalnessIdx);
 					Descriptor roughnessMetalness = srvHeap.Allocate(1);
-					m_pDevice->CreateSRV(roughnessMetalness, roughnessMetalnessTexture);
+					device.CreateSRV(roughnessMetalness, roughnessMetalnessTexture);
 					material.roughnessMetalnessIdx = srvHeap.GetIndex(roughnessMetalness);
 				}
 

@@ -3,6 +3,7 @@
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
+#include "Dune/Graphics/RenderContext.h"
 #include <Dune/Graphics/Shaders/ShaderInterop.h>
 #include "Dune/Scene/Scene.h"
 #include "Dune/Scene/Camera.h"
@@ -11,14 +12,16 @@
 
 namespace Dune::Graphics
 {
-	void Renderer::Initialize(Device& device, Window& window)
+	void Renderer::Initialize(RenderContext& context, Window& window)
 	{
-		m_pDevice = &device;
+		m_pRenderContext = &context;
 		m_pWindow = &window;
+
+		Device& device = m_pRenderContext->GetDevice();
 
 		dU32 width = m_pWindow->GetWidth();
 		dU32 height = m_pWindow->GetHeight();
-		m_depthBuffer.Initialize( m_pDevice, 
+		m_depthBuffer.Initialize(device,
 			{
 				.debugName = L"DepthBuffer",
 				.usage = ETextureUsage::DepthStencil,
@@ -39,50 +42,52 @@ namespace Dune::Graphics
 		};
 		for (Frame& frame : m_frames)
 		{
-			frame.commandAllocator.Initialize(m_pDevice, ECommandType::Direct);
-			frame.commandList.Initialize(m_pDevice, ECommandType::Direct, frame.commandAllocator);
+			frame.commandAllocator.Initialize(device, ECommandType::Direct);
+			frame.commandList.Initialize(device, ECommandType::Direct, frame.commandAllocator);
 			frame.commandList.Close();
-			frame.hdrTarget.Initialize(m_pDevice, colorTargetDesc);
-			frame.srvHeap.Initialize(m_pDevice, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 4096, .isShaderVisible = true });
-			frame.samplerHeap.Initialize(m_pDevice, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
+			frame.hdrTarget.Initialize(device, colorTargetDesc);
+			frame.srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kPersistentSRVCapacity + kTransientSRVCapacity, .isShaderVisible = true });
+			frame.samplerHeap.Initialize(device, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
 		}
 
 		m_barrier.Initialize(16);
-		m_fence.Initialize(m_pDevice, 0);
-		m_commandQueue.Initialize(m_pDevice, ECommandType::Direct);
-		m_swapchain.Initialize(m_pDevice, m_pWindow, &m_commandQueue, { .latency = 3 });
+		m_fence.Initialize(device, 0);
+		m_commandQueue.Initialize(device, ECommandType::Direct);
+		m_swapchain.Initialize(device, m_pWindow, &m_commandQueue, { .latency = kFramesInFlight });
 
 		DescriptorHeapDesc heapDesc { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 64, .isShaderVisible = true };
-		m_srvImGuiHeap.Initialize(m_pDevice, heapDesc);
+		m_srvImGuiHeap.Initialize(device, heapDesc);
 
+		heapDesc.capacity = kPersistentSRVCapacity;
 		heapDesc.isShaderVisible = false;
-		m_srvHeap.Initialize(m_pDevice, heapDesc);
+		m_srvHeap.Initialize(device, heapDesc);
 
+		heapDesc.capacity = 64;
 		heapDesc.type = EDescriptorHeapType::RTV;
-		m_rtvHeap.Initialize(m_pDevice, heapDesc);
+		m_rtvHeap.Initialize(device, heapDesc);
 
 		heapDesc.type = EDescriptorHeapType::DSV;
-		m_dsvHeap.Initialize(m_pDevice, heapDesc);
+		m_dsvHeap.Initialize(device, heapDesc);
 
-		for (dU32 i = 0; i < 3; i++)
+		for (dU32 i = 0; i < kFramesInFlight; i++)
 		{
 			Frame& frame = m_frames[i];
 			frame.backBufferRTV = m_rtvHeap.Allocate();
 			frame.hdrTargetRTV = m_rtvHeap.Allocate();
 			frame.hdrTargetSRV = m_srvHeap.Allocate();
-			m_pDevice->CreateRTV(frame.backBufferRTV, m_swapchain.GetBackBuffer(i), {});
-			m_pDevice->CreateRTV(frame.hdrTargetRTV, frame.hdrTarget, {});
-			m_pDevice->CreateSRV(frame.hdrTargetSRV, frame.hdrTarget);
+			device.CreateRTV(frame.backBufferRTV, m_swapchain.GetBackBuffer(i), {});
+			device.CreateRTV(frame.hdrTargetRTV, frame.hdrTarget, {});
+			device.CreateSRV(frame.hdrTargetSRV, frame.hdrTarget);
 		}
 
 		m_depthBufferDSV = m_dsvHeap.Allocate();
-		m_pDevice->CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
+		device.CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
 
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
-		m_forwardPass.Initialize(m_pDevice);
-		m_depthPrepass.Initialize(m_pDevice);
-		m_shadowPass.Initialize(m_pDevice);
+		m_forwardPass.Initialize(device);
+		m_depthPrepass.Initialize(device);
+		m_shadowPass.Initialize(device);
 		m_tonemappingPass.Initialize(*this);
 
 		m_lightsSRV = m_srvHeap.Allocate();
@@ -91,9 +96,8 @@ namespace Dune::Graphics
 
 	void Renderer::Destroy()
 	{
-		for (dU32 i = 0; i < 3; i++) 
+		for (Frame& frame : m_frames)
 		{
-			Frame& frame = m_frames[i];
 			while (!frame.buffersToRelease.empty())
 			{
 				frame.buffersToRelease.front().Destroy();
@@ -117,7 +121,7 @@ namespace Dune::Graphics
 			shadow.Destroy();
 		for (Texture& shadow : m_cubeShadowMaps)
 			shadow.Destroy();
-		
+
 		m_forwardPass.Destroy();
 		m_depthPrepass.Destroy();
 		m_shadowPass.Destroy();
@@ -140,7 +144,7 @@ namespace Dune::Graphics
 			m_lightMatricesBuffer.Destroy();
 	}
 
-	void Renderer::OnResize(dU32 width, dU32 height) 
+	void Renderer::OnResize(dU32 width, dU32 height)
 	{
 		TextureDesc hdrTargetDesc
 		{
@@ -152,22 +156,23 @@ namespace Dune::Graphics
 			.initialState{ EResourceState::ShaderResource },
 		};
 
+		Device& device = m_pRenderContext->GetDevice();
 		for (Frame& f : m_frames)
 		{
 			WaitForFrame(f);
 			f.hdrTarget.Destroy();
-			f.hdrTarget.Initialize(m_pDevice, hdrTargetDesc);
-			m_pDevice->CreateSRV(f.hdrTargetSRV, f.hdrTarget);
-			m_pDevice->CreateRTV(f.hdrTargetRTV, f.hdrTarget, {});
+			f.hdrTarget.Initialize(device, hdrTargetDesc);
+			device.CreateSRV(f.hdrTargetSRV, f.hdrTarget);
+			device.CreateRTV(f.hdrTargetRTV, f.hdrTarget, {});
 		}
 
 		m_swapchain.Resize(width, height);
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
-		for (dU32 i = 0; i < 3; i++)
-			m_pDevice->CreateRTV(m_frames[i].backBufferRTV, m_swapchain.GetBackBuffer(i), {});
+		for (dU32 i = 0; i < kFramesInFlight; i++)
+			device.CreateRTV(m_frames[i].backBufferRTV, m_swapchain.GetBackBuffer(i), {});
 
 		m_depthBuffer.Destroy();
-		m_depthBuffer.Initialize(m_pDevice, 
+		m_depthBuffer.Initialize(device,
 			{
 				.debugName = L"DepthBuffer",
 				.usage = ETextureUsage::DepthStencil,
@@ -176,7 +181,7 @@ namespace Dune::Graphics
 				.clearValue = {1.f, 1.f, 1.f, 1.f},
 				.initialState = EResourceState::DepthStencil
 			});
-		m_pDevice->CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
+		device.CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
 	}
 
 	void Renderer::WaitForFrame(const Frame& frame)
@@ -188,6 +193,7 @@ namespace Dune::Graphics
 
 	void Renderer::Render(Scene& scene, Camera& camera)
 	{
+		Device& device = m_pRenderContext->GetDevice();
 		Frame& frame = m_frames[m_frameIndex];
 		WaitForFrame(frame);
 		while (!frame.buffersToRelease.empty())
@@ -201,8 +207,8 @@ namespace Dune::Graphics
 		frame.srvHeap.Reset();
 		frame.samplerHeap.Reset();
 
-		m_pDevice->CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
-		frame.srvHeap.Allocate(m_srvHeap.GetCapacity());
+		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
+		frame.srvHeap.Allocate(kPersistentSRVCapacity);
 
 		ForwardGlobals globals;
 		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
@@ -220,18 +226,18 @@ namespace Dune::Graphics
 				{
 					if (m_lightBuffer.Get())
 						frame.buffersToRelease.push(m_lightBuffer);
-					m_lightBuffer.Initialize(m_pDevice,
+					m_lightBuffer.Initialize(device,
 						{
 							.debugName{ L"LightBuffer" },
 							.memory{ EBufferMemory::GPU },
 							.byteSize{ lightByteSize  },
 							.initialState{ EResourceState::Undefined }
 						});
-					m_pDevice->CreateSRV(m_lightsSRV, m_lightBuffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
-					m_pDevice->CopyDescriptors(1, m_lightsSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightsSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+					device.CreateSRV(m_lightsSRV, m_lightBuffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
+					device.CopyDescriptors(1, m_lightsSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightsSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 				}
 
-				uploadBuffer.Initialize(m_pDevice,
+				uploadBuffer.Initialize(device,
 					{
 						.debugName{ L"LightUploadBuffer" },
 						.memory{ EBufferMemory::CPU },
@@ -296,7 +302,7 @@ namespace Dune::Graphics
 								light.matrixIndex = matrixIndex++;
 								if (!shadowMap.Get())
 								{
-									shadowMap.Initialize(m_pDevice,
+									shadowMap.Initialize(device,
 										{
 											.debugName = L"DepthBuffer",
 											.usage = ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
@@ -313,7 +319,7 @@ namespace Dune::Graphics
 									m_barrier.Reset();
 								}
 
-								m_pDevice->CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT, .dimension = ESRVDimension::TextureCube });
+								device.CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT, .dimension = ESRVDimension::TextureCube });
 								light.shadowIndex = frame.srvHeap.GetIndex(srv);
 
 								dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), 1.0f, 0.1f, sceneLight.range) };
@@ -330,18 +336,18 @@ namespace Dune::Graphics
 
 								for (dU32 faceIndex = 0; faceIndex < 6; faceIndex++)
 								{
-									m_pDevice->CreateDSV(dsv, shadowMap, { .firstArraySlice = faceIndex, .arraySize = 1, .dimension = EDSVDimension::Texture2DArray });
+									device.CreateDSV(dsv, shadowMap, { .firstArraySlice = faceIndex, .arraySize = 1, .dimension = EDSVDimension::Texture2DArray });
 									frame.commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
 									frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 									DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrices[faceIndex] * projectionMatrix);
-									m_shadowPass.Render(scene, frame.commandList, lightMatrix);
+									m_shadowPass.Render(scene, m_pRenderContext->GetResourceManager(), frame.commandList, lightMatrix);
 								}
 								m_barrier.PushTransition(shadowMap.Get(), EResourceState::DepthStencil, EResourceState::ShaderResource);
 								frame.commandList.Transition(m_barrier);
 								m_barrier.Reset();
 								DirectX::XMStoreFloat4x4(&lightMatrix, projectionMatrix);
-							} 
-							else 
+							}
+							else
 							{
 								if (m_shadowMaps.size() <= shadowIndex)
 									m_shadowMaps.emplace_back();
@@ -352,7 +358,7 @@ namespace Dune::Graphics
 								light.matrixIndex = matrixIndex++;
 								if (!shadowMap.Get())
 								{
-									shadowMap.Initialize(m_pDevice,
+									shadowMap.Initialize(device,
 										{
 											.debugName = L"DepthBuffer",
 											.usage = ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
@@ -362,15 +368,15 @@ namespace Dune::Graphics
 											.initialState = EResourceState::DepthStencil
 										});
 								}
-								else 
+								else
 								{
 									m_barrier.PushTransition(shadowMap.Get(), EResourceState::ShaderResource, EResourceState::DepthStencil);
 									frame.commandList.Transition(m_barrier);
 									m_barrier.Reset();
 								}
 
-								m_pDevice->CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT });
-								m_pDevice->CreateDSV(dsv, shadowMap, {});
+								device.CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT });
+								device.CreateDSV(dsv, shadowMap, {});
 								frame.commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
 								frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 
@@ -399,7 +405,7 @@ namespace Dune::Graphics
 									break;
 								}
 
-								m_shadowPass.Render(scene, frame.commandList, lightMatrix);
+								m_shadowPass.Render(scene, m_pRenderContext->GetResourceManager(), frame.commandList, lightMatrix);
 								light.shadowIndex = frame.srvHeap.GetIndex(srv);
 								m_barrier.PushTransition(shadowMap.Get(), EResourceState::DepthStencil, EResourceState::ShaderResource);
 								frame.commandList.Transition(m_barrier);
@@ -421,19 +427,19 @@ namespace Dune::Graphics
 					{
 						if (m_lightMatricesBuffer.Get())
 							frame.buffersToRelease.push(m_lightMatricesBuffer);
-						m_lightMatricesBuffer.Initialize(m_pDevice,
+						m_lightMatricesBuffer.Initialize(device,
 							{
 								.debugName{ L"LightMatricesBuffer" },
 								.memory{ EBufferMemory::GPU },
 								.byteSize{ matricesByteSize  },
 								.initialState{ EResourceState::Undefined }
 							});
-						m_pDevice->CreateSRV(m_lightMatricesSRV, m_lightMatricesBuffer, { .elementCount = matrixIndex, .byteStride = sizeof(dMatrix4x4) });
-						m_pDevice->CopyDescriptors(1, m_lightMatricesSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightMatricesSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+						device.CreateSRV(m_lightMatricesSRV, m_lightMatricesBuffer, { .elementCount = matrixIndex, .byteStride = sizeof(dMatrix4x4) });
+						device.CopyDescriptors(1, m_lightMatricesSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightMatricesSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 					}
 
 					Buffer matricesUploadBuffer{};
-					matricesUploadBuffer.Initialize(m_pDevice,
+					matricesUploadBuffer.Initialize(device,
 						{
 							.debugName{ L"MatricesUploadBuffer" },
 							.memory{ EBufferMemory::CPU },
@@ -467,14 +473,12 @@ namespace Dune::Graphics
 		Scissor scissor{ 0, 0, m_pWindow->GetWidth(), m_pWindow->GetHeight() };
 		frame.commandList.SetViewports(1, &viewport);
 		frame.commandList.SetScissors(1, &scissor);
-		
+
 		frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-		m_depthPrepass.Render(scene, frame.commandList, globals.viewProjectionMatrix);
+		m_depthPrepass.Render(scene, m_pRenderContext->GetResourceManager(), frame.commandList, globals.viewProjectionMatrix);
 
 		frame.commandList.SetRenderTarget(&frame.hdrTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
-		m_forwardPass.Render(scene, frame.srvHeap, frame.commandList, globals);
-
-		Descriptor source = frame.srvHeap.Allocate(1);
+		m_forwardPass.Render(scene, *this, frame.commandList, globals);
 
 		m_barrier.PushTransition(frame.hdrTarget.Get(), EResourceState::RenderTarget, EResourceState::ShaderResource);
 		frame.commandList.Transition(m_barrier);
@@ -483,7 +487,7 @@ namespace Dune::Graphics
 		Descriptor hdrTargetSRV = frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(frame.hdrTargetSRV));
 		m_tonemappingPass.Render(*this, frame.commandList, hdrTargetSRV);
 
-		if (m_pImGui) 
+		if (m_pImGui)
 		{
 			frame.commandList.SetDescriptorHeaps(m_srvImGuiHeap);
 			m_pImGui->Render(frame.commandList);
@@ -498,6 +502,6 @@ namespace Dune::Graphics
 		m_swapchain.Present();
 		m_commandQueue.Signal(m_fence, ++m_frameCount);
 		frame.fenceValue = m_frameCount;
-		m_frameIndex = (m_frameIndex + 1) % 3;
+		m_frameIndex = (m_frameIndex + 1) % kFramesInFlight;
 	}
 }

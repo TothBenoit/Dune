@@ -58,6 +58,12 @@
     <ClInclude Include="include\Dune\Graphics\Renderer.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\ResourceManager.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RenderContext.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RHI\Device.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
@@ -78,6 +84,9 @@
     </ClInclude>
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\File.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\FileSystem.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Input.h">
@@ -110,7 +119,12 @@
     <ClInclude Include="include\Dune\Graphics\RHI\RootSignature.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderInterop.h" />
+    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderInterop.h">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dune\Graphics\Platform\WindowWin32.h">
+      <Filter>Dune\Graphics\Platform</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
@@ -128,16 +142,22 @@
     <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp">
       <Filter>Dune\Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Window.cpp">
+    <ClCompile Include="src\Dune\Graphics\Renderer.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Renderer.cpp">
+    <ClCompile Include="src\Dune\Graphics\ResourceManager.cpp">
+      <Filter>Dune\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RenderContext.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Scene\Camera.cpp">
       <Filter>Dune\Scene</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\File.cpp">
+      <Filter>Dune\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Core\FileSystem.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\Input.cpp">
@@ -167,6 +187,10 @@
     <ClCompile Include="src\Dune\Graphics\RenderPass\Tonemapping.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\Platform\WindowWin32.cpp">
+      <Filter>Dune\Graphics\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">
@@ -190,10 +214,16 @@
     <None Include="include\Dune\Graphics\Shaders\FullScreenTriangle.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\ColorUtils.hlsli" />
-    <None Include="include\Dune\Graphics\Shaders\LuminanceAverage.hlsl" />
-    <None Include="include\Dune\Graphics\Shaders\LuminanceHistogram.hlsl" />
     <None Include="packages.config" />
+    <None Include="include\Dune\Graphics\Shaders\LuminanceAverage.hlsl">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
+    <None Include="include\Dune\Graphics\Shaders\LuminanceHistogram.hlsl">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
+    <None Include="include\Dune\Graphics\Shaders\ColorUtils.hlsli">
+      <Filter>Dune\Graphics\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Dune">

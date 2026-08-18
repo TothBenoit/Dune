@@ -2,6 +2,7 @@
 #include "GraphicsDX12.h"
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RHI/Texture.h"
@@ -15,6 +16,9 @@
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
 #include "Dune/Utilities/Utils.h"
+#include "WindowWin32.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Dune::Graphics
 {
@@ -592,9 +596,9 @@ namespace Dune::Graphics
 		barrier = CD3DX12_RESOURCE_BARRIER::Transition(ToResource(pResource), ToResourceState(stateBefore), ToResourceState(stateAfter));
 	}
 
-	void CommandAllocator::Initialize(Device* pDeviceInterface, ECommandType type)
+	void CommandAllocator::Initialize(Device& device, ECommandType type)
 	{
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 		ID3D12CommandAllocator* pCommandAllocator{ nullptr };
 		ThrowIfFailed(pDevice->CreateCommandAllocator(ToCommandType(type), IID_PPV_ARGS(&pCommandAllocator)));
 		NameDXObject(pCommandAllocator, L"CommandAllocator");
@@ -611,9 +615,9 @@ namespace Dune::Graphics
 		ToCommandAllocator(Get())->Reset();
 	}
 
-	void CommandList::Initialize(Device* pDeviceInterface, ECommandType type, CommandAllocator& commandAllocator)
+	void CommandList::Initialize(Device& device, ECommandType type, CommandAllocator& commandAllocator)
 	{
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 		ID3D12GraphicsCommandList* pCommandList{ nullptr };
 		ThrowIfFailed(pDevice->CreateCommandList(0, ToCommandType(type), ToCommandAllocator(commandAllocator.Get()), nullptr, IID_PPV_ARGS(&pCommandList)));
 		NameDXObject(pCommandList, L"CommandList");
@@ -850,9 +854,9 @@ namespace Dune::Graphics
 		pCommandList->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
 	}
 
-	void CommandQueue::Initialize(Device* pDeviceInterface, ECommandType type)
+	void CommandQueue::Initialize(Device& device, ECommandType type)
 	{
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 
 		D3D12_COMMAND_QUEUE_DESC queueDesc
 		{
@@ -887,9 +891,9 @@ namespace Dune::Graphics
 		ToCommandQueue(Get())->Wait(ToFence(fence.Get()), value);
 	}
 
-	void Fence::Initialize(Device* pDeviceInterface, dU64 initialValue)
+	void Fence::Initialize(Device& device, dU64 initialValue)
 	{
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 		ID3D12Fence* pFence{ nullptr };
 		ThrowIfFailed(pDevice->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence)));
 		NameDXObject(pFence, L"Fence");
@@ -918,13 +922,13 @@ namespace Dune::Graphics
 		return { .cpuAddress = m_cpuAddress + offset, .gpuAddress = m_gpuAddress > 0 ? m_gpuAddress + offset : 0 };
 	}
 
-	void ScratchDescriptorHeap::Initialize(Device* pDeviceInterface, const DescriptorHeapDesc& desc)
+	void ScratchDescriptorHeap::Initialize(Device& device, const DescriptorHeapDesc& desc)
 	{
 		Assert(!Get());
 		Assert(desc.capacity != 0);
 		m_capacity = desc.capacity;
 
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 
 		D3D12_DESCRIPTOR_HEAP_FLAGS flags{};
 		flags = (desc.type == EDescriptorHeapType::RTV || desc.type == EDescriptorHeapType::DSV || !desc.isShaderVisible ) ? D3D12_DESCRIPTOR_HEAP_FLAG_NONE : D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -961,13 +965,13 @@ namespace Dune::Graphics
 		return { .cpuAddress = m_cpuAddress + offset, .gpuAddress = m_gpuAddress > 0 ? m_gpuAddress + offset : 0 };
 	}
 
-	void BlockDescriptorHeap::Initialize(Device* pDeviceInterface, const DescriptorHeapDesc& desc)
+	void BlockDescriptorHeap::Initialize(Device& device, const DescriptorHeapDesc& desc)
 	{
 		Assert(!Get());
 		Assert(desc.capacity != 0);
 		m_capacity = desc.capacity;
 
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 
 		D3D12_DESCRIPTOR_HEAP_FLAGS flags{};
 		flags = (desc.type == EDescriptorHeapType::RTV || desc.type == EDescriptorHeapType::DSV || !desc.isShaderVisible) ? D3D12_DESCRIPTOR_HEAP_FLAG_NONE : D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -1023,10 +1027,10 @@ namespace Dune::Graphics
 		m_freeSlots.push_back(slot);
 	}
 
-	void Swapchain::Initialize(Device* pDeviceInterface, Window* pWindow, CommandQueue* pCommandQueue, const SwapchainDesc& desc)
+	void Swapchain::Initialize(Device& device, Window* pWindow, CommandQueue* pCommandQueue, const SwapchainDesc& desc)
 	{
-		IDXGIFactory7* pFactory = ((DeviceInternal*)pDeviceInterface->GetInternal())->pFactory;
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		IDXGIFactory7* pFactory = ((DeviceInternal*)device.GetInternal())->pFactory;
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 
 		m_latency = desc.latency;
 
@@ -1134,7 +1138,7 @@ namespace Dune::Graphics
 		return ToSwapchain(Get())->GetCurrentBackBufferIndex();
 	}
 
-	void Buffer::Initialize(Device* pDeviceInterface, const BufferDesc& desc)
+	void Buffer::Initialize(Device& device, const BufferDesc& desc)
 	{
 		m_byteSize = desc.byteSize;
 
@@ -1161,7 +1165,7 @@ namespace Dune::Graphics
 			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
 		ID3D12Resource* pResource;
-		ThrowIfFailed(ToDevice(pDeviceInterface->Get())->CreateCommittedResource(
+		ThrowIfFailed(ToDevice(device.Get())->CreateCommittedResource(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
@@ -1191,11 +1195,11 @@ namespace Dune::Graphics
 		ToResource(Get())->Unmap(0, &readRange);
 	}
 
-	void Texture::Initialize(Device* pDeviceInterface, const TextureDesc& desc)
+	void Texture::Initialize(Device& device, const TextureDesc& desc)
 	{
 		m_desc = desc;
 		
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 		D3D12_CLEAR_VALUE clearValue{};
 		D3D12_CLEAR_VALUE* pClearValue{ nullptr };
 
@@ -1299,7 +1303,6 @@ namespace Dune::Graphics
 
 		Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };
 
-
 		const DxcBuffer sourceBuffer
 		{
 			.Ptr = pSourceBlob->GetBufferPointer(),
@@ -1344,7 +1347,7 @@ namespace Dune::Graphics
 		}
 	}
 
-	D3D12_STATIC_SAMPLER_DESC AddStaticSampler( dU32 slot, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE wrap, D3D12_COMPARISON_FUNC comp = D3D12_COMPARISON_FUNC_ALWAYS)
+	D3D12_STATIC_SAMPLER_DESC AddStaticSampler(dU32 slot, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE wrap, D3D12_COMPARISON_FUNC comp = D3D12_COMPARISON_FUNC_ALWAYS)
 	{
 		D3D12_STATIC_SAMPLER_DESC desc;
 		desc.AddressU = wrap;
@@ -1364,7 +1367,7 @@ namespace Dune::Graphics
 		return desc;
 	}
 
-	void RootSignature::Initialize(Device* pDeviceInterface, const RootSignatureDesc& desc)
+	void RootSignature::Initialize(Device& device, const RootSignatureDesc& desc)
 	{
 		D3D12_ROOT_SIGNATURE_FLAGS flags
 		{
@@ -1523,7 +1526,7 @@ namespace Dune::Graphics
 			Assert(0);
 		}
 		ID3D12RootSignature* pRootSignature{ nullptr };
-		ThrowIfFailed(ToDevice(pDeviceInterface->Get())->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
+		ThrowIfFailed(ToDevice(device.Get())->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&pRootSignature)));
 		m_pResource = pRootSignature;
 	}
 	
@@ -1560,11 +1563,10 @@ namespace Dune::Graphics
 		return D3D12_COMPARISON_FUNC_NONE;
 	}
 
-	void PipelineState::Initialize(Device* pDeviceInterface, const GraphicsPipelineDesc& desc)
+	void PipelineState::Initialize(Device& device, const GraphicsPipelineDesc& desc)
 	{
-		Assert(pDeviceInterface);
 		Assert(desc.pVertexShader);
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 
 		ID3D12RootSignature* pRootSignature{ ToRootSignature(desc.pRootSignature->Get()) };
 
@@ -1611,10 +1613,9 @@ namespace Dune::Graphics
 		m_pResource = pPipelineState;
 	}
 
-	void PipelineState::Initialize(Device* pDeviceInterface, const ComputePipelineDesc& desc)
+	void PipelineState::Initialize(Device& device, const ComputePipelineDesc& desc)
 	{
-		Assert(pDeviceInterface);
-		ID3D12Device* pDevice{ ToDevice(pDeviceInterface->Get()) };
+		ID3D12Device* pDevice{ ToDevice(device.Get()) };
 		ID3D12RootSignature* pRootSignature{ ToRootSignature(desc.pRootSignature->Get()) };
 		IDxcBlob* pCSBlob{ (IDxcBlob*)desc.pComputeShader->Get() };
 
@@ -1633,13 +1634,22 @@ namespace Dune::Graphics
 		ToResource(Get())->Release();
 	}
 
-	void ImGuiWrapper::Initialize(Window& window, Renderer& renderer) 
+	static bool ImGuiWindowHook(void* pData, void* pNativeEvent)
 	{
-		Assert(!window.m_pImGui && !renderer.m_pImGui);
+		ImGuiWrapper* pImGuiWrapper = (ImGuiWrapper*)pData;
+		const Win32NativeEvent& nativeEvent = *(const Win32NativeEvent*)pNativeEvent;
+		ImGuiWrapper::LockGuard guard = pImGuiWrapper->AcquireContext();
+		return ImGui_ImplWin32_WndProcHandler(nativeEvent.hwnd, nativeEvent.uMsg, nativeEvent.wParam, nativeEvent.lParam) != 0;
+	}
+
+	void ImGuiWrapper::Initialize(Window& window, Renderer& renderer, dU32 priority)
+	{
+		Assert(!renderer.m_pImGui);
 		Assert(!m_pContext);
-		window.m_pImGui = renderer.m_pImGui = this;
+		renderer.m_pImGui = this;
 		m_pRenderer = &renderer;
 		m_pWindow = &window;
+		m_hookHandle = window.RegisterHook(this, &ImGuiWindowHook, priority);
 		Lock();
 		IMGUI_CHECKVERSION();
 		m_pContext = ImGui::CreateContext();
@@ -1648,7 +1658,7 @@ namespace Dune::Graphics
 		ImGui_ImplWin32_Init(window.GetHandle());
 
 		ImGui_ImplDX12_InitInfo init_info = {};
-		init_info.Device = ToDevice(renderer.m_pDevice->Get());
+		init_info.Device = ToDevice(renderer.GetRenderContext()->GetDevice().Get());
 		init_info.CommandQueue = ToCommandQueue(renderer.m_commandQueue.Get());;
 		init_info.NumFramesInFlight = _countof(renderer.m_frames);
 		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -1702,7 +1712,8 @@ namespace Dune::Graphics
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
 		Unlock();
-		m_pWindow->m_pImGui = m_pRenderer->m_pImGui = nullptr;
+		m_pWindow->UnregisterHook(m_hookHandle);
+		m_pRenderer->m_pImGui = nullptr;
 		m_pContext = nullptr;
 		m_pRenderer = nullptr;
 		m_pWindow = nullptr;

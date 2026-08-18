@@ -5,23 +5,23 @@
 
 namespace Dune
 {
-	struct Scene;
+	class Scene;
 
 	namespace Graphics
 	{
 		class CommandList;
+		class ResourceManager;
 		class Shadow
 		{
 		public:
-			void Initialize(Device* pDevice);
+			void Initialize(Device& device);
 			void Destroy();
 
-			void Render(Scene& scene, CommandList& commandList, const dMatrix4x4& viewProjection);
+			void Render(Scene& scene, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection);
 
 		private:
 			RootSignature m_shadowRS;
 			PipelineState m_shadowPSO;
-			Device* m_pDevice{ nullptr };
 		};
 	}
 }

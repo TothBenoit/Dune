@@ -33,7 +33,7 @@ namespace Dune::Graphics
 	class Buffer : public Resource
 	{
 	public:
-		void Initialize(Device* pDeviceInterface, const BufferDesc& desc);
+		void Initialize(Device& device, const BufferDesc& desc);
 		void Destroy();
 
 		[[nodiscard]] inline dU32 GetByteSize() const { return m_byteSize; }

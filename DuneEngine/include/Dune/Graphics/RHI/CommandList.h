@@ -4,7 +4,7 @@
 
 namespace Dune::Graphics
 {
-    class DescriptorHeap;
+	class DescriptorHeap;
 	struct Descriptor;
 	class RootSignature;
 	class PipelineState;
@@ -25,7 +25,7 @@ namespace Dune::Graphics
 	class CommandAllocator : public Resource
 	{
 	public:
-		void Initialize(Device* pDevice, ECommandType type);
+		void Initialize(Device& device, ECommandType type);
 		void Destroy();
 
 		void Reset();
@@ -57,12 +57,12 @@ namespace Dune::Graphics
 	class CommandList : public Resource
 	{
 	public:
-		void Initialize(Device* pDevice, ECommandType type, CommandAllocator& CommandAllocator);
+		void Initialize(Device& device, ECommandType type, CommandAllocator& CommandAllocator);
 		void Destroy();
 
-        void Reset(CommandAllocator& commandAllocator);
-        void Reset(CommandAllocator& commandAllocator, PipelineState& pipeline);
-        void Close();
+		void Reset(CommandAllocator& commandAllocator);
+		void Reset(CommandAllocator& commandAllocator, PipelineState& pipeline);
+		void Close();
 
 		void SetPrimitiveTopology(EPrimitiveTopology primitiveTopology);
 		void SetViewports(dU32 numViewport, Viewport* pViewports);
@@ -72,8 +72,8 @@ namespace Dune::Graphics
 		void UploadTexture(Texture& destTexture, Buffer& uploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 numSubresource, void* pSrcData);
 
 		void Transition(const Barrier& barrier);
-        void SetDescriptorHeaps(DescriptorHeap& srvHeap);
-        void SetDescriptorHeaps(DescriptorHeap& srvHeap, DescriptorHeap& samplerHeap);
+		void SetDescriptorHeaps(DescriptorHeap& srvHeap);
+		void SetDescriptorHeaps(DescriptorHeap& srvHeap, DescriptorHeap& samplerHeap);
 		void SetGraphicsRootSignature(RootSignature& rootSignature);
 		void SetComputeRootSignature(RootSignature& rootSignature);
 		void SetPipelineState(PipelineState& pipeline);
@@ -103,7 +103,7 @@ namespace Dune::Graphics
 	class CommandQueue : public Resource
 	{
 	public:
-		void Initialize(Device* pDevice, ECommandType type);
+		void Initialize(Device& device, ECommandType type);
 		void Destroy();
 
 		void ExecuteCommandLists(CommandList* commandLists, dU32 commandListCount);

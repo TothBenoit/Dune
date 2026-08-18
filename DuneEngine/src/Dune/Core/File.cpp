@@ -92,7 +92,7 @@ namespace Dune
 		LARGE_INTEGER size;
 		GetFileSizeEx(m_pFile, &size);
 		return size.QuadPart;
-;	}
+	}
 
 	bool File::Close()
 	{

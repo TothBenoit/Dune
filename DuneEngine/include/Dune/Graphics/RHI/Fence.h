@@ -9,7 +9,7 @@ namespace Dune::Graphics
 	class Fence : public Resource
 	{
 	public:
-		void Initialize(Device* pDevice, dU64 initialValue);
+		void Initialize(Device& device, dU64 initialValue);
 		void Destroy();
 
 		dU64 GetValue();

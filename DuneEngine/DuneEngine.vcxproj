@@ -31,16 +31,20 @@
     <ClInclude Include="include\Dune\Graphics\RHI\Shader.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Texture.h" />
     <ClInclude Include="include\Dune\Graphics\Renderer.h" />
+    <ClInclude Include="include\Dune\Graphics\ResourceManager.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderContext.h" />
     <ClInclude Include="include\Dune\Graphics\Shaders\ShaderInterop.h" />
     <ClInclude Include="include\Dune\Scene\Camera.h" />
     <ClInclude Include="include\Dune\Scene\Scene.h" />
     <ClInclude Include="include\Dune\Core\File.h" />
+    <ClInclude Include="include\Dune\Core\FileSystem.h" />
     <ClInclude Include="include\Dune\Utilities\SceneLoader.h" />
     <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\PipelineState.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\RootSignature.h" />
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h" />
+    <ClInclude Include="src\Dune\Graphics\Platform\WindowWin32.h" />
     <ClInclude Include="include\Dune\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
     <ClInclude Include="include\Dune\Graphics\Mesh.h" />
@@ -52,15 +56,19 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Swapchain.h" />
     <ClCompile Include="src\Dune\Core\File.cpp" />
+    <ClCompile Include="src\Dune\Core\FileSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Graphics\Window.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\DepthPrepass.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Forward.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Shadow.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Tonemapping.cpp" />
     <ClCompile Include="src\Dune\Graphics\RHI\ImGuiWrapper.cpp" />
-    <ClCompile Include="src\Dune\Graphics\Window.cpp" />
+    <ClCompile Include="src\Dune\Graphics\Platform\WindowWin32.cpp" />
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
+    <ClCompile Include="src\Dune\Graphics\ResourceManager.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderContext.cpp" />
     <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp" />
     <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp" />
     <ClCompile Include="src\Dune\Scene\Camera.cpp" />

@@ -1,12 +1,11 @@
 #include <Dune.h>
 #include <chrono>
 #include <Dune/Core/JobSystem.h>
-#include <Dune/Graphics/RHI/Texture.h>
-#include <Dune/Graphics/RHI/Device.h>
+#include <Dune/Core/FileSystem.h>
 #include <Dune/Graphics/RHI/ImGuiWrapper.h>
-#include <Dune/Graphics/Mesh.h>
 #include <Dune/Graphics/Shaders/ShaderInterop.h>
 #include <Dune/Graphics/Renderer.h>
+#include <Dune/Graphics/RenderContext.h>
 #include <Dune/Graphics/Window.h>
 #include <Dune/Utilities/SimpleCameraController.h>
 #include <Dune/Scene/Scene.h>
@@ -22,8 +21,8 @@ using namespace Dune;
 class App
 {
 public:
-	App(Graphics::Device* pDevice, Scene* pScene)
-		: m_pDevice{pDevice}
+	App(Graphics::RenderContext* pRenderContext, Scene* pScene)
+		: m_pRenderContext{pRenderContext}
 		, m_pScene{pScene}
 	{}
 
@@ -32,14 +31,14 @@ public:
 		m_camera.SetNear(1.0f);
 		m_camera.SetFar(50000.0f);
 		m_window.Initialize({});
-		m_window.SetOnResizeFunc(this, [](void* pData, dU32 width, dU32 height)
+		dU32 resizeEventHandle = m_window.RegisterEvent(this, [](void* pData, const Graphics::WindowMessage& msg)
 			{
 				App* pApp = (App*)pData;
-				pApp->m_renderer.OnResize(width, height);
-				pApp->m_camera.SetAspectRatio((float)width / height);
-			}
+				pApp->m_renderer.OnResize(msg.resize.width, msg.resize.height);
+				pApp->m_camera.SetAspectRatio((float)msg.resize.width / msg.resize.height);
+			}, Graphics::EWindowMessageType::Resize
 		);
-		m_renderer.Initialize(*m_pDevice, m_window);
+		m_renderer.Initialize(*m_pRenderContext, m_window);
 		m_imgui.Initialize(m_window, m_renderer);
 
 		auto lastFrameTimer = std::chrono::high_resolution_clock::now();
@@ -56,6 +55,7 @@ public:
 
 		m_imgui.Destroy();
 		m_renderer.Destroy();
+		m_window.UnregisterEvent(Graphics::EWindowMessageType::Resize, resizeEventHandle);
 		m_window.Destroy();
 	}
 
@@ -388,7 +388,7 @@ public:
 	}
 
 private:
-	Graphics::Device* m_pDevice;
+	Graphics::RenderContext* m_pRenderContext;
 	Scene* m_pScene;
 
 	Graphics::Window m_window{};
@@ -408,9 +408,9 @@ private:
 	ImGuizmo::OPERATION m_gizmoOperation{ ImGuizmo::ROTATE };
 };
 
-void Test(Graphics::Device* pDevice, Scene* pScene)
+void Test(Graphics::RenderContext* pRenderContext, Scene* pScene)
 {
-	App app{ pDevice, pScene };
+	App app{ pRenderContext, pScene };
 	app.Run();
 }
 
@@ -422,12 +422,14 @@ int main(int argc, char** argv)
 	
 	dU32 testCount{ 1 };
 	Job::Initialize(testCount);
-	Graphics::Device device{};
-	device.Initialize();
+	FileSystem::Initialize();
+	Graphics::RenderContext renderContext{};
+	renderContext.Initialize();
 
 	Scene scene{};
 	entt::registry& registry = scene.registry;
-	SceneLoader::Load(std::filesystem::current_path().string().append("\\Resources\\Sponza\\").c_str(), "Sponza.gltf", scene, device);
+	dString sponzaPath = std::filesystem::current_path().string().append("\\Resources\\Sponza\\Sponza.gltf");
+	SceneLoader::Load(sponzaPath.c_str(), scene, renderContext.GetResourceManager());
 
 	EntityID sun = registry.create();
 	Light& sunLight = registry.emplace<Light>(sun);
@@ -473,15 +475,11 @@ int main(int argc, char** argv)
 
 	Job::JobBuilder jobBuilder{};
 	for (dU32 i = 0 ; i < testCount; i++)
-		jobBuilder.DispatchJob<Job::Fence::None>([&]() { Test(&device, &scene); });
+		jobBuilder.DispatchJob<Job::Fence::None>([&]() { Test(&renderContext, &scene); });
 	Job::Wait();
 
-	for (Graphics::Texture& texture : scene.textures)
-		texture.Destroy();
-	for (Graphics::Mesh& mesh : scene.meshes)
-		mesh.Destroy();
-
-	device.Destroy();
+	renderContext.Destroy();
+	FileSystem::Shutdown();
 	Job::Shutdown();
 
 	return 0;

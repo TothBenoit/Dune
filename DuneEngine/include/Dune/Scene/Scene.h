@@ -2,15 +2,8 @@
 
 #include <EnTT/entt.hpp>
 
-namespace Dune 
+namespace Dune
 {
-	namespace Graphics
-	{
-		class Mesh;
-		class Texture;
-		struct MaterialData;
-	}
-
 	struct Transform
 	{
 		dVec3 position;
@@ -51,12 +44,17 @@ namespace Dune
 
 	using EntityID = entt::entity;
 
-	struct Scene
+	class Scene
 	{
-		entt::registry registry;
+	public:
+		Scene() = default;
 
-		dVector<Graphics::Mesh> meshes;
-		dVector<Graphics::Texture> textures;
-		dVector<Graphics::MaterialData> materials;
+		Scene(const Scene&) = delete;
+		Scene& operator=(const Scene&) = delete;
+		Scene(Scene&&) = delete;
+		Scene& operator=(Scene&&) = delete;
+
+	public:
+		entt::registry registry;
 	};
 }
