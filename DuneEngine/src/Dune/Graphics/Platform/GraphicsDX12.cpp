@@ -1400,7 +1400,7 @@ namespace Dune::Graphics
 		dU32 uavRegister[(dU32)EShaderVisibility::Count]{ 0 };
 		dU32 samplerRegister[(dU32)EShaderVisibility::Count]{ 0 };
 
-		// TODO : Specify visibility and flags
+		// TODO : Allow BindingSlot of visibility All to be registered after a Pixel or Vertex BindingSlot
 		for (const BindingSlot& slot : desc.layout)
 		{
 			dU32 bufferRegisterOffset;
