@@ -8,7 +8,7 @@ struct VS_INPUT
 {
 	float3 position : POSITION;
 	float3 normal : NORMAL;
-	float3 tangent : TANGENT;
+	float4 tangent : TANGENT;
 	float2 uv : UV;
 };
 
@@ -29,7 +29,7 @@ VSToPS VSMain(VS_INPUT input)
 	o.worldPosition = worldPosition.xyz;
 	o.position = mul(cGlobals.viewProjectionMatrix, worldPosition);
 	o.normal = normalize(mul((float3x3) cInstance.modelMatrix, input.normal));
-	o.tangent = float4(mul((float3x3) cInstance.modelMatrix, input.tangent), dot(input.tangent, input.tangent) > 0.5 ? 1. : -1.);
+	o.tangent = float4(mul((float3x3) cInstance.modelMatrix, input.tangent.xyz), input.tangent.w);
 	o.uv = input.uv;
 	return o;
 }

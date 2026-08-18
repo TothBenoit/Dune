@@ -12,7 +12,7 @@ namespace Dune::Graphics
 	{
 		dVec3 position;
 		dVec3 normal;
-		dVec3 tangent;
+		dVec4 tangent;
 		dVec2 uv;
 	};
 
