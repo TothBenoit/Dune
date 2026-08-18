@@ -163,12 +163,12 @@ namespace Dune::Graphics
 				const aiVector3D& normal = pMesh->mNormals[vertexIdx];
 				vertex.normal = { normal.x, normal.y, normal.z };
 
-				float tangentHandness;
+				float dotResult;
 				const aiVector3D& tangent = pMesh->mTangents[vertexIdx];
 				const aiVector3D& bitangent = pMesh->mBitangents[vertexIdx];
 				dVec computedBitangent = DirectX::XMVector3Cross({ normal.x, normal.y, normal.z }, { tangent.x, tangent.y, tangent.z });
-				DirectX::XMStoreFloat(&tangentHandness, DirectX::XMVector3Dot(computedBitangent, { bitangent.x, bitangent.y, bitangent.z, }));
-				vertex.tangent = { tangent.x, tangent.y, tangent.z, tangentHandness };
+				DirectX::XMStoreFloat(&dotResult, DirectX::XMVector3Dot(computedBitangent, { bitangent.x, bitangent.y, bitangent.z, }));
+				vertex.tangent = { tangent.x, tangent.y, tangent.z, dotResult > 0.0f ? 1.0f : -1.0f };
 
 				const aiVector3D& uv = pMesh->mTextureCoords[0][vertexIdx];
 				vertex.uv = { uv.x, uv.y };
