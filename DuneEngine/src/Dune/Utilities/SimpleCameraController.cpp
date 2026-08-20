@@ -70,20 +70,23 @@ namespace Dune
 		DirectX::XMVECTOR yQuat{ DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f }, m_rotation.y) };
 		DirectX::XMVECTOR quat{ DirectX::XMQuaternionMultiply(yQuat, xQuat) };
 
-		//Apply camera rotation to translation
-		DirectX::XMStoreFloat3(&translate,
-			DirectX::XMVector3Rotate(
-				DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&translate)),
-				quat
-			)
-		);
+		if (translate.x != 0.0f || translate.y != 0.0f || translate.z != 0.0f)
+		{
+			//Apply camera rotation to translation
+			DirectX::XMStoreFloat3(&translate,
+				DirectX::XMVector3Rotate(
+					DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&translate)),
+					quat
+				)
+			);
 
-		//Apply translation
-		const float speed = (input.GetKey(KeyCode::ShiftKey)) ? 750.f : 250.f;
-		const float velocity = speed * clampedDeltaTime;
-		m_camera.position.x += translate.x * velocity;
-		m_camera.position.y += translate.y * velocity;
-		m_camera.position.z += translate.z * velocity;
+			//Apply translation
+			const float speed = (input.GetKey(KeyCode::ShiftKey)) ? 750.f : 250.f;
+			const float velocity = speed * clampedDeltaTime;
+			m_camera.position.x += translate.x * velocity;
+			m_camera.position.y += translate.y * velocity;
+			m_camera.position.z += translate.z * velocity;
+		}
 
 		//Compute camera view matrix
 		DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&m_camera.position);
