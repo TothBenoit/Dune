@@ -186,7 +186,8 @@ namespace Dune::Graphics
 			}
 
 			Mesh mesh{};
-			mesh.Initialize(*m_pDevice, commandList, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Vertex));
+			Buffer& uploadBuffer = uploadBuffers.emplace_back();
+			mesh.Initialize(*m_pDevice, commandList, uploadBuffer, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Vertex));
 			meshSlots[meshIdx] = (dU32)m_meshes.size();
 			m_meshes.push_back(mesh);
 

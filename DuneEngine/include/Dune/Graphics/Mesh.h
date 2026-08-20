@@ -19,8 +19,8 @@ namespace Dune::Graphics
 	class Mesh
 	{
 	public:
-		void Initialize(Device& device, CommandList& commandList, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
-		void Initialize(Device& device, CommandList& commandList, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
+		void Initialize(Device& device, CommandList& commandList, Buffer& uploadBuffer, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
+		void Initialize(Device& device, CommandList& commandList, Buffer& uploadBuffer, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride);
 		void Destroy();
 
 		[[nodiscard]] Buffer&           GetIndexBuffer() { return m_indexBuffer; }
@@ -37,6 +37,5 @@ namespace Dune::Graphics
 		bool m_isIndex32bits{ 0 };
 		Buffer m_indexBuffer;
 		Buffer m_vertexBuffer;
-		Buffer m_uploadBuffer;
 	};
 }
