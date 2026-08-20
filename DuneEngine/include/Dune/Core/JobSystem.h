@@ -4,7 +4,7 @@
 
 namespace Dune::Job
 {
-	class CounterInstance;
+	struct CounterInstance;
 	class Counter;
 
 	void Initialize(dU32 workerCount);
@@ -29,11 +29,13 @@ namespace Dune::Job
 		Counter& operator--();
 		Counter& operator--(int);
 		Counter& operator+=(const Counter& other);
+		Counter  operator+(const Counter& other);
 
 		dU32 GetValue() const;
 
 	private:
-		friend void WaitForCounter_Fiber(const Counter&);
+		friend class JobBuilder;
+		friend void WaitForCounter(const Counter&);
 		friend CounterInstance;
 
 		CounterInstance* m_pCounterInstance;
@@ -58,8 +60,8 @@ namespace Dune::Job
 		void DispatchJobInternal(const std::function<void()>& job);
 
 	private:
-		Counter     m_counter;
-		Counter     m_fence;
+		Counter     m_accumulateCounter;
+		Counter     m_waitCounter;
 	};
 
 	template<Fence fenceType>
