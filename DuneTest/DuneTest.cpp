@@ -227,8 +227,8 @@ public:
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.range = 10.f;
 						light.direction = { 0.0f, 0.0f, 75.0f };
-						light.angle = -45.0f;
-						light.penumbra = 0.0f;
+						light.angle = 45.0f;
+						light.penumbra = 1.e-7f;
 						light.type = ELightType::Spot;
 						light.castShadow = true;
 						ImGui::CloseCurrentPopup();

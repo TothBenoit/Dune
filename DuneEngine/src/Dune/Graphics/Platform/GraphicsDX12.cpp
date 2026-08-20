@@ -444,12 +444,9 @@ namespace Dune::Graphics
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
 			break;
 		case ESRVDimension::TextureCube:
-			srvDesc.Texture2DArray.ArraySize = desc.arraySize;
-			srvDesc.Texture2DArray.FirstArraySlice = desc.firstArraySlice;
-			srvDesc.Texture2DArray.MipLevels = desc.mipLevels;
-			srvDesc.Texture2DArray.MostDetailedMip = desc.mipStart;
-			srvDesc.Texture2DArray.PlaneSlice = 0;
-			srvDesc.Texture2DArray.ResourceMinLODClamp = desc.mipBias;
+			srvDesc.TextureCube.MostDetailedMip = desc.mipStart;
+			srvDesc.TextureCube.MipLevels = desc.mipLevels;
+			srvDesc.TextureCube.ResourceMinLODClamp = desc.mipBias;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 			break;
 		case ESRVDimension::TextureCubeArray:

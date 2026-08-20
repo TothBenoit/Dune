@@ -275,11 +275,11 @@ namespace Dune::Graphics
 							light.flags |= fIsPoint;
 							break;
 						case ELightType::Spot:
-							light.intensity = sceneLight.intensity / (DirectX::XM_PI * 0.01f * 0.01f);
 							light.range = sceneLight.range;
 							light.position = sceneLight.position;
 							DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
 							light.angle = DirectX::XMScalarCos(DirectX::XMConvertToRadians(sceneLight.angle));
+							light.intensity = sceneLight.intensity / (2.0f * DirectX::XM_PI * (1.0f - light.angle));
 							light.penumbra = 1.0f / (DirectX::XMScalarCos(DirectX::XMConvertToRadians(sceneLight.angle * (1.0f - sceneLight.penumbra))) - light.angle);
 							light.flags |= fIsSpot;
 							break;
