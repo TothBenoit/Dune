@@ -227,7 +227,7 @@ public:
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.range = 10.f;
 						light.direction = { 0.0f, 0.0f, 75.0f };
-						light.angle = 45.0f;
+						light.angle = DirectX::XMConvertToRadians(45.0f);
 						light.penumbra = 1.e-7f;
 						light.type = ELightType::Spot;
 						light.castShadow = true;
@@ -295,7 +295,7 @@ public:
 							ImGui::DragFloat3("Position", &pLight->position.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f cm");
 							ImGui::ColorPicker3("Color", &pLight->color.x);
 							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.0f lm");
-							ImGui::DragFloat("Radius", &pLight->range, 0.5f, 0.0f, +FLT_MAX, "%.2f cm");
+							ImGui::DragFloat("Radius", &pLight->range, 0.5f, 1e-7f, +FLT_MAX, "%.2f cm");
 							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
 
 							dVec quatIdentity = DirectX::XMQuaternionIdentity();
@@ -348,9 +348,11 @@ public:
 							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
 							ImGui::ColorPicker3("Color", &pLight->color.x);
 							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.0f lm");
-							ImGui::DragFloat("Range", &pLight->range, 0.5f, 0.f, +FLT_MAX, "%.2f cm");
-							ImGui::DragFloat("Angle", &pLight->angle, 0.5f, 0, 180.f, "%.2f");
-							ImGui::DragFloat("Penumbra", &pLight->penumbra, 0.001f, 0.0000001f, 1.0f, "%.2f");
+							ImGui::DragFloat("Range", &pLight->range, 0.5f, 1e-7f, +FLT_MAX, "%.2f cm");
+							float angle = DirectX::XMConvertToDegrees(pLight->angle);
+							ImGui::DragFloat("Angle", &angle, 0.5f, 0, 180.f, "%.2f");
+							pLight->angle = DirectX::XMConvertToRadians(angle);
+							ImGui::DragFloat("Penumbra", &pLight->penumbra, 0.001f, 1e-7f, 1.0f, "%.2f");
 							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
 
 							dVec quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pLight->direction.x), DirectX::XMConvertToRadians(pLight->direction.y), DirectX::XMConvertToRadians(pLight->direction.z));
@@ -468,7 +470,7 @@ int main(int argc, char** argv)
 	spotLight.color = { 1.0f, 1.0f, 1.0f };
 	spotLight.range = 750.f;
 	spotLight.direction = { 0.0f, 0.0f, -45.0f};
-	spotLight.angle = 45.0f;
+	spotLight.angle = DirectX::XMConvertToRadians(45.0f);
 	spotLight.penumbra = 0.5f;
 	spotLight.type = ELightType::Spot;
 	spotLight.castShadow = true;
