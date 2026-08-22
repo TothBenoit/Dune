@@ -32,13 +32,14 @@ namespace Dune::Job
 		Counter  operator+(const Counter& other);
 
 		dU32 GetValue() const;
+		void Reset();
 
 	private:
 		friend class JobBuilder;
 		friend void WaitForCounter(const Counter&);
 		friend CounterInstance;
 
-		CounterInstance* m_pCounterInstance;
+		CounterInstance* m_pCounterInstance{ nullptr };
 	};
 
 	enum class Fence
