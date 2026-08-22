@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Dune/Core/File.h"
+#include "Dune/Core/Logger.h"
 #include <windows.h>
 
 namespace Dune
@@ -61,16 +62,30 @@ namespace Dune
 		return handle != INVALID_HANDLE_VALUE;
 	}
 
-	bool File::Read(void* pBuffer, dU32 byteSize)
+	bool File::Read(void* pBuffer, dU64 byteSize)
 	{
-		DWORD bytesRead = 0;
-		return ReadFile(m_pFile, pBuffer, byteSize, &bytesRead, NULL);
+		dU64 totalBytesRead = 0;
+		while (totalBytesRead < byteSize) {
+			DWORD bytesRead = 0;
+			dU64 bytesWanted = byteSize - totalBytesRead;
+			if (!ReadFile(m_pFile, reinterpret_cast<dU8*>(pBuffer) + totalBytesRead, bytesWanted > 0xFFFFFFFF ? 0xFFFFFFFF : (dU32)bytesWanted, &bytesRead, NULL))
+				return false;
+			totalBytesRead += bytesRead;
+		}
+		return true;
 	}
 
-	bool File::Write(void* pData, dU32 byteSize)
+	bool File::Write(void* pData, dU64 byteSize)
 	{
-		DWORD byteWritten = 0;
-		return WriteFile(m_pFile, pData, byteSize, &byteWritten, NULL);
+		dU64 totalBytesWritten = 0;
+		while (totalBytesWritten < byteSize) {
+			DWORD byteWritten = 0;
+			dU64 bytesWanted = byteSize - totalBytesWritten;
+			if (!WriteFile(m_pFile, reinterpret_cast<dU8*>(pData) + totalBytesWritten, bytesWanted > 0xFFFFFFFF ? 0xFFFFFFFF : (dU32)bytesWanted, &byteWritten, NULL))
+				return false;
+			totalBytesWritten += byteWritten;
+		}
+		return true;
 	}
 
 	void File::Seek(dU64 byteSize, ESeekMode mode)

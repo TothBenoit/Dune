@@ -34,7 +34,7 @@ namespace Dune::Graphics
 		}
 
 		dU8* pFileBuffer = new dU8[byteSize];
-		if (!file.Read(reinterpret_cast<char*>(pFileBuffer), (dU32)byteSize))
+		if (!file.Read(reinterpret_cast<char*>(pFileBuffer), byteSize))
 		{
 			delete[] pFileBuffer;
 			file.Close();

@@ -28,8 +28,8 @@ namespace Dune
 		};
 
 		static bool Open(File& outFile, const char* filename, EAccessMode access, EShareMode share);
-		bool Read(void* pBuffer, dU32 byteSize);
-		bool Write(void* pData, dU32 byteSize);
+		bool Read(void* pBuffer, dU64 byteSize);
+		bool Write(void* pData, dU64 byteSize);
 		void Seek(dU64 bytesOffset, ESeekMode mode);
 		dU64 Tell();
 		dU64 GetByteSize();
