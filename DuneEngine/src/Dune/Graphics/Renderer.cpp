@@ -3,8 +3,8 @@
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
+#include "Dune/Graphics/RenderPass/Shadow.h"
 #include "Dune/Graphics/RenderContext.h"
-#include <Dune/Graphics/Shaders/ShaderInterop.h>
 #include "Dune/Scene/Scene.h"
 #include "Dune/Scene/Camera.h"
 #include <imgui/imgui_impl_win32.h>
@@ -87,11 +87,14 @@ namespace Dune::Graphics
 
 		m_forwardPass.Initialize(device);
 		m_depthPrepass.Initialize(device);
-		m_shadowPass.Initialize(device);
 		m_tonemappingPass.Initialize(*this);
 
 		m_lightsSRV = m_srvHeap.Allocate();
-		m_lightMatricesSRV = m_srvHeap.Allocate();
+		m_lightMatrices.srv = m_srvHeap.Allocate();
+
+		RegisterRenderPass<Shadow>();
+		RegisterSharedResource(EResourceTag::LightMatrices, &m_lightMatrices);
+		RegisterSharedResource(EResourceTag::ShadowMaps, &m_shadowMaps);
 	}
 
 	void Renderer::Destroy()
@@ -115,17 +118,19 @@ namespace Dune::Graphics
 		}
 		m_dsvHeap.Free(m_depthBufferDSV);
 		m_srvHeap.Free(m_lightsSRV);
-		m_srvHeap.Free(m_lightMatricesSRV);
+		m_srvHeap.Free(m_lightMatrices.srv);
 
-		for (Texture& shadow : m_shadowMaps)
+		for (Texture& shadow : m_shadowMaps.shadows)
 			shadow.Destroy();
-		for (Texture& shadow : m_cubeShadowMaps)
+		for (Texture& shadow : m_shadowMaps.cubeShadows)
 			shadow.Destroy();
 
 		m_forwardPass.Destroy();
 		m_depthPrepass.Destroy();
-		m_shadowPass.Destroy();
 		m_tonemappingPass.Destroy();
+
+		for (RenderPass& pass : m_passes)
+			pass.pShutdown(*this, pass.pData);
 
 		m_srvHeap.Destroy();
 		m_srvImGuiHeap.Destroy();
@@ -140,8 +145,62 @@ namespace Dune::Graphics
 		if (m_lightBuffer.Get())
 			m_lightBuffer.Destroy();
 
-		if (m_lightMatricesBuffer.Get())
-			m_lightMatricesBuffer.Destroy();
+		if (m_lightMatrices.buffer.Get())
+			m_lightMatrices.buffer.Destroy();
+	}
+
+	void FillLight(const Dune::Light& sceneLight, Light& light)
+	{
+		light.color = sceneLight.color;
+		switch (sceneLight.type)
+		{
+		case ELightType::Directional:
+			light.intensity = sceneLight.intensity;
+			DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
+			break;
+		case ELightType::Point:
+		{
+			float lightSolidAngle = 4.0f * DirectX::XM_PI;
+			float candelaIntensity = sceneLight.intensity / lightSolidAngle;
+			light.intensity = candelaIntensity / (0.01f * 0.01f);
+		}
+		light.range = sceneLight.range;
+		light.position = sceneLight.position;
+		light.flags |= fIsPoint;
+		break;
+		case ELightType::Spot:
+			light.range = sceneLight.range;
+			light.position = sceneLight.position;
+			DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
+			light.angle = DirectX::XMScalarCos(sceneLight.angle);
+			{
+				float lightSolidAngle = 2.0f * DirectX::XM_PI * (1.0f - light.angle);
+				float candelaIntensity = sceneLight.intensity / lightSolidAngle;
+				light.intensity = candelaIntensity / (0.01f * 0.01f);
+			}
+			light.penumbra = 1.0f / (DirectX::XMScalarCos(sceneLight.angle * (1.0f - sceneLight.penumbra)) - light.angle);
+			light.flags |= fIsSpot;
+			break;
+		}
+		if ( sceneLight.castShadow )
+			light.flags |= fCastShadow;
+	}
+
+	void Renderer::GatherFrameData(Scene& scene)
+	{
+		m_frameData.lights.allActive.clear();
+		m_frameData.lights.shadowCasters.clear();
+
+		scene.registry.view<const Dune::Light>().each([&](const Dune::Light& sceneLight)
+			{
+				if (sceneLight.intensity <= 0.0f)
+					return;
+				Light light{};
+				FillLight(sceneLight, light);
+				m_frameData.lights.allActive.push_back(light);
+				if (sceneLight.castShadow)
+					m_frameData.lights.shadowCasters.push_back((dU32)m_frameData.lights.allActive.size()-1);
+			});
 	}
 
 	void Renderer::OnResize(dU32 width, dU32 height)
@@ -193,6 +252,8 @@ namespace Dune::Graphics
 
 	void Renderer::Render(Scene& scene, Camera& camera)
 	{
+		GatherFrameData(scene);
+
 		Device& device = m_pRenderContext->GetDevice();
 		Frame& frame = m_frames[m_frameIndex];
 		WaitForFrame(frame);
@@ -207,266 +268,65 @@ namespace Dune::Graphics
 		frame.srvHeap.Reset();
 		frame.samplerHeap.Reset();
 
+		RenderPassContext context
+		{
+			.pRenderer = this,
+			.pFrame = &frame,
+			.pCommandList = &frame.commandList,
+			.pScene = &scene,
+			.pBarrier = &m_barrier,
+		};
+
 		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
 		frame.srvHeap.Allocate(kPersistentSRVCapacity);
+
+		// Render shadow, hardcoded for now since I didn't port other render pass
+		RenderPass& renderPass = m_passes[0];
+		renderPass.pExecute(context, renderPass.pData);
+
+		dVector<Light>& allLights = m_frameData.lights.allActive;
+		dU32 lightCount = (dU32)allLights.size();
+		if (lightCount > 0)
+		{
+			Buffer uploadBuffer{};
+			dU32 lightByteSize = (dU32)((lightCount) * sizeof(Light));
+			uploadBuffer.Initialize(device,
+				{
+					.debugName{ L"LightUploadBuffer" },
+					.memory{ EBufferMemory::CPU },
+					.byteSize{ lightByteSize },
+					.initialState{ EResourceState::Undefined }
+				});
+
+			void* pData{ nullptr };
+			uploadBuffer.Map(0, lightByteSize, &pData);
+			memcpy(pData, allLights.data(), sizeof(Light) * allLights.size());
+
+			if (m_lightBuffer.GetByteSize() < lightByteSize)
+			{
+				if (m_lightBuffer.Get())
+					frame.buffersToRelease.push(m_lightBuffer);
+				m_lightBuffer.Initialize(device,
+					{
+						.debugName{ L"LightBuffer" },
+						.memory{ EBufferMemory::GPU },
+						.byteSize{ lightByteSize  },
+						.initialState{ EResourceState::Undefined }
+					});
+				device.CreateSRV(m_lightsSRV, m_lightBuffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
+				device.CopyDescriptors(1, m_lightsSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightsSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			}
+			uploadBuffer.Unmap(0, lightByteSize);
+			frame.commandList.CopyBufferRegion(m_lightBuffer, 0, uploadBuffer, 0, lightByteSize);
+			frame.buffersToRelease.push(uploadBuffer);
+		}
 
 		ForwardGlobals globals;
 		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
 		globals.cameraPosition = camera.position;
-
-		const entt::registry& kRegistry = scene.registry;
-		{
-			Buffer uploadBuffer{};
-			auto view = kRegistry.view<const Dune::Light>();
-			dU32 lightCount = (dU32)view.size();
-			if (lightCount > 0)
-			{
-				dU32 lightByteSize = (dU32)((lightCount) * sizeof(Light));
-				if (m_lightBuffer.GetByteSize() < lightByteSize)
-				{
-					if (m_lightBuffer.Get())
-						frame.buffersToRelease.push(m_lightBuffer);
-					m_lightBuffer.Initialize(device,
-						{
-							.debugName{ L"LightBuffer" },
-							.memory{ EBufferMemory::GPU },
-							.byteSize{ lightByteSize  },
-							.initialState{ EResourceState::Undefined }
-						});
-					device.CreateSRV(m_lightsSRV, m_lightBuffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
-					device.CopyDescriptors(1, m_lightsSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightsSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
-				}
-
-				uploadBuffer.Initialize(device,
-					{
-						.debugName{ L"LightUploadBuffer" },
-						.memory{ EBufferMemory::CPU },
-						.byteSize{ lightByteSize  },
-						.initialState{ EResourceState::Undefined }
-					});
-				void* pData{ nullptr };
-				uploadBuffer.Map(0, lightByteSize, &pData);
-				dU32 count{ 0 };
-
-				Viewport viewport{ 0.0, 0.0, SHADOW_MAP_RESOLUTION_F, SHADOW_MAP_RESOLUTION_F, 0.0f, 1.0f };
-				Scissor scissor{ 0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION };
-				frame.commandList.SetViewports(1, &viewport);
-				frame.commandList.SetScissors(1, &scissor);
-
-				dU32 cubeShadowIndex{ 0 };
-				dU32 shadowIndex{ 0 };
-				dU32 matrixIndex{ 0 };
-				view.each([&](const Dune::Light& sceneLight)
-					{
-						if (sceneLight.intensity <= 0.0f)
-							return;
-						Light light{};
-						light.color = sceneLight.color;
-						switch (sceneLight.type)
-						{
-						case ELightType::Directional:
-							light.intensity = sceneLight.intensity;
-							DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
-							break;
-						case ELightType::Point:
-							{
-								float lightSolidAngle = 4.0f * DirectX::XM_PI;
-								float candelaIntensity = sceneLight.intensity / lightSolidAngle;
-								light.intensity = candelaIntensity / (0.01f * 0.01f);
-							}
-							light.range = sceneLight.range;
-							light.position = sceneLight.position;
-							light.flags |= fIsPoint;
-							break;
-						case ELightType::Spot:
-							light.range = sceneLight.range;
-							light.position = sceneLight.position;
-							DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
-							light.angle = DirectX::XMScalarCos(sceneLight.angle);
-							{
-								float lightSolidAngle = 2.0f * DirectX::XM_PI * (1.0f - light.angle);
-								float candelaIntensity = sceneLight.intensity / lightSolidAngle;
-								light.intensity = candelaIntensity / (0.01f * 0.01f);
-							}
-							light.penumbra = 1.0f / (DirectX::XMScalarCos(sceneLight.angle * (1.0f - sceneLight.penumbra)) - light.angle);
-							light.flags |= fIsSpot;
-							break;
-						}
-
-						if (sceneLight.castShadow)
-						{
-							light.flags |= fCastShadow;
-							Descriptor dsv = m_dsvHeap.Allocate();
-							Descriptor srv = frame.srvHeap.Allocate(1);
-
-							if (sceneLight.type == ELightType::Point)
-							{
-								if (m_cubeShadowMaps.size() <= cubeShadowIndex)
-									m_cubeShadowMaps.emplace_back();
-								if ( m_lightMatrices.size() <= matrixIndex)
-									m_lightMatrices.emplace_back();
-								Texture& shadowMap = m_cubeShadowMaps[cubeShadowIndex++];
-								dMatrix4x4& lightMatrix = m_lightMatrices[matrixIndex];
-								light.matrixIndex = matrixIndex++;
-								if (!shadowMap.Get())
-								{
-									shadowMap.Initialize(device,
-										{
-											.debugName = L"DepthBuffer",
-											.usage = ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
-											.dimensions = {SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6},
-											.format = EFormat::D32_FLOAT,
-											.clearValue = {1.f, 1.f, 1.f, 1.f},
-											.initialState = EResourceState::DepthStencil
-										});
-								}
-								else
-								{
-									m_barrier.PushTransition(shadowMap.Get(), EResourceState::ShaderResource, EResourceState::DepthStencil);
-									frame.commandList.Transition(m_barrier);
-									m_barrier.Reset();
-								}
-
-								device.CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT, .dimension = ESRVDimension::TextureCube });
-								light.shadowIndex = frame.srvHeap.GetIndex(srv);
-
-								dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), 1.0f, 0.1f, sceneLight.range) };
-								dVec eye{ sceneLight.position.x, sceneLight.position.y, sceneLight.position.z };
-								dMatrix viewMatrices[]
-								{
-									DirectX::XMMatrixLookToLH(eye, {  1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
-									DirectX::XMMatrixLookToLH(eye, { -1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
-									DirectX::XMMatrixLookToLH(eye, {  0.0f,  1.0f,  0.0f }, { 0.0f, 0.0f, -1.0f }),
-									DirectX::XMMatrixLookToLH(eye, {  0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f,  1.0f }),
-									DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f,  1.0f }, { 0.0f, 1.0f,  0.0f }),
-									DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f, -1.0f }, { 0.0f, 1.0f,  0.0f }),
-								};
-
-								for (dU32 faceIndex = 0; faceIndex < 6; faceIndex++)
-								{
-									device.CreateDSV(dsv, shadowMap, { .firstArraySlice = faceIndex, .arraySize = 1, .dimension = EDSVDimension::Texture2DArray });
-									frame.commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
-									frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-									DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrices[faceIndex] * projectionMatrix);
-									m_shadowPass.Render(scene, m_pRenderContext->GetResourceManager(), frame.commandList, lightMatrix);
-								}
-								m_barrier.PushTransition(shadowMap.Get(), EResourceState::DepthStencil, EResourceState::ShaderResource);
-								frame.commandList.Transition(m_barrier);
-								m_barrier.Reset();
-								DirectX::XMStoreFloat4x4(&lightMatrix, projectionMatrix);
-							}
-							else
-							{
-								if (m_shadowMaps.size() <= shadowIndex)
-									m_shadowMaps.emplace_back();
-								if ( m_lightMatrices.size() <= matrixIndex)
-									m_lightMatrices.emplace_back();
-								Texture& shadowMap = m_shadowMaps[shadowIndex++];
-								dMatrix4x4& lightMatrix = m_lightMatrices[matrixIndex];
-								light.matrixIndex = matrixIndex++;
-								if (!shadowMap.Get())
-								{
-									shadowMap.Initialize(device,
-										{
-											.debugName = L"DepthBuffer",
-											.usage = ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
-											.dimensions = {SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 1},
-											.format = EFormat::D32_FLOAT,
-											.clearValue = {1.f, 1.f, 1.f, 1.f},
-											.initialState = EResourceState::DepthStencil
-										});
-								}
-								else
-								{
-									m_barrier.PushTransition(shadowMap.Get(), EResourceState::ShaderResource, EResourceState::DepthStencil);
-									frame.commandList.Transition(m_barrier);
-									m_barrier.Reset();
-								}
-
-								device.CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT });
-								device.CreateDSV(dsv, shadowMap, {});
-								frame.commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
-								frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-
-								dVec up{ 0.f, 1.f, 0.f, 0.f };
-								dVec to{ DirectX::XMLoadFloat3(&light.direction) };
-								dVec axis = DirectX::XMVector3Cross(up, to);
-								if (DirectX::XMVector3Equal(axis, { 0.0f, 0.0f, 0.0f }))
-									up = { 0.f, 0.f, 1.f, 0.f };
-
-								switch (sceneLight.type)
-								{
-								case ELightType::Directional:
-								{
-									float shadowWidth{ 4500.f }; // Hardcoded for sponza
-									dVec eye{ 0.f, 0.f, 0.f };
-									dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
-									dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(shadowWidth, shadowWidth, -shadowWidth, shadowWidth) };
-									DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix * projectionMatrix);
-									break;
-								}
-								case ELightType::Spot:
-									dVec eye{ sceneLight.position.x, sceneLight.position.y, sceneLight.position.z };
-									dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
-									dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(sceneLight.angle * 2.0f, 1.0f, 0.1f, sceneLight.range) };
-									DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix * projectionMatrix);
-									break;
-								}
-
-								m_shadowPass.Render(scene, m_pRenderContext->GetResourceManager(), frame.commandList, lightMatrix);
-								light.shadowIndex = frame.srvHeap.GetIndex(srv);
-								m_barrier.PushTransition(shadowMap.Get(), EResourceState::DepthStencil, EResourceState::ShaderResource);
-								frame.commandList.Transition(m_barrier);
-								m_barrier.Reset();
-							}
-							m_dsvHeap.Free(dsv);
-						}
-						memcpy((Light*)pData + count++, &light, sizeof(Light));
-					}
-				);
-				uploadBuffer.Unmap(0, lightByteSize);
-				frame.commandList.CopyBufferRegion(m_lightBuffer, 0, uploadBuffer, 0, lightByteSize);
-				frame.buffersToRelease.push(uploadBuffer);
-
-				if (matrixIndex > 0)
-				{
-					dU32 matricesByteSize = (dU32)((matrixIndex) * sizeof(dMatrix4x4));
-					if (m_lightMatricesBuffer.GetByteSize() < matricesByteSize)
-					{
-						if (m_lightMatricesBuffer.Get())
-							frame.buffersToRelease.push(m_lightMatricesBuffer);
-						m_lightMatricesBuffer.Initialize(device,
-							{
-								.debugName{ L"LightMatricesBuffer" },
-								.memory{ EBufferMemory::GPU },
-								.byteSize{ matricesByteSize  },
-								.initialState{ EResourceState::Undefined }
-							});
-						device.CreateSRV(m_lightMatricesSRV, m_lightMatricesBuffer, { .elementCount = matrixIndex, .byteStride = sizeof(dMatrix4x4) });
-						device.CopyDescriptors(1, m_lightMatricesSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightMatricesSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
-					}
-
-					Buffer matricesUploadBuffer{};
-					matricesUploadBuffer.Initialize(device,
-						{
-							.debugName{ L"MatricesUploadBuffer" },
-							.memory{ EBufferMemory::CPU },
-							.byteSize{ matricesByteSize  },
-							.initialState{ EResourceState::Undefined }
-						});
-					void* pMatricesData{ nullptr };
-					matricesUploadBuffer.Map(0, matricesByteSize, &pMatricesData);
-					memcpy(pMatricesData, m_lightMatrices.data(), matricesByteSize);
-					matricesUploadBuffer.Unmap(0, matricesByteSize);
-					frame.commandList.CopyBufferRegion(m_lightMatricesBuffer, 0, matricesUploadBuffer, 0, matricesByteSize);
-					frame.buffersToRelease.push(matricesUploadBuffer);
-					m_barrier.PushTransition(m_lightMatricesBuffer.Get(), EResourceState::CopyDest, EResourceState::ShaderResource);
-				}
-			}
-			globals.lightCount = lightCount;
-			globals.lightBufferIndex = m_srvHeap.GetIndex(m_lightsSRV);
-			globals.lightMatricesIndex = m_srvHeap.GetIndex(m_lightMatricesSRV);
-		}
+		globals.lightCount = lightCount;
+		globals.lightBufferIndex = m_srvHeap.GetIndex(m_lightsSRV);
+		globals.lightMatricesIndex = m_srvHeap.GetIndex(m_lightMatrices.srv);
 
 		m_barrier.PushTransition(m_swapchain.GetBackBuffer(m_frameIndex).Get(), EResourceState::Present, EResourceState::RenderTarget);
 		m_barrier.PushTransition(frame.hdrTarget.Get(), EResourceState::ShaderResource, EResourceState::RenderTarget);
@@ -511,5 +371,13 @@ namespace Dune::Graphics
 		m_commandQueue.Signal(m_fence, ++m_frameCount);
 		frame.fenceValue = m_frameCount;
 		m_frameIndex = (m_frameIndex + 1) % kFramesInFlight;
+	}
+	
+	void Renderer::RegisterSharedResource(EResourceTag id, void* pResource)
+	{
+		dU32 index = (dU32)id;
+		if (index >= m_sharedResources.size() )
+			m_sharedResources.resize(index+1);
+		m_sharedResources[index] = pResource;
 	}
 }

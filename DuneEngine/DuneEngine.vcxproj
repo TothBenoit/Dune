@@ -14,9 +14,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Dune.h" />
+    <ClInclude Include="include\Dune\Core\FileLoader.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Shadow.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Tonemapping.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Barrier.h" />
@@ -56,6 +58,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Swapchain.h" />
     <ClCompile Include="src\Dune\Core\File.cpp" />
+    <ClCompile Include="src\Dune\Core\FileLoader.cpp" />
     <ClCompile Include="src\Dune\Core\FileSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
