@@ -83,7 +83,8 @@ namespace Dune::Job
 		{
 			if (m_counter.fetch_sub(1) == 1) 
 			{
-				UpdateWaitingJobs(this);
+				if (m_hasWaitingJobs)
+					UpdateWaitingJobs(this);
 				m_waitingCountersLock.lock();
 				WaitingListEntry* pCurrentWaitingCounter = m_pWaitingCounters;
 				m_waitingCountersLock.unlock();
@@ -128,6 +129,7 @@ namespace Dune::Job
 		std::atomic<uint32_t> m_refCount{ 1 };
 		mutable WaitingListEntry* m_pWaitingCounters{ nullptr };
 		mutable SpinLock m_waitingCountersLock;
+		mutable bool m_hasWaitingJobs{ false };
 	};
 
 	struct FiberDecl
@@ -224,6 +226,7 @@ namespace Dune::Job
 
 	void WaitForCounter_Fiber(const CounterInstance* pCounter)
 	{
+		pCounter->m_hasWaitingJobs= true;
 		g_waitingFibersLock.lock();
 		g_waitingFibers[pCounter].push_back(g_pCurrentFiber);
 		g_waitingFibersLock.unlock();
