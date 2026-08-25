@@ -5,7 +5,6 @@
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
 #include "Dune/Graphics/RenderContext.h"
-#include "Dune/Scene/Scene.h"
 #include "Dune/Scene/Camera.h"
 #include <imgui/imgui_impl_win32.h>
 #include <imgui/imgui_impl_dx12.h>
@@ -190,17 +189,30 @@ namespace Dune::Graphics
 	{
 		m_frameData.lights.allActive.clear();
 		m_frameData.lights.shadowCasters.clear();
+		m_frameData.instances.clear();
 
 		scene.registry.view<const Dune::Light>().each([&](const Dune::Light& sceneLight)
-			{
-				if (sceneLight.intensity <= 0.0f)
-					return;
-				Light light{};
-				FillLight(sceneLight, light);
-				m_frameData.lights.allActive.push_back(light);
-				if (sceneLight.castShadow)
-					m_frameData.lights.shadowCasters.push_back((dU32)m_frameData.lights.allActive.size()-1);
-			});
+		{
+			if (sceneLight.intensity <= 0.0f)
+				return;
+			Light light{};
+			FillLight(sceneLight, light);
+			m_frameData.lights.allActive.push_back(light);
+			if (sceneLight.castShadow)
+				m_frameData.lights.shadowCasters.push_back((dU32)m_frameData.lights.allActive.size()-1);
+		});
+
+		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
+		{
+			RenderInstance instance;
+			DirectX::XMStoreFloat4x4(&instance.objectToWorld,
+				DirectX::XMMatrixScalingFromVector({ transform.scale, transform.scale, transform.scale }) *
+				DirectX::XMMatrixRotationQuaternion(transform.rotation) *
+				DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
+			);
+			instance.data = renderData;
+			m_frameData.instances.emplace_back(instance);
+		});
 	}
 
 	void Renderer::OnResize(dU32 width, dU32 height)
@@ -272,8 +284,8 @@ namespace Dune::Graphics
 		{
 			.pRenderer = this,
 			.pFrame = &frame,
+			.pFrameData = &m_frameData,
 			.pCommandList = &frame.commandList,
-			.pScene = &scene,
 			.pBarrier = &m_barrier,
 		};
 
@@ -343,10 +355,10 @@ namespace Dune::Graphics
 		frame.commandList.SetScissors(1, &scissor);
 
 		frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-		m_depthPrepass.Render(scene, m_pRenderContext->GetResourceManager(), frame.commandList, globals.viewProjectionMatrix);
+		m_depthPrepass.Render(m_frameData, m_pRenderContext->GetResourceManager(), frame.commandList, globals.viewProjectionMatrix);
 
 		frame.commandList.SetRenderTarget(&frame.hdrTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
-		m_forwardPass.Render(scene, *this, frame.commandList, globals);
+		m_forwardPass.Render(m_frameData, *this, frame.commandList, globals);
 
 		m_barrier.PushTransition(frame.hdrTarget.Get(), EResourceState::RenderTarget, EResourceState::ShaderResource);
 		frame.commandList.Transition(m_barrier);

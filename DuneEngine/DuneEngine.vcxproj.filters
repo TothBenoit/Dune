@@ -125,8 +125,12 @@
     <ClInclude Include="src\Dune\Graphics\Platform\WindowWin32.h">
       <Filter>Dune\Graphics\Platform</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\FileLoader.h" />
-    <ClInclude Include="include\Dune\Graphics\RenderPass.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\FileLoader.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
@@ -192,8 +196,12 @@
     <ClCompile Include="src\Dune\Graphics\Platform\WindowWin32.cpp">
       <Filter>Dune\Graphics\Platform</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Window.cpp" />
-    <ClCompile Include="src\Dune\Core\FileLoader.cpp" />
+    <ClCompile Include="src\Dune\Core\FileLoader.cpp">
+      <Filter>Dune\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\Window.cpp">
+      <Filter>Dune\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">

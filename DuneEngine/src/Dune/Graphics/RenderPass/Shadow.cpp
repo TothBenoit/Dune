@@ -78,7 +78,6 @@ namespace Dune::Graphics
 	{
 		Renderer& renderer = *context.pRenderer;
 		CommandList& commandList = *context.pCommandList;
-		Scene& scene = *context.pScene;
 		ResourceManager& resourceManager = renderer.GetRenderContext()->GetResourceManager();
 
 		commandList.SetGraphicsRootSignature(pData->shadowRS);
@@ -86,30 +85,24 @@ namespace Dune::Graphics
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));
 
-		const entt::registry& kRegistry = scene.registry;
-		kRegistry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
-			{
-				InstanceData instance;
-				DirectX::XMStoreFloat4x4(&instance.modelMatrix,
-					DirectX::XMMatrixScalingFromVector({ transform.scale, transform.scale, transform.scale }) *
-					DirectX::XMMatrixRotationQuaternion(transform.rotation) *
-					DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
-				);
-
-				commandList.PushGraphicsConstants(1, &instance.modelMatrix, sizeof(InstanceData));
-				Mesh& mesh = resourceManager.GetMesh(renderData.meshIdx);
-				commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
-				commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
-				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
-			});
+		for( const RenderInstance& instance : context.pFrameData->instances)
+		{
+			InstanceData data;
+			data.objectToWorld = instance.objectToWorld;
+			commandList.PushGraphicsConstants(1, &instance, sizeof(InstanceData));
+			Mesh& mesh = resourceManager.GetMesh(instance.data.meshIdx);
+			commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
+			commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
+			commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
+		};
 	}
 
 	void Shadow::Execute(RenderPassContext& context, ShadowData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
 		CommandList& commandList = *context.pCommandList;
-		Scene& scene = *context.pScene;
 		Frame& frame = *context.pFrame;
+		FrameData& frameData = *context.pFrameData;
 		Device& device = renderer.GetRenderContext()->GetDevice();
 		ResourceManager& resourceManager = renderer.GetRenderContext()->GetResourceManager();
 		BlockDescriptorHeap& srvHeap = renderer.GetSRVHeap();
@@ -120,8 +113,8 @@ namespace Dune::Graphics
 		ShadowMaps& shadowMaps = *(ShadowMaps*)renderer.GetSharedResource(EResourceTag::ShadowMaps);
 
 		{
-			dVector<dU32>& shadowCasters = renderer.GetShadowCastingLightsIndex();
-			dVector<Light>& lights = renderer.GetLights();
+			dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
+			dVector<Light>& lights = frameData.lights.allActive;
 			dU32 shadowCount = (dU32)shadowCasters.size();
 			if (shadowCount > 0)
 			{

@@ -25,11 +25,11 @@ VSToPS VSMain(VS_INPUT input)
 {
 	VSToPS o;
 	
-	float4 worldPosition = mul(cInstance.modelMatrix, float4(input.position, 1.0f));
+	float4 worldPosition = mul(cInstance.objectToWorld, float4(input.position, 1.0f));
 	o.worldPosition = worldPosition.xyz;
 	o.position = mul(cGlobals.viewProjectionMatrix, worldPosition);
-	o.normal = normalize(mul((float3x3) cInstance.modelMatrix, input.normal));
-	o.tangent = float4(mul((float3x3) cInstance.modelMatrix, input.tangent.xyz), input.tangent.w);
+	o.normal = normalize(mul((float3x3) cInstance.objectToWorld, input.normal));
+	o.tangent = float4(mul((float3x3) cInstance.objectToWorld, input.tangent.xyz), input.tangent.w);
 	o.uv = input.uv;
 	return o;
 }

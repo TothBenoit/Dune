@@ -69,7 +69,7 @@ struct ForwardGlobals
 
 struct InstanceData
 {
-	float4x4   modelMatrix;
+	float4x4   objectToWorld;
 };
 
 struct MaterialData

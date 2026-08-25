@@ -7,7 +7,7 @@
 #include "Dune/Graphics/Format.h"
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/ResourceManager.h"
-#include "Dune/Scene/Scene.h"
+#include "Dune/Graphics/Renderer.h"
 #include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
@@ -58,28 +58,23 @@ namespace Dune::Graphics
 		m_depthRS.Destroy();
 	}
 
-	void DepthPrepass::Render(Scene& scene, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection)
+	void DepthPrepass::Render(FrameData& frameData, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection)
 	{
 		commandList.SetGraphicsRootSignature(m_depthRS);
 		commandList.SetPipelineState(m_depthPSO);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));
 
-		const entt::registry& kRegistry = scene.registry;
-		kRegistry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
-			{
-				InstanceData instance;
-				DirectX::XMStoreFloat4x4(&instance.modelMatrix, 
-					DirectX::XMMatrixScalingFromVector({ transform.scale, transform.scale, transform.scale }) *
-					DirectX::XMMatrixRotationQuaternion(transform.rotation) *
-					DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
-				);
+		for( const RenderInstance& instance : frameData.instances )
+		{
+			InstanceData data;
+			data.objectToWorld = instance.objectToWorld;
 
-				commandList.PushGraphicsConstants(1, &instance.modelMatrix, sizeof(InstanceData));
-				Mesh& mesh = resourceManager.GetMesh(renderData.meshIdx);
-				commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
-				commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
-				commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
-			});
+			commandList.PushGraphicsConstants(1, &data.objectToWorld, sizeof(InstanceData));
+			Mesh& mesh = resourceManager.GetMesh(instance.data.meshIdx);
+			commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
+			commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
+			commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
+		}
 	}
 }

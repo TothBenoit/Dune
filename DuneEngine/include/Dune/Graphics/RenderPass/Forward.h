@@ -5,15 +5,11 @@
 
 namespace Dune
 {
-	class Scene;
-	struct Camera;
-
 	namespace Graphics
 	{
-		struct Descriptor;
+		struct FrameData;
 		struct ForwardGlobals;
 		class CommandList;
-		class Buffer;
 		class Renderer;
 
 		class Forward
@@ -22,7 +18,7 @@ namespace Dune
 			void Initialize(Device& device);
 			void Destroy();
 
-			void Render(Scene& scene, Renderer& renderer, CommandList& commandList, ForwardGlobals& globals);
+			void Render(FrameData& scene, Renderer& renderer, CommandList& commandList, ForwardGlobals& globals);
 
 		private:
 			RootSignature m_forwardRS;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Dune/Scene/Scene.h>
 #include <Dune/Graphics/RenderPass.h>
 #include <Dune/Graphics/RenderPass/Forward.h>
 #include <Dune/Graphics/RenderPass/DepthPrepass.h>
@@ -54,21 +55,29 @@ namespace Dune
 
 		struct FrameLights
 		{
-			dVector<Light>  allActive;
-			dVector<dU32> shadowCasters;
+			dVector<Light> allActive;
+			dVector<dU32>  shadowCasters;
+		};
+
+		struct RenderInstance
+		{
+			dMatrix4x4 objectToWorld;
+			RenderData data;
 		};
 
 		struct FrameData
 		{
 			FrameLights lights;
+			dVector<RenderInstance> instances;
 		};
 
 		struct RenderPassContext
 		{
 			Renderer* pRenderer;
+			Camera* pCamera;
 			Frame* pFrame;
+			FrameData* pFrameData;
 			CommandList* pCommandList;
-			Scene* pScene;
 			Barrier* pBarrier;
 		};
 
@@ -107,9 +116,6 @@ namespace Dune
 					.desc = T::GetDesc(),
 				});
 			}
-
-			[[nodiscard]] dVector<dU32>& GetShadowCastingLightsIndex() { return m_frameData.lights.shadowCasters; }
-			[[nodiscard]] dVector<Light>& GetLights() { return m_frameData.lights.allActive; }
 
 		private:
 			void GatherFrameData(Scene& scene);

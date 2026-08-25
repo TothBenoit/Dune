@@ -21,7 +21,7 @@ struct VS_OUTPUT
 VS_OUTPUT VSMain(VS_INPUT input)
 {
 	VS_OUTPUT o;
-	float4 wPos = mul(cModel.modelMatrix, float4(input.vPos, 1.0f));
+	float4 wPos = mul(cModel.objectToWorld, float4(input.vPos, 1.0f));
 	o.position = mul(cCamera.viewProjectionMatrix, wPos);
 	return o;
 }

@@ -9,6 +9,7 @@ namespace Dune
 
 	namespace Graphics
 	{
+		struct FrameData;
 		class CommandList;
 		class ResourceManager;
 		class DepthPrepass
@@ -17,7 +18,7 @@ namespace Dune
 			void Initialize(Device& device);
 			void Destroy();
 
-			void Render(Scene& scene, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection);
+			void Render(FrameData& frameData, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection);
 
 		private:
 			RootSignature m_depthRS;
