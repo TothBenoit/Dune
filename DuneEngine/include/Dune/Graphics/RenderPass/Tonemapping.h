@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Dune/Graphics/RenderPass.h"
 #include "Dune/Graphics/RHI/RootSignature.h"
 #include "Dune/Graphics/RHI/PipelineState.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
@@ -8,33 +9,34 @@
 namespace Dune::Graphics
 {
 	class Renderer;
-	class CommandList;
+	struct RenderPassContext;
+
+	struct TonemappingData
+	{
+		float minLogLuminance{ -5.0f };
+		float maxLogLuminance{ 24.0f };
+		float tau{ 1.0f };
+
+		RootSignature averageRS;
+		PipelineState averagePSO;
+		RootSignature histogramRS;
+		PipelineState histogramPSO;
+		Descriptor histogramUAV;
+		Buffer histogramBuffer;
+		Buffer luminanceBuffer;
+
+		RootSignature tonemapRS;
+		PipelineState tonemapPSO;
+	};
+
 	class Tonemapping
 	{
 	public:
-		void Initialize(Renderer& renderer);
-		void Destroy();
-
-		void Render(Renderer& renderer, CommandList& commandList, Descriptor& hdrTargetSRV);
-
+		static RenderPassDesc   GetDesc();
+		static TonemappingData* Create(Renderer& renderer);
+		static void             Execute(RenderPassContext& context, TonemappingData* pData);
+		static void             Destroy(Renderer& renderer, TonemappingData* pData);
 	private:
-		float m_minLogLuminance{ -5.0f };
-		float m_maxLogLuminance{ 24.0f };
-		float m_tau{ 1.0f };
-
-		RootSignature m_averageRS;
-		PipelineState m_averagePSO;
-		RootSignature m_histogramRS;
-		PipelineState m_histogramPSO;
-		Descriptor m_histogramUAV;
-		Buffer m_histogramBuffer;
-		Buffer m_luminanceBuffer;
-
-		RootSignature m_tonemapRS;
-		PipelineState m_tonemapPSO;
-
-		BlockDescriptorHeap m_heap;
-
-		Barrier m_barrier;
+		Tonemapping() = delete;
 	};
 }

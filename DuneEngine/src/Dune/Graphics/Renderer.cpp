@@ -86,14 +86,17 @@ namespace Dune::Graphics
 
 		m_forwardPass.Initialize(device);
 		m_depthPrepass.Initialize(device);
-		m_tonemappingPass.Initialize(*this);
 
 		m_lightsSRV = m_srvHeap.Allocate();
 		m_lightMatrices.srv = m_srvHeap.Allocate();
 
-		RegisterRenderPass<Shadow>();
 		RegisterSharedResource(EResourceTag::LightMatrices, &m_lightMatrices);
 		RegisterSharedResource(EResourceTag::ShadowMaps, &m_shadowMaps);
+		RegisterRenderPass<Shadow>();
+		Frame& currrentFrame = GetCurrentFrame();
+		RegisterSharedResource(EResourceTag::HDRTarget, &currrentFrame.hdrTarget);
+		RegisterSharedResource(EResourceTag::OutputTarget, &m_swapchain.GetBackBuffer(m_swapchain.GetCurrentBackBufferIndex()));
+		RegisterRenderPass<Tonemapping>();
 	}
 
 	void Renderer::Destroy()
@@ -126,7 +129,6 @@ namespace Dune::Graphics
 
 		m_forwardPass.Destroy();
 		m_depthPrepass.Destroy();
-		m_tonemappingPass.Destroy();
 
 		for (RenderPass& pass : m_passes)
 			pass.pShutdown(*this, pass.pData);
@@ -283,9 +285,7 @@ namespace Dune::Graphics
 		RenderPassContext context
 		{
 			.pRenderer = this,
-			.pFrame = &frame,
 			.pFrameData = &m_frameData,
-			.pCommandList = &frame.commandList,
 			.pBarrier = &m_barrier,
 		};
 
@@ -293,8 +293,10 @@ namespace Dune::Graphics
 		frame.srvHeap.Allocate(kPersistentSRVCapacity);
 
 		// Render shadow, hardcoded for now since I didn't port other render pass
-		RenderPass& renderPass = m_passes[0];
-		renderPass.pExecute(context, renderPass.pData);
+		{
+			RenderPass& renderPass = m_passes[0];
+			renderPass.pExecute(context, renderPass.pData);
+		}
 
 		dVector<Light>& allLights = m_frameData.lights.allActive;
 		dU32 lightCount = (dU32)allLights.size();
@@ -364,8 +366,10 @@ namespace Dune::Graphics
 		frame.commandList.Transition(m_barrier);
 		m_barrier.Reset();
 		frame.commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
-		Descriptor hdrTargetSRV = frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(frame.hdrTargetSRV));
-		m_tonemappingPass.Render(*this, frame.commandList, hdrTargetSRV);
+		{
+			RenderPass& renderPass = m_passes[1];
+			renderPass.pExecute(context, renderPass.pData);
+		}
 
 		if (m_pImGui)
 		{

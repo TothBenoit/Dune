@@ -18,7 +18,9 @@ namespace Dune::Graphics
 	{
 		RenderPassDesc desc
 		{
+#ifdef _DEBUG
 			.name = "Shadow",
+#endif
 			.writes =
 			{
 				{ .id = EResourceTag::ShadowMaps, .state = EResourceState::DepthStencil },
@@ -77,7 +79,7 @@ namespace Dune::Graphics
 	void Render(RenderPassContext& context, ShadowData* pData, const dMatrix4x4& viewProjection)
 	{
 		Renderer& renderer = *context.pRenderer;
-		CommandList& commandList = *context.pCommandList;
+		CommandList& commandList = renderer.GetCurrentFrame().commandList;
 		ResourceManager& resourceManager = renderer.GetRenderContext()->GetResourceManager();
 
 		commandList.SetGraphicsRootSignature(pData->shadowRS);
@@ -100,8 +102,8 @@ namespace Dune::Graphics
 	void Shadow::Execute(RenderPassContext& context, ShadowData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		CommandList& commandList = *context.pCommandList;
-		Frame& frame = *context.pFrame;
+		Frame& frame = renderer.GetCurrentFrame();
+		CommandList& commandList = frame.commandList;
 		FrameData& frameData = *context.pFrameData;
 		Device& device = renderer.GetRenderContext()->GetDevice();
 		ResourceManager& resourceManager = renderer.GetRenderContext()->GetResourceManager();

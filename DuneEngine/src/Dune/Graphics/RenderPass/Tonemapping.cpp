@@ -13,13 +13,31 @@
 
 namespace Dune::Graphics
 {
-	void Tonemapping::Initialize(Renderer& renderer)
+	RenderPassDesc Tonemapping::GetDesc()
+	{
+		RenderPassDesc desc
+		{
+#ifdef _DEBUG
+			.name = "Tonemapping",
+#endif
+			.reads =
+			{
+				{ .id = EResourceTag::HDRTarget, .state = EResourceState::ShaderResource },
+			},
+			.writes = 
+			{
+				{ .id = EResourceTag::OutputTarget, .state = EResourceState::RenderTarget },
+			}
+		};
+		return desc;
+	}
+
+	TonemappingData* Tonemapping::Create(Renderer& renderer)
 	{
 		Device& device = renderer.GetRenderContext()->GetDevice();
+		BlockDescriptorHeap& srvHeap = renderer.GetSRVHeap();
 
-		m_barrier.Initialize(1);
-
-		m_heap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 1, .isShaderVisible = false });
+		TonemappingData* pData = new TonemappingData();
 
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
@@ -31,7 +49,7 @@ namespace Dune::Graphics
 			.entryFunc = L"VSMain",
 			.args = args,
 			.argsCount = _countof(args),
-		});
+			});
 
 
 		Shader tonemappingPS;
@@ -42,22 +60,22 @@ namespace Dune::Graphics
 			.entryFunc = L"PSMain",
 			.args = args,
 			.argsCount = _countof(args),
-		});
-
-		m_tonemapRS.Initialize(device,
-			{
-				.layout =
-				{
-					{.type = EBindingType::Group, .groupDesc = {.resourceCount = 1}, .visibility = EShaderVisibility::Pixel},
-					{.type = EBindingType::SRV, .visibility = EShaderVisibility::Pixel},
-				},
 			});
 
-		m_tonemapPSO.Initialize(device,
+		pData->tonemapRS.Initialize(device,
+		{
+			.layout =
+			{
+				{.type = EBindingType::Group, .groupDesc = {.resourceCount = 1}, .visibility = EShaderVisibility::Pixel},
+				{.type = EBindingType::SRV, .visibility = EShaderVisibility::Pixel},
+			},
+		});
+
+		pData->tonemapPSO.Initialize(device,
 			{
 				.pVertexShader = &fullScreenTriangleVS,
 				.pPixelShader = &tonemappingPS,
-				.pRootSignature = &m_tonemapRS,
+				.pRootSignature = &pData->tonemapRS,
 				.renderTargetCount = 1,
 				.renderTargetsFormat = { EFormat::R8G8B8A8_UNORM },
 			});
@@ -70,9 +88,9 @@ namespace Dune::Graphics
 			.entryFunc = L"CSMain",
 			.args = args,
 			.argsCount = _countof(args),
-		});
+			});
 
-		m_histogramRS.Initialize(device,
+		pData->histogramRS.Initialize(device,
 			{
 				.layout =
 				{
@@ -82,15 +100,15 @@ namespace Dune::Graphics
 				}
 			});
 
-		m_histogramPSO.Initialize(device,
+		pData->histogramPSO.Initialize(device,
 			{
 				.pComputeShader = &histogramCS,
-				.pRootSignature = &m_histogramRS
+				.pRootSignature = &pData->histogramRS
 			});
 
-		m_histogramBuffer.Initialize(device, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32) });
-		m_histogramUAV = m_heap.Allocate();
-		device.CreateUAV(m_histogramUAV, m_histogramBuffer, { .format = EFormat::R32_UINT, .elementCount = 256 });
+		pData->histogramBuffer.Initialize(device, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32) });
+		pData->histogramUAV = srvHeap.Allocate();
+		device.CreateUAV(pData->histogramUAV, pData->histogramBuffer, { .format = EFormat::R32_UINT, .elementCount = 256 });
 
 		Shader averageCS;
 		averageCS.Initialize
@@ -100,9 +118,9 @@ namespace Dune::Graphics
 			.entryFunc = L"CSMain",
 			.args = args,
 			.argsCount = _countof(args),
-		});
+			});
 
-		m_averageRS.Initialize(device,
+		pData->averageRS.Initialize(device,
 			{
 				.layout =
 				{
@@ -112,94 +130,98 @@ namespace Dune::Graphics
 				}
 			});
 
-		m_averagePSO.Initialize(device,
+		pData->averagePSO.Initialize(device,
 			{
 				.pComputeShader = &averageCS,
-				.pRootSignature = &m_averageRS
+				.pRootSignature = &pData->averageRS
 			});
 
-		m_luminanceBuffer.Initialize(device, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = sizeof(dU32) });
+		pData->luminanceBuffer.Initialize(device, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = sizeof(dU32) });
 
 		fullScreenTriangleVS.Destroy();
 		tonemappingPS.Destroy();
 		histogramCS.Destroy();
 		averageCS.Destroy();
+
+		return pData;
 	}
 
-	void Tonemapping::Destroy()
+	void Tonemapping::Execute(RenderPassContext& context, TonemappingData* pData)
 	{
-		m_heap.Free(m_histogramUAV);
-		m_heap.Destroy();
-
-		m_histogramRS.Destroy();
-		m_histogramPSO.Destroy();
-		m_histogramBuffer.Destroy();
-
-		m_averageRS.Destroy();
-		m_averagePSO.Destroy();
-		m_luminanceBuffer.Destroy();
-
-		m_tonemapPSO.Destroy();
-		m_tonemapRS.Destroy();
-
-		m_barrier.Destroy();
-	}
-
-	void Tonemapping::Render(Renderer& renderer, CommandList& commandList, Descriptor& hdrTargetSRV)
-	{
+		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
+		CommandList& commandList = frame.commandList;
 		Descriptor histogramUAV = frame.srvHeap.Allocate(1);
 		Device& device = renderer.GetRenderContext()->GetDevice();
 		Window* pWindow = renderer.GetWindow();
+		Barrier& barrier = *context.pBarrier;
 
-		device.CopyDescriptors(1, m_histogramUAV.cpuAddress, histogramUAV.cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
-		commandList.ClearUAVUInt(histogramUAV.gpuAddress, m_histogramUAV.cpuAddress, m_histogramBuffer.Get(), 0);
+		device.CopyDescriptors(1, pData->histogramUAV.cpuAddress, histogramUAV.cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+		commandList.ClearUAVUInt(histogramUAV.gpuAddress, pData->histogramUAV.cpuAddress, pData->histogramBuffer.Get(), 0);
 
-		float logLuminanceRange = m_maxLogLuminance - m_minLogLuminance;
+		float logLuminanceRange = pData->maxLogLuminance - pData->minLogLuminance;
 		LuminanceHistogramParams histogramParams
 		{
 			.width = pWindow->GetWidth(),
 			.height = pWindow->GetHeight(),
-			.minLogLuminance = m_minLogLuminance,
+			.minLogLuminance = pData->minLogLuminance,
 			.oneOverLogLuminanceRange = 1.0f / logLuminanceRange,
 		};
-		
-		commandList.SetComputeRootSignature(m_histogramRS);
-		commandList.SetPipelineState(m_histogramPSO);
+
+		commandList.SetComputeRootSignature(pData->histogramRS);
+		commandList.SetPipelineState(pData->histogramPSO);
 		commandList.PushComputeConstants(0, &histogramParams, sizeof(histogramParams));
+		Descriptor hdrTargetSRV = frame.srvHeap.GetDescriptorAt(renderer.GetSRVHeap().GetIndex(frame.hdrTargetSRV));
 		commandList.BindComputeGroup(1, hdrTargetSRV);
-		commandList.PushComputeUAV(2, m_histogramBuffer);
+		commandList.PushComputeUAV(2, pData->histogramBuffer);
 		commandList.Dispatch((histogramParams.width + 16 - 1) / 16, (histogramParams.height + 16 - 1) / 16, 1);
 
-		m_barrier.PushTransition(m_histogramBuffer.Get(), EResourceState::UAV, EResourceState::ShaderResource);
-		commandList.Transition(m_barrier);
-		m_barrier.Reset();
+		barrier.PushTransition(pData->histogramBuffer.Get(), EResourceState::UAV, EResourceState::ShaderResource);
+		commandList.Transition(barrier);
+		barrier.Reset();
 
 		LuminanceAverageParams averageParams
 		{
 			.pixelCount = histogramParams.width * histogramParams.height,
-			.minLogLuminance = m_minLogLuminance,
+			.minLogLuminance = pData->minLogLuminance,
 			.logLuminanceRange = logLuminanceRange,
 			.timeDelta = 0.016f,
-			.tau = m_tau
+			.tau = pData->tau
 		};
 
-		commandList.SetComputeRootSignature(m_averageRS);
-		commandList.SetPipelineState(m_averagePSO);
+		commandList.SetComputeRootSignature(pData->averageRS);
+		commandList.SetPipelineState(pData->averagePSO);
 		commandList.PushComputeConstants(0, &averageParams, sizeof(averageParams));
-		commandList.PushComputeSRV(1, m_histogramBuffer);
-		commandList.PushComputeUAV(2, m_luminanceBuffer);
+		commandList.PushComputeSRV(1, pData->histogramBuffer);
+		commandList.PushComputeUAV(2, pData->luminanceBuffer);
 		commandList.Dispatch(1, 1, 1);
 
-		m_barrier.PushTransition(m_luminanceBuffer.Get(), EResourceState::UAV, EResourceState::ShaderResource);
-		commandList.Transition(m_barrier);
-		m_barrier.Reset();
+		barrier.PushTransition(pData->luminanceBuffer.Get(), EResourceState::UAV, EResourceState::ShaderResource);
+		commandList.Transition(barrier);
+		barrier.Reset();
 
-		commandList.SetGraphicsRootSignature(m_tonemapRS);
-		commandList.SetPipelineState(m_tonemapPSO);
+		commandList.SetGraphicsRootSignature(pData->tonemapRS);
+		commandList.SetPipelineState(pData->tonemapPSO);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.BindGraphicsGroup(0, hdrTargetSRV);
-		commandList.PushGraphicsSRV(1, m_luminanceBuffer);
+		commandList.PushGraphicsSRV(1, pData->luminanceBuffer);
 		commandList.DrawInstanced(3, 1, 0, 0);
+	}
+
+	void Tonemapping::Destroy(Renderer& renderer, TonemappingData* pData)
+	{
+		BlockDescriptorHeap& srvHeap = renderer.GetSRVHeap();
+		srvHeap.Free(pData->histogramUAV);
+		pData->histogramRS.Destroy();
+		pData->histogramPSO.Destroy();
+		pData->histogramBuffer.Destroy();
+
+		pData->averageRS.Destroy();
+		pData->averagePSO.Destroy();
+		pData->luminanceBuffer.Destroy();
+
+		pData->tonemapPSO.Destroy();
+		pData->tonemapRS.Destroy();
+		delete pData;
 	}
 }

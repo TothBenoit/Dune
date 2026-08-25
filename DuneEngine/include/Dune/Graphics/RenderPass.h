@@ -16,6 +16,7 @@ namespace Dune
 			LightBuffer,
 			LightMatrices,
 			HDRTarget,
+			OutputTarget,
 			Count,
 		};
 

@@ -75,9 +75,7 @@ namespace Dune
 		{
 			Renderer* pRenderer;
 			Camera* pCamera;
-			Frame* pFrame;
 			FrameData* pFrameData;
-			CommandList* pCommandList;
 			Barrier* pBarrier;
 		};
 
@@ -155,7 +153,6 @@ namespace Dune
 			dVector<RenderPass> m_passes;
 			Forward m_forwardPass{};
 			DepthPrepass m_depthPrepass{};
-			Tonemapping m_tonemappingPass{};
 		};
 	}
 }
