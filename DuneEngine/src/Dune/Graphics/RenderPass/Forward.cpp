@@ -1,9 +1,10 @@
 #include "pch.h"
+#include "Dune/Utilities/StringUtils.h"
 #include "Dune/Graphics/RenderPass/Forward.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
 #include "Dune/Graphics/RenderPass/LightUpload.h"
 #include "Dune/Graphics/RenderPass/DepthPrepass.h"
-#include "Dune/Graphics/Shaders/ShaderInterop.h"
+#include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Texture.h"
@@ -27,10 +28,11 @@ namespace Dune::Graphics
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
 		Shader forwardVS;
+		dWString shaderPath = StringUtils::ToWide(FileSystem::ResolvePath("engine://Shaders/Forward.hlsl"));
 		forwardVS.Initialize
 		({
 			.stage = EShaderStage::Vertex,
-			.filePath = L"Shaders\\Forward.hlsl",
+			.filePath = shaderPath.c_str(),
 			.entryFunc = L"VSMain",
 			.args = args,
 			.argsCount = _countof(args),
@@ -40,7 +42,7 @@ namespace Dune::Graphics
 		forwardPS.Initialize
 		({
 			.stage = EShaderStage::Pixel,
-			.filePath = L"Shaders\\Forward.hlsl",
+			.filePath = shaderPath.c_str(),
 			.entryFunc = L"PSMain",
 			.args = args,
 			.argsCount = _countof(args),

@@ -3,7 +3,7 @@
 #include <Dune/Core/JobSystem.h>
 #include <Dune/Core/FileSystem.h>
 #include <Dune/Graphics/RHI/ImGuiWrapper.h>
-#include <Dune/Graphics/Shaders/ShaderInterop.h>
+#include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Graphics/Renderer.h>
 #include <Dune/Graphics/RenderContext.h>
 #include <Dune/Graphics/Window.h>
@@ -167,7 +167,7 @@ public:
 
 			float smoothing = 0.95f;
 			m_framerate = m_framerate * smoothing + (1.0f / m_deltaTime) * (1.0f - smoothing);
-			dString FPSlabel = dStringUtils::printf("FPS : %.0f", m_framerate);
+			dString FPSlabel = StringUtils::printf("FPS : %.0f", m_framerate);
 			ImGui::BeginMenu(FPSlabel.c_str(), false);
 			ImGui::EndMainMenuBar();
 		}
@@ -239,7 +239,7 @@ public:
 					{
 						bool isSelected = m_selectedEntity == entity;
 						ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ((isSelected) ? ImGuiTreeNodeFlags_Selected : 0);
-						dString id = dStringUtils::printf("%d", entity);
+						dString id = StringUtils::printf("%d", entity);
 						ImGui::TreeNodeEx(id.c_str(), flags, name.name.c_str());
 						if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 							m_selectedEntity = entity;
@@ -424,13 +424,15 @@ int main(int argc, char** argv)
 	
 	dU32 testCount{ 1 };
 	Job::Initialize(testCount);
-	FileSystem::Initialize();
+	dString solutionDirectory(SOLUTION_DIR);
+	FileSystem::Initialize((solutionDirectory + "/DuneEngine/include/Dune/Resources/").c_str());
+	FileSystem::AddRoot("app", (solutionDirectory + "/Resources/").c_str());
 	Graphics::RenderContext renderContext{};
 	renderContext.Initialize();
 
 	Scene scene{};
 	entt::registry& registry = scene.registry;
-	dString sponzaPath = std::filesystem::current_path().string().append("\\Resources\\Sponza\\Sponza.gltf");
+	dString sponzaPath("app://Sponza/Sponza.gltf");
 	SceneLoader::Load(sponzaPath.c_str(), scene, renderContext.GetResourceManager());
 
 	EntityID sun = registry.create();

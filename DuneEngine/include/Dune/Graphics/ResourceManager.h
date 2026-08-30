@@ -3,7 +3,7 @@
 #include "Dune/Core/FileSystem.h"
 #include "Dune/Graphics/RHI/Texture.h"
 #include "Dune/Graphics/Mesh.h"
-#include "Dune/Graphics/Shaders/ShaderInterop.h"
+#include "Dune/Resources/Shaders/ShaderInterop.h"
 
 namespace Dune::Graphics
 {

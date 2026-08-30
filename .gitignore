@@ -5,6 +5,7 @@ bin-int/
 obj/
 ThirdParties/lib/*/*
 !ThirdParties/lib/*/assimp*
+imgui.ini
 
 # Files
 

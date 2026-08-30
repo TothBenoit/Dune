@@ -1,6 +1,7 @@
 #include "pch.h"
+#include "Dune/Utilities/StringUtils.h"
 #include "Dune/Graphics/RenderPass/Tonemapping.h"
-#include "Dune/Graphics/Shaders/ShaderInterop.h"
+#include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
@@ -30,25 +31,26 @@ namespace Dune::Graphics
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
 		Shader fullScreenTriangleVS;
+		dWString fullScreenShaderPath = StringUtils::ToWide(FileSystem::ResolvePath("engine://Shaders/FullScreenTriangle.hlsl"));
 		fullScreenTriangleVS.Initialize
 		({
 			.stage = EShaderStage::Vertex,
-			.filePath = L"Shaders\\FullScreenTriangle.hlsl",
+			.filePath = fullScreenShaderPath.c_str(),
 			.entryFunc = L"VSMain",
 			.args = args,
 			.argsCount = _countof(args),
-			});
-
+		});
 
 		Shader tonemappingPS;
+		dWString tonemappingShaderPath = StringUtils::ToWide(FileSystem::ResolvePath("engine://Shaders/Tonemapping.hlsl"));
 		tonemappingPS.Initialize
 		({
 			.stage = EShaderStage::Pixel,
-			.filePath = L"Shaders\\Tonemapping.hlsl",
+			.filePath = tonemappingShaderPath.c_str(),
 			.entryFunc = L"PSMain",
 			.args = args,
 			.argsCount = _countof(args),
-			});
+		});
 
 		pData->tonemapRS.Initialize(device,
 		{
@@ -69,10 +71,11 @@ namespace Dune::Graphics
 			});
 
 		Shader histogramCS;
+		dWString histogramShaderPath = StringUtils::ToWide(FileSystem::ResolvePath("engine://Shaders/LuminanceHistogram.hlsl"));
 		histogramCS.Initialize
 		({
 			.stage = EShaderStage::Compute,
-			.filePath = L"Shaders\\LuminanceHistogram.hlsl",
+			.filePath = histogramShaderPath.c_str(),
 			.entryFunc = L"CSMain",
 			.args = args,
 			.argsCount = _countof(args),
@@ -99,10 +102,11 @@ namespace Dune::Graphics
 		device.CreateUAV(pData->histogramUAV, pData->histogramBuffer, { .format = EFormat::R32_UINT, .elementCount = 256 });
 
 		Shader averageCS;
+		dWString averageShaderPath = StringUtils::ToWide(FileSystem::ResolvePath("engine://Shaders/LuminanceAverage.hlsl"));
 		averageCS.Initialize
 		({
 			.stage = EShaderStage::Compute,
-			.filePath = L"Shaders\\LuminanceAverage.hlsl",
+			.filePath = averageShaderPath.c_str(),
 			.entryFunc = L"CSMain",
 			.args = args,
 			.argsCount = _countof(args),

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/LightUpload.h"
-#include "Dune/Graphics/Shaders/ShaderInterop.h"
+#include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RenderContext.h"

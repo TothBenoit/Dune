@@ -1,6 +1,7 @@
 #include "pch.h"
+#include "Dune/Utilities/StringUtils.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
-#include "Dune/Graphics/Shaders/ShaderInterop.h"
+#include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
@@ -43,10 +44,11 @@ namespace Dune::Graphics
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
 		Shader shadowVS;
+		dWString shaderPath = StringUtils::ToWide(FileSystem::ResolvePath("engine://Shaders/DepthOnly.hlsl"));
 		shadowVS.Initialize
 		({
 			.stage = EShaderStage::Vertex,
-			.filePath = L"Shaders\\DepthOnly.hlsl",
+			.filePath = shaderPath.c_str(),
 			.entryFunc = L"VSMain",
 			.args = args,
 			.argsCount = _countof(args),

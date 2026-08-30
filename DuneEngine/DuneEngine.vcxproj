@@ -13,6 +13,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Utilities\StringUtils.cpp" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\FileLoader.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
@@ -36,7 +37,7 @@
     <ClInclude Include="include\Dune\Graphics\Renderer.h" />
     <ClInclude Include="include\Dune\Graphics\ResourceManager.h" />
     <ClInclude Include="include\Dune\Graphics\RenderContext.h" />
-    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderInterop.h" />
+    <ClInclude Include="include\Dune\Resources\Shaders\ShaderInterop.h" />
     <ClInclude Include="include\Dune\Scene\Camera.h" />
     <ClInclude Include="include\Dune\Scene\Scene.h" />
     <ClInclude Include="include\Dune\Core\File.h" />
@@ -89,30 +90,30 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli" />
-    <None Include="include\Dune\Graphics\Shaders\ColorUtils.hlsli" />
-    <None Include="include\Dune\Graphics\Shaders\Common.hlsli" />
-    <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">
+    <None Include="include\Dune\Resources\Shaders\BRDF.hlsli" />
+    <None Include="include\Dune\Resources\Shaders\ColorUtils.hlsli" />
+    <None Include="include\Dune\Resources\Shaders\Common.hlsli" />
+    <None Include="include\Dune\Resources\Shaders\DepthOnly.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\Forward.hlsl">
+    <None Include="include\Dune\Resources\Shaders\Forward.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\Lighting.hlsli" />
+    <None Include="include\Dune\Resources\Shaders\Lighting.hlsli" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\Dune\Graphics\Shaders\Tonemapping.hlsl">
+    <None Include="include\Dune\Resources\Shaders\Tonemapping.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\Dune\Graphics\Shaders\FullScreenTriangle.hlsl">
+    <None Include="include\Dune\Resources\Shaders\FullScreenTriangle.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\Dune\Graphics\Shaders\LuminanceHistogram.hlsl">
+    <None Include="include\Dune\Resources\Shaders\LuminanceHistogram.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
@@ -121,7 +122,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\Dune\Graphics\Shaders\LuminanceAverage.hlsl">
+    <None Include="include\Dune\Resources\Shaders\LuminanceAverage.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
@@ -176,7 +177,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>SHADER_DIR=LR"($(SolutionDir)DuneEngine\src\Dune\Graphics\Shaders\)";_DEBUG;DUNEENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -201,8 +202,7 @@
       <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration)\;$(SolutionDir)ThirdParties\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
-      <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)include\Dune\Graphics\Shaders\*" "$(OutDir)Shaders\"</Command>
+      <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -211,7 +211,7 @@ xcopy /y /d "$(ProjectDir)include\Dune\Graphics\Shaders\*" "$(OutDir)Shaders\"</
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>SHADER_DIR=LR"($(SolutionDir)DuneEngine\src\Dune\Graphics\Shaders\)";NDEBUG;DUNEENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -237,8 +237,7 @@ xcopy /y /d "$(ProjectDir)include\Dune\Graphics\Shaders\*" "$(OutDir)Shaders\"</
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParties\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
-      <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)include\Dune\Graphics\Shaders\*" "$(OutDir)Shaders\"</Command>
+      <Command>xcopy /y /d "$(SolutionDir)ThirdParties\lib\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -2,7 +2,7 @@
 
 #include <Dune/Scene/Scene.h>
 #include <Dune/Graphics/RenderPass.h>
-#include <Dune/Graphics/Shaders/ShaderInterop.h>
+#include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Graphics/RHI/Barrier.h>
 #include <Dune/Graphics/RHI/Buffer.h>
 #include <Dune/Graphics/RHI/CommandList.h>

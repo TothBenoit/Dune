@@ -119,7 +119,7 @@
     <ClInclude Include="include\Dune\Graphics\RHI\RootSignature.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Shaders\ShaderInterop.h">
+    <ClInclude Include="include\Dune\Resources\Shaders\ShaderInterop.h">
       <Filter>Dune\Graphics\Shaders</Filter>
     </ClInclude>
     <ClInclude Include="src\Dune\Graphics\Platform\WindowWin32.h">
@@ -208,37 +208,40 @@
     <ClCompile Include="src\Dune\Graphics\RenderPass\LightUpload.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Utilities\StringUtils.cpp">
+      <Filter>Dune\Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\Dune\Graphics\Shaders\DepthOnly.hlsl">
+    <None Include="include\Dune\Resources\Shaders\DepthOnly.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\Forward.hlsl">
+    <None Include="include\Dune\Resources\Shaders\Forward.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\BRDF.hlsli">
+    <None Include="include\Dune\Resources\Shaders\BRDF.hlsli">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\Common.hlsli">
+    <None Include="include\Dune\Resources\Shaders\Common.hlsli">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\Lighting.hlsli">
+    <None Include="include\Dune\Resources\Shaders\Lighting.hlsli">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\Tonemapping.hlsl">
+    <None Include="include\Dune\Resources\Shaders\Tonemapping.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\FullScreenTriangle.hlsl">
+    <None Include="include\Dune\Resources\Shaders\FullScreenTriangle.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="include\Dune\Graphics\Shaders\LuminanceAverage.hlsl">
+    <None Include="include\Dune\Resources\Shaders\LuminanceAverage.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\LuminanceHistogram.hlsl">
+    <None Include="include\Dune\Resources\Shaders\LuminanceHistogram.hlsl">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
-    <None Include="include\Dune\Graphics\Shaders\ColorUtils.hlsli">
+    <None Include="include\Dune\Resources\Shaders\ColorUtils.hlsli">
       <Filter>Dune\Graphics\Shaders</Filter>
     </None>
   </ItemGroup>
