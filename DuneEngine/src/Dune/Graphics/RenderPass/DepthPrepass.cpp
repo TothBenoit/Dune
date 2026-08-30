@@ -61,7 +61,7 @@ namespace Dune::Graphics
 
 	void DepthPrepass::Setup(RenderGraphBuilder& builder, RenderPassContext& context, DepthPrepassData* pData)
 	{
-		pData->depthHandle = builder.Write(context.pRenderer->GetDepthBufferHandle(), EResourceState::DepthStencil);
+		builder.Write(context.pRenderer->GetDepthBufferHandle(), EResourceState::DepthStencil);
 	}
 
 	void DepthPrepass::Execute(RenderPassContext& context, DepthPrepassData* pData)

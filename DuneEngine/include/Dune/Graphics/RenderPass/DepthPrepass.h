@@ -12,7 +12,6 @@ namespace Dune::Graphics
 	{
 		RootSignature depthRS;
 		PipelineState depthPSO;
-		ResourceHandle depthHandle;
 	};
 
 	class DepthPrepass

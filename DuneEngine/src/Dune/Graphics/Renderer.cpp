@@ -291,11 +291,11 @@ namespace Dune::Graphics
 		}
 	}
 
-	void Renderer::FlushBarriers(Frame& frame)
+	void Renderer::FlushBarriers(CommandList& commandList)
 	{
 		if (m_barrier.GetBarrierCount() != 0)
 		{
-			frame.commandList.Transition(m_barrier);
+			commandList.Transition(m_barrier);
 			m_barrier.Reset();
 		}
 	}
@@ -463,7 +463,7 @@ namespace Dune::Graphics
 				TransitionResource(access);
 			for (const ResourceAccess& access : pass.builder.GetWrites())
 				TransitionResource(access);
-			FlushBarriers(frame);
+			FlushBarriers(frame.commandList);
 
 			pass.pExecute(context, pass.pData);
 		}
@@ -475,7 +475,7 @@ namespace Dune::Graphics
 		}
 
 		TransitionResource({ .handle = frame.backBufferHandle, .state = EResourceState::Present });
-		FlushBarriers(frame);
+		FlushBarriers(frame.commandList);
 
 		frame.commandList.Close();
 		m_commandQueue.ExecuteCommandLists(&frame.commandList, 1);

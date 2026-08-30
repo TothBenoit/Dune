@@ -156,7 +156,7 @@ namespace Dune
 			void WaitForFrame(const Frame& frame);
 
 			void TransitionResource(const ResourceAccess& access);
-			void FlushBarriers(Frame& frame);
+			void FlushBarriers(CommandList& commandList);
 
 		private:
 			RenderContext* m_pRenderContext{ nullptr };
