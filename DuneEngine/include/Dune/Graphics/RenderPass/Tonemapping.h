@@ -32,8 +32,8 @@ namespace Dune::Graphics
 	class Tonemapping
 	{
 	public:
-		static RenderPassDesc   GetDesc();
 		static TonemappingData* Create(Renderer& renderer);
+		static void             Setup(RenderGraphBuilder& builder, RenderPassContext& context, TonemappingData* pData);
 		static void             Execute(RenderPassContext& context, TonemappingData* pData);
 		static void             Destroy(Renderer& renderer, TonemappingData* pData);
 	private:

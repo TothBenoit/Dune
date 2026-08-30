@@ -2,32 +2,38 @@
 
 #include "Dune/Graphics/RHI/RootSignature.h"
 #include "Dune/Graphics/RHI/PipelineState.h"
+#include "Dune/Graphics/RHI/DescriptorHeap.h"
+#include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RenderPass.h"
 
-namespace Dune
+namespace Dune::Graphics
 {
-	class Scene;
+	class Renderer;
 
-	namespace Graphics
+	struct ShadowData
 	{
-		class Renderer;
-		struct RenderPassContext;
+		RootSignature shadowRS;
+		PipelineState shadowPSO;
 
-		struct ShadowData
-		{
-			RootSignature shadowRS;
-			PipelineState shadowPSO;
-		};
+		dVector<ResourceHandle> shadowHandles;
+		dVector<ResourceHandle> cubeShadowHandles;
+		dVector<ResourceHandle> activeHandles;
 
-		class Shadow
-		{
-		public:
-			static RenderPassDesc GetDesc();
-			static ShadowData* Create(Renderer& renderer);
-			static void        Execute(RenderPassContext& context, ShadowData* pData);
-			static void        Destroy(Renderer& renderer, ShadowData* pData);
-		private:
-			Shadow() = delete;
-		};
-	}
+		Buffer         matricesBuffer;
+		Descriptor     matricesSRV;
+		ResourceHandle matricesHandle{ kInvalidResourceHandle };
+		dU32           matricesSRVIndex{ 0 };
+		dVector<dMatrix4x4> matrices;
+	};
+
+	class Shadow
+	{
+	public:
+		static ShadowData* Create(Renderer& renderer);
+		static void        Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData);
+		static void        Execute(RenderPassContext& context, ShadowData* pData);
+		static void        Destroy(Renderer& renderer, ShadowData* pData);
+	private:
+		Shadow() = delete;
+	};
 }

@@ -4,6 +4,8 @@
 
 namespace Dune::Graphics
 {
+	inline constexpr dU32 kAllSubresources{ (dU32)-1 };
+
 	enum class EResourceState : dU32
 	{
 		Undefined = 0,
@@ -31,8 +33,8 @@ namespace Dune::Graphics
 		void Initialize(dU32 barrierCapacity);
 		void Destroy();
 
-		void PushUAV(void* pResource);
-		void PushTransition(void* pResource, EResourceState stateBefore, EResourceState stateAfter);
+		void PushUAV(Resource* pResource);
+		void PushTransition(Resource& resource, EResourceState stateBefore, EResourceState stateAfter, dU32 subresource = kAllSubresources);
 		void Reset() { m_barrierCount = 0; }
 
 		[[nodiscard]] dU32 GetBarrierCount() const { return m_barrierCount; }

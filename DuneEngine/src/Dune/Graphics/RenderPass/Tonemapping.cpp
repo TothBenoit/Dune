@@ -13,23 +13,11 @@
 
 namespace Dune::Graphics
 {
-	RenderPassDesc Tonemapping::GetDesc()
+	void Tonemapping::Setup(RenderGraphBuilder& builder, RenderPassContext& context, TonemappingData* pData)
 	{
-		RenderPassDesc desc
-		{
-#ifdef _DEBUG
-			.name = "Tonemapping",
-#endif
-			.reads =
-			{
-				{ .id = EResourceTag::HDRTarget, .state = EResourceState::ShaderResource },
-			},
-			.writes = 
-			{
-				{ .id = EResourceTag::OutputTarget, .state = EResourceState::RenderTarget },
-			}
-		};
-		return desc;
+		Renderer& renderer = *context.pRenderer;
+		builder.Read(renderer.GetHDRTargetHandle(), EResourceState::ShaderResource);
+		builder.Write(renderer.GetBackBufferHandle(), EResourceState::RenderTarget);
 	}
 
 	TonemappingData* Tonemapping::Create(Renderer& renderer)
@@ -156,6 +144,8 @@ namespace Dune::Graphics
 		Window* pWindow = renderer.GetWindow();
 		Barrier& barrier = *context.pBarrier;
 
+		commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
+
 		device.CopyDescriptors(1, pData->histogramUAV.cpuAddress, histogramUAV.cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 		commandList.ClearUAVUInt(histogramUAV.gpuAddress, pData->histogramUAV.cpuAddress, pData->histogramBuffer.Get(), 0);
 
@@ -176,7 +166,7 @@ namespace Dune::Graphics
 		commandList.PushComputeUAV(2, pData->histogramBuffer);
 		commandList.Dispatch((histogramParams.width + 16 - 1) / 16, (histogramParams.height + 16 - 1) / 16, 1);
 
-		barrier.PushTransition(pData->histogramBuffer.Get(), EResourceState::UAV, EResourceState::ShaderResource);
+		barrier.PushTransition(pData->histogramBuffer, EResourceState::UAV, EResourceState::ShaderResource);
 		commandList.Transition(barrier);
 		barrier.Reset();
 
@@ -196,7 +186,7 @@ namespace Dune::Graphics
 		commandList.PushComputeUAV(2, pData->luminanceBuffer);
 		commandList.Dispatch(1, 1, 1);
 
-		barrier.PushTransition(pData->luminanceBuffer.Get(), EResourceState::UAV, EResourceState::ShaderResource);
+		barrier.PushTransition(pData->luminanceBuffer, EResourceState::UAV, EResourceState::ShaderResource);
 		commandList.Transition(barrier);
 		barrier.Reset();
 

@@ -19,6 +19,7 @@
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\LightUpload.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Shadow.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Tonemapping.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Barrier.h" />
@@ -65,6 +66,7 @@
     <ClCompile Include="src\Dune\Graphics\Window.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\DepthPrepass.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Forward.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderPass\LightUpload.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Shadow.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Tonemapping.cpp" />
     <ClCompile Include="src\Dune\Graphics\RHI\ImGuiWrapper.cpp" />

@@ -10,7 +10,7 @@ namespace Dune::FileSystem
 	};
 
 	static bool g_isInitialized{ false };
-	static ResolveTable g_tables[(dU32)EResourceType::Count];
+	static ResolveTable g_tables[(dU32)EFileType::Count];
 
 	void Initialize()
 	{
@@ -29,7 +29,7 @@ namespace Dune::FileSystem
 		return g_isInitialized;
 	}
 
-	dU32 ResolveIndex(EResourceType type, const char* path)
+	dU32 ResolveIndex(EFileType type, const char* path)
 	{
 		ResolveTable& table = g_tables[(dU32)type];
 		auto it = table.pathToIndex.find(path);
@@ -42,7 +42,7 @@ namespace Dune::FileSystem
 		return index;
 	}
 
-	const dString& GetIndexPath(EResourceType type, dU32 index)
+	const dString& GetIndexPath(EFileType type, dU32 index)
 	{
 		ResolveTable& table = g_tables[(dU32)type];
 		return table.indexToPath[index];

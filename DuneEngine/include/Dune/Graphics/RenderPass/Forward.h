@@ -3,26 +3,26 @@
 #include "Dune/Graphics/RHI/RootSignature.h"
 #include "Dune/Graphics/RHI/PipelineState.h"
 
-namespace Dune
+namespace Dune::Graphics
 {
-	namespace Graphics
+	class Renderer;
+	class RenderGraphBuilder;
+	struct RenderPassContext;
+
+	struct ForwardData
 	{
-		struct FrameData;
-		struct ForwardGlobals;
-		class CommandList;
-		class Renderer;
+		RootSignature forwardRS;
+		PipelineState forwardPSO;
+	};
 
-		class Forward
-		{
-		public:
-			void Initialize(Device& device);
-			void Destroy();
-
-			void Render(FrameData& scene, Renderer& renderer, CommandList& commandList, ForwardGlobals& globals);
-
-		private:
-			RootSignature m_forwardRS;
-			PipelineState m_forwardPSO;
-		};
-	}
+	class Forward
+	{
+	public:
+		static ForwardData* Create(Renderer& renderer);
+		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, ForwardData* pData);
+		static void         Execute(RenderPassContext& context, ForwardData* pData);
+		static void         Destroy(Renderer& renderer, ForwardData* pData);
+	private:
+		Forward() = delete;
+	};
 }

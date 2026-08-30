@@ -3,7 +3,11 @@
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
+#include "Dune/Graphics/RenderPass/DepthPrepass.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
+#include "Dune/Graphics/RenderPass/LightUpload.h"
+#include "Dune/Graphics/RenderPass/Forward.h"
+#include "Dune/Graphics/RenderPass/Tonemapping.h"
 #include "Dune/Graphics/RenderContext.h"
 #include "Dune/Scene/Camera.h"
 #include <imgui/imgui_impl_win32.h>
@@ -49,7 +53,7 @@ namespace Dune::Graphics
 			frame.samplerHeap.Initialize(device, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
 		}
 
-		m_barrier.Initialize(16);
+		m_barrier.Initialize(kBarrierCapacity);
 		m_fence.Initialize(device, 0);
 		m_commandQueue.Initialize(device, ECommandType::Direct);
 		m_swapchain.Initialize(device, m_pWindow, &m_commandQueue, { .latency = kFramesInFlight });
@@ -77,25 +81,21 @@ namespace Dune::Graphics
 			device.CreateRTV(frame.backBufferRTV, m_swapchain.GetBackBuffer(i), {});
 			device.CreateRTV(frame.hdrTargetRTV, frame.hdrTarget, {});
 			device.CreateSRV(frame.hdrTargetSRV, frame.hdrTarget);
+
+			frame.hdrTargetHandle = RegisterTexture(&frame.hdrTarget, EResourceState::ShaderResource);
+			frame.backBufferHandle = RegisterTexture(&m_swapchain.GetBackBuffer(i), EResourceState::Present);
 		}
 
 		m_depthBufferDSV = m_dsvHeap.Allocate();
 		device.CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
+		m_depthBufferHandle = RegisterTexture(&m_depthBuffer, EResourceState::DepthStencil);
 
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
-		m_forwardPass.Initialize(device);
-		m_depthPrepass.Initialize(device);
-
-		m_lightsSRV = m_srvHeap.Allocate();
-		m_lightMatrices.srv = m_srvHeap.Allocate();
-
-		RegisterSharedResource(EResourceTag::LightMatrices, &m_lightMatrices);
-		RegisterSharedResource(EResourceTag::ShadowMaps, &m_shadowMaps);
+		RegisterRenderPass<DepthPrepass>();
 		RegisterRenderPass<Shadow>();
-		Frame& currrentFrame = GetCurrentFrame();
-		RegisterSharedResource(EResourceTag::HDRTarget, &currrentFrame.hdrTarget);
-		RegisterSharedResource(EResourceTag::OutputTarget, &m_swapchain.GetBackBuffer(m_swapchain.GetCurrentBackBufferIndex()));
+		RegisterRenderPass<LightUpload>();
+		RegisterRenderPass<Forward>();
 		RegisterRenderPass<Tonemapping>();
 	}
 
@@ -119,19 +119,29 @@ namespace Dune::Graphics
 			frame.samplerHeap.Destroy();
 		}
 		m_dsvHeap.Free(m_depthBufferDSV);
-		m_srvHeap.Free(m_lightsSRV);
-		m_srvHeap.Free(m_lightMatrices.srv);
-
-		for (Texture& shadow : m_shadowMaps.shadows)
-			shadow.Destroy();
-		for (Texture& shadow : m_shadowMaps.cubeShadows)
-			shadow.Destroy();
-
-		m_forwardPass.Destroy();
-		m_depthPrepass.Destroy();
 
 		for (RenderPass& pass : m_passes)
 			pass.pShutdown(*this, pass.pData);
+		m_passes.clear();
+
+		for (ResourceEntry& entry : m_resources)
+		{
+			if (entry.pPhysicalResource && !entry.isExternal)
+			{
+				switch (entry.type)
+				{
+				case EResourceType::Texture: 
+					static_cast<Texture*>(entry.pPhysicalResource)->Destroy();
+					delete entry.pPhysicalResource;
+					break;
+				case EResourceType::Buffer:
+					static_cast<Buffer*>(entry.pPhysicalResource)->Destroy();
+					delete entry.pPhysicalResource;
+					break;
+				}
+			}
+		}
+		m_resources.clear();
 
 		m_srvHeap.Destroy();
 		m_srvImGuiHeap.Destroy();
@@ -142,12 +152,152 @@ namespace Dune::Graphics
 		m_commandQueue.Destroy();
 		m_swapchain.Destroy();
 		m_fence.Destroy();
+	}
 
-		if (m_lightBuffer.Get())
-			m_lightBuffer.Destroy();
+	ResourceHandle Renderer::CreateTexture(const TextureDesc& desc)
+	{
+		Texture* pTexture = new Texture();
+		pTexture->Initialize(m_pRenderContext->GetDevice(), desc);
 
-		if (m_lightMatrices.buffer.Get())
-			m_lightMatrices.buffer.Destroy();
+		const dU32 subresourceCount = desc.dimensions[2] * desc.mipLevels;
+		ResourceHandle handle = RegisterTexture(pTexture, desc.initialState, subresourceCount);
+		m_resources[handle].isExternal = false;
+		return handle;
+	}
+
+	ResourceHandle Renderer::CreateBuffer(const BufferDesc& desc)
+	{
+		Buffer* pBuffer = new Buffer();
+		pBuffer->Initialize(m_pRenderContext->GetDevice(), desc);
+
+		ResourceHandle handle = RegisterBuffer(pBuffer, desc.initialState);
+		m_resources[handle].isExternal = false;
+		return handle;
+	}
+
+	ResourceHandle Renderer::RegisterTexture(Texture* pTexture, EResourceState initialState, dU32 subresourceCount)
+	{
+		Assert(subresourceCount > 0);
+		ResourceHandle handle = (ResourceHandle)m_resources.size();
+		ResourceEntry entry{};
+		entry.pPhysicalResource = pTexture;
+		entry.subresourceStates.assign(subresourceCount, initialState);
+		entry.isExternal = true;
+		entry.type = EResourceType::Texture;
+		m_resources.push_back(std::move(entry));
+		return handle;
+	}
+
+	ResourceHandle Renderer::RegisterBuffer(Buffer* pBuffer, EResourceState initialState)
+	{
+		ResourceHandle handle = (ResourceHandle)m_resources.size();
+		ResourceEntry entry{};
+		entry.pPhysicalResource = pBuffer;
+		entry.resourceState = initialState;
+		entry.isExternal = true;
+		entry.type = EResourceType::Buffer;
+		m_resources.push_back(std::move(entry));
+		return handle;
+	}
+
+	void Renderer::SetPhysicalResource(ResourceHandle handle, Resource* pResource, EResourceState state)
+	{
+		Assert(handle < m_resources.size());
+		ResourceEntry& entry = m_resources[handle];
+		entry.pPhysicalResource = pResource;
+		switch (entry.type)
+		{
+		case EResourceType::Texture:
+			for (EResourceState& subresourceState : entry.subresourceStates)
+				subresourceState = state;
+			break;
+		case EResourceType::Buffer:
+			entry.resourceState = state;
+			break;
+		}
+	}
+
+	Texture& Renderer::GetTexture(ResourceHandle handle)
+	{
+		Assert(handle < m_resources.size());
+		Assert(m_resources[handle].type == EResourceType::Texture);
+		return *static_cast<Texture*>(m_resources[handle].pPhysicalResource);
+	}
+
+	Buffer& Renderer::GetBuffer(ResourceHandle handle)
+	{
+		Assert(handle < m_resources.size());
+		Assert(m_resources[handle].type == EResourceType::Buffer);
+		return *static_cast<Buffer*>(m_resources[handle].pPhysicalResource);
+	}
+
+	void Renderer::TransitionResource(const ResourceAccess& access)
+	{
+		ResourceEntry& entry = m_resources[access.handle];
+		switch (entry.type)
+		{
+		case EResourceType::Texture:
+		{
+			if (access.subresource != kAllSubresources)
+			{
+				Assert(access.subresource < entry.subresourceStates.size());
+				EResourceState& state = entry.subresourceStates[access.subresource];
+				if (state == access.state)
+					return;
+				m_barrier.PushTransition(*entry.pPhysicalResource, state, access.state, access.subresource);
+				state = access.state;
+				return;
+			}
+
+			bool uniform = true;
+			const EResourceState first = entry.subresourceStates[0];
+			for (EResourceState state : entry.subresourceStates)
+			{
+				if (state != first)
+				{
+					uniform = false;
+					break;
+				}
+			}
+
+			if (uniform)
+			{
+				if (first == access.state)
+					return;
+				m_barrier.PushTransition(*entry.pPhysicalResource, first, access.state, kAllSubresources);
+				for (EResourceState& state : entry.subresourceStates)
+					state = access.state;
+			}
+			else
+			{
+				for (dU32 i = 0; i < (dU32)entry.subresourceStates.size(); i++)
+				{
+					EResourceState& state = entry.subresourceStates[i];
+					if (state == access.state)
+						continue;
+					m_barrier.PushTransition(*entry.pPhysicalResource, state, access.state, i);
+					state = access.state;
+				}
+			}
+			break;
+		}
+		case EResourceType::Buffer:
+			Assert(access.subresource == kAllSubresources);
+			if (entry.resourceState == access.state)
+				return;
+			m_barrier.PushTransition(*entry.pPhysicalResource, entry.resourceState, access.state, kAllSubresources);
+			entry.resourceState = access.state;
+			break;
+		}
+	}
+
+	void Renderer::FlushBarriers(Frame& frame)
+	{
+		if (m_barrier.GetBarrierCount() != 0)
+		{
+			frame.commandList.Transition(m_barrier);
+			m_barrier.Reset();
+		}
 	}
 
 	void FillLight(const Dune::Light& sceneLight, Light& light)
@@ -191,7 +341,7 @@ namespace Dune::Graphics
 	{
 		m_frameData.lights.allActive.clear();
 		m_frameData.lights.shadowCasters.clear();
-		m_frameData.instances.clear();
+		m_frameData.drawItems.clear();
 
 		scene.registry.view<const Dune::Light>().each([&](const Dune::Light& sceneLight)
 		{
@@ -206,14 +356,14 @@ namespace Dune::Graphics
 
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 		{
-			RenderInstance instance;
-			DirectX::XMStoreFloat4x4(&instance.objectToWorld,
+			DrawItem drawItem;
+			DirectX::XMStoreFloat4x4(&drawItem.objectToWorld,
 				DirectX::XMMatrixScalingFromVector({ transform.scale, transform.scale, transform.scale }) *
 				DirectX::XMMatrixRotationQuaternion(transform.rotation) *
 				DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
 			);
-			instance.data = renderData;
-			m_frameData.instances.emplace_back(instance);
+			drawItem.data = renderData;
+			m_frameData.drawItems.emplace_back(drawItem);
 		});
 	}
 
@@ -237,12 +387,16 @@ namespace Dune::Graphics
 			f.hdrTarget.Initialize(device, hdrTargetDesc);
 			device.CreateSRV(f.hdrTargetSRV, f.hdrTarget);
 			device.CreateRTV(f.hdrTargetRTV, f.hdrTarget, {});
+			SetPhysicalResource(f.hdrTargetHandle, &f.hdrTarget, EResourceState::ShaderResource);
 		}
 
 		m_swapchain.Resize(width, height);
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 		for (dU32 i = 0; i < kFramesInFlight; i++)
+		{
 			device.CreateRTV(m_frames[i].backBufferRTV, m_swapchain.GetBackBuffer(i), {});
+			SetPhysicalResource(m_frames[i].backBufferHandle, &m_swapchain.GetBackBuffer(i), EResourceState::Present);
+		}
 
 		m_depthBuffer.Destroy();
 		m_depthBuffer.Initialize(device,
@@ -255,6 +409,7 @@ namespace Dune::Graphics
 				.initialState = EResourceState::DepthStencil
 			});
 		device.CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
+		SetPhysicalResource(m_depthBufferHandle, &m_depthBuffer, EResourceState::DepthStencil);
 	}
 
 	void Renderer::WaitForFrame(const Frame& frame)
@@ -282,93 +437,35 @@ namespace Dune::Graphics
 		frame.srvHeap.Reset();
 		frame.samplerHeap.Reset();
 
+		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
+		frame.srvHeap.Allocate(kPersistentSRVCapacity);
+
 		RenderPassContext context
 		{
 			.pRenderer = this,
+			.pCamera = &camera,
 			.pFrameData = &m_frameData,
 			.pBarrier = &m_barrier,
 		};
 
-		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
-		frame.srvHeap.Allocate(kPersistentSRVCapacity);
-
-		// Render shadow, hardcoded for now since I didn't port other render pass
+		for (RenderPass& pass : m_passes)
 		{
-			RenderPass& renderPass = m_passes[0];
-			renderPass.pExecute(context, renderPass.pData);
+			pass.builder.Reset();
+			pass.pSetup(pass.builder, context, pass.pData);
 		}
 
-		dVector<Light>& allLights = m_frameData.lights.allActive;
-		dU32 lightCount = (dU32)allLights.size();
-		if (lightCount > 0)
+		for (RenderPass& pass : m_passes)
 		{
-			Buffer uploadBuffer{};
-			dU32 lightByteSize = (dU32)((lightCount) * sizeof(Light));
-			uploadBuffer.Initialize(device,
-				{
-					.debugName{ L"LightUploadBuffer" },
-					.memory{ EBufferMemory::CPU },
-					.byteSize{ lightByteSize },
-					.initialState{ EResourceState::Undefined }
-				});
+			if (pass.builder.IsEmpty())
+				continue;
 
-			void* pData{ nullptr };
-			uploadBuffer.Map(0, lightByteSize, &pData);
-			memcpy(pData, allLights.data(), sizeof(Light) * allLights.size());
+			for (const ResourceAccess& access : pass.builder.GetReads())
+				TransitionResource(access);
+			for (const ResourceAccess& access : pass.builder.GetWrites())
+				TransitionResource(access);
+			FlushBarriers(frame);
 
-			if (m_lightBuffer.GetByteSize() < lightByteSize)
-			{
-				if (m_lightBuffer.Get())
-					frame.buffersToRelease.push(m_lightBuffer);
-				m_lightBuffer.Initialize(device,
-					{
-						.debugName{ L"LightBuffer" },
-						.memory{ EBufferMemory::GPU },
-						.byteSize{ lightByteSize  },
-						.initialState{ EResourceState::Undefined }
-					});
-				device.CreateSRV(m_lightsSRV, m_lightBuffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
-				device.CopyDescriptors(1, m_lightsSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(m_srvHeap.GetIndex(m_lightsSRV)).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
-			}
-			uploadBuffer.Unmap(0, lightByteSize);
-			frame.commandList.CopyBufferRegion(m_lightBuffer, 0, uploadBuffer, 0, lightByteSize);
-			frame.buffersToRelease.push(uploadBuffer);
-		}
-
-		ForwardGlobals globals;
-		ComputeViewProjectionMatrix(camera, nullptr, nullptr, &globals.viewProjectionMatrix);
-		globals.cameraPosition = camera.position;
-		globals.lightCount = lightCount;
-		globals.lightBufferIndex = m_srvHeap.GetIndex(m_lightsSRV);
-		globals.lightMatricesIndex = m_srvHeap.GetIndex(m_lightMatrices.srv);
-
-		m_barrier.PushTransition(m_swapchain.GetBackBuffer(m_frameIndex).Get(), EResourceState::Present, EResourceState::RenderTarget);
-		m_barrier.PushTransition(frame.hdrTarget.Get(), EResourceState::ShaderResource, EResourceState::RenderTarget);
-		frame.commandList.Transition(m_barrier);
-		m_barrier.Reset();
-
-		Descriptor dsv = m_depthBufferDSV;
-		frame.commandList.ClearRenderTargetView(frame.hdrTargetRTV, frame.hdrTarget.GetClearValue());
-		frame.commandList.ClearDepthBuffer(dsv, m_depthBuffer.GetClearValue()[0], 0);
-
-		Viewport viewport{ 0.0, 0.0, (float)m_pWindow->GetWidth(), (float)m_pWindow->GetHeight(), 0.0f, 1.0f };
-		Scissor scissor{ 0, 0, m_pWindow->GetWidth(), m_pWindow->GetHeight() };
-		frame.commandList.SetViewports(1, &viewport);
-		frame.commandList.SetScissors(1, &scissor);
-
-		frame.commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-		m_depthPrepass.Render(m_frameData, m_pRenderContext->GetResourceManager(), frame.commandList, globals.viewProjectionMatrix);
-
-		frame.commandList.SetRenderTarget(&frame.hdrTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
-		m_forwardPass.Render(m_frameData, *this, frame.commandList, globals);
-
-		m_barrier.PushTransition(frame.hdrTarget.Get(), EResourceState::RenderTarget, EResourceState::ShaderResource);
-		frame.commandList.Transition(m_barrier);
-		m_barrier.Reset();
-		frame.commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
-		{
-			RenderPass& renderPass = m_passes[1];
-			renderPass.pExecute(context, renderPass.pData);
+			pass.pExecute(context, pass.pData);
 		}
 
 		if (m_pImGui)
@@ -377,9 +474,8 @@ namespace Dune::Graphics
 			m_pImGui->Render(frame.commandList);
 		}
 
-		m_barrier.PushTransition(m_swapchain.GetBackBuffer(m_frameIndex).Get(), EResourceState::RenderTarget, EResourceState::Present);
-		frame.commandList.Transition(m_barrier);
-		m_barrier.Reset();
+		TransitionResource({ .handle = frame.backBufferHandle, .state = EResourceState::Present });
+		FlushBarriers(frame);
 
 		frame.commandList.Close();
 		m_commandQueue.ExecuteCommandLists(&frame.commandList, 1);
@@ -387,13 +483,5 @@ namespace Dune::Graphics
 		m_commandQueue.Signal(m_fence, ++m_frameCount);
 		frame.fenceValue = m_frameCount;
 		m_frameIndex = (m_frameIndex + 1) % kFramesInFlight;
-	}
-	
-	void Renderer::RegisterSharedResource(EResourceTag id, void* pResource)
-	{
-		dU32 index = (dU32)id;
-		if (index >= m_sharedResources.size() )
-			m_sharedResources.resize(index+1);
-		m_sharedResources[index] = pResource;
 	}
 }

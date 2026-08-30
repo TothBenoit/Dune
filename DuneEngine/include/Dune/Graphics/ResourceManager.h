@@ -30,15 +30,15 @@ namespace Dune::Graphics
 		void Initialize(Device& device);
 		void Destroy();
 
-		[[nodiscard]] dU32 GetTexture(FileSystem::SerializationID<EResourceType::Image> id, bool sRGB = false);
+		[[nodiscard]] dU32 GetTexture(FileSystem::SerializationID<EFileType::Image> id, bool sRGB = false);
 		[[nodiscard]] Texture& GetTexture(dU32 index) { return m_textures[index]; }
 
-		[[nodiscard]] const ModelData& GetModel(FileSystem::SerializationID<EResourceType::Model> id);
+		[[nodiscard]] const ModelData& GetModel(FileSystem::SerializationID<EFileType::Model> id);
 		[[nodiscard]] Mesh& GetMesh(dU32 index) { return m_meshes[index]; }
 		[[nodiscard]] MaterialData& GetMaterial(dU32 index) { return m_materials[index]; }
 
 	private:
-		void RegisterImageSlot(FileSystem::SerializationID<EResourceType::Image> id, dU32 slot);
+		void RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot);
 		[[nodiscard]] dU32 CreateTextureFromPath(CommandList& commandList, dVector<Buffer>& uploadBuffers, const dString& path, bool sRGB);
 		void ImportModel(const dString& path, ModelData& outModel);
 

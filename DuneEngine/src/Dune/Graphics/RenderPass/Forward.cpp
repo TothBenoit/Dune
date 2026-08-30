@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/Forward.h"
+#include "Dune/Graphics/RenderPass/Shadow.h"
+#include "Dune/Graphics/RenderPass/LightUpload.h"
+#include "Dune/Graphics/RenderPass/DepthPrepass.h"
 #include "Dune/Graphics/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/CommandList.h"
@@ -7,14 +10,20 @@
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/RenderPass.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/ResourceManager.h"
+#include "Dune/Graphics/Window.h"
+#include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
 {
-	void Forward::Initialize(Device& device)
+	ForwardData* Forward::Create(Renderer& renderer)
 	{
+		Device& device = renderer.GetRenderContext()->GetDevice();
+		ForwardData* pData = new ForwardData();
+
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
 
 		Shader forwardVS;
@@ -37,7 +46,7 @@ namespace Dune::Graphics
 			.argsCount = _countof(args),
 		});
 
-		m_forwardRS.Initialize(device,
+		pData->forwardRS.Initialize(device,
 			{
 				.layout =
 				{
@@ -49,11 +58,11 @@ namespace Dune::Graphics
 				.bAllowSRVHeapIndexing = true,
 			});
 
-		m_forwardPSO.Initialize(device,
+		pData->forwardPSO.Initialize(device,
 			{
 				.pVertexShader = &forwardVS,
 				.pPixelShader = &forwardPS,
-				.pRootSignature = &m_forwardRS,
+				.pRootSignature = &pData->forwardRS,
 				.inputLayout =
 				{
 					VertexInput {.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .bPerInstance = false },
@@ -70,30 +79,64 @@ namespace Dune::Graphics
 
 		forwardVS.Destroy();
 		forwardPS.Destroy();
+
+		return pData;
 	}
 
-	void Forward::Destroy()
+	void Forward::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ForwardData* pData)
 	{
-		m_forwardPSO.Destroy();
-		m_forwardRS.Destroy();
+		Renderer& renderer = *context.pRenderer;
+
+		builder.Write(renderer.GetHDRTargetHandle(), EResourceState::RenderTarget);
+		builder.Write(renderer.GetDepthBufferHandle(), EResourceState::DepthStencil);
+
+		ShadowData* pShadowData = renderer.Get<Shadow>();
+		for (ResourceHandle handle : pShadowData->activeHandles)
+			builder.Read(handle, EResourceState::ShaderResource);
+		if (!pShadowData->activeHandles.empty())
+			builder.Read(pShadowData->matricesHandle, EResourceState::ShaderResource);
+
+		LightUploadData* pLightData = renderer.Get<LightUpload>();
+		if (pLightData->lightCount > 0)
+			builder.Read(pLightData->handle, EResourceState::ShaderResource);
 	}
 
-	void Forward::Render(FrameData& frameData, Renderer& renderer, CommandList& commandList, ForwardGlobals& globals)
+	void Forward::Execute(RenderPassContext& context, ForwardData* pData)
 	{
-		commandList.SetGraphicsRootSignature(m_forwardRS);
-		commandList.SetPipelineState(m_forwardPSO);
+		Renderer& renderer = *context.pRenderer;
+		Frame& frame = renderer.GetCurrentFrame();
+		CommandList& commandList = frame.commandList;
+		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
+		RenderContext* pRenderContext = renderer.GetRenderContext();
+		ResourceManager& resourceManager = pRenderContext->GetResourceManager();
+		Device& device = pRenderContext->GetDevice();
+		Window* pWindow = renderer.GetWindow();
+
+		Descriptor dsv = renderer.GetDepthBufferDSV();
+		commandList.ClearRenderTargetView(frame.hdrTargetRTV, frame.hdrTarget.GetClearValue());
+
+		Viewport viewport{ 0.0, 0.0, (float)pWindow->GetWidth(), (float)pWindow->GetHeight(), 0.0f, 1.0f };
+		Scissor scissor{ 0, 0, pWindow->GetWidth(), pWindow->GetHeight() };
+		commandList.SetViewports(1, &viewport);
+		commandList.SetScissors(1, &scissor);
+		commandList.SetRenderTarget(&frame.hdrTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
+
+		ForwardGlobals globals;
+		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
+		globals.cameraPosition = context.pCamera->position;
+		globals.lightCount = renderer.Get<LightUpload>()->lightCount;
+		globals.lightBufferIndex = renderer.Get<LightUpload>()->srvIndex;
+		globals.lightMatricesIndex = renderer.Get<Shadow>()->matricesSRVIndex;
+
+		commandList.SetGraphicsRootSignature(pData->forwardRS);
+		commandList.SetPipelineState(pData->forwardPSO);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
 
-		ScratchDescriptorHeap& srvHeap = renderer.GetCurrentFrame().srvHeap;
-		RenderContext* pContext = renderer.GetRenderContext();
-		ResourceManager& resourceManager = pContext->GetResourceManager();
-		Device& device = pContext->GetDevice();
-
-		for( const RenderInstance& instance : frameData.instances )
+		for( const DrawItem& drawItem : context.pFrameData->drawItems )
 		{
-			Mesh& mesh = resourceManager.GetMesh(instance.data.meshIdx);
-			MaterialData material = resourceManager.GetMaterial(instance.data.materialIdx);
+			Mesh& mesh = resourceManager.GetMesh(drawItem.data.meshIdx);
+			MaterialData material = resourceManager.GetMaterial(drawItem.data.materialIdx);
 
 			if (material.albedoIdx != dU32(-1))
 			{
@@ -120,12 +163,19 @@ namespace Dune::Graphics
 			}
 
 			InstanceData data;
-			data.objectToWorld = instance.objectToWorld;
+			data.objectToWorld = drawItem.objectToWorld;
 			commandList.PushGraphicsConstants(1, &data, sizeof(InstanceData));
 			commandList.PushGraphicsConstants(2, &material, sizeof(MaterialData));
 			commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
 			commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
 			commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
 		}
+	}
+
+	void Forward::Destroy(Renderer&, ForwardData* pData)
+	{
+		pData->forwardPSO.Destroy();
+		pData->forwardRS.Destroy();
+		delete pData;
 	}
 }

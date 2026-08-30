@@ -8,7 +8,7 @@ namespace Dune::SceneLoader
 {
 	bool Load(const char* path, Scene& scene, Graphics::ResourceManager& resourceManager)
 	{
-		FileSystem::SerializationID<EResourceType::Model> id = FileSystem::Resolve<EResourceType::Model>(path);
+		FileSystem::SerializationID<EFileType::Model> id = FileSystem::Resolve<EFileType::Model>(path);
 		const Graphics::ModelData& model = resourceManager.GetModel(id);
 		if (model.nodes.empty())
 			return false;

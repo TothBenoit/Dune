@@ -2,27 +2,27 @@
 
 #include "Dune/Graphics/RHI/RootSignature.h"
 #include "Dune/Graphics/RHI/PipelineState.h"
+#include "Dune/Graphics/RenderPass.h"
 
-namespace Dune
+namespace Dune::Graphics
 {
-	class Scene;
+	class Renderer;
 
-	namespace Graphics
+	struct DepthPrepassData
 	{
-		struct FrameData;
-		class CommandList;
-		class ResourceManager;
-		class DepthPrepass
-		{
-		public:
-			void Initialize(Device& device);
-			void Destroy();
+		RootSignature depthRS;
+		PipelineState depthPSO;
+		ResourceHandle depthHandle;
+	};
 
-			void Render(FrameData& frameData, ResourceManager& resourceManager, CommandList& commandList, const dMatrix4x4& viewProjection);
-
-		private:
-			RootSignature m_depthRS;
-			PipelineState m_depthPSO;
-		};
-	}
+	class DepthPrepass
+	{
+	public:
+		static DepthPrepassData* Create(Renderer& renderer);
+		static void              Setup(RenderGraphBuilder& builder, RenderPassContext& context, DepthPrepassData* pData);
+		static void              Execute(RenderPassContext& context, DepthPrepassData* pData);
+		static void              Destroy(Renderer& renderer, DepthPrepassData* pData);
+	private:
+		DepthPrepass() = delete;
+	};
 }

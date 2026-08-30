@@ -577,20 +577,26 @@ namespace Dune::Graphics
 		delete[] barriers;
 	}
 
-	void Barrier::PushUAV(void* pResource)
+	void Barrier::PushUAV(Resource* pResource)
 	{
 		Assert(m_barrierCount < m_barrierCapacity);
 		D3D12_RESOURCE_BARRIER* barriers = (D3D12_RESOURCE_BARRIER*)Get();
 		D3D12_RESOURCE_BARRIER& barrier = barriers[m_barrierCount++];
-		barrier = CD3DX12_RESOURCE_BARRIER::UAV((ID3D12Resource*)pResource);
+		barrier = CD3DX12_RESOURCE_BARRIER::UAV((ID3D12Resource*)(pResource?pResource->Get() : nullptr));
 	}
 
-	void Barrier::PushTransition(void* pResource, EResourceState stateBefore, EResourceState stateAfter)
+	void Barrier::PushTransition(Resource& resource, EResourceState stateBefore, EResourceState stateAfter, dU32 subresource)
 	{
 		Assert(m_barrierCount < m_barrierCapacity);
 		D3D12_RESOURCE_BARRIER* barriers = (D3D12_RESOURCE_BARRIER*)Get();
 		D3D12_RESOURCE_BARRIER& barrier = barriers[m_barrierCount++];
-		barrier = CD3DX12_RESOURCE_BARRIER::Transition(ToResource(pResource), ToResourceState(stateBefore), ToResourceState(stateAfter));
+		barrier = CD3DX12_RESOURCE_BARRIER::Transition
+		(
+			ToResource(resource.Get()), 
+			ToResourceState(stateBefore), 
+			ToResourceState(stateAfter),
+			(subresource == kAllSubresources) ? D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES : subresource
+		);
 	}
 
 	void CommandAllocator::Initialize(Device& device, ECommandType type)

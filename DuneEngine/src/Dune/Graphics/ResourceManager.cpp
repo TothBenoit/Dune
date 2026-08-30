@@ -47,7 +47,7 @@ namespace Dune::Graphics
 			mesh.Destroy();
 	}
 
-	void ResourceManager::RegisterImageSlot(FileSystem::SerializationID<EResourceType::Image> id, dU32 slot)
+	void ResourceManager::RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot)
 	{
 		if (id.index >= (dU32)m_imageLookup.size())
 			m_imageLookup.resize(id.index + 1, dU32(-1));
@@ -63,7 +63,7 @@ namespace Dune::Graphics
 		return slot;
 	}
 
-	dU32 ResourceManager::GetTexture(FileSystem::SerializationID<EResourceType::Image> id, bool sRGB)
+	dU32 ResourceManager::GetTexture(FileSystem::SerializationID<EFileType::Image> id, bool sRGB)
 	{
 		if (id.index < (dU32)m_imageLookup.size() && m_imageLookup[id.index] != dU32(-1))
 			return m_imageLookup[id.index];
@@ -84,7 +84,7 @@ namespace Dune::Graphics
 
 		Barrier barrier{};
 		barrier.Initialize(1);
-		barrier.PushTransition(m_textures[slot].Get(), EResourceState::CopyDest, EResourceState::ShaderResource);
+		barrier.PushTransition(m_textures[slot], EResourceState::CopyDest, EResourceState::ShaderResource);
 		commandList.Transition(barrier);
 		barrier.Destroy();
 		commandList.Close();
@@ -105,7 +105,7 @@ namespace Dune::Graphics
 		return slot;
 	}
 
-	const ModelData& ResourceManager::GetModel(FileSystem::SerializationID<EResourceType::Model> id)
+	const ModelData& ResourceManager::GetModel(FileSystem::SerializationID<EFileType::Model> id)
 	{
 		if (id.index >= (dU32)m_modelLookup.size())
 			m_modelLookup.resize(id.index + 1, dU32(-1));
@@ -209,7 +209,7 @@ namespace Dune::Graphics
 					dString path = dirPath + texturePath.C_Str();
 					dU32 slot = CreateTextureFromPath(commandList, uploadBuffers, path, true);
 					newTextureSlots.push_back(slot);
-					RegisterImageSlot(FileSystem::Resolve<EResourceType::Image>(path.c_str()), slot);
+					RegisterImageSlot(FileSystem::Resolve<EFileType::Image>(path.c_str()), slot);
 					material.albedoIdx = slot;
 				}
 			}
@@ -220,7 +220,7 @@ namespace Dune::Graphics
 					dString path = dirPath + texturePath.C_Str();
 					dU32 slot = CreateTextureFromPath(commandList, uploadBuffers, path, false);
 					newTextureSlots.push_back(slot);
-					RegisterImageSlot(FileSystem::Resolve<EResourceType::Image>(path.c_str()), slot);
+					RegisterImageSlot(FileSystem::Resolve<EFileType::Image>(path.c_str()), slot);
 					material.normalIdx = slot;
 				}
 			}
@@ -231,7 +231,7 @@ namespace Dune::Graphics
 					dString path = dirPath + texturePath.C_Str();
 					dU32 slot = CreateTextureFromPath(commandList, uploadBuffers, path, false);
 					newTextureSlots.push_back(slot);
-					RegisterImageSlot(FileSystem::Resolve<EResourceType::Image>(path.c_str()), slot);
+					RegisterImageSlot(FileSystem::Resolve<EFileType::Image>(path.c_str()), slot);
 					material.roughnessMetalnessIdx = slot;
 				}
 			}
@@ -253,7 +253,7 @@ namespace Dune::Graphics
 		Barrier barrier{};
 		barrier.Initialize((dU32)newTextureSlots.size());
 		for (dU32 slot : newTextureSlots)
-			barrier.PushTransition(m_textures[slot].Get(), EResourceState::CopyDest, EResourceState::ShaderResource);
+			barrier.PushTransition(m_textures[slot], EResourceState::CopyDest, EResourceState::ShaderResource);
 		commandList.Transition(barrier);
 		barrier.Destroy();
 		commandList.Close();
