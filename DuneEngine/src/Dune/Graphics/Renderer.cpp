@@ -354,16 +354,28 @@ namespace Dune::Graphics
 				m_frameData.lights.shadowCasters.push_back((dU32)m_frameData.lights.allActive.size()-1);
 		});
 
+		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 		{
-			DrawItem drawItem;
-			DirectX::XMStoreFloat4x4(&drawItem.objectToWorld,
+			dMatrix4x4 objectToWorld;
+			DirectX::XMStoreFloat4x4(&objectToWorld,
 				DirectX::XMMatrixScalingFromVector({ transform.scale, transform.scale, transform.scale }) *
 				DirectX::XMMatrixRotationQuaternion(transform.rotation) *
 				DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
 			);
-			drawItem.data = renderData;
-			m_frameData.drawItems.emplace_back(drawItem);
+
+			Mesh& mesh = resourceManager.GetMesh(renderData.meshIdx);
+			Assert(renderData.materialSlotCount == mesh.GetMaterialSlotCount());
+			for (const SubMesh& subMesh : mesh.GetSubMeshes())
+			{
+				DrawItem& drawItem = m_frameData.drawItems.emplace_back();
+				drawItem.objectToWorld = objectToWorld;
+				drawItem.meshIdx = renderData.meshIdx;
+				drawItem.materialIdx = resourceManager.GetMaterialID(renderData.materialSlotStart + subMesh.materialSlot);
+				drawItem.indexOffset = subMesh.indexOffset;
+				drawItem.indexCount = subMesh.indexCount;
+				drawItem.vertexOffset = subMesh.vertexOffset;
+			}
 		});
 	}
 

@@ -137,8 +137,8 @@ namespace Dune::Graphics
 
 		for( const DrawItem& drawItem : context.pFrameData->drawItems )
 		{
-			Mesh& mesh = resourceManager.GetMesh(drawItem.data.meshIdx);
-			MaterialData material = resourceManager.GetMaterial(drawItem.data.materialIdx);
+			Mesh& mesh = resourceManager.GetMesh(drawItem.meshIdx);
+			MaterialData material = resourceManager.GetMaterial(drawItem.materialIdx);
 
 			if (material.albedoIdx != dU32(-1))
 			{
@@ -170,7 +170,7 @@ namespace Dune::Graphics
 			commandList.PushGraphicsConstants(2, &material, sizeof(MaterialData));
 			commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
 			commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
-			commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
+			commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
 		}
 	}
 

@@ -11,12 +11,31 @@ namespace Dune::Graphics
 	class CommandList;
 	class Buffer;
 
+	struct MaterialImportDesc
+	{
+		dVec3   baseColor{ 1.0f, 1.0f, 1.0f };
+		float   metalnessFactor{ 1.0f };
+		float   roughnessFactor{ 1.0f };
+		dString albedoPath;
+		dString normalPath;
+		dString roughnessMetalnessPath;
+	};
+
+	struct MeshImportDesc
+	{
+		dVector<Vertex>  vertices;
+		dVector<dU32>    indices;
+		dVector<SubMesh> subMeshes;
+		dU32             materialSlotCount{ 0 };
+	};
+
 	struct ModelNode
 	{
 		dVec3 position;
 		dQuat rotation;
 		dU32 meshIndex;
-		dU32 materialIndex;
+		dU32 materialSlotStart;
+		dU32 materialSlotCount;
 	};
 
 	struct ModelData
@@ -35,12 +54,16 @@ namespace Dune::Graphics
 
 		[[nodiscard]] const ModelData& GetModel(FileSystem::SerializationID<EFileType::Model> id);
 		[[nodiscard]] Mesh& GetMesh(dU32 index) { return m_meshes[index]; }
-		[[nodiscard]] MaterialData& GetMaterial(dU32 index) { return m_materials[index]; }
+		[[nodiscard]] MaterialData& GetMaterial(dU32 id) { return m_materials[id]; }
+		[[nodiscard]] dU32 GetMaterialID(dU32 slot) const { return m_materialIDs[slot]; }
 
 	private:
 		void RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot);
 		[[nodiscard]] dU32 CreateTextureFromPath(CommandList& commandList, dVector<Buffer>& uploadBuffers, const dString& path, bool sRGB);
+		[[nodiscard]] dU32 CreateMaterial(const MaterialImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots);
+		[[nodiscard]] dU32 CreateMesh(const MeshImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers);
 		void ImportModel(const dString& path, ModelData& outModel);
+		dU32 ResolveTexture(const dString& path, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots, bool sRGB);
 
 	private:
 		Device* m_pDevice{ nullptr }; // TODO Cleanup : A ResourceManager is owned by a RenderContext which already own a device. The resource manager should not need this
@@ -48,6 +71,7 @@ namespace Dune::Graphics
 		dVector<Texture>      m_textures;
 		dVector<Mesh>         m_meshes;
 		dVector<MaterialData> m_materials;
+		dVector<dU32>         m_materialIDs;
 
 		dVector<dU32>         m_imageLookup;
 		dVector<dU32>         m_modelLookup;

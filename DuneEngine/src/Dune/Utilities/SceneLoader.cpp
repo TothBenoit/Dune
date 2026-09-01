@@ -25,7 +25,8 @@ namespace Dune::SceneLoader
 
 			RenderData& renderData = scene.registry.emplace<RenderData>(entity);
 			renderData.meshIdx = node.meshIndex;
-			renderData.materialIdx = node.materialIndex;
+			renderData.materialSlotStart = node.materialSlotStart;
+			renderData.materialSlotCount = node.materialSlotCount;
 		}
 
 		return true;

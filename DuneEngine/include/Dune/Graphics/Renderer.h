@@ -48,7 +48,11 @@ namespace Dune
 		struct DrawItem
 		{
 			dMatrix4x4 objectToWorld;
-			RenderData data;
+			dU32 meshIdx;
+			dU32 materialIdx;
+			dU32 indexOffset;
+			dU32 indexCount;
+			dU32 vertexOffset;
 		};
 
 		struct FrameData

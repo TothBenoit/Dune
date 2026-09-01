@@ -32,44 +32,26 @@ namespace Dune::Graphics
 		uploadBuffer.Unmap(0, 0);
 	}
 
-	void Mesh::Initialize(Device& device, CommandList& commandList, Buffer& uploadBuffer, const dU16* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
+	void Mesh::Initialize(Device& device, CommandList& commandList, Buffer& uploadBuffer, const MeshDesc& desc)
 	{
-		m_indexCount = indexCount;
-		m_vertexCount = vertexCount;
-		m_vertexByteStride = vertexByteStride;
-		m_isIndex32bits = false;
+		m_subMeshes.assign(desc.pSubMeshes, desc.pSubMeshes + desc.subMeshCount);
+		m_materialSlotCount = desc.materialSlotCount;
+		m_isIndex32bits = desc.bIndex32bits;
+		m_vertexByteStride = desc.vertexByteStride;
+		m_vertexCount = desc.vertexCount;
+		m_indexCount = desc.indexCount;
 
-		dU32 vertexByteSize = vertexCount * vertexByteStride;
-		dU32 indexByteSize = indexCount * sizeof(dU16);
+		dU32 vertexByteSize = m_vertexCount * m_vertexByteStride;
+		dU32 indexByteSize = m_indexCount * (m_isIndex32bits ? sizeof(dU32) : sizeof(dU16));
 		dU32 uploadByteSize = vertexByteSize + indexByteSize;
 
-		BufferDesc desc{ L"UploadBuffer", EBufferUsage::Default, EBufferMemory::CPU, uploadByteSize };
-		uploadBuffer.Initialize(device, desc);
+		BufferDesc uploadBufferDesc{ L"UploadBuffer", EBufferUsage::Default, EBufferMemory::CPU, uploadByteSize };
+		uploadBuffer.Initialize(device, uploadBufferDesc);
 
 		m_indexBuffer = CreateIndexBuffer(device, indexByteSize);
-		UploadBuffer(commandList, m_indexBuffer, uploadBuffer, pIndices, indexByteSize, 0);
+		UploadBuffer(commandList, m_indexBuffer, uploadBuffer, desc.pIndices, indexByteSize, 0);
 		m_vertexBuffer = CreateVertexBuffer(device, vertexByteSize);
-		UploadBuffer(commandList, m_vertexBuffer, uploadBuffer, pVertices, vertexByteSize, indexByteSize);
-	}
-
-	void Mesh::Initialize(Device& device, CommandList& commandList, Buffer& uploadBuffer, const dU32* pIndices, dU32 indexCount, const void* pVertices, dU32 vertexCount, dU32 vertexByteStride)
-	{
-		m_indexCount = indexCount;
-		m_vertexCount = vertexCount;
-		m_vertexByteStride = vertexByteStride;
-		m_isIndex32bits = true;
-
-		dU32 vertexByteSize = vertexCount * vertexByteStride;
-		dU32 indexByteSize = indexCount * sizeof(dU32);
-		dU32 uploadByteSize = vertexByteSize + indexByteSize;
-
-		BufferDesc desc{ L"UploadBuffer", EBufferUsage::Default, EBufferMemory::CPU, uploadByteSize };
-		uploadBuffer.Initialize(device, desc);
-
-		m_indexBuffer = CreateIndexBuffer(device, indexByteSize);
-		UploadBuffer(commandList, m_indexBuffer, uploadBuffer, pIndices, indexByteSize, 0 );
-		m_vertexBuffer = CreateVertexBuffer(device, vertexByteSize);
-		UploadBuffer(commandList, m_vertexBuffer, uploadBuffer, pVertices, vertexByteSize, indexByteSize);
+		UploadBuffer(commandList, m_vertexBuffer, uploadBuffer, desc.pVertices, vertexByteSize, indexByteSize);
 	}
 
 	void Mesh::Destroy()

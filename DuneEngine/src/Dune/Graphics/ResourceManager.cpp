@@ -13,25 +13,116 @@
 
 namespace Dune::Graphics
 {
-	static void ImportNode(const aiNode* pNode, ModelData& outModel, const dVector<dU32>& meshSlots, const dVector<dU32>& materialSlots, const aiMatrix4x4& parentTransform)
+
+	struct NodeRef
+	{
+		const aiNode* pNode;
+		dVec3         position;
+		dQuat         rotation;
+	};
+
+	static void FlattenNodes(const aiNode* pNode, const aiMatrix4x4& parentTransform, dVector<NodeRef>& outNodes)
 	{
 		aiMatrix4x4 worldTransform = pNode->mTransformation * parentTransform;
-		aiQuaternion aiRotation;
-		aiVector3D aiPosition;
-		worldTransform.DecomposeNoScaling(aiRotation, aiPosition);
 
-		for (dU32 i = 0; i < pNode->mNumMeshes; i++)
+		if (pNode->mNumMeshes > 0)
 		{
-			dU32 meshIdx = pNode->mMeshes[i];
-			ModelNode& node = outModel.nodes.emplace_back();
-			node.position = { aiPosition.x, aiPosition.y, aiPosition.z };
-			node.rotation = { aiRotation.x, aiRotation.y, aiRotation.z, aiRotation.w };
-			node.meshIndex = meshSlots[meshIdx];
-			node.materialIndex = materialSlots[meshIdx];
+			aiQuaternion aiRotation;
+			aiVector3D   aiPosition;
+			worldTransform.DecomposeNoScaling(aiRotation, aiPosition);
+			outNodes.push_back({ pNode, { aiPosition.x, aiPosition.y, aiPosition.z }, { aiRotation.x, aiRotation.y, aiRotation.z, aiRotation.w } });
 		}
 
 		for (dU32 i = 0; i < pNode->mNumChildren; i++)
-			ImportNode(pNode->mChildren[i], outModel, meshSlots, materialSlots, worldTransform);
+			FlattenNodes(pNode->mChildren[i], worldTransform, outNodes);
+	}
+
+	static void ExtractMaterial(const aiMaterial* pMaterial, const dString& dirPath, MaterialImportDesc& out)
+	{
+		out = {};
+		aiString texturePath;
+		if (pMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &texturePath) == aiReturn_SUCCESS)
+			out.albedoPath = dirPath + texturePath.C_Str();
+		if (pMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == aiReturn_SUCCESS)
+			out.normalPath = dirPath + texturePath.C_Str();
+		if (pMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath) == aiReturn_SUCCESS)
+			out.roughnessMetalnessPath = dirPath + texturePath.C_Str();
+
+		aiUVTransform data;
+		if (pMaterial->Get(AI_MATKEY_BASE_COLOR, data) == aiReturn_SUCCESS)
+			out.baseColor = *((dVec3*)&data);
+		if (pMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, data) == aiReturn_SUCCESS)
+			out.roughnessFactor = *(float*)(&data);
+		if (pMaterial->Get(AI_MATKEY_METALLIC_FACTOR, data) == aiReturn_SUCCESS)
+			out.metalnessFactor = *(float*)(&data);
+	}
+
+	static void ExtractNodeMesh(const aiNode* pNode, const aiScene* pScene, MeshImportDesc& outMesh, dVector<dU32>& outMaterialIndices)
+	{
+		if (pNode->mNumMeshes > 0)
+		{
+			dVector<Vertex>&  vertices = outMesh.vertices;
+			dVector<dU32>&    indices = outMesh.indices;
+			dVector<SubMesh>& subMeshes = outMesh.subMeshes;
+			subMeshes.reserve(pNode->mNumMeshes);
+
+			for (dU32 i = 0; i < pNode->mNumMeshes; i++)
+			{
+				const aiMesh* pMesh = pScene->mMeshes[pNode->mMeshes[i]];
+
+				dU32 materialSlot;
+				for (materialSlot = 0; materialSlot < (dU32)outMaterialIndices.size(); materialSlot++)
+					if (outMaterialIndices[materialSlot] == pMesh->mMaterialIndex)
+						break;
+				if (materialSlot == outMaterialIndices.size())
+					outMaterialIndices.push_back(pMesh->mMaterialIndex);
+
+				SubMesh& subMesh = subMeshes.emplace_back();
+				subMesh.vertexOffset = (dU32)vertices.size();
+				subMesh.indexOffset = (dU32)indices.size();
+				subMesh.indexCount = pMesh->mNumFaces * 3;
+				subMesh.materialSlot = materialSlot;
+
+				for (dU32 vertexIdx = 0; vertexIdx < pMesh->mNumVertices; vertexIdx++)
+				{
+					Vertex vertex{};
+					const aiVector3D& position = pMesh->mVertices[vertexIdx];
+					vertex.position = { position.x, position.y, position.z };
+
+					if (pMesh->HasNormals())
+					{
+						const aiVector3D& normal = pMesh->mNormals[vertexIdx];
+						vertex.normal = { normal.x, normal.y, normal.z };
+
+						if (pMesh->HasTangentsAndBitangents())
+						{
+							float dotResult;
+							const aiVector3D& tangent = pMesh->mTangents[vertexIdx];
+							const aiVector3D& bitangent = pMesh->mBitangents[vertexIdx];
+							dVec computedBitangent = DirectX::XMVector3Cross({ normal.x, normal.y, normal.z }, { tangent.x, tangent.y, tangent.z });
+							DirectX::XMStoreFloat(&dotResult, DirectX::XMVector3Dot(computedBitangent, { bitangent.x, bitangent.y, bitangent.z, }));
+							vertex.tangent = { tangent.x, tangent.y, tangent.z, dotResult > 0.0f ? 1.0f : -1.0f };
+						}
+					}
+
+					if (pMesh->GetNumUVChannels() > 0)
+					{
+						const aiVector3D& uv = pMesh->mTextureCoords[0][vertexIdx];
+						vertex.uv = { uv.x, uv.y };
+						vertices.push_back(vertex);
+					}
+				}
+					
+				for (dU32 f = 0; f < pMesh->mNumFaces; f++)
+				{
+					const aiFace& face = pMesh->mFaces[f];
+					indices.push_back(face.mIndices[0]);
+					indices.push_back(face.mIndices[1]);
+					indices.push_back(face.mIndices[2]);
+				}
+			}
+			outMesh.materialSlotCount = (dU32)outMaterialIndices.size();
+		}
 	}
 
 	void ResourceManager::Initialize(Device& device)
@@ -61,6 +152,62 @@ namespace Dune::Graphics
 		dU32 slot = (dU32)m_textures.size();
 		m_textures.push_back(texture);
 		return slot;
+	}
+
+	dU32 ResourceManager::ResolveTexture(const dString& path, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots, bool sRGB)
+	{
+		if (path.empty())
+			return dU32(-1);
+		FileSystem::SerializationID<EFileType::Image> id = FileSystem::Resolve<EFileType::Image>(path.c_str());
+		dU32 slot = id.index < (dU32)m_imageLookup.size() ? m_imageLookup[id.index] : dU32(-1);
+		if (slot == dU32(-1))
+		{
+			slot = CreateTextureFromPath(commandList, uploadBuffers, path, sRGB);
+			newTextureSlots.push_back(slot);
+			RegisterImageSlot(id, slot);
+		}
+		return slot;
+	};
+
+	dU32 ResourceManager::CreateMaterial(const MaterialImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots)
+	{
+		MaterialData material
+		{
+			.baseColor = desc.baseColor,
+			.metalnessFactor = desc.metalnessFactor,
+			.roughnessFactor = desc.roughnessFactor,
+			.albedoIdx = dU32(-1),
+			.normalIdx = dU32(-1),
+			.roughnessMetalnessIdx = dU32(-1),
+		};
+
+		material.albedoIdx = ResolveTexture(desc.albedoPath, commandList, uploadBuffers, newTextureSlots, true);
+		material.normalIdx = ResolveTexture(desc.normalPath, commandList, uploadBuffers, newTextureSlots, false);
+		material.roughnessMetalnessIdx = ResolveTexture(desc.roughnessMetalnessPath, commandList, uploadBuffers, newTextureSlots, false);
+
+		m_materials.push_back(material);
+		return (dU32)m_materials.size() - 1;
+	}
+
+	dU32 ResourceManager::CreateMesh(const MeshImportDesc& importDesc, CommandList& commandList, dVector<Buffer>& uploadBuffers)
+	{
+		Mesh mesh{};
+		Buffer& uploadBuffer = uploadBuffers.emplace_back();
+		MeshDesc desc
+		{
+			.pVertices = importDesc.vertices.data(),
+			.vertexCount = (dU32)importDesc.vertices.size(),
+			.vertexByteStride = sizeof(Vertex),
+			.pIndices = importDesc.indices.data(),
+			.indexCount = (dU32)importDesc.indices.size(),
+			.bIndex32bits = true,
+			.pSubMeshes = importDesc.subMeshes.data(),
+			.subMeshCount = (dU32)importDesc.subMeshes.size(),
+			.materialSlotCount = importDesc.materialSlotCount
+		};
+		mesh.Initialize(*m_pDevice, commandList, uploadBuffer, desc);
+		m_meshes.push_back(mesh);
+		return (dU32)m_meshes.size() - 1;
 	}
 
 	dU32 ResourceManager::GetTexture(FileSystem::SerializationID<EFileType::Image> id, bool sRGB)
@@ -143,112 +290,47 @@ namespace Dune::Graphics
 		commandAllocator.Reset();
 		commandList.Reset(commandAllocator);
 
-		dU32 meshCount = pScene->mNumMeshes;
-		dVector<dU32> meshSlots(meshCount);
-		dVector<dU32> materialSlots(meshCount);
 		dVector<Buffer> uploadBuffers;
-		dVector<dU32> newTextureSlots;
+		dVector<dU32>   newTextureSlots;
 
-		for (dU32 meshIdx = 0; meshIdx < meshCount; meshIdx++)
+		dVector<NodeRef> nodeRefs;
+		FlattenNodes(pScene->mRootNode, {}, nodeRefs);
+
+		constexpr dU32 kInvalidMaterialIdx = dU32(-1);
+		dVector<dU32> materialLookup(pScene->mNumMaterials, kInvalidMaterialIdx);
+
+		MeshImportDesc meshDesc;
+		dVector<dU32>  nodeMaterials;
+		for (const NodeRef& ref : nodeRefs)
 		{
-			const aiMesh* pMesh = pScene->mMeshes[meshIdx];
-			dU32 vertexCount = pMesh->mNumVertices;
-			dVector<Vertex> vertices(vertexCount);
-			for (dU32 vertexIdx = 0; vertexIdx < vertexCount; vertexIdx++)
+			meshDesc.vertices.clear();
+			meshDesc.indices.clear();
+			meshDesc.subMeshes.clear();
+			nodeMaterials.clear();
+			ExtractNodeMesh(ref.pNode, pScene, meshDesc, nodeMaterials);
+
+			if (nodeMaterials.size() == 0)
+				continue;
+
+			ModelNode& node = outModel.nodes.emplace_back();
+			node.position = ref.position;
+			node.rotation = ref.rotation;
+			node.meshIndex = CreateMesh(meshDesc, commandList, uploadBuffers);
+			node.materialSlotStart = (dU32)m_materialIDs.size();
+			node.materialSlotCount = (dU32)nodeMaterials.size();
+
+			for (dU32 aiMaterialIdx : nodeMaterials)
 			{
-				Vertex& vertex{ vertices[vertexIdx] };
-				const aiVector3D& position = pMesh->mVertices[vertexIdx];
-				vertex.position = { position.x, position.y, position.z };
-
-				const aiVector3D& normal = pMesh->mNormals[vertexIdx];
-				vertex.normal = { normal.x, normal.y, normal.z };
-
-				float dotResult;
-				const aiVector3D& tangent = pMesh->mTangents[vertexIdx];
-				const aiVector3D& bitangent = pMesh->mBitangents[vertexIdx];
-				dVec computedBitangent = DirectX::XMVector3Cross({ normal.x, normal.y, normal.z }, { tangent.x, tangent.y, tangent.z });
-				DirectX::XMStoreFloat(&dotResult, DirectX::XMVector3Dot(computedBitangent, { bitangent.x, bitangent.y, bitangent.z, }));
-				vertex.tangent = { tangent.x, tangent.y, tangent.z, dotResult > 0.0f ? 1.0f : -1.0f };
-
-				const aiVector3D& uv = pMesh->mTextureCoords[0][vertexIdx];
-				vertex.uv = { uv.x, uv.y };
-			}
-
-			dU32 faceCount = pMesh->mNumFaces;
-			dU32 indexCount = faceCount * 3;
-			dVector<dU32> indices(indexCount);
-			dU32 index = 0;
-			for (dU32 faceIdx = 0; faceIdx < faceCount; faceIdx++)
-			{
-				const aiFace& face = pMesh->mFaces[faceIdx];
-				for (dU32 i = 0; i < 3; i++)
-					indices[index++] = face.mIndices[i];
-			}
-
-			Mesh mesh{};
-			Buffer& uploadBuffer = uploadBuffers.emplace_back();
-			mesh.Initialize(*m_pDevice, commandList, uploadBuffer, indices.data(), (dU32)indices.size(), vertices.data(), (dU32)vertices.size(), sizeof(Vertex));
-			meshSlots[meshIdx] = (dU32)m_meshes.size();
-			m_meshes.push_back(mesh);
-
-			MaterialData material
-			{
-				.baseColor = { 1.0f, 1.0f, 1.0f },
-				.metalnessFactor = 1.0f,
-				.roughnessFactor = 1.0f,
-				.albedoIdx = dU32(-1),
-				.normalIdx = dU32(-1),
-				.roughnessMetalnessIdx = dU32(-1),
-			};
-
-			const aiMaterial* pMaterial = pScene->mMaterials[pMesh->mMaterialIndex];
-			{
-				aiString texturePath;
-				if (pMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &texturePath) == aiReturn_SUCCESS)
+				dU32 materialIndex = materialLookup[aiMaterialIdx];
+				if (materialIndex == kInvalidMaterialIdx)
 				{
-					dString path = dirPath + texturePath.C_Str();
-					dU32 slot = CreateTextureFromPath(commandList, uploadBuffers, path, true);
-					newTextureSlots.push_back(slot);
-					RegisterImageSlot(FileSystem::Resolve<EFileType::Image>(path.c_str()), slot);
-					material.albedoIdx = slot;
+					MaterialImportDesc materialDesc;
+					ExtractMaterial(pScene->mMaterials[aiMaterialIdx], dirPath, materialDesc);
+					materialLookup[aiMaterialIdx] = materialIndex = CreateMaterial(materialDesc, commandList, uploadBuffers, newTextureSlots);
 				}
+				m_materialIDs.push_back(materialIndex);
 			}
-			{
-				aiString texturePath;
-				if (pMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == aiReturn_SUCCESS)
-				{
-					dString path = dirPath + texturePath.C_Str();
-					dU32 slot = CreateTextureFromPath(commandList, uploadBuffers, path, false);
-					newTextureSlots.push_back(slot);
-					RegisterImageSlot(FileSystem::Resolve<EFileType::Image>(path.c_str()), slot);
-					material.normalIdx = slot;
-				}
-			}
-			{
-				aiString texturePath;
-				if (pMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath) == aiReturn_SUCCESS)
-				{
-					dString path = dirPath + texturePath.C_Str();
-					dU32 slot = CreateTextureFromPath(commandList, uploadBuffers, path, false);
-					newTextureSlots.push_back(slot);
-					RegisterImageSlot(FileSystem::Resolve<EFileType::Image>(path.c_str()), slot);
-					material.roughnessMetalnessIdx = slot;
-				}
-			}
-
-			aiUVTransform data;
-			if (pMaterial->Get(AI_MATKEY_BASE_COLOR, data) == aiReturn_SUCCESS)
-				material.baseColor = *((dVec3*)&data);
-			if (pMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, data) == aiReturn_SUCCESS)
-				material.roughnessFactor = *(float*)(&data);
-			if (pMaterial->Get(AI_MATKEY_METALLIC_FACTOR, data) == aiReturn_SUCCESS)
-				material.metalnessFactor = *(float*)(&data);
-
-			materialSlots[meshIdx] = (dU32)m_materials.size();
-			m_materials.push_back(material);
 		}
-
-		ImportNode(pScene->mRootNode, outModel, meshSlots, materialSlots, {});
 
 		Barrier barrier{};
 		barrier.Initialize((dU32)newTextureSlots.size());

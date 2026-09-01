@@ -96,10 +96,10 @@ namespace Dune::Graphics
 			data.objectToWorld = drawItem.objectToWorld;
 
 			commandList.PushGraphicsConstants(1, &data.objectToWorld, sizeof(InstanceData));
-			Mesh& mesh = resourceManager.GetMesh(drawItem.data.meshIdx);
+			Mesh& mesh = resourceManager.GetMesh(drawItem.meshIdx);
 			commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
 			commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
-			commandList.DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
+			commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
 		}
 	}
 

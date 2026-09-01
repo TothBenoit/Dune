@@ -13,8 +13,9 @@ namespace Dune
 
 	struct RenderData
 	{
-		dU32 materialIdx;
 		dU32 meshIdx;
+		dU32 materialSlotStart;
+		dU32 materialSlotCount;
 	};
 
 	struct Name
