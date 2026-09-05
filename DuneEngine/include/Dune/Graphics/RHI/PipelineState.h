@@ -9,41 +9,77 @@ namespace Dune::Graphics
 	class Shader;
 	class RootSignature;
 
-	enum class ECullingMode
+	enum class EBlendFactor : dU8
+	{ 
+		Zero,
+		One,
+		SrcAlpha,
+		InvSrcAlpha,
+		SrcColor,
+		InvSrcColor,
+		DstAlpha,
+		InvDstAlpha
+	};
+
+	enum class EBlendOp : dU8
+	{ 
+		Add,
+		Subtract,
+		ReverseSubtract,
+		Min,
+		Max
+	};
+
+	struct BlendState
 	{
-		NONE = 1,
-		FRONT = 2,
-		BACK = 3
+		EBlendFactor srcColor{ EBlendFactor::SrcAlpha };
+		EBlendFactor dstColor{ EBlendFactor::InvSrcAlpha };
+		EBlendOp     colorOp { EBlendOp::Add };
+		EBlendFactor srcAlpha{ EBlendFactor::One };
+		EBlendFactor dstAlpha{ EBlendFactor::InvSrcAlpha };
+		EBlendOp     alphaOp { EBlendOp::Add };
+		bool         bBlendEnable : 1 { false };
+		bool         bRedEnable   : 1 { true };
+		bool         bGreenEnable : 1 { true };
+		bool         bBlueEnable  : 1 { true };
+		bool         bAlphaEnable : 1 { true };
+	};
+
+	enum class ECullingMode : dU8
+	{
+		None  = 1,
+		Front = 2,
+		Back  = 3
 	};
 
 	struct RasterizerState
 	{
-		ECullingMode cullingMode{ ECullingMode::BACK };
-		dS32 depthBias{ 0 };
-		float depthBiasClamp{ 0.0f };
-		float slopeScaledDepthBias{ 0.0f };
-		bool bDepthClipEnable : 1 { true };
-		bool bWireframe : 1 { false };
+		dS32         depthBias{ 0 };
+		float        depthBiasClamp{ 0.0f };
+		float        slopeScaledDepthBias{ 0.0f };
+		ECullingMode cullingMode{ ECullingMode::Back };
+		bool         bDepthClipEnable : 1 { true };
+		bool         bWireframe : 1 { false };
 	};
 
-	enum class ECompFunc
+	enum class ECompFunc : dU8
 	{
-		NONE,
-		NEVER = 1,
-		LESS = 2,
-		EQUAL = 3,
-		LESS_EQUAL = 4,
-		GREATER = 5,
-		NOT_EQUAL = 6,
-		GREATER_EQUAL = 7,
-		ALWAYS = 8
+		None,
+		Never,
+		Less,
+		Equal,
+		LessEqual,
+		Greater,
+		NotEqual,
+		GreaterEqual,
+		Always
 	};
 
 	struct DepthStencilState
 	{
+		ECompFunc   bDepthFunc{ ECompFunc::LessEqual };
 		bool        bDepthEnabled : 1 { false };
-		bool        bDepthWrite : 1	{ false };
-		ECompFunc   bDepthFunc{ ECompFunc::LESS_EQUAL };
+		bool        bDepthWrite   : 1 { false };
 		// TODO: Add stencil
 	};
 
@@ -68,7 +104,10 @@ namespace Dune::Graphics
 		DepthStencilState       depthStencilState;
 
 		dU8                     renderTargetCount{ 0 };
+		bool                    alphaToCoverageEnable  : 1 { false };
+		bool                    independentBlendEnable : 1 { false };
 		EFormat                 renderTargetsFormat[8];
+		BlendState              renderTargetsBlend[8];
 		EFormat                 depthStencilFormat;
 	};
 

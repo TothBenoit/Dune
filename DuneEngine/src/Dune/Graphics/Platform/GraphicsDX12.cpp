@@ -1543,28 +1543,105 @@ namespace Dune::Graphics
 	{
 		switch (func)
 		{
-		case ECompFunc::NONE:
+		case ECompFunc::None:
 			return D3D12_COMPARISON_FUNC_NONE;
-		case ECompFunc::NEVER:
+		case ECompFunc::Never:
 			return D3D12_COMPARISON_FUNC_NEVER;
-		case ECompFunc::LESS:
+		case ECompFunc::Less:
 			return D3D12_COMPARISON_FUNC_LESS;
-		case ECompFunc::EQUAL:
+		case ECompFunc::Equal:
 			return D3D12_COMPARISON_FUNC_EQUAL;
-		case ECompFunc::LESS_EQUAL:
+		case ECompFunc::LessEqual:
 			return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-		case ECompFunc::GREATER:
+		case ECompFunc::Greater:
 			return D3D12_COMPARISON_FUNC_GREATER;
-		case ECompFunc::NOT_EQUAL:
+		case ECompFunc::NotEqual:
 			return D3D12_COMPARISON_FUNC_NOT_EQUAL;
-		case ECompFunc::GREATER_EQUAL:
+		case ECompFunc::GreaterEqual:
 			return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-		case ECompFunc::ALWAYS:
+		case ECompFunc::Always:
 			return D3D12_COMPARISON_FUNC_ALWAYS;
 		default:
 			break;
 		}
 		return D3D12_COMPARISON_FUNC_NONE;
+	}
+
+	constexpr D3D12_BLEND ConvertBlendFactor(EBlendFactor factor)
+	{
+		switch (factor)
+		{
+		case EBlendFactor::Zero:
+			return D3D12_BLEND_ZERO;
+		case EBlendFactor::One:
+			return D3D12_BLEND_ONE;
+		case EBlendFactor::SrcAlpha:
+			return D3D12_BLEND_SRC_ALPHA;
+		case EBlendFactor::InvSrcAlpha:
+			return D3D12_BLEND_INV_SRC_ALPHA;
+		case EBlendFactor::SrcColor:
+			return D3D12_BLEND_SRC_COLOR;
+		case EBlendFactor::InvSrcColor:
+			return D3D12_BLEND_INV_SRC_COLOR;
+		case EBlendFactor::DstAlpha:
+			return D3D12_BLEND_DEST_ALPHA;
+		case EBlendFactor::InvDstAlpha:
+			return D3D12_BLEND_INV_DEST_ALPHA;
+		default:
+			break;
+		}
+		return D3D12_BLEND_ONE;
+	}
+
+	constexpr D3D12_BLEND_OP ConvertBlendOp(EBlendOp op)
+	{
+		switch (op)
+		{
+		case EBlendOp::Add:
+			return D3D12_BLEND_OP_ADD;
+		case EBlendOp::Subtract:
+			return D3D12_BLEND_OP_SUBTRACT;
+		case EBlendOp::ReverseSubtract:
+			return D3D12_BLEND_OP_REV_SUBTRACT;
+		case EBlendOp::Min:
+			return D3D12_BLEND_OP_MIN;
+		case EBlendOp::Max:
+			return D3D12_BLEND_OP_MAX;
+		default:
+			break;
+		}
+		return D3D12_BLEND_OP_ADD;
+	}
+
+	constexpr UINT8 ConvertColorWriteMask(const BlendState& blendState)
+	{
+		UINT8 writeMask{ 0 };
+		if (blendState.bRedEnable)
+			writeMask |= D3D12_COLOR_WRITE_ENABLE_RED;
+		if (blendState.bGreenEnable)
+			writeMask |= D3D12_COLOR_WRITE_ENABLE_GREEN;
+		if (blendState.bBlueEnable)
+			writeMask |= D3D12_COLOR_WRITE_ENABLE_BLUE;
+		if (blendState.bAlphaEnable)
+			writeMask |= D3D12_COLOR_WRITE_ENABLE_ALPHA;
+		return writeMask;
+	}
+
+	constexpr D3D12_RENDER_TARGET_BLEND_DESC ConvertBlendState(const BlendState& blendState)
+	{
+		return D3D12_RENDER_TARGET_BLEND_DESC
+		{
+			.BlendEnable = blendState.bBlendEnable,
+			.LogicOpEnable = FALSE,
+			.SrcBlend = ConvertBlendFactor(blendState.srcColor),
+			.DestBlend = ConvertBlendFactor(blendState.dstColor),
+			.BlendOp = ConvertBlendOp(blendState.colorOp),
+			.SrcBlendAlpha = ConvertBlendFactor(blendState.srcAlpha),
+			.DestBlendAlpha = ConvertBlendFactor(blendState.dstAlpha),
+			.BlendOpAlpha = ConvertBlendOp(blendState.alphaOp),
+			.LogicOp = D3D12_LOGIC_OP_NOOP,
+			.RenderTargetWriteMask = ConvertColorWriteMask(blendState),
+		};
 	}
 
 	void PipelineState::Initialize(Device& device, const GraphicsPipelineDesc& desc)
@@ -1601,6 +1678,8 @@ namespace Dune::Graphics
 		psoDesc.RasterizerState.DepthClipEnable = desc.rasterizerState.bDepthClipEnable;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		psoDesc.BlendState.AlphaToCoverageEnable = desc.alphaToCoverageEnable;
+		psoDesc.BlendState.IndependentBlendEnable = desc.independentBlendEnable;
 		psoDesc.DepthStencilState.DepthEnable = desc.depthStencilState.bDepthEnabled;
 		psoDesc.DepthStencilState.DepthWriteMask = (desc.depthStencilState.bDepthWrite) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
 		psoDesc.DepthStencilState.DepthFunc = ConvertDepthFunc(desc.depthStencilState.bDepthFunc);
@@ -1608,7 +1687,10 @@ namespace Dune::Graphics
 		dU8 renderTargetCount = desc.renderTargetCount;
 		psoDesc.NumRenderTargets = renderTargetCount;
 		for (dU8 i = 0; i < renderTargetCount; i++)
+		{
 			psoDesc.RTVFormats[i] = (DXGI_FORMAT)desc.renderTargetsFormat[i];
+			psoDesc.BlendState.RenderTarget[i] = ConvertBlendState(desc.renderTargetsBlend[i]);
+		}
 		psoDesc.DSVFormat = (DXGI_FORMAT)desc.depthStencilFormat;
 		psoDesc.SampleDesc.Count = 1;
 		ID3D12PipelineState* pPipelineState{ nullptr };
