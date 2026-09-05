@@ -207,7 +207,7 @@ namespace Dune::Graphics
 		{
 			const DrawItem& drawItem = frameData.drawItems[drawIdx];
 			Assert(drawItem.materialVariant < Material::kDepthVariantCount);
-			Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
+			const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
 			Assert(material.alphaMode != EAlphaMode::Blend);
 
 			if (currentVariant != drawItem.materialVariant)

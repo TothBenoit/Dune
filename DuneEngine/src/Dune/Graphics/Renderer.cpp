@@ -378,7 +378,7 @@ namespace Dune::Graphics
 				drawItem.indexOffset = subMesh.indexOffset;
 				drawItem.indexCount = subMesh.indexCount;
 				drawItem.vertexOffset = subMesh.vertexOffset;
-				Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
+				const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
 				drawItem.materialVariant = material.GetVariant();
 				m_frameData.blendingMaterialCount += material.alphaMode == EAlphaMode::Blend ? 1 : 0;
 			}

@@ -150,13 +150,13 @@ namespace Dune::Graphics
 		for( const DrawItem& drawItem : context.pFrameData->drawItems )
 		{
 			Mesh& mesh = resourceManager.GetMesh(drawItem.meshIdx);
-			Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
+			const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
 			MaterialData materialData = material.shaderData;
 
-			dU32 variant = material.GetVariant();
+			dU32 variant = drawItem.materialVariant;
 			if (currentVariant != variant)
 			{
-				commandList.SetPipelineState(pData->forwardPSO[material.GetVariant()]);
+				commandList.SetPipelineState(pData->forwardPSO[variant]);
 				currentVariant = variant;
 			}
 
