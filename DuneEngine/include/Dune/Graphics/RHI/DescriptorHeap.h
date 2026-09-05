@@ -37,8 +37,9 @@ namespace Dune::Graphics
 		[[nodiscard]] inline dU32 GetCapacity() const { return m_capacity; }
 		[[nodiscard]] inline dU32 GetIndex(Descriptor descriptor) const { return dU32(descriptor.cpuAddress - m_cpuAddress) / m_descriptorSize; }
 		[[nodiscard]] inline dU64 GetCPUAddress() const { return m_cpuAddress; }
+		[[nodiscard]] inline dU32 GetDescriptorSize() const { return m_descriptorSize; }
 
-		[[nodiscard]] Descriptor GetDescriptorAt(dU32 index) const;
+		[[nodiscard]] Descriptor  GetDescriptorAt(dU32 index) const;
 
 	protected:
 		dU64 m_cpuAddress{ 0 };

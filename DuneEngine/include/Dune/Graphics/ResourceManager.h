@@ -2,6 +2,7 @@
 
 #include "Dune/Core/FileSystem.h"
 #include "Dune/Graphics/RHI/Texture.h"
+#include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/Material.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
@@ -50,6 +51,8 @@ namespace Dune::Graphics
 	class ResourceManager
 	{
 	public:
+		static constexpr dU32 kSharedSRVCapacity = 512;
+
 		void Initialize(Device& device);
 		void Destroy();
 
@@ -61,6 +64,7 @@ namespace Dune::Graphics
 		[[nodiscard]] const Material& GetMaterial(dU32 id) const { return m_materials[id]; }
 		[[nodiscard]] const dVector<Material>& GetMaterials() const { return m_materials; }
 		[[nodiscard]] dU32 GetMaterialID(dU32 slot) const { return m_materialIDs[slot]; }
+		[[nodiscard]] const BlockDescriptorHeap& GetSRVHeap() const { return m_srvHeap; }
 
 	private:
 		void RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot);
@@ -71,12 +75,15 @@ namespace Dune::Graphics
 		dU32 ResolveTexture(const dString& path, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots, bool sRGB);
 
 	private:
+
 		Device* m_pDevice{ nullptr }; // TODO Cleanup : A ResourceManager is owned by a RenderContext which already own a device. The resource manager should not need this
 
 		dVector<Texture>      m_textures;
 		dVector<Mesh>         m_meshes;
 		dVector<Material>     m_materials;
 		dVector<dU32>         m_materialIDs;
+		dVector<dU32>         m_textureIDs;
+		BlockDescriptorHeap   m_srvHeap;
 
 		dVector<dU32>         m_imageLookup;
 		dVector<dU32>         m_modelLookup;

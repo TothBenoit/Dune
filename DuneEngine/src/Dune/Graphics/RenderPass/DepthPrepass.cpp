@@ -48,9 +48,9 @@ namespace Dune::Graphics
 		{
 			.layout =
 			{
-				{.type = EBindingType::Constant, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::All},
+				{.type = EBindingType::Constant, .byteSize = sizeof(DepthGlobals),   .visibility = EShaderVisibility::All},
 				{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
-				{.type = EBindingType::Constant, .byteSize = sizeof(MaterialData), .visibility = EShaderVisibility::Pixel},
+				{.type = EBindingType::Constant, .byteSize = sizeof(MaterialIndex),         .visibility = EShaderVisibility::Pixel},
 			},
 			.allowInputLayout = true,
 			.allowSRVHeapIndexing = true,
@@ -92,12 +92,7 @@ namespace Dune::Graphics
 
 	void DepthPrepass::Setup(RenderGraphBuilder& builder, RenderPassContext& context, DepthPrepassData* pData)
 	{
-		Renderer& renderer = *context.pRenderer;
-		builder.Write(renderer.GetDepthBufferHandle(), EResourceState::DepthStencil);
-
-		const dVector<Material>& materials = renderer.GetRenderContext()->GetResourceManager().GetMaterials();
-		dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
-		materialDescriptorCache.assign(materials.size(), dU32(-1));
+		builder.Write(context.pRenderer->GetDepthBufferHandle(), EResourceState::DepthStencil);
 	}
 
 	void DepthPrepass::Execute(RenderPassContext& context, DepthPrepassData* pData)
@@ -117,47 +112,31 @@ namespace Dune::Graphics
 		commandList.SetViewports(1, &viewport);
 		commandList.SetScissors(1, &scissor);
 		commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-
-		dMatrix4x4 viewProjection;
-		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &viewProjection);
-
+		
 		commandList.SetGraphicsRootSignature(pData->depthRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
-		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));
 
 		FrameData& frameData = *context.pFrameData;
+		DepthGlobals globals
+		{
+			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(frame.materialBufferSRV) + frameData.reservedSharedSRV
+		};
+		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
+		commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
 
 		dU32 currentVariant = dU32(-1);
 		for( dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendingMaterialCount; drawIdx++  )
 		{
 			const DrawItem& drawItem = frameData.drawItems[drawIdx];
 			Assert(drawItem.materialVariant < Material::kDepthVariantCount);
-			const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
-			Assert(material.alphaMode != EAlphaMode::Blend);
 			if (currentVariant != drawItem.materialVariant)
 			{
 				currentVariant = drawItem.materialVariant;
 				commandList.SetPipelineState(pData->depthPSO[currentVariant]);
 			}
 
-			if (material.alphaMode == EAlphaMode::Mask)
-			{
-				MaterialData materialData = material.shaderData;
-				if (materialData.albedoIdx != dU32(-1))
-				{
-					dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
-					dU32 materialSRVIdx = materialDescriptorCache[drawItem.materialIdx];
-					if (materialSRVIdx == dU32(-1))
-					{
-						Descriptor materialSRV = srvHeap.Allocate(1);
-						materialSRVIdx = srvHeap.GetIndex(materialSRV);
-						materialDescriptorCache[drawItem.materialIdx] = materialSRVIdx;						
-						device.CreateSRV(materialSRV, resourceManager.GetTexture(materialData.albedoIdx));
-					}
-					materialData.albedoIdx = materialSRVIdx;
-				}
-				commandList.PushGraphicsConstants(2, &materialData, sizeof(MaterialData));
-			}
+			if (Material::GetAlphaMode(drawItem.materialVariant) == EAlphaMode::Mask)
+				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
 
 			InstanceData instanceData;
 			instanceData.objectToWorld = drawItem.objectToWorld;

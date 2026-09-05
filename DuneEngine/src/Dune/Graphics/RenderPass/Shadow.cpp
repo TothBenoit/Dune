@@ -69,9 +69,9 @@ namespace Dune::Graphics
 			{
 				.layout =
 				{
-					{.type = EBindingType::Constant, .byteSize = sizeof(dMatrix4x4), .visibility = EShaderVisibility::All},
+					{.type = EBindingType::Constant, .byteSize = sizeof(DepthGlobals),   .visibility = EShaderVisibility::All},
 					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
-					{.type = EBindingType::Constant, .byteSize = sizeof(MaterialData), .visibility = EShaderVisibility::Pixel},
+					{.type = EBindingType::Constant, .byteSize = sizeof(MaterialIndex),         .visibility = EShaderVisibility::Pixel},
 				},
 				.allowInputLayout = true,
 				.allowSRVHeapIndexing = true,
@@ -177,7 +177,7 @@ namespace Dune::Graphics
 					.initialState{ EResourceState::Undefined }
 				});
 			device.CreateSRV(pData->matricesSRV, pData->matricesBuffer, { .elementCount = matrixCount, .byteStride = sizeof(dMatrix4x4) });
-			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, srvHeap.GetDescriptorAt(pData->matricesSRVIndex).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, srvHeap.GetDescriptorAt(pData->matricesSRVIndex + frameData.reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->matricesHandle == kInvalidResourceHandle)
 				pData->matricesHandle = renderer.RegisterBuffer(&pData->matricesBuffer, EResourceState::Undefined);
@@ -186,10 +186,6 @@ namespace Dune::Graphics
 		}
 
 		builder.Write(pData->matricesHandle, EResourceState::CopyDest);
-
-		const dVector<Material>& materials = renderContext.GetResourceManager().GetMaterials();
-		dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
-		materialDescriptorCache.assign(materials.size(), dU32(-1));
 	}
 
 	static void RenderDepth(RenderPassContext& context, ShadowData* pData, const dMatrix4x4& viewProjection)
@@ -204,9 +200,14 @@ namespace Dune::Graphics
 
 		commandList.SetGraphicsRootSignature(pData->shadowRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
-		commandList.PushGraphicsConstants(0, &viewProjection, sizeof(dMatrix4x4));
 
 		FrameData& frameData = *context.pFrameData;
+		DepthGlobals globals
+		{
+			.viewProjectionMatrix = viewProjection,
+			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(frame.materialBufferSRV) + frameData.reservedSharedSRV
+		};
+		commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
 
 		dU32 currentVariant = dU32(-1);
 		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendingMaterialCount; drawIdx++)
@@ -223,23 +224,7 @@ namespace Dune::Graphics
 			}
 
 			if (material.alphaMode == EAlphaMode::Mask)
-			{
-				MaterialData materialData = material.shaderData;
-				if (materialData.albedoIdx != dU32(-1))
-				{
-					dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
-					dU32 materialSRVIdx = materialDescriptorCache[drawItem.materialIdx];
-					if (materialSRVIdx == dU32(-1))
-					{
-						Descriptor materialSRV = srvHeap.Allocate(1);
-						materialSRVIdx = srvHeap.GetIndex(materialSRV);
-						materialDescriptorCache[drawItem.materialIdx] = materialSRVIdx;
-						device.CreateSRV(materialSRV, resourceManager.GetTexture(materialData.albedoIdx));
-					}
-					materialData.albedoIdx = materialSRVIdx;
-				}
-				commandList.PushGraphicsConstants(2, &materialData, sizeof(MaterialData));
-			}
+				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
 
 			InstanceData instanceData;
 			instanceData.objectToWorld = drawItem.objectToWorld;

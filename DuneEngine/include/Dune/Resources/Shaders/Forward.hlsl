@@ -34,7 +34,7 @@ VSToPS VSMain(VS_INPUT input)
 	return o;
 }
 
-ConstantBuffer<MaterialData> cMaterial : register(b1);
+ConstantBuffer<MaterialIndex> cMaterialIndex : register(b1);
 
 struct PS_OUTPUT
 {
@@ -44,36 +44,40 @@ struct PS_OUTPUT
 PS_OUTPUT PSMain(VSToPS input)
 {
 	PS_OUTPUT output;
-	float3 albedo = cMaterial.baseColor;
+	
+	StructuredBuffer<MaterialData> materials = ResourceDescriptorHeap[cGlobals.materialBufferIndex];
+	MaterialData material = materials[cMaterialIndex.index];
+
+	float3 albedo = material.baseColor;
 	float alpha = 1.0f;
-	if (IsValid(cMaterial.albedoIdx))
+	if (IsValid(material.albedoIdx))
 	{
-		Texture2D albedoTexture = ResourceDescriptorHeap[cMaterial.albedoIdx];
+		Texture2D albedoTexture = ResourceDescriptorHeap[material.albedoIdx];
 		float4 albedoSample = albedoTexture.Sample(sAnisoWrap, input.uv);
 		albedo *= albedoSample.rgb;
 		alpha *= albedoSample.a;
 	}
 	
 #ifdef ALPHA_MASK
-	if (alpha < cMaterial.alphaCutoff)
+	if (alpha < material.alphaCutoff)
 		discard;
 #endif
 
 	float3 n = input.normal;
-	if (IsValid(cMaterial.normalIdx))
+	if (IsValid(material.normalIdx))
 	{
-		Texture2D normalTexture = ResourceDescriptorHeap[cMaterial.normalIdx];
+		Texture2D normalTexture = ResourceDescriptorHeap[material.normalIdx];
 		const float2 sampledNormal = normalTexture.Sample(sAnisoWrap, input.uv).xy;
 		const float3x3 TBN = TangentToWorld(input.normal, float4(normalize(input.tangent.xyz), input.tangent.w));
 		const float3 nf = UnpackNormal(sampledNormal);
 		n = mul(nf, TBN);
 	}
 
-	float roughness = cMaterial.roughnessFactor;
-	float metalness = cMaterial.metalnessFactor;
-	if (IsValid(cMaterial.roughnessMetalnessIdx))
+	float roughness = material.roughnessFactor;
+	float metalness = material.metalnessFactor;
+	if (IsValid(material.roughnessMetalnessIdx))
 	{
-		Texture2D roughnessMetalnessTexture = ResourceDescriptorHeap[cMaterial.roughnessMetalnessIdx];
+		Texture2D roughnessMetalnessTexture = ResourceDescriptorHeap[material.roughnessMetalnessIdx];
 		const float2 roughnessMetalness = roughnessMetalnessTexture.Sample(sAnisoWrap, input.uv).gb;
 		roughness *= roughnessMetalness.x;
 		metalness *= roughnessMetalness.y;

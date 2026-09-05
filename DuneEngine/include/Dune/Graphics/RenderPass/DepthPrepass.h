@@ -13,7 +13,6 @@ namespace Dune::Graphics
 	{
 		RootSignature depthRS;
 		PipelineState depthPSO[Material::kDepthVariantCount];
-		dVector<dU32> materialDescriptorCache;
 	};
 
 	class DepthPrepass

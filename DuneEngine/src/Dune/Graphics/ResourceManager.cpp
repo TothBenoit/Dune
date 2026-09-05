@@ -146,14 +146,18 @@ namespace Dune::Graphics
 	void ResourceManager::Initialize(Device& device)
 	{
 		m_pDevice = &device;
+		m_srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
 	}
 
 	void ResourceManager::Destroy()
 	{
 		for (Texture& texture : m_textures)
 			texture.Destroy();
+		for (dU32 textureID : m_textureIDs)
+			m_srvHeap.Free(m_srvHeap.GetDescriptorAt(textureID));
 		for (Mesh& mesh : m_meshes)
 			mesh.Destroy();
+		m_srvHeap.Destroy();
 	}
 
 	void ResourceManager::RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot)
@@ -167,8 +171,13 @@ namespace Dune::Graphics
 	{
 		Buffer& uploadBuffer = uploadBuffers.emplace_back();
 		Texture texture = DDSTexture::CreateTextureFromFile(*m_pDevice, commandList, uploadBuffer, path.c_str(), sRGB);
+
+		Descriptor textureDescriptor = m_srvHeap.Allocate();
+		m_pDevice->CreateSRV(textureDescriptor, texture);
+
 		dU32 slot = (dU32)m_textures.size();
 		m_textures.push_back(texture);
+		m_textureIDs.push_back(m_srvHeap.GetIndex(textureDescriptor));
 		return slot;
 	}
 
@@ -205,8 +214,16 @@ namespace Dune::Graphics
 			.isDoubleSided = desc.doubleSided
 		};
 
+		if (material.shaderData.albedoIdx != dU32(-1))
+			material.shaderData.albedoIdx = m_textureIDs[material.shaderData.albedoIdx];
+		if (material.shaderData.normalIdx != dU32(-1))
+			material.shaderData.normalIdx = m_textureIDs[material.shaderData.normalIdx];
+		if (material.shaderData.roughnessMetalnessIdx != dU32(-1))
+			material.shaderData.roughnessMetalnessIdx = m_textureIDs[material.shaderData.roughnessMetalnessIdx];
+
+		dU32 slot = (dU32)m_materials.size();
 		m_materials.push_back(material);
-		return (dU32)m_materials.size() - 1;
+		return slot;
 	}
 
 	dU32 ResourceManager::CreateMesh(const MeshImportDesc& importDesc, CommandList& commandList, dVector<Buffer>& uploadBuffers)

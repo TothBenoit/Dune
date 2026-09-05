@@ -25,8 +25,6 @@ namespace Dune::Graphics
 		ResourceHandle matricesHandle{ kInvalidResourceHandle };
 		dU32           matricesSRVIndex{ 0 };
 		dVector<dMatrix4x4> matrices;
-
-		dVector<dU32> materialDescriptorCache;
 	};
 
 	class Shadow

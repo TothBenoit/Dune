@@ -41,7 +41,7 @@ namespace Dune::Graphics
 					.initialState{ EResourceState::Undefined }
 				});
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = pData->lightCount, .byteStride = sizeof(Light) });
-			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
 				pData->handle = renderer.RegisterBuffer(&pData->buffer, EResourceState::Undefined);

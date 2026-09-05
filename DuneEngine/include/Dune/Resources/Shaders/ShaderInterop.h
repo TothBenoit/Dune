@@ -64,7 +64,14 @@ struct ForwardGlobals
 	int        lightCount;
 	uint       lightBufferIndex;
 	uint       lightMatricesIndex;
-	uint2      _padding;
+	uint       materialBufferIndex;
+	uint      _padding;
+};
+
+struct DepthGlobals
+{
+	float4x4   viewProjectionMatrix;
+	uint       materialBufferIndex;
 };
 
 struct InstanceData
@@ -81,6 +88,11 @@ struct MaterialData
 	uint       normalIdx;
 	uint       roughnessMetalnessIdx;
 	float      alphaCutoff;
+};
+
+struct MaterialIndex
+{
+	uint       index;
 };
 
 static const uint fIsPoint      = 1 << 0;

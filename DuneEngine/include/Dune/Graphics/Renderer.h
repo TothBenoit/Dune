@@ -37,6 +37,8 @@ namespace Dune
 			dQueue<Buffer> buffersToRelease;
 			ResourceHandle hdrTargetHandle{ kInvalidResourceHandle };
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
+			Buffer materialBuffer;
+			Descriptor materialBufferSRV;
 		};
 
 		struct FrameLights
@@ -61,6 +63,7 @@ namespace Dune
 			FrameLights lights;
 			dVector<DrawItem> drawItems;
 			dU32 blendingMaterialCount;
+			dU32 reservedSharedSRV;
 		};
 
 		struct ResourceEntry

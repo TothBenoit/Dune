@@ -31,8 +31,8 @@ namespace Dune::Graphics
 			.layout =
 			{
 				{.type = EBindingType::Constant, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All},
-				{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
-				{.type = EBindingType::Constant, .byteSize = sizeof(MaterialData), .visibility = EShaderVisibility::Pixel},
+				{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData),   .visibility = EShaderVisibility::Vertex},
+				{.type = EBindingType::Constant, .byteSize = sizeof(MaterialIndex),           .visibility = EShaderVisibility::Pixel},
 			},
 			.allowInputLayout = true,
 			.allowSRVHeapIndexing = true,
@@ -114,10 +114,6 @@ namespace Dune::Graphics
 		LightUploadData* pLightData = renderer.Get<LightUpload>();
 		if (pLightData->lightCount > 0)
 			builder.Read(pLightData->handle, EResourceState::ShaderResource);
-
-		const dVector<Material>& materials = renderer.GetRenderContext()->GetResourceManager().GetMaterials();
-		dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
-		materialDescriptorCache.assign(materials.size(), dU32(-1));
 	}
 
 	void Forward::Execute(RenderPassContext& context, ForwardData* pData)
@@ -144,8 +140,9 @@ namespace Dune::Graphics
 		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
 		globals.cameraPosition = context.pCamera->position;
 		globals.lightCount = renderer.Get<LightUpload>()->lightCount;
-		globals.lightBufferIndex = renderer.Get<LightUpload>()->srvIndex;
-		globals.lightMatricesIndex = renderer.Get<Shadow>()->matricesSRVIndex;
+		globals.lightBufferIndex = renderer.Get<LightUpload>()->srvIndex + context.pFrameData->reservedSharedSRV;
+		globals.lightMatricesIndex = renderer.Get<Shadow>()->matricesSRVIndex + context.pFrameData->reservedSharedSRV;
+		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(frame.materialBufferSRV) + context.pFrameData->reservedSharedSRV;
 
 		commandList.SetGraphicsRootSignature(pData->forwardRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
@@ -161,43 +158,7 @@ namespace Dune::Graphics
 				currentVariant = variant;
 			}
 
-			const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
-			MaterialData materialData = material.shaderData;
-
-			dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
-			dU32 materialSRVIdx = materialDescriptorCache[drawItem.materialIdx];
-			if (materialSRVIdx == dU32(-1))
-			{
-				dU32 srvNeeded = 0;
-				if (materialData.albedoIdx != dU32(-1))
-					srvNeeded++;
-				if (materialData.normalIdx != dU32(-1))
-					srvNeeded++;
-				if (materialData.roughnessMetalnessIdx != dU32(-1))
-					srvNeeded++;
-				if (srvNeeded > 0)
-				{
-					Descriptor materialSRV = srvHeap.Allocate(srvNeeded);
-					materialSRVIdx = srvHeap.GetIndex(materialSRV);
-					materialDescriptorCache[drawItem.materialIdx] = materialSRVIdx;
-					dU32 srvIdx = materialSRVIdx;
-					if (materialData.albedoIdx != dU32(-1))
-						device.CreateSRV(srvHeap.GetDescriptorAt(srvIdx++), resourceManager.GetTexture(materialData.albedoIdx));
-					if (materialData.normalIdx != dU32(-1))
-						device.CreateSRV(srvHeap.GetDescriptorAt(srvIdx++), resourceManager.GetTexture(materialData.normalIdx));
-					if (materialData.roughnessMetalnessIdx != dU32(-1))
-						device.CreateSRV(srvHeap.GetDescriptorAt(srvIdx++), resourceManager.GetTexture(materialData.roughnessMetalnessIdx));
-				}
-			}
-
-			dU32 srvIdx = materialSRVIdx;
-			if (materialData.albedoIdx != dU32(-1))
-				materialData.albedoIdx             = srvIdx++;
-			if (materialData.normalIdx != dU32(-1))
-				materialData.normalIdx             = srvIdx++;
-			if (materialData.roughnessMetalnessIdx != dU32(-1))
-				materialData.roughnessMetalnessIdx = srvIdx++;
-			commandList.PushGraphicsConstants(2, &materialData, sizeof(MaterialData));
+			commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
 
 			InstanceData instanceData;
 			instanceData.objectToWorld = drawItem.objectToWorld;

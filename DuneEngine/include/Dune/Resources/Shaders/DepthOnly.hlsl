@@ -1,12 +1,7 @@
 #include "ShaderInterop.h"
 #include "Common.hlsli"
 
-struct Camera
-{
-	float4x4 viewProjectionMatrix;
-};
-
-ConstantBuffer<Camera> cCamera : register(b0);
+ConstantBuffer<DepthGlobals> cGlobals : register(b0);
 ConstantBuffer<InstanceData> cModel : register(b1);
 
 struct VS_INPUT
@@ -29,7 +24,7 @@ VS_OUTPUT VSMain(VS_INPUT input)
 {
 	VS_OUTPUT o;
 	float4 wPos = mul(cModel.objectToWorld, float4(input.vPos, 1.0f));
-	o.position = mul(cCamera.viewProjectionMatrix, wPos);
+	o.position = mul(cGlobals.viewProjectionMatrix, wPos);
 #ifdef ALPHA_MASK
 	o.uv = input.uv;
 #endif
@@ -37,18 +32,20 @@ VS_OUTPUT VSMain(VS_INPUT input)
 }
 
 #ifdef ALPHA_MASK
-ConstantBuffer<MaterialData> cMaterial : register(b1);
+ConstantBuffer<MaterialIndex> cMaterialIndex : register(b1);
 
 void PSMain(VS_OUTPUT input)
 {
 	float alpha = 1.0f;
-	if (IsValid(cMaterial.albedoIdx))
+	StructuredBuffer<MaterialData> materials = ResourceDescriptorHeap[cGlobals.materialBufferIndex];
+	MaterialData material = materials[cMaterialIndex.index];
+	if (IsValid(material.albedoIdx))
 	{
-		Texture2D albedoTexture = ResourceDescriptorHeap[cMaterial.albedoIdx];
+		Texture2D albedoTexture = ResourceDescriptorHeap[material.albedoIdx];
 		alpha *= albedoTexture.Sample(sAnisoWrap, input.uv).a;
 	}
 
-	if (alpha < cMaterial.alphaCutoff)
+	if (alpha < material.alphaCutoff)
 		discard;
 }
 #endif

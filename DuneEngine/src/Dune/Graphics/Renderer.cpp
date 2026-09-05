@@ -50,8 +50,9 @@ namespace Dune::Graphics
 			frame.commandList.Initialize(device, ECommandType::Direct, frame.commandAllocator);
 			frame.commandList.Close();
 			frame.hdrTarget.Initialize(device, colorTargetDesc);
-			frame.srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kPersistentSRVCapacity + kTransientSRVCapacity, .isShaderVisible = true });
+			frame.srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = ResourceManager::kSharedSRVCapacity + kPersistentSRVCapacity + kTransientSRVCapacity, .isShaderVisible = true });
 			frame.samplerHeap.Initialize(device, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
+			frame.materialBuffer.Initialize(device, { .debugName = L"MaterialBuffer", .memory = EBufferMemory::GPU, .byteSize = sizeof(MaterialData)});
 		}
 
 		m_barrier.Initialize(kBarrierCapacity);
@@ -85,6 +86,9 @@ namespace Dune::Graphics
 
 			frame.hdrTargetHandle = RegisterTexture(&frame.hdrTarget, EResourceState::ShaderResource);
 			frame.backBufferHandle = RegisterTexture(&m_swapchain.GetBackBuffer(i), EResourceState::Present);
+			
+			frame.materialBufferSRV = m_srvHeap.Allocate();
+			device.CreateSRV(frame.materialBufferSRV, frame.materialBuffer, { .elementCount = 1, .byteStride = sizeof(MaterialData) });
 		}
 
 		m_depthBufferDSV = m_dsvHeap.Allocate();
@@ -114,9 +118,11 @@ namespace Dune::Graphics
 			m_rtvHeap.Free(frame.backBufferRTV);
 			m_rtvHeap.Free(frame.hdrTargetRTV);
 			m_srvHeap.Free(frame.hdrTargetSRV);
+			m_srvHeap.Free(frame.materialBufferSRV);
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
 			frame.hdrTarget.Destroy();
+			frame.materialBuffer.Destroy();
 			frame.srvHeap.Destroy();
 			frame.samplerHeap.Destroy();
 		}
@@ -482,9 +488,43 @@ namespace Dune::Graphics
 		frame.commandList.SetDescriptorHeaps(frame.srvHeap, frame.samplerHeap);
 		frame.srvHeap.Reset();
 		frame.samplerHeap.Reset();
+		
+		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
+		const dVector<Material>& materials = resourceManager.GetMaterials();
+		dU32 materialCount = (dU32)materials.size();
+		dU32 materialsByteSize = sizeof(MaterialData) * materialCount;
+		if (frame.materialBuffer.GetByteSize() < materialsByteSize)
+		{
+			frame.materialBuffer.Destroy();
+			frame.materialBuffer.Initialize(device, { .debugName = L"MaterialBuffer", .memory = EBufferMemory::GPU, .byteSize = materialsByteSize });
+			device.CreateSRV(frame.materialBufferSRV, frame.materialBuffer, { .elementCount = materialCount, .byteStride = sizeof(MaterialData) });
+		}
 
-		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
-		frame.srvHeap.Allocate(kPersistentSRVCapacity);
+		const BlockDescriptorHeap& sharedHeap = resourceManager.GetSRVHeap();
+		Assert(frame.srvHeap.GetCapacity() >= m_srvHeap.GetCapacity() + sharedHeap.GetCapacity() + kTransientSRVCapacity);
+
+		dU32 sharedSRVCapacity = m_frameData.reservedSharedSRV = sharedHeap.GetCapacity();
+		device.CopyDescriptors(sharedSRVCapacity, sharedHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
+
+		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress() + m_frameData.reservedSharedSRV * frame.srvHeap.GetDescriptorSize(), EDescriptorHeapType::SRV_CBV_UAV);
+		frame.srvHeap.Allocate(sharedSRVCapacity + m_srvHeap.GetCapacity());
+
+		// TODO : Add MaterialUpload render pass
+		{
+			Buffer uploadBuffer;
+			uploadBuffer.Initialize(device, { .debugName = L"UploadMaterialBuffer", .memory = EBufferMemory::CPU, .byteSize = materialsByteSize });
+			MaterialData* pData{ nullptr };
+			uploadBuffer.Map(0, materialsByteSize, (void**)&pData);
+			for (dU32 materialIdx = 0; materialIdx < materialCount; materialIdx++)
+			{
+				const Material& material = materials[materialIdx];
+				memcpy(pData + materialIdx, &material.shaderData, sizeof(MaterialData));
+			}
+			uploadBuffer.Unmap(0, materialsByteSize);
+			frame.commandList.CopyBufferRegion(frame.materialBuffer, 0, uploadBuffer, 0, materialsByteSize);
+			frame.buffersToRelease.push(uploadBuffer);
+			m_barrier.PushTransition(frame.materialBuffer, EResourceState::CopyDest, EResourceState::ShaderResource);
+		}
 
 		RenderPassContext context
 		{
