@@ -46,9 +46,9 @@ namespace Dune::Graphics
 	struct RootSignatureDesc
 	{
 		dSpan<BindingSlot>  layout;
-		bool                bAllowInputLayout{ false };
-		bool                bAllowSRVHeapIndexing{ false };
-		bool                bAllowSamplerHeapIndexing{ false };
+		bool                allowInputLayout{ false };
+		bool                allowSRVHeapIndexing{ false };
+		bool                allowSamplerHeapIndexing{ false };
 	};
 
 	class RootSignature : public Resource

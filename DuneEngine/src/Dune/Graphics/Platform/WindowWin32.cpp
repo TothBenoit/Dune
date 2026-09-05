@@ -330,10 +330,10 @@ namespace Dune::Graphics
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 
-			if (m_bClosing)
+			if (m_isClosing)
 				break;
 		}
-		return !m_bClosing;
+		return !m_isClosing;
 	}
 
 	void Window::WindowNativeHook(void* pNativeEvent)
@@ -342,7 +342,7 @@ namespace Dune::Graphics
 		switch (nativeEvent.uMsg)
 		{
 		case WM_DESTROY:
-			m_bClosing = true;
+			m_isClosing = true;
 			OnEvent(EWindowMessageType::Close, {});
 			break;
 		case WM_SIZE:

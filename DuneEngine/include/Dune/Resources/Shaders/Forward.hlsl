@@ -45,11 +45,19 @@ PS_OUTPUT PSMain(VSToPS input)
 {
 	PS_OUTPUT output;
 	float3 albedo = cMaterial.baseColor;
+	float alpha = 1.0f;
 	if (IsValid(cMaterial.albedoIdx))
 	{
 		Texture2D albedoTexture = ResourceDescriptorHeap[cMaterial.albedoIdx];
-		albedo *= albedoTexture.Sample(sAnisoWrap, input.uv).rgb;
+		float4 albedoSample = albedoTexture.Sample(sAnisoWrap, input.uv);
+		albedo *= albedoSample.rgb;
+		alpha *= albedoSample.a;
 	}
+	
+#ifdef ALPHA_MASK
+	if (alpha < cMaterial.alphaCutoff)
+		discard;
+#endif
 
 	float3 n = input.normal;
 	if (IsValid(cMaterial.normalIdx))
@@ -83,6 +91,6 @@ PS_OUTPUT PSMain(VSToPS input)
 		directLighting += ComputeLight(light, cGlobals.lightMatricesIndex, n, v, input.worldPosition, diffuseColor, f0, roughness);
 	}
 
-	output.color = float4(directLighting, 1.0f);
+	output.color = float4(directLighting, alpha);
 	return output;
 }

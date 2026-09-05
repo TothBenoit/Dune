@@ -36,7 +36,7 @@ namespace Dune::Graphics
 	{
 		m_subMeshes.assign(desc.pSubMeshes, desc.pSubMeshes + desc.subMeshCount);
 		m_materialSlotCount = desc.materialSlotCount;
-		m_isIndex32bits = desc.bIndex32bits;
+		m_isIndex32bits = desc.isIndex32bits;
 		m_vertexByteStride = desc.vertexByteStride;
 		m_vertexCount = desc.vertexCount;
 		m_indexCount = desc.indexCount;

@@ -38,11 +38,11 @@ namespace Dune::Graphics
 		EBlendFactor srcAlpha{ EBlendFactor::One };
 		EBlendFactor dstAlpha{ EBlendFactor::InvSrcAlpha };
 		EBlendOp     alphaOp { EBlendOp::Add };
-		bool         bBlendEnable : 1 { false };
-		bool         bRedEnable   : 1 { true };
-		bool         bGreenEnable : 1 { true };
-		bool         bBlueEnable  : 1 { true };
-		bool         bAlphaEnable : 1 { true };
+		bool         blendEnable : 1 { false };
+		bool         writeRed    : 1 { true };
+		bool         writeGreen  : 1 { true };
+		bool         writeBlue   : 1 { true };
+		bool         writeAlpha  : 1 { true };
 	};
 
 	enum class ECullingMode : dU8
@@ -58,8 +58,8 @@ namespace Dune::Graphics
 		float        depthBiasClamp{ 0.0f };
 		float        slopeScaledDepthBias{ 0.0f };
 		ECullingMode cullingMode{ ECullingMode::Back };
-		bool         bDepthClipEnable : 1 { true };
-		bool         bWireframe : 1 { false };
+		bool         depthClipEnable : 1 { true };
+		bool         isWireframe : 1 { false };
 	};
 
 	enum class ECompFunc : dU8
@@ -77,9 +77,9 @@ namespace Dune::Graphics
 
 	struct DepthStencilState
 	{
-		ECompFunc   bDepthFunc{ ECompFunc::LessEqual };
-		bool        bDepthEnabled : 1 { false };
-		bool        bDepthWrite   : 1 { false };
+		ECompFunc   depthFunc{ ECompFunc::LessEqual };
+		bool        depthEnabled : 1 { false };
+		bool        depthWrite   : 1 { false };
 		// TODO: Add stencil
 	};
 
@@ -90,7 +90,7 @@ namespace Dune::Graphics
 		EFormat format{ EFormat::R32G32B32A32_FLOAT };
 		dU32 slot{ 0 };
 		dU32 byteAlignedOffset{ 0 };
-		bool bPerInstance{ false };
+		bool isPerInstance{ false };
 	};
 
 	struct GraphicsPipelineDesc

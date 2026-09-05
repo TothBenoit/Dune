@@ -3,6 +3,7 @@
 #include "Dune/Graphics/RHI/RootSignature.h"
 #include "Dune/Graphics/RHI/PipelineState.h"
 #include "Dune/Graphics/RenderPass.h"
+#include "Dune/Graphics/Material.h"
 
 namespace Dune::Graphics
 {
@@ -11,7 +12,7 @@ namespace Dune::Graphics
 	struct DepthPrepassData
 	{
 		RootSignature depthRS;
-		PipelineState depthPSO;
+		PipelineState depthPSO[Material::kDepthVariantCount];
 	};
 
 	class DepthPrepass

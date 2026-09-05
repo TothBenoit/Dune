@@ -80,6 +80,7 @@ struct MaterialData
 	uint       albedoIdx;
 	uint       normalIdx;
 	uint       roughnessMetalnessIdx;
+	float      alphaCutoff;
 };
 
 static const uint fIsPoint      = 1 << 0;

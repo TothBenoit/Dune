@@ -83,7 +83,7 @@ namespace Dune::Graphics
 		dU32 m_height;
 
 		void* m_pHandle{ nullptr };
-		bool m_bClosing{ false };
+		bool m_isClosing{ false };
 		dWString m_title;
 
 		dVector<HookEntry> m_hooks{};

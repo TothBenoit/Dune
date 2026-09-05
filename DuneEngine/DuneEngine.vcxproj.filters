@@ -134,6 +134,8 @@
     <ClInclude Include="include\Dune\Graphics\RenderPass.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\Material.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\ClearDepth.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
@@ -211,6 +213,7 @@
     <ClCompile Include="src\Dune\Utilities\StringUtils.cpp">
       <Filter>Dune\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RenderPass\ClearDepth.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Resources\Shaders\DepthOnly.hlsl">

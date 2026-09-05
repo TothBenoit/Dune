@@ -1385,11 +1385,11 @@ namespace Dune::Graphics
 			| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
 		};
 
-		if (desc.bAllowInputLayout)
+		if (desc.allowInputLayout)
 			flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		if (desc.bAllowSRVHeapIndexing)
+		if (desc.allowSRVHeapIndexing)
 			flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
-		if (desc.bAllowSamplerHeapIndexing)
+		if (desc.allowSamplerHeapIndexing)
 			flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
 		// 64 descriptor tables with 3 types of resource at most
@@ -1616,13 +1616,13 @@ namespace Dune::Graphics
 	constexpr UINT8 ConvertColorWriteMask(const BlendState& blendState)
 	{
 		UINT8 writeMask{ 0 };
-		if (blendState.bRedEnable)
+		if (blendState.writeRed)
 			writeMask |= D3D12_COLOR_WRITE_ENABLE_RED;
-		if (blendState.bGreenEnable)
+		if (blendState.writeGreen)
 			writeMask |= D3D12_COLOR_WRITE_ENABLE_GREEN;
-		if (blendState.bBlueEnable)
+		if (blendState.writeBlue)
 			writeMask |= D3D12_COLOR_WRITE_ENABLE_BLUE;
-		if (blendState.bAlphaEnable)
+		if (blendState.writeAlpha)
 			writeMask |= D3D12_COLOR_WRITE_ENABLE_ALPHA;
 		return writeMask;
 	}
@@ -1631,7 +1631,7 @@ namespace Dune::Graphics
 	{
 		return D3D12_RENDER_TARGET_BLEND_DESC
 		{
-			.BlendEnable = blendState.bBlendEnable,
+			.BlendEnable = blendState.blendEnable,
 			.LogicOpEnable = FALSE,
 			.SrcBlend = ConvertBlendFactor(blendState.srcColor),
 			.DestBlend = ConvertBlendFactor(blendState.dstColor),
@@ -1656,7 +1656,7 @@ namespace Dune::Graphics
 		for (dU32 i = 0; i < desc.inputLayout.GetSize(); i++)
 		{
 			const VertexInput& input = desc.inputLayout[i];
-			inputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.bPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+			inputElementDescs[i] = { input.pName, input.index, (DXGI_FORMAT)input.format, input.slot, input.byteAlignedOffset, input.isPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 		}
 
 		IDxcBlob* pVSBlob{ (IDxcBlob*)desc.pVertexShader->Get() };
@@ -1670,19 +1670,19 @@ namespace Dune::Graphics
 		psoDesc.PS.BytecodeLength = (pPSBlob) ? pPSBlob->GetBufferSize() : 0;
 		psoDesc.PS.pShaderBytecode = (pPSBlob) ? pPSBlob->GetBufferPointer() : nullptr;
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		psoDesc.RasterizerState.FillMode = (desc.rasterizerState.bWireframe) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
+		psoDesc.RasterizerState.FillMode = (desc.rasterizerState.isWireframe) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
 		psoDesc.RasterizerState.CullMode = (D3D12_CULL_MODE) desc.rasterizerState.cullingMode;
 		psoDesc.RasterizerState.DepthBias = desc.rasterizerState.depthBias;
 		psoDesc.RasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
 		psoDesc.RasterizerState.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias;
-		psoDesc.RasterizerState.DepthClipEnable = desc.rasterizerState.bDepthClipEnable;
+		psoDesc.RasterizerState.DepthClipEnable = desc.rasterizerState.depthClipEnable;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.BlendState.AlphaToCoverageEnable = desc.alphaToCoverageEnable;
 		psoDesc.BlendState.IndependentBlendEnable = desc.independentBlendEnable;
-		psoDesc.DepthStencilState.DepthEnable = desc.depthStencilState.bDepthEnabled;
-		psoDesc.DepthStencilState.DepthWriteMask = (desc.depthStencilState.bDepthWrite) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-		psoDesc.DepthStencilState.DepthFunc = ConvertDepthFunc(desc.depthStencilState.bDepthFunc);
+		psoDesc.DepthStencilState.DepthEnable = desc.depthStencilState.depthEnabled;
+		psoDesc.DepthStencilState.DepthWriteMask = (desc.depthStencilState.depthWrite) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+		psoDesc.DepthStencilState.DepthFunc = ConvertDepthFunc(desc.depthStencilState.depthFunc);
 		psoDesc.SampleMask = UINT_MAX;
 		dU8 renderTargetCount = desc.renderTargetCount;
 		psoDesc.NumRenderTargets = renderTargetCount;

@@ -3,6 +3,7 @@
 #include "Dune/Core/FileSystem.h"
 #include "Dune/Graphics/RHI/Texture.h"
 #include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/Material.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 
 namespace Dune::Graphics
@@ -19,6 +20,9 @@ namespace Dune::Graphics
 		dString albedoPath;
 		dString normalPath;
 		dString roughnessMetalnessPath;
+		EAlphaMode alphaMode{ EAlphaMode::Opaque };
+		float alphaCutoff{ 0.5f };
+		bool doubleSided{ false };
 	};
 
 	struct MeshImportDesc
@@ -54,7 +58,7 @@ namespace Dune::Graphics
 
 		[[nodiscard]] const ModelData& GetModel(FileSystem::SerializationID<EFileType::Model> id);
 		[[nodiscard]] Mesh& GetMesh(dU32 index) { return m_meshes[index]; }
-		[[nodiscard]] MaterialData& GetMaterial(dU32 id) { return m_materials[id]; }
+		[[nodiscard]] Material& GetMaterial(dU32 id) { return m_materials[id]; }
 		[[nodiscard]] dU32 GetMaterialID(dU32 slot) const { return m_materialIDs[slot]; }
 
 	private:
@@ -70,7 +74,7 @@ namespace Dune::Graphics
 
 		dVector<Texture>      m_textures;
 		dVector<Mesh>         m_meshes;
-		dVector<MaterialData> m_materials;
+		dVector<Material>     m_materials;
 		dVector<dU32>         m_materialIDs;
 
 		dVector<dU32>         m_imageLookup;

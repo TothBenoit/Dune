@@ -10,6 +10,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <assimp/GltfMaterial.h>
 
 namespace Dune::Graphics
 {
@@ -55,6 +56,23 @@ namespace Dune::Graphics
 			out.roughnessFactor = *(float*)(&data);
 		if (pMaterial->Get(AI_MATKEY_METALLIC_FACTOR, data) == aiReturn_SUCCESS)
 			out.metalnessFactor = *(float*)(&data);
+
+		aiString alphaMode;
+		if (pMaterial->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == aiReturn_SUCCESS)
+		{
+			if (strcmp(alphaMode.C_Str(), "MASK") == 0)
+				out.alphaMode = EAlphaMode::Mask;
+			else if (strcmp(alphaMode.C_Str(), "BLEND") == 0) 
+				out.alphaMode = EAlphaMode::Blend;
+		}
+
+		float alphaCutoff;
+		if (pMaterial->Get(AI_MATKEY_GLTF_ALPHACUTOFF, alphaCutoff) == aiReturn_SUCCESS)
+			out.alphaCutoff = alphaCutoff;
+
+		int doubleSided;
+		if (pMaterial->Get(AI_MATKEY_TWOSIDED, doubleSided) == aiReturn_SUCCESS)
+			out.doubleSided = doubleSided != 0;
 	}
 
 	static void ExtractNodeMesh(const aiNode* pNode, const aiScene* pScene, MeshImportDesc& outMesh, dVector<dU32>& outMaterialIndices)
@@ -171,19 +189,21 @@ namespace Dune::Graphics
 
 	dU32 ResourceManager::CreateMaterial(const MaterialImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots)
 	{
-		MaterialData material
+		Material material
 		{
-			.baseColor = desc.baseColor,
-			.metalnessFactor = desc.metalnessFactor,
-			.roughnessFactor = desc.roughnessFactor,
-			.albedoIdx = dU32(-1),
-			.normalIdx = dU32(-1),
-			.roughnessMetalnessIdx = dU32(-1),
+			.shaderData =
+			{
+				.baseColor = desc.baseColor,
+				.metalnessFactor = desc.metalnessFactor,
+				.roughnessFactor = desc.roughnessFactor,
+				.albedoIdx = ResolveTexture(desc.albedoPath, commandList, uploadBuffers, newTextureSlots, true),
+				.normalIdx = ResolveTexture(desc.normalPath, commandList, uploadBuffers, newTextureSlots, false),
+				.roughnessMetalnessIdx = ResolveTexture(desc.roughnessMetalnessPath, commandList, uploadBuffers, newTextureSlots, false),
+				.alphaCutoff = desc.alphaCutoff
+			},
+			.alphaMode = desc.alphaMode,
+			.isDoubleSided = desc.doubleSided
 		};
-
-		material.albedoIdx = ResolveTexture(desc.albedoPath, commandList, uploadBuffers, newTextureSlots, true);
-		material.normalIdx = ResolveTexture(desc.normalPath, commandList, uploadBuffers, newTextureSlots, false);
-		material.roughnessMetalnessIdx = ResolveTexture(desc.roughnessMetalnessPath, commandList, uploadBuffers, newTextureSlots, false);
 
 		m_materials.push_back(material);
 		return (dU32)m_materials.size() - 1;
@@ -200,7 +220,7 @@ namespace Dune::Graphics
 			.vertexByteStride = sizeof(Vertex),
 			.pIndices = importDesc.indices.data(),
 			.indexCount = (dU32)importDesc.indices.size(),
-			.bIndex32bits = true,
+			.isIndex32bits = true,
 			.pSubMeshes = importDesc.subMeshes.data(),
 			.subMeshCount = (dU32)importDesc.subMeshes.size(),
 			.materialSlotCount = importDesc.materialSlotCount

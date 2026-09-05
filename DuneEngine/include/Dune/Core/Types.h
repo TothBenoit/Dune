@@ -83,9 +83,25 @@ namespace Dune
 	class dSpan
 	{
 	public:
-		dSpan(const std::initializer_list<std::remove_cv_t<T>>& list) 
+		dSpan(const std::initializer_list<std::remove_cv_t<T>>& list)
 			: m_pData{ list.begin() }
 			, m_size{ (dU32)list.size()}
+		{}
+
+		dSpan(const dVector<std::remove_cv_t<T>>& vector)
+			: m_pData{ vector.data() }
+			, m_size{ (dU32)vector.size() }
+		{}
+
+		template<dSizeT N>
+		dSpan(const T (&carray)[N])
+			: m_pData{ carray }
+			, m_size{ (dU32)N }
+		{}
+
+		dSpan(const T* pData, dU32 size)
+			: m_pData{ pData }
+			, m_size{ size }
 		{}
 
 		[[nodiscard]] const T& operator[](dU32 idx) const { return m_pData[idx]; }

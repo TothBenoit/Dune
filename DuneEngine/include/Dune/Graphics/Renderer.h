@@ -53,12 +53,14 @@ namespace Dune
 			dU32 indexOffset;
 			dU32 indexCount;
 			dU32 vertexOffset;
+			dU32 materialVariant;
 		};
 
 		struct FrameData
 		{
 			FrameLights lights;
 			dVector<DrawItem> drawItems;
+			dU32 blendingMaterialCount;
 		};
 
 		struct ResourceEntry

@@ -3,6 +3,7 @@
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
+#include "Dune/Graphics/RenderPass/ClearDepth.h"
 #include "Dune/Graphics/RenderPass/DepthPrepass.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
 #include "Dune/Graphics/RenderPass/LightUpload.h"
@@ -92,6 +93,7 @@ namespace Dune::Graphics
 
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
+		RegisterRenderPass<ClearDepth>();
 		RegisterRenderPass<DepthPrepass>();
 		RegisterRenderPass<Shadow>();
 		RegisterRenderPass<LightUpload>();
@@ -355,6 +357,7 @@ namespace Dune::Graphics
 		});
 
 		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
+		m_frameData.blendingMaterialCount = 0;
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 		{
 			dMatrix4x4 objectToWorld;
@@ -375,6 +378,9 @@ namespace Dune::Graphics
 				drawItem.indexOffset = subMesh.indexOffset;
 				drawItem.indexCount = subMesh.indexCount;
 				drawItem.vertexOffset = subMesh.vertexOffset;
+				Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
+				drawItem.materialVariant = material.GetVariant();
+				m_frameData.blendingMaterialCount += material.alphaMode == EAlphaMode::Blend ? 1 : 0;
 			}
 		});
 	}
@@ -434,6 +440,34 @@ namespace Dune::Graphics
 	void Renderer::Render(Scene& scene, Camera& camera)
 	{
 		GatherFrameData(scene);
+
+		std::sort(m_frameData.drawItems.begin(), m_frameData.drawItems.end(),
+			[](const DrawItem& a, const DrawItem& b)
+			{
+				return a.materialVariant < b.materialVariant;
+			}
+		);
+
+		dU32 blendingMaterialStart = (dU32)m_frameData.drawItems.size() - m_frameData.blendingMaterialCount;
+		const dVec3& eye = camera.position;
+		std::sort(m_frameData.drawItems.begin() + blendingMaterialStart, m_frameData.drawItems.end(),
+			[&eye](const DrawItem& a, const DrawItem& b)
+			{
+				const dMatrix4x4& ma = a.objectToWorld;
+				const float adx = ma._41 - eye.x;
+				const float ady = ma._42 - eye.y;
+				const float adz = ma._43 - eye.z;
+				const float aToCamDistSq = adx * adx + ady * ady + adz * adz;
+
+				const dMatrix4x4& mb = b.objectToWorld;
+				const float bdx = mb._41 - eye.x;
+				const float bdy = mb._42 - eye.y;
+				const float bdz = mb._43 - eye.z;
+				const float bToCamDistSq = bdx * bdx + bdy * bdy + bdz * bdz;
+
+				return aToCamDistSq > bToCamDistSq;
+			}
+		);
 
 		Device& device = m_pRenderContext->GetDevice();
 		Frame& frame = m_frames[m_frameIndex];

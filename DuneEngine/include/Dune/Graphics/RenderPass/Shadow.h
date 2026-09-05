@@ -5,6 +5,7 @@
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RenderPass.h"
+#include "Dune/Graphics/Material.h"
 
 namespace Dune::Graphics
 {
@@ -13,7 +14,7 @@ namespace Dune::Graphics
 	struct ShadowData
 	{
 		RootSignature shadowRS;
-		PipelineState shadowPSO;
+		PipelineState shadowPSO[Material::kDepthVariantCount];
 
 		dVector<ResourceHandle> shadowHandles;
 		dVector<ResourceHandle> cubeShadowHandles;

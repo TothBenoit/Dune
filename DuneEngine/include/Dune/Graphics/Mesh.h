@@ -31,7 +31,7 @@ namespace Dune::Graphics
 		dU32           vertexByteStride{ 0 };
 		const void*    pIndices{ nullptr };
 		dU32           indexCount{ 0 };
-		bool           bIndex32bits{ true };
+		bool           isIndex32bits{ true };
 		const SubMesh* pSubMeshes{ nullptr };
 		dU32           subMeshCount{ 0 };
 		dU32           materialSlotCount{ 0 };
