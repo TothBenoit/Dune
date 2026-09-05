@@ -116,15 +116,17 @@ namespace Dune::Graphics
 
 	void Shadow::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData)
 	{
-		Renderer& renderer = *context.pRenderer;
-		Frame& frame = renderer.GetCurrentFrame();
 		FrameData& frameData = *context.pFrameData;
 		dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
-		Device& device = renderer.GetRenderContext()->GetDevice();
-
 		pData->activeHandles.clear();
 		if (shadowCasters.empty())
 			return;
+
+		Renderer& renderer = *context.pRenderer;
+		Frame& frame = renderer.GetCurrentFrame();
+		RenderContext& renderContext = *renderer.GetRenderContext();
+		Device& device = renderContext.GetDevice();
+		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
 
 		dU32 cubeShadowIndex{ 0 };
 		dU32 shadowIndex{ 0 };
@@ -132,7 +134,7 @@ namespace Dune::Graphics
 		{
 			Light& light = frameData.lights.allActive[shadowCasters[casterIndex]];
 			light.matrixIndex = casterIndex;
-			Descriptor srv = frame.srvHeap.Allocate(1);
+			Descriptor srv = srvHeap.Allocate(1);
 			if (light.IsPoint())
 			{
 				if (pData->cubeShadowHandles.size() <= cubeShadowIndex)
@@ -140,7 +142,7 @@ namespace Dune::Graphics
 				ResourceHandle handle = pData->cubeShadowHandles[cubeShadowIndex++];
 				Texture& shadowMap = renderer.GetTexture(handle);
 				device.CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT, .dimension = ESRVDimension::TextureCube });
-				light.shadowIndex = frame.srvHeap.GetIndex(srv);
+				light.shadowIndex = srvHeap.GetIndex(srv);
 				pData->activeHandles.push_back(handle);
 			}
 			else
@@ -150,7 +152,7 @@ namespace Dune::Graphics
 				ResourceHandle handle = pData->shadowHandles[shadowIndex++];
 				Texture& shadowMap = renderer.GetTexture(handle);
 				device.CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT });
-				light.shadowIndex = frame.srvHeap.GetIndex(srv);
+				light.shadowIndex = srvHeap.GetIndex(srv);
 				pData->activeHandles.push_back(handle);
 			}
 		}
@@ -175,7 +177,7 @@ namespace Dune::Graphics
 					.initialState{ EResourceState::Undefined }
 				});
 			device.CreateSRV(pData->matricesSRV, pData->matricesBuffer, { .elementCount = matrixCount, .byteStride = sizeof(dMatrix4x4) });
-			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->matricesSRVIndex).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, srvHeap.GetDescriptorAt(pData->matricesSRVIndex).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->matricesHandle == kInvalidResourceHandle)
 				pData->matricesHandle = renderer.RegisterBuffer(&pData->matricesBuffer, EResourceState::Undefined);
@@ -184,6 +186,10 @@ namespace Dune::Graphics
 		}
 
 		builder.Write(pData->matricesHandle, EResourceState::CopyDest);
+
+		const dVector<Material>& materials = renderContext.GetResourceManager().GetMaterials();
+		dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
+		materialDescriptorCache.assign(materials.size(), dU32(-1));
 	}
 
 	static void RenderDepth(RenderPassContext& context, ShadowData* pData, const dMatrix4x4& viewProjection)
@@ -221,10 +227,16 @@ namespace Dune::Graphics
 				MaterialData materialData = material.shaderData;
 				if (materialData.albedoIdx != dU32(-1))
 				{
-					Texture& albedoTexture = resourceManager.GetTexture(materialData.albedoIdx);
-					Descriptor albedo = srvHeap.Allocate(1);
-					device.CreateSRV(albedo, albedoTexture);
-					materialData.albedoIdx = srvHeap.GetIndex(albedo);
+					dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
+					dU32 materialSRVIdx = materialDescriptorCache[drawItem.materialIdx];
+					if (materialSRVIdx == dU32(-1))
+					{
+						Descriptor materialSRV = srvHeap.Allocate(1);
+						materialSRVIdx = srvHeap.GetIndex(materialSRV);
+						materialDescriptorCache[drawItem.materialIdx] = materialSRVIdx;
+						device.CreateSRV(materialSRV, resourceManager.GetTexture(materialData.albedoIdx));
+					}
+					materialData.albedoIdx = materialSRVIdx;
 				}
 				commandList.PushGraphicsConstants(2, &materialData, sizeof(MaterialData));
 			}

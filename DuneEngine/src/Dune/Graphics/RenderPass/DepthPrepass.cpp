@@ -92,7 +92,12 @@ namespace Dune::Graphics
 
 	void DepthPrepass::Setup(RenderGraphBuilder& builder, RenderPassContext& context, DepthPrepassData* pData)
 	{
-		builder.Write(context.pRenderer->GetDepthBufferHandle(), EResourceState::DepthStencil);
+		Renderer& renderer = *context.pRenderer;
+		builder.Write(renderer.GetDepthBufferHandle(), EResourceState::DepthStencil);
+
+		const dVector<Material>& materials = renderer.GetRenderContext()->GetResourceManager().GetMaterials();
+		dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
+		materialDescriptorCache.assign(materials.size(), dU32(-1));
 	}
 
 	void DepthPrepass::Execute(RenderPassContext& context, DepthPrepassData* pData)
@@ -140,10 +145,16 @@ namespace Dune::Graphics
 				MaterialData materialData = material.shaderData;
 				if (materialData.albedoIdx != dU32(-1))
 				{
-					Texture& albedoTexture = resourceManager.GetTexture(materialData.albedoIdx);
-					Descriptor albedo = srvHeap.Allocate(1);
-					device.CreateSRV(albedo, albedoTexture);
-					materialData.albedoIdx = srvHeap.GetIndex(albedo);
+					dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
+					dU32 materialSRVIdx = materialDescriptorCache[drawItem.materialIdx];
+					if (materialSRVIdx == dU32(-1))
+					{
+						Descriptor materialSRV = srvHeap.Allocate(1);
+						materialSRVIdx = srvHeap.GetIndex(materialSRV);
+						materialDescriptorCache[drawItem.materialIdx] = materialSRVIdx;						
+						device.CreateSRV(materialSRV, resourceManager.GetTexture(materialData.albedoIdx));
+					}
+					materialData.albedoIdx = materialSRVIdx;
 				}
 				commandList.PushGraphicsConstants(2, &materialData, sizeof(MaterialData));
 			}

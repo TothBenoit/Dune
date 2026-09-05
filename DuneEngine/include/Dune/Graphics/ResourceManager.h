@@ -58,7 +58,8 @@ namespace Dune::Graphics
 
 		[[nodiscard]] const ModelData& GetModel(FileSystem::SerializationID<EFileType::Model> id);
 		[[nodiscard]] Mesh& GetMesh(dU32 index) { return m_meshes[index]; }
-		[[nodiscard]] const Material& GetMaterial(dU32 id) { return m_materials[id]; }
+		[[nodiscard]] const Material& GetMaterial(dU32 id) const { return m_materials[id]; }
+		[[nodiscard]] const dVector<Material>& GetMaterials() const { return m_materials; }
 		[[nodiscard]] dU32 GetMaterialID(dU32 slot) const { return m_materialIDs[slot]; }
 
 	private:

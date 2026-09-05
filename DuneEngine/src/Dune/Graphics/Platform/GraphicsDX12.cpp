@@ -398,7 +398,7 @@ namespace Dune::Graphics
 		delete pInternal;
 	}
 
-	void Device::CreateSRV(Descriptor& descriptor, Texture& texture, const SRVTextureDesc& desc)
+	void Device::CreateSRV(Descriptor descriptor, Texture& texture, const SRVTextureDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
 
@@ -465,12 +465,12 @@ namespace Dune::Graphics
 		pDevice->CreateShaderResourceView(ToResource(texture.Get()), &srvDesc, { descriptor.cpuAddress });
 	}
 
-	void Device::CreateSRV(Descriptor& descriptor, Texture& texture)
+	void Device::CreateSRV(Descriptor descriptor, Texture& texture)
 	{
 		CreateSRV(descriptor, texture, { .mipLevels = texture.GetMipLevels(), .format = texture.GetFormat() });
 	}
 
-	void Device::CreateSRV(Descriptor& descriptor, Buffer& buffer, const SRVBufferDesc& desc)
+	void Device::CreateSRV(Descriptor descriptor, Buffer& buffer, const SRVBufferDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
 		
@@ -491,7 +491,7 @@ namespace Dune::Graphics
 		pDevice->CreateShaderResourceView(ToResource(buffer.Get()), &srvDesc, { descriptor.cpuAddress });
 	}
 
-	void Device::CreateUAV(Descriptor& descriptor, Buffer& buffer, const UAVBufferDesc& desc)
+	void Device::CreateUAV(Descriptor descriptor, Buffer& buffer, const UAVBufferDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
 
@@ -511,7 +511,7 @@ namespace Dune::Graphics
 		pDevice->CreateUnorderedAccessView(ToResource(buffer.Get()), nullptr, &uavDesc, { descriptor.cpuAddress });
 	}
 
-	void Device::CreateRTV(Descriptor& descriptor, Texture& texture, const RTVDesc& desc)
+	void Device::CreateRTV(Descriptor descriptor, Texture& texture, const RTVDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
 
@@ -521,7 +521,7 @@ namespace Dune::Graphics
 		pDevice->CreateRenderTargetView(ToResource(texture.Get()), &rtvDesc, { descriptor.cpuAddress });
 	}
 
-	void Device::CreateDSV(Descriptor& descriptor, Texture& texture, const DSVDesc& desc)
+	void Device::CreateDSV(Descriptor descriptor, Texture& texture, const DSVDesc& desc)
 	{
 		ID3D12Device* pDevice{ ToDevice(Get()) };
 

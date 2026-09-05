@@ -14,6 +14,7 @@ namespace Dune::Graphics
 	{
 		RootSignature forwardRS;
 		PipelineState forwardPSO[Material::kVariantCount];
+		dVector<dU32> materialDescriptorCache;
 	};
 
 	class Forward

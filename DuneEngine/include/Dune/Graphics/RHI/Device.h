@@ -81,13 +81,13 @@ namespace Dune::Graphics
 
 		void* GetInternal() { return m_pInternal; }
 
-		void CreateSRV(Descriptor& descriptor, Texture& texture, const SRVTextureDesc& desc);
-		void CreateSRV(Descriptor& descriptor, Texture& texture);
-		void CreateSRV(Descriptor& descriptor, Buffer& buffer, const SRVBufferDesc& desc);
-		void CreateUAV(Descriptor& descriptor, Buffer& buffer, const UAVBufferDesc& desc);
-		void CreateSampler(Descriptor& descriptor, const SamplerDesc& desc);
-		void CreateRTV(Descriptor& descriptor, Texture& texture, const RTVDesc& desc);
-		void CreateDSV(Descriptor& descriptor, Texture& texture, const DSVDesc& desc);
+		void CreateSRV(Descriptor descriptor, Texture& texture, const SRVTextureDesc& desc);
+		void CreateSRV(Descriptor descriptor, Texture& texture);
+		void CreateSRV(Descriptor descriptor, Buffer& buffer, const SRVBufferDesc& desc);
+		void CreateUAV(Descriptor descriptor, Buffer& buffer, const UAVBufferDesc& desc);
+		void CreateSampler(Descriptor descriptor, const SamplerDesc& desc);
+		void CreateRTV(Descriptor descriptor, Texture& texture, const RTVDesc& desc);
+		void CreateDSV(Descriptor descriptor, Texture& texture, const DSVDesc& desc);
 
 		void CopyDescriptors(dU32 count, dU64 cpuAddressSrc, dU64 cpuAddressDst, EDescriptorHeapType type);
 

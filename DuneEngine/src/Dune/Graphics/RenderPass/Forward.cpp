@@ -11,6 +11,7 @@
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/Material.h"
 #include "Dune/Graphics/RenderPass.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/RenderContext.h"
@@ -113,6 +114,10 @@ namespace Dune::Graphics
 		LightUploadData* pLightData = renderer.Get<LightUpload>();
 		if (pLightData->lightCount > 0)
 			builder.Read(pLightData->handle, EResourceState::ShaderResource);
+
+		const dVector<Material>& materials = renderer.GetRenderContext()->GetResourceManager().GetMaterials();
+		dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
+		materialDescriptorCache.assign(materials.size(), dU32(-1));
 	}
 
 	void Forward::Execute(RenderPassContext& context, ForwardData* pData)
@@ -149,10 +154,6 @@ namespace Dune::Graphics
 		dU32 currentVariant = dU32(-1);
 		for( const DrawItem& drawItem : context.pFrameData->drawItems )
 		{
-			Mesh& mesh = resourceManager.GetMesh(drawItem.meshIdx);
-			const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
-			MaterialData materialData = material.shaderData;
-
 			dU32 variant = drawItem.materialVariant;
 			if (currentVariant != variant)
 			{
@@ -160,34 +161,49 @@ namespace Dune::Graphics
 				currentVariant = variant;
 			}
 
+			const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
+			MaterialData materialData = material.shaderData;
+
+			dVector<dU32>& materialDescriptorCache = pData->materialDescriptorCache;
+			dU32 materialSRVIdx = materialDescriptorCache[drawItem.materialIdx];
+			if (materialSRVIdx == dU32(-1))
+			{
+				dU32 srvNeeded = 0;
+				if (materialData.albedoIdx != dU32(-1))
+					srvNeeded++;
+				if (materialData.normalIdx != dU32(-1))
+					srvNeeded++;
+				if (materialData.roughnessMetalnessIdx != dU32(-1))
+					srvNeeded++;
+				if (srvNeeded > 0)
+				{
+					Descriptor materialSRV = srvHeap.Allocate(srvNeeded);
+					materialSRVIdx = srvHeap.GetIndex(materialSRV);
+					materialDescriptorCache[drawItem.materialIdx] = materialSRVIdx;
+					dU32 srvIdx = materialSRVIdx;
+					if (materialData.albedoIdx != dU32(-1))
+						device.CreateSRV(srvHeap.GetDescriptorAt(srvIdx++), resourceManager.GetTexture(materialData.albedoIdx));
+					if (materialData.normalIdx != dU32(-1))
+						device.CreateSRV(srvHeap.GetDescriptorAt(srvIdx++), resourceManager.GetTexture(materialData.normalIdx));
+					if (materialData.roughnessMetalnessIdx != dU32(-1))
+						device.CreateSRV(srvHeap.GetDescriptorAt(srvIdx++), resourceManager.GetTexture(materialData.roughnessMetalnessIdx));
+				}
+			}
+
+			dU32 srvIdx = materialSRVIdx;
 			if (materialData.albedoIdx != dU32(-1))
-			{
-				Texture& albedoTexture = resourceManager.GetTexture(materialData.albedoIdx);
-				Descriptor albedo = srvHeap.Allocate(1);
-				device.CreateSRV(albedo, albedoTexture);
-				materialData.albedoIdx = srvHeap.GetIndex(albedo);
-			}
-
+				materialData.albedoIdx             = srvIdx++;
 			if (materialData.normalIdx != dU32(-1))
-			{
-				Texture& normalTexture = resourceManager.GetTexture(materialData.normalIdx);
-				Descriptor normal = srvHeap.Allocate(1);
-				device.CreateSRV(normal, normalTexture);
-				materialData.normalIdx = srvHeap.GetIndex(normal);
-			}
-
+				materialData.normalIdx             = srvIdx++;
 			if (materialData.roughnessMetalnessIdx != dU32(-1))
-			{
-				Texture& roughnessMetalnessTexture = resourceManager.GetTexture(materialData.roughnessMetalnessIdx);
-				Descriptor roughnessMetalness = srvHeap.Allocate(1);
-				device.CreateSRV(roughnessMetalness, roughnessMetalnessTexture);
-				materialData.roughnessMetalnessIdx = srvHeap.GetIndex(roughnessMetalness);
-			}
+				materialData.roughnessMetalnessIdx = srvIdx++;
+			commandList.PushGraphicsConstants(2, &materialData, sizeof(MaterialData));
 
 			InstanceData instanceData;
 			instanceData.objectToWorld = drawItem.objectToWorld;
 			commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
-			commandList.PushGraphicsConstants(2, &materialData, sizeof(MaterialData));
+
+			Mesh& mesh = resourceManager.GetMesh(drawItem.meshIdx);
 			commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
 			commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
 			commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
