@@ -119,7 +119,7 @@ namespace Dune::Graphics
 		commandList.SetGraphicsRootSignature(pData->depthRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 
-		FrameData& frameData = *context.pFrameData;
+		const FrameData& frameData = *context.pFrameData;
 		DepthGlobals globals
 		{
 			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.reservedSharedSRV

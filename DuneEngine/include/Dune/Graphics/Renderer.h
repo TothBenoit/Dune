@@ -44,8 +44,9 @@ namespace Dune
 
 		struct FrameLights
 		{
-			dVector<Light> allActive;
-			dVector<dU32>  shadowCasters;
+			dVector<Light>      allActive;
+			dVector<dU32>       shadowCasters;
+			dVector<dMatrix4x4> shadowMatrices;
 		};
 
 		struct DrawItem
@@ -91,7 +92,7 @@ namespace Dune
 			void Destroy();
 
 			void OnResize(dU32 width, dU32 height);
-			void Render(Scene& scene, Camera& camera);
+			void Render(const Scene& scene, const Camera& camera);
 
 			[[nodiscard]] inline RenderContext* GetRenderContext() { return m_pRenderContext; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
@@ -164,7 +165,7 @@ namespace Dune
 			}
 
 		private:
-			void GatherFrameData(Scene& scene);
+			void GatherFrameData(const Scene& scene);
 			void WaitForFrame(const Frame& frame);
 
 			void TransitionResource(const ResourceAccess& access);

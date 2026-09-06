@@ -17,7 +17,7 @@ namespace Dune::Graphics
 	void MaterialUpload::Setup(RenderGraphBuilder& builder, RenderPassContext& context, MaterialUploadData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		dVector<MaterialData>& materials = context.pFrameData->materials;
+		const dVector<MaterialData>& materials = context.pFrameData->materials;
 
 		dU32 materialCount = (dU32)materials.size();
 		const dU32 materialsByteSize = materialCount * (dU32)sizeof(MaterialData);
@@ -46,7 +46,7 @@ namespace Dune::Graphics
 		Renderer& renderer = *context.pRenderer;
 		Device& device = renderer.GetRenderContext()->GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
-		dVector<MaterialData>& materials = context.pFrameData->materials;
+		const dVector<MaterialData>& materials = context.pFrameData->materials;
 		const dU32 materialsByteSize = pData->buffer.GetByteSize();
 
 		void* pMappedData{ nullptr };
@@ -56,13 +56,16 @@ namespace Dune::Graphics
 			memcpy(pMappedData, materials.data(), materialsByteSize);
 			frame.commandList.CopyBufferRegion(pData->buffer, 0, frame.uploadBuffer, frame.uploadOffset, materialsByteSize);
 			frame.uploadOffset += materialsByteSize;
-		} else {
+		}
+		else
+		{
 			Buffer uploadBuffer{};
 			uploadBuffer.Initialize(device, { .debugName{ L"MaterialUploadBuffer" }, .byteSize{ materialsByteSize } });
 			uploadBuffer.Map(0, materialsByteSize, &pMappedData);
-			frame.buffersToRelease.push_back(uploadBuffer);
+			memcpy(pMappedData, materials.data(), materialsByteSize);
 			uploadBuffer.Unmap(0, materialsByteSize);
 			frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, materialsByteSize);
+			frame.buffersToRelease.push_back(uploadBuffer);
 		}
 	}
 
