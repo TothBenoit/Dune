@@ -34,7 +34,7 @@ namespace Dune
 			Descriptor hdrTargetSRV;
 			ScratchDescriptorHeap srvHeap;
 			ScratchDescriptorHeap samplerHeap;
-			dQueue<Buffer> buffersToRelease;
+			dVector<Buffer> buffersToRelease;
 			ResourceHandle hdrTargetHandle{ kInvalidResourceHandle };
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
 		};

@@ -169,7 +169,7 @@ namespace Dune::Graphics
 		if (pData->matricesBuffer.GetByteSize() < matricesByteSize)
 		{
 			if (pData->matricesBuffer.Get())
-				frame.buffersToRelease.push(pData->matricesBuffer);
+				frame.buffersToRelease.push_back(pData->matricesBuffer);
 			pData->matricesBuffer.Initialize(device,
 				{
 					.debugName{ L"ShadowMatricesBuffer" },
@@ -335,7 +335,7 @@ namespace Dune::Graphics
 		memcpy(pMatricesData, pData->matrices.data(), matricesByteSize);
 		matricesUploadBuffer.Unmap(0, matricesByteSize);
 		commandList.CopyBufferRegion(pData->matricesBuffer, 0, matricesUploadBuffer, 0, matricesByteSize);
-		frame.buffersToRelease.push(matricesUploadBuffer);
+		frame.buffersToRelease.push_back(matricesUploadBuffer);
 	}
 
 	void Shadow::Destroy(Renderer& renderer, ShadowData* pData)

@@ -32,7 +32,7 @@ namespace Dune::Graphics
 		if (pData->buffer.GetByteSize() < lightByteSize)
 		{
 			if (pData->buffer.Get())
-				frame.buffersToRelease.push(pData->buffer);
+				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"LightBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ lightByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = pData->lightCount, .byteStride = sizeof(Light) });
 			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
@@ -63,7 +63,7 @@ namespace Dune::Graphics
 		uploadBuffer.Unmap(0, lightByteSize);
 
 		frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, lightByteSize);
-		frame.buffersToRelease.push(uploadBuffer);
+		frame.buffersToRelease.push_back(uploadBuffer);
 	}
 
 	void LightUpload::Destroy(Renderer& renderer, LightUploadData* pData)

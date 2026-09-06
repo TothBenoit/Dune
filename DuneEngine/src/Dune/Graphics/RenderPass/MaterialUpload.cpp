@@ -27,7 +27,7 @@ namespace Dune::Graphics
 			Frame& frame = renderer.GetCurrentFrame();
 			Device& device = renderer.GetRenderContext()->GetDevice();
 			if (pData->buffer.Get())
-				frame.buffersToRelease.push(pData->buffer);
+				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"MaterialBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ materialsByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = materialCount, .byteStride = sizeof(MaterialData) });
 			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
@@ -58,7 +58,7 @@ namespace Dune::Graphics
 		uploadBuffer.Unmap(0, materialsByteSize);
 
 		frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, materialsByteSize);
-		frame.buffersToRelease.push(uploadBuffer);
+		frame.buffersToRelease.push_back(uploadBuffer);
 	}
 
 	void MaterialUpload::Destroy(Renderer& renderer, MaterialUploadData* pData)

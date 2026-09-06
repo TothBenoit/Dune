@@ -107,11 +107,9 @@ namespace Dune::Graphics
 	{
 		for (Frame& frame : m_frames)
 		{
-			while (!frame.buffersToRelease.empty())
-			{
-				frame.buffersToRelease.front().Destroy();
-				frame.buffersToRelease.pop();
-			}
+			for (Buffer& buffer : frame.buffersToRelease)
+				buffer.Destroy();
+			frame.buffersToRelease.clear();
 			WaitForFrame(frame);
 			m_rtvHeap.Free(frame.backBufferRTV);
 			m_rtvHeap.Free(frame.hdrTargetRTV);
@@ -480,11 +478,9 @@ namespace Dune::Graphics
 		Device& device = m_pRenderContext->GetDevice();
 		Frame& frame = m_frames[m_frameIndex];
 		WaitForFrame(frame);
-		while (!frame.buffersToRelease.empty())
-		{
-			frame.buffersToRelease.front().Destroy();
-			frame.buffersToRelease.pop();
-		}
+		for (Buffer& buffer : frame.buffersToRelease)
+			buffer.Destroy();
+		frame.buffersToRelease.clear();
 		frame.commandAllocator.Reset();
 		frame.commandList.Reset(frame.commandAllocator);
 		frame.commandList.SetDescriptorHeaps(frame.srvHeap, frame.samplerHeap);
