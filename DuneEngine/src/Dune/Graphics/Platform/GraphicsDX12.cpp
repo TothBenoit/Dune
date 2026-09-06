@@ -1615,14 +1615,16 @@ namespace Dune::Graphics
 
 	constexpr UINT8 ConvertColorWriteMask(const BlendState& blendState)
 	{
+		if (blendState.colorMask == EColorMask::All)
+			return D3D12_COLOR_WRITE_ENABLE_ALL;
 		UINT8 writeMask{ 0 };
-		if (blendState.writeRed)
+		if (HasRed(blendState.colorMask))
 			writeMask |= D3D12_COLOR_WRITE_ENABLE_RED;
-		if (blendState.writeGreen)
+		if (HasGreen(blendState.colorMask))
 			writeMask |= D3D12_COLOR_WRITE_ENABLE_GREEN;
-		if (blendState.writeBlue)
+		if (HasBlue(blendState.colorMask))
 			writeMask |= D3D12_COLOR_WRITE_ENABLE_BLUE;
-		if (blendState.writeAlpha)
+		if (HasAlpha(blendState.colorMask))
 			writeMask |= D3D12_COLOR_WRITE_ENABLE_ALPHA;
 		return writeMask;
 	}
@@ -1633,11 +1635,11 @@ namespace Dune::Graphics
 		{
 			.BlendEnable = blendState.blendEnable,
 			.LogicOpEnable = FALSE,
-			.SrcBlend = ConvertBlendFactor(blendState.srcColor),
-			.DestBlend = ConvertBlendFactor(blendState.dstColor),
+			.SrcBlend = ConvertBlendFactor(blendState.colorSrc),
+			.DestBlend = ConvertBlendFactor(blendState.colorDst),
 			.BlendOp = ConvertBlendOp(blendState.colorOp),
-			.SrcBlendAlpha = ConvertBlendFactor(blendState.srcAlpha),
-			.DestBlendAlpha = ConvertBlendFactor(blendState.dstAlpha),
+			.SrcBlendAlpha = ConvertBlendFactor(blendState.alphaSrc),
+			.DestBlendAlpha = ConvertBlendFactor(blendState.alphaDst),
 			.BlendOpAlpha = ConvertBlendOp(blendState.alphaOp),
 			.LogicOp = D3D12_LOGIC_OP_NOOP,
 			.RenderTargetWriteMask = ConvertColorWriteMask(blendState),

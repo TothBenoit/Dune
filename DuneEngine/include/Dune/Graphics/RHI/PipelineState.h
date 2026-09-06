@@ -30,19 +30,52 @@ namespace Dune::Graphics
 		Max
 	};
 
+	enum class EColorMask : dU8
+	{
+		None = 0,
+		R    = 1 << 0,
+		G    = 1 << 1,
+		B    = 1 << 2,
+		A    = 1 << 3,
+		RG   = R | G,
+		RB   = R | B,
+		RA   = R | A,
+		RGB  = R | G | B,
+		RGA  = R | G | A,
+		RBA  = R | B | A,
+		RGBA = R | B | G | A,
+		GB   = G | B,
+		GA   = G | A,
+		GBA  = G | B | A,
+		BA   = B | A,
+		All  = RGBA
+	};
+
+	inline EColorMask operator|(EColorMask a, EColorMask b)
+	{
+		return EColorMask(dU8(a) | dU8(b));
+	}
+
+	inline EColorMask operator&(EColorMask a, EColorMask b)
+	{
+		return EColorMask(dU8(a) & dU8(b));
+	}
+
+	inline bool HasRed  (EColorMask mask) { return (mask & EColorMask::R) != EColorMask::None; }
+	inline bool HasGreen(EColorMask mask) { return (mask & EColorMask::G) != EColorMask::None; }
+	inline bool HasBlue (EColorMask mask) { return (mask & EColorMask::B) != EColorMask::None; }
+	inline bool HasAlpha(EColorMask mask) { return (mask & EColorMask::A) != EColorMask::None; }
+
 	struct BlendState
 	{
-		EBlendFactor srcColor{ EBlendFactor::SrcAlpha };
-		EBlendFactor dstColor{ EBlendFactor::InvSrcAlpha };
-		EBlendOp     colorOp { EBlendOp::Add };
-		EBlendFactor srcAlpha{ EBlendFactor::One };
-		EBlendFactor dstAlpha{ EBlendFactor::InvSrcAlpha };
-		EBlendOp     alphaOp { EBlendOp::Add };
+		EBlendFactor colorSrc        { EBlendFactor::SrcAlpha };
+		EBlendFactor colorDst        { EBlendFactor::InvSrcAlpha };
+		EBlendOp     colorOp         { EBlendOp::Add };
+		EBlendFactor alphaSrc        { EBlendFactor::One };
+		EBlendFactor alphaDst        { EBlendFactor::InvSrcAlpha };
+		EBlendOp     alphaOp         { EBlendOp::Add };
+		EColorMask   colorMask       { EColorMask::RGBA };
 		bool         blendEnable : 1 { false };
-		bool         writeRed    : 1 { true };
-		bool         writeGreen  : 1 { true };
-		bool         writeBlue   : 1 { true };
-		bool         writeAlpha  : 1 { true };
 	};
 
 	enum class ECullingMode : dU8
@@ -54,12 +87,12 @@ namespace Dune::Graphics
 
 	struct RasterizerState
 	{
-		dS32         depthBias{ 0 };
-		float        depthBiasClamp{ 0.0f };
-		float        slopeScaledDepthBias{ 0.0f };
-		ECullingMode cullingMode{ ECullingMode::Back };
-		bool         depthClipEnable : 1 { true };
-		bool         isWireframe : 1 { false };
+		dS32         depthBias            { 0 };
+		float        depthBiasClamp       { 0.0f };
+		float        slopeScaledDepthBias { 0.0f };
+		ECullingMode cullingMode          { ECullingMode::Back };
+		bool         depthClipEnable : 1  { true };
+		bool         isWireframe     : 1  { false };
 	};
 
 	enum class ECompFunc : dU8
