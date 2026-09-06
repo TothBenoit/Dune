@@ -34,6 +34,9 @@ namespace Dune
 			Descriptor hdrTargetSRV;
 			ScratchDescriptorHeap srvHeap;
 			ScratchDescriptorHeap samplerHeap;
+			Buffer uploadBuffer;
+			void* pUploadAddress;
+			dU32 uploadOffset;
 			dVector<Buffer> buffersToRelease;
 			ResourceHandle hdrTargetHandle{ kInvalidResourceHandle };
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
@@ -82,6 +85,7 @@ namespace Dune
 			static constexpr dU32 kPersistentSRVCapacity = 4096;
 			static constexpr dU32 kTransientSRVCapacity = 512;
 			static constexpr dU32 kBarrierCapacity = 256;
+			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
 			void Initialize(RenderContext& context, Window& window);
 			void Destroy();

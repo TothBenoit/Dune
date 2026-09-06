@@ -49,16 +49,21 @@ namespace Dune::Graphics
 		dVector<MaterialData>& materials = context.pFrameData->materials;
 		const dU32 materialsByteSize = pData->buffer.GetByteSize();
 
-		Buffer uploadBuffer{};
-		uploadBuffer.Initialize(device, { .debugName{ L"MaterialUploadBuffer" }, .byteSize{ materialsByteSize } });
-
 		void* pMappedData{ nullptr };
-		uploadBuffer.Map(0, materialsByteSize, &pMappedData);
-		memcpy(pMappedData, materials.data(), materialsByteSize);
-		uploadBuffer.Unmap(0, materialsByteSize);
-
-		frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, materialsByteSize);
-		frame.buffersToRelease.push_back(uploadBuffer);
+		if (frame.uploadOffset + materialsByteSize < frame.uploadBuffer.GetByteSize())
+		{
+			pMappedData = (dU8*)frame.pUploadAddress + frame.uploadOffset;
+			memcpy(pMappedData, materials.data(), materialsByteSize);
+			frame.commandList.CopyBufferRegion(pData->buffer, 0, frame.uploadBuffer, frame.uploadOffset, materialsByteSize);
+			frame.uploadOffset += materialsByteSize;
+		} else {
+			Buffer uploadBuffer{};
+			uploadBuffer.Initialize(device, { .debugName{ L"MaterialUploadBuffer" }, .byteSize{ materialsByteSize } });
+			uploadBuffer.Map(0, materialsByteSize, &pMappedData);
+			frame.buffersToRelease.push_back(uploadBuffer);
+			uploadBuffer.Unmap(0, materialsByteSize);
+			frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, materialsByteSize);
+		}
 	}
 
 	void MaterialUpload::Destroy(Renderer& renderer, MaterialUploadData* pData)

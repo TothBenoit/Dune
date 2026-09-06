@@ -54,16 +54,21 @@ namespace Dune::Graphics
 		dVector<Light>& lights = context.pFrameData->lights.allActive;
 		const dU32 lightByteSize = pData->buffer.GetByteSize();
 
-		Buffer uploadBuffer{};
-		uploadBuffer.Initialize(device, { .debugName{ L"LightUploadBuffer" }, .byteSize{ lightByteSize } });
-
 		void* pMappedData{ nullptr };
-		uploadBuffer.Map(0, lightByteSize, &pMappedData);
-		memcpy(pMappedData, lights.data(), lightByteSize);
-		uploadBuffer.Unmap(0, lightByteSize);
-
-		frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, lightByteSize);
-		frame.buffersToRelease.push_back(uploadBuffer);
+		if( frame.uploadOffset + lightByteSize < frame.uploadBuffer.GetByteSize() )
+		{
+			pMappedData = (dU8*)frame.pUploadAddress + frame.uploadOffset;
+			memcpy(pMappedData, lights.data(), lightByteSize);
+			frame.commandList.CopyBufferRegion(pData->buffer, 0, frame.uploadBuffer, frame.uploadOffset, lightByteSize);
+			frame.uploadOffset += lightByteSize;
+		} else {
+			Buffer uploadBuffer{};
+			uploadBuffer.Initialize(device, { .debugName{ L"LightUploadBuffer" }, .byteSize{ lightByteSize } });
+			uploadBuffer.Map(0, lightByteSize, &pMappedData);
+			frame.buffersToRelease.push_back(uploadBuffer);
+			uploadBuffer.Unmap(0, lightByteSize);
+			frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, lightByteSize);
+		}
 	}
 
 	void LightUpload::Destroy(Renderer& renderer, LightUploadData* pData)

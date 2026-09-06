@@ -53,6 +53,8 @@ namespace Dune::Graphics
 			frame.hdrTarget.Initialize(device, colorTargetDesc);
 			frame.srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = ResourceManager::kSharedSRVCapacity + kPersistentSRVCapacity + kTransientSRVCapacity, .isShaderVisible = true });
 			frame.samplerHeap.Initialize(device, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
+			frame.uploadBuffer.Initialize(device, { .debugName = L"UploadBuffer", .memory = EBufferMemory::CPU, .byteSize = kUploadBufferByteSize });
+			frame.uploadBuffer.Map(0, kUploadBufferByteSize, &frame.pUploadAddress);
 		}
 
 		m_barrier.Initialize(kBarrierCapacity);
@@ -114,6 +116,7 @@ namespace Dune::Graphics
 			m_rtvHeap.Free(frame.backBufferRTV);
 			m_rtvHeap.Free(frame.hdrTargetRTV);
 			m_srvHeap.Free(frame.hdrTargetSRV);
+			frame.uploadBuffer.Destroy();
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
 			frame.hdrTarget.Destroy();
@@ -486,6 +489,7 @@ namespace Dune::Graphics
 		frame.commandList.SetDescriptorHeaps(frame.srvHeap, frame.samplerHeap);
 		frame.srvHeap.Reset();
 		frame.samplerHeap.Reset();
+		frame.uploadOffset = 0;
 		
 		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
 		const BlockDescriptorHeap& sharedHeap = resourceManager.GetSRVHeap();

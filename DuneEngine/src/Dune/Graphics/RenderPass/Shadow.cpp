@@ -321,21 +321,23 @@ namespace Dune::Graphics
 			dsvHeap.Free(dsv);
 		}
 
+		void* pMappedData{ nullptr };
 		const dU32 matricesByteSize = (dU32)shadowCasters.size() * (dU32)sizeof(dMatrix4x4);
-		Buffer matricesUploadBuffer{};
-		matricesUploadBuffer.Initialize(device,
-			{
-				.debugName{ L"ShadowMatricesUploadBuffer" },
-				.memory{ EBufferMemory::CPU },
-				.byteSize{ matricesByteSize },
-				.initialState{ EResourceState::Undefined }
-			});
-		void* pMatricesData{ nullptr };
-		matricesUploadBuffer.Map(0, matricesByteSize, &pMatricesData);
-		memcpy(pMatricesData, pData->matrices.data(), matricesByteSize);
-		matricesUploadBuffer.Unmap(0, matricesByteSize);
-		commandList.CopyBufferRegion(pData->matricesBuffer, 0, matricesUploadBuffer, 0, matricesByteSize);
-		frame.buffersToRelease.push_back(matricesUploadBuffer);
+		if (frame.uploadOffset + matricesByteSize < frame.uploadBuffer.GetByteSize())
+		{
+			pMappedData = (dU8*)frame.pUploadAddress + frame.uploadOffset;
+			memcpy(pMappedData, pData->matrices.data(), matricesByteSize);
+			frame.commandList.CopyBufferRegion(pData->matricesBuffer, 0, frame.uploadBuffer, frame.uploadOffset, matricesByteSize);
+			frame.uploadOffset += matricesByteSize;
+		}
+		else {
+			Buffer uploadBuffer{};
+			uploadBuffer.Initialize(device, { .debugName{ L"ShadowMatricesUploadBuffer" }, .byteSize{ matricesByteSize } });
+			uploadBuffer.Map(0, matricesByteSize, &pMappedData);
+			frame.buffersToRelease.push_back(uploadBuffer);
+			uploadBuffer.Unmap(0, matricesByteSize);
+			frame.commandList.CopyBufferRegion(pData->matricesBuffer, 0, uploadBuffer, 0, matricesByteSize);
+		}
 	}
 
 	void Shadow::Destroy(Renderer& renderer, ShadowData* pData)
