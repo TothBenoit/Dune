@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Dune/Utilities/StringUtils.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
+#include "Dune/Graphics/RenderPass/MaterialUpload.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
@@ -186,6 +187,7 @@ namespace Dune::Graphics
 		}
 
 		builder.Write(pData->matricesHandle, EResourceState::CopyDest);
+		builder.Read(renderer.Get<MaterialUpload>()->handle, EResourceState::ShaderResource);
 	}
 
 	static void RenderDepth(RenderPassContext& context, ShadowData* pData, const dMatrix4x4& viewProjection)
@@ -205,7 +207,7 @@ namespace Dune::Graphics
 		DepthGlobals globals
 		{
 			.viewProjectionMatrix = viewProjection,
-			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(frame.materialBufferSRV) + frameData.reservedSharedSRV
+			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.reservedSharedSRV
 		};
 		commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
 

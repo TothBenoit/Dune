@@ -33,13 +33,7 @@ namespace Dune::Graphics
 		{
 			if (pData->buffer.Get())
 				frame.buffersToRelease.push(pData->buffer);
-			pData->buffer.Initialize(device,
-				{
-					.debugName{ L"LightBuffer" },
-					.memory{ EBufferMemory::GPU },
-					.byteSize{ lightByteSize },
-					.initialState{ EResourceState::Undefined }
-				});
+			pData->buffer.Initialize(device, { .debugName{ L"LightBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ lightByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = pData->lightCount, .byteStride = sizeof(Light) });
 			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
@@ -58,16 +52,10 @@ namespace Dune::Graphics
 		Device& device = renderer.GetRenderContext()->GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		dVector<Light>& lights = context.pFrameData->lights.allActive;
-		const dU32 lightByteSize = pData->lightCount * (dU32)sizeof(Light);
+		const dU32 lightByteSize = pData->buffer.GetByteSize();
 
 		Buffer uploadBuffer{};
-		uploadBuffer.Initialize(device,
-			{
-				.debugName{ L"LightUploadBuffer" },
-				.memory{ EBufferMemory::CPU },
-				.byteSize{ lightByteSize },
-				.initialState{ EResourceState::Undefined }
-			});
+		uploadBuffer.Initialize(device, { .debugName{ L"LightUploadBuffer" }, .byteSize{ lightByteSize } });
 
 		void* pMappedData{ nullptr };
 		uploadBuffer.Map(0, lightByteSize, &pMappedData);

@@ -3,6 +3,7 @@
 #include "Dune/Graphics/RenderPass/Forward.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
 #include "Dune/Graphics/RenderPass/LightUpload.h"
+#include "Dune/Graphics/RenderPass/MaterialUpload.h"
 #include "Dune/Graphics/RenderPass/DepthPrepass.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
@@ -104,6 +105,7 @@ namespace Dune::Graphics
 
 		builder.Write(renderer.GetHDRTargetHandle(), EResourceState::RenderTarget);
 		builder.Write(renderer.GetDepthBufferHandle(), EResourceState::DepthStencil);
+		builder.Read(renderer.Get<MaterialUpload>()->handle, EResourceState::ShaderResource);
 
 		ShadowData* pShadowData = renderer.Get<Shadow>();
 		for (ResourceHandle handle : pShadowData->activeHandles)
@@ -142,7 +144,7 @@ namespace Dune::Graphics
 		globals.lightCount = renderer.Get<LightUpload>()->lightCount;
 		globals.lightBufferIndex = renderer.Get<LightUpload>()->srvIndex + context.pFrameData->reservedSharedSRV;
 		globals.lightMatricesIndex = renderer.Get<Shadow>()->matricesSRVIndex + context.pFrameData->reservedSharedSRV;
-		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(frame.materialBufferSRV) + context.pFrameData->reservedSharedSRV;
+		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + context.pFrameData->reservedSharedSRV;
 
 		commandList.SetGraphicsRootSignature(pData->forwardRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);

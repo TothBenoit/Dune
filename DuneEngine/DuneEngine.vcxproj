@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearDepth.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderPass\MaterialUpload.cpp" />
     <ClCompile Include="src\Dune\Utilities\StringUtils.cpp" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\FileLoader.h" />
@@ -24,6 +25,7 @@
     <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\LightUpload.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\MaterialUpload.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Shadow.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Tonemapping.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Barrier.h" />
