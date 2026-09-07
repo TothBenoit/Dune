@@ -110,15 +110,15 @@ namespace Dune::Graphics
 			vs.Destroy();
 
 		pData->matricesSRV = renderer.GetSRVHeap().Allocate();
-		pData->matricesSRVIndex = renderer.GetSRVHeap().GetIndex(pData->matricesSRV);
+		pData->matricesPersistentSRVIndex = renderer.GetSRVHeap().GetIndex(pData->matricesSRV);
 
 		return pData;
 	}
 
 	void Shadow::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData)
 	{
-		FrameData& frameData = *context.pFrameData;
-		dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
+		const FrameData& frameData = *context.pFrameData;
+		const dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
 		pData->activeHandles.clear();
 		if (shadowCasters.empty())
 			return;
@@ -128,14 +128,15 @@ namespace Dune::Graphics
 		RenderContext& renderContext = *renderer.GetRenderContext();
 		Device& device = renderContext.GetDevice();
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
+		dU32 shadowCount = (dU32)shadowCasters.size();
+		dU32 shadowStartIndex = pData->shadowStartIndex = srvHeap.GetIndex(srvHeap.Allocate(shadowCount));
 
 		dU32 cubeShadowIndex{ 0 };
 		dU32 shadowIndex{ 0 };
-		for (dU32 casterIndex = 0; casterIndex < (dU32)shadowCasters.size(); casterIndex++)
+		for (dU32 casterIndex = 0; casterIndex < shadowCount; casterIndex++)
 		{
-			Light& light = frameData.lights.allActive[shadowCasters[casterIndex]];
-			light.matrixIndex = casterIndex;
-			Descriptor srv = srvHeap.Allocate(1);
+			const Light& light = frameData.lights.allActive[shadowCasters[casterIndex]];
+			Descriptor srv = srvHeap.GetDescriptorAt(shadowStartIndex + casterIndex);
 			if (light.IsPoint())
 			{
 				if (pData->cubeShadowHandles.size() <= cubeShadowIndex)
@@ -143,7 +144,6 @@ namespace Dune::Graphics
 				ResourceHandle handle = pData->cubeShadowHandles[cubeShadowIndex++];
 				Texture& shadowMap = renderer.GetTexture(handle);
 				device.CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT, .dimension = ESRVDimension::TextureCube });
-				light.shadowIndex = srvHeap.GetIndex(srv);
 				pData->activeHandles.push_back(handle);
 			}
 			else
@@ -153,7 +153,6 @@ namespace Dune::Graphics
 				ResourceHandle handle = pData->shadowHandles[shadowIndex++];
 				Texture& shadowMap = renderer.GetTexture(handle);
 				device.CreateSRV(srv, shadowMap, { .format = EFormat::R32_FLOAT });
-				light.shadowIndex = srvHeap.GetIndex(srv);
 				pData->activeHandles.push_back(handle);
 			}
 		}
@@ -163,13 +162,11 @@ namespace Dune::Graphics
 
 		const dU32 matrixCount = (dU32)shadowCasters.size();
 		const dU32 matricesByteSize = matrixCount * (dU32)sizeof(dMatrix4x4);
-		if (pData->matrices.size() < matrixCount)
-			pData->matrices.resize(matrixCount);
 
 		if (pData->matricesBuffer.GetByteSize() < matricesByteSize)
 		{
 			if (pData->matricesBuffer.Get())
-				frame.buffersToRelease.push(pData->matricesBuffer);
+				frame.buffersToRelease.push_back(pData->matricesBuffer);
 			pData->matricesBuffer.Initialize(device,
 				{
 					.debugName{ L"ShadowMatricesBuffer" },
@@ -178,7 +175,7 @@ namespace Dune::Graphics
 					.initialState{ EResourceState::Undefined }
 				});
 			device.CreateSRV(pData->matricesSRV, pData->matricesBuffer, { .elementCount = matrixCount, .byteStride = sizeof(dMatrix4x4) });
-			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, srvHeap.GetDescriptorAt(pData->matricesSRVIndex + frameData.reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, srvHeap.GetDescriptorAt(pData->matricesPersistentSRVIndex + frameData.reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->matricesHandle == kInvalidResourceHandle)
 				pData->matricesHandle = renderer.RegisterBuffer(&pData->matricesBuffer, EResourceState::Undefined);
@@ -203,7 +200,7 @@ namespace Dune::Graphics
 		commandList.SetGraphicsRootSignature(pData->shadowRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 
-		FrameData& frameData = *context.pFrameData;
+		const FrameData& frameData = *context.pFrameData;
 		DepthGlobals globals
 		{
 			.viewProjectionMatrix = viewProjection,
@@ -243,12 +240,12 @@ namespace Dune::Graphics
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
 		CommandList& commandList = frame.commandList;
-		FrameData& frameData = *context.pFrameData;
+		const FrameData& frameData = *context.pFrameData;
 		Device& device = renderer.GetRenderContext()->GetDevice();
 		BlockDescriptorHeap& dsvHeap = renderer.GetDSVHeap();
 
-		dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
-		dVector<Light>& lights = frameData.lights.allActive;
+		const dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
+		const dVector<Light>& lights = frameData.lights.allActive;
 
 		Viewport viewport{ 0.0, 0.0, SHADOW_MAP_RESOLUTION_F, SHADOW_MAP_RESOLUTION_F, 0.0f, 1.0f };
 		Scissor scissor{ 0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION };
@@ -257,9 +254,9 @@ namespace Dune::Graphics
 
 		for (dU32 casterIndex = 0; casterIndex < (dU32)shadowCasters.size(); casterIndex++)
 		{
-			Light& light = lights[shadowCasters[casterIndex]];
+			const Light& light = lights[shadowCasters[casterIndex]];
 			Texture& shadowMap = renderer.GetTexture(pData->activeHandles[casterIndex]);
-			dMatrix4x4& lightMatrix = pData->matrices[casterIndex];
+			const dMatrix4x4& lightMatrix = frameData.lights.shadowMatrices[casterIndex];
 
 			Descriptor dsv = dsvHeap.Allocate();
 			if (light.IsPoint())
@@ -282,60 +279,40 @@ namespace Dune::Graphics
 					commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
 					commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 					dMatrix4x4 faceMatrix;
-					DirectX::XMStoreFloat4x4(&faceMatrix, viewMatrices[faceIndex] * projectionMatrix);
+					DirectX::XMStoreFloat4x4(&faceMatrix, viewMatrices[faceIndex] * DirectX::XMLoadFloat4x4(&lightMatrix));
 					RenderDepth(context, pData, faceMatrix);
 				}
-				DirectX::XMStoreFloat4x4(&lightMatrix, projectionMatrix);
 			}
 			else
 			{
 				device.CreateDSV(dsv, shadowMap, {});
 				commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
 				commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-
-				dVec up{ 0.f, 1.f, 0.f, 0.f };
-				dVec to{ DirectX::XMLoadFloat3(&light.direction) };
-				dVec axis = DirectX::XMVector3Cross(up, to);
-				if (DirectX::XMVector3Equal(axis, { 0.0f, 0.0f, 0.0f }))
-					up = { 0.f, 0.f, 1.f, 0.f };
-
-				if (light.IsSpot())
-				{
-					dVec eye{ light.position.x, light.position.y, light.position.z };
-					dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
-					dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(light.angle * 2.0f, 1.0f, 0.1f, light.range) };
-					DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix * projectionMatrix);
-				}
-				else
-				{
-					float shadowWidth{ 4500.f }; // Hardcoded for sponza
-					dVec eye{ 0.f, 0.f, 0.f };
-					dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
-					dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(shadowWidth, shadowWidth, -shadowWidth, shadowWidth) };
-					DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix* projectionMatrix);
-				}
-
 				RenderDepth(context, pData, lightMatrix);
 			}
 
 			dsvHeap.Free(dsv);
 		}
 
+		void* pMappedData{ nullptr };
 		const dU32 matricesByteSize = (dU32)shadowCasters.size() * (dU32)sizeof(dMatrix4x4);
-		Buffer matricesUploadBuffer{};
-		matricesUploadBuffer.Initialize(device,
-			{
-				.debugName{ L"ShadowMatricesUploadBuffer" },
-				.memory{ EBufferMemory::CPU },
-				.byteSize{ matricesByteSize },
-				.initialState{ EResourceState::Undefined }
-			});
-		void* pMatricesData{ nullptr };
-		matricesUploadBuffer.Map(0, matricesByteSize, &pMatricesData);
-		memcpy(pMatricesData, pData->matrices.data(), matricesByteSize);
-		matricesUploadBuffer.Unmap(0, matricesByteSize);
-		commandList.CopyBufferRegion(pData->matricesBuffer, 0, matricesUploadBuffer, 0, matricesByteSize);
-		frame.buffersToRelease.push(matricesUploadBuffer);
+		if (frame.uploadOffset + matricesByteSize < frame.uploadBuffer.GetByteSize())
+		{
+			pMappedData = (dU8*)frame.pUploadAddress + frame.uploadOffset;
+			memcpy(pMappedData, frameData.lights.shadowMatrices.data(), matricesByteSize);
+			frame.commandList.CopyBufferRegion(pData->matricesBuffer, 0, frame.uploadBuffer, frame.uploadOffset, matricesByteSize);
+			frame.uploadOffset += matricesByteSize;
+		}
+		else
+		{
+			Buffer uploadBuffer{};
+			uploadBuffer.Initialize(device, { .debugName{ L"ShadowMatricesUploadBuffer" }, .byteSize{ matricesByteSize } });
+			uploadBuffer.Map(0, matricesByteSize, &pMappedData);
+			memcpy(pMappedData, frameData.lights.shadowMatrices.data(), matricesByteSize);
+			uploadBuffer.Unmap(0, matricesByteSize);
+			frame.commandList.CopyBufferRegion(pData->matricesBuffer, 0, uploadBuffer, 0, matricesByteSize);
+			frame.buffersToRelease.push_back(uploadBuffer);
+		}
 	}
 
 	void Shadow::Destroy(Renderer& renderer, ShadowData* pData)

@@ -39,9 +39,9 @@ namespace Dune
 
 		struct RenderPassContext
 		{
+			const FrameData* pFrameData;
+			const Camera* pCamera;
 			Renderer* pRenderer;
-			Camera* pCamera;
-			FrameData* pFrameData;
 			Barrier* pBarrier;
 		};
 

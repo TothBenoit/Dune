@@ -141,10 +141,14 @@ namespace Dune::Graphics
 		ForwardGlobals globals;
 		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
 		globals.cameraPosition = context.pCamera->position;
-		globals.lightCount = renderer.Get<LightUpload>()->lightCount;
-		globals.lightBufferIndex = renderer.Get<LightUpload>()->srvIndex + context.pFrameData->reservedSharedSRV;
-		globals.lightMatricesIndex = renderer.Get<Shadow>()->matricesSRVIndex + context.pFrameData->reservedSharedSRV;
-		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + context.pFrameData->reservedSharedSRV;
+		const LightUploadData& lightUploadData = *renderer.Get<LightUpload>();
+		const ShadowData& shadowData = *renderer.Get<Shadow>();
+		const MaterialUploadData& materialUploadData = *renderer.Get<MaterialUpload>();
+		globals.lightCount = lightUploadData.lightCount;
+		globals.lightBufferIndex = lightUploadData.srvIndex + context.pFrameData->reservedSharedSRV;
+		globals.lightMatricesIndex = shadowData.matricesPersistentSRVIndex + context.pFrameData->reservedSharedSRV;
+		globals.shadowStartIndex = shadowData.shadowStartIndex;
+		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(materialUploadData.srv) + context.pFrameData->reservedSharedSRV;
 
 		commandList.SetGraphicsRootSignature(pData->forwardRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);

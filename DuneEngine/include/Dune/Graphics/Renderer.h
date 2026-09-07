@@ -34,15 +34,19 @@ namespace Dune
 			Descriptor hdrTargetSRV;
 			ScratchDescriptorHeap srvHeap;
 			ScratchDescriptorHeap samplerHeap;
-			dQueue<Buffer> buffersToRelease;
+			Buffer uploadBuffer;
+			void* pUploadAddress;
+			dU32 uploadOffset;
+			dVector<Buffer> buffersToRelease;
 			ResourceHandle hdrTargetHandle{ kInvalidResourceHandle };
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
 		};
 
 		struct FrameLights
 		{
-			dVector<Light> allActive;
-			dVector<dU32>  shadowCasters;
+			dVector<Light>      allActive;
+			dVector<dU32>       shadowCasters;
+			dVector<dMatrix4x4> shadowMatrices;
 		};
 
 		struct DrawItem
@@ -82,12 +86,13 @@ namespace Dune
 			static constexpr dU32 kPersistentSRVCapacity = 4096;
 			static constexpr dU32 kTransientSRVCapacity = 512;
 			static constexpr dU32 kBarrierCapacity = 256;
+			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
 			void Initialize(RenderContext& context, Window& window);
 			void Destroy();
 
 			void OnResize(dU32 width, dU32 height);
-			void Render(Scene& scene, Camera& camera);
+			void Render(const Scene& scene, const Camera& camera);
 
 			[[nodiscard]] inline RenderContext* GetRenderContext() { return m_pRenderContext; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
@@ -160,7 +165,7 @@ namespace Dune
 			}
 
 		private:
-			void GatherFrameData(Scene& scene);
+			void GatherFrameData(const Scene& scene);
 			void WaitForFrame(const Frame& frame);
 
 			void TransitionResource(const ResourceAccess& access);

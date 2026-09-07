@@ -3,6 +3,7 @@
 #ifdef __cplusplus
 #define BEGIN_NAMESPACE_SHADER(n) namespace n {
 #define END_NAMESPACE_SHADER }
+#define CONST const
 
 namespace Dune::Graphics
 {
@@ -31,6 +32,7 @@ namespace Dune::Graphics
 
 #define BEGIN_NAMESPACE_SHADER(n)
 #define END_NAMESPACE_SHADER
+#define CONST
 
 #endif
 
@@ -64,8 +66,8 @@ struct ForwardGlobals
 	int        lightCount;
 	uint       lightBufferIndex;
 	uint       lightMatricesIndex;
+	uint       shadowStartIndex;
 	uint       materialBufferIndex;
-	uint      _padding;
 };
 
 struct DepthGlobals
@@ -111,11 +113,10 @@ struct Light
 
 	uint       flags;
 	uint       shadowIndex;
-	uint       matrixIndex;
 
-	bool IsPoint() { return (flags & fIsPoint) != 0; }
-	bool IsSpot() { return (flags & fIsSpot) != 0; }
-	bool HasShadow() { return (flags & fCastShadow) != 0; }
+	bool IsPoint() CONST { return (flags & fIsPoint) != 0; }
+	bool IsSpot() CONST { return (flags & fIsSpot) != 0; }
+	bool HasShadow() CONST { return (flags & fCastShadow) != 0; }
 };
 
 #ifndef __cplusplus

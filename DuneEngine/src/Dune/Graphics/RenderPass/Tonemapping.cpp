@@ -97,7 +97,7 @@ namespace Dune::Graphics
 				.pRootSignature = &pData->histogramRS
 			});
 
-		pData->histogramBuffer.Initialize(device, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32) });
+		pData->histogramBuffer.Initialize(device, { .debugName = L"HistogramBuffer", .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32)});
 		pData->histogramUAV = srvHeap.Allocate();
 		device.CreateUAV(pData->histogramUAV, pData->histogramBuffer, { .format = EFormat::R32_UINT, .elementCount = 256 });
 
@@ -128,7 +128,7 @@ namespace Dune::Graphics
 				.pRootSignature = &pData->averageRS
 			});
 
-		pData->luminanceBuffer.Initialize(device, { .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = sizeof(dU32) });
+		pData->luminanceBuffer.Initialize(device, { .debugName = L"LuminanceBuffer", .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = sizeof(dU32)});
 
 		fullScreenTriangleVS.Destroy();
 		tonemappingPS.Destroy();

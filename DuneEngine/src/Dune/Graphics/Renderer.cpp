@@ -51,6 +51,8 @@ namespace Dune::Graphics
 			frame.hdrTarget.Initialize(device, colorTargetDesc);
 			frame.srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = ResourceManager::kSharedSRVCapacity + kPersistentSRVCapacity + kTransientSRVCapacity, .isShaderVisible = true });
 			frame.samplerHeap.Initialize(device, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
+			frame.uploadBuffer.Initialize(device, { .debugName = L"UploadBuffer", .memory = EBufferMemory::CPU, .byteSize = kUploadBufferByteSize });
+			frame.uploadBuffer.Map(0, kUploadBufferByteSize, &frame.pUploadAddress);
 		}
 
 		m_barrier.Initialize(kBarrierCapacity);
@@ -105,15 +107,14 @@ namespace Dune::Graphics
 	{
 		for (Frame& frame : m_frames)
 		{
-			while (!frame.buffersToRelease.empty())
-			{
-				frame.buffersToRelease.front().Destroy();
-				frame.buffersToRelease.pop();
-			}
+			for (Buffer& buffer : frame.buffersToRelease)
+				buffer.Destroy();
+			frame.buffersToRelease.clear();
 			WaitForFrame(frame);
 			m_rtvHeap.Free(frame.backBufferRTV);
 			m_rtvHeap.Free(frame.hdrTargetRTV);
 			m_srvHeap.Free(frame.hdrTargetSRV);
+			frame.uploadBuffer.Destroy();
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
 			frame.hdrTarget.Destroy();
@@ -302,6 +303,38 @@ namespace Dune::Graphics
 		}
 	}
 
+	dMatrix4x4 ComputeShadowMatrix(Light& light)
+	{
+		dMatrix4x4 lightMatrix;
+		if (light.IsPoint())
+			DirectX::XMStoreFloat4x4(&lightMatrix, DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), 1.0f, 0.1f, light.range));
+		else
+		{
+			dVec up{ 0.f, 1.f, 0.f, 0.f };
+			dVec to{ DirectX::XMLoadFloat3(&light.direction) };
+			dVec axis = DirectX::XMVector3Cross(up, to);
+			if (DirectX::XMVector3Equal(axis, { 0.0f, 0.0f, 0.0f }))
+				up = { 0.f, 0.f, 1.f, 0.f };
+
+			if (light.IsSpot())
+			{
+				dVec eye{ light.position.x, light.position.y, light.position.z };
+				dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
+				dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(light.angle * 2.0f, 1.0f, 0.1f, light.range) };
+				DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix * projectionMatrix);
+			}
+			else
+			{
+				float shadowWidth{ 4500.f }; // Hardcoded for sponza
+				dVec eye{ 0.f, 0.f, 0.f };
+				dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
+				dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(shadowWidth, shadowWidth, -shadowWidth, shadowWidth) };
+				DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix* projectionMatrix);
+			}
+		}
+		return lightMatrix;
+	}
+
 	void FillLight(const Dune::Light& sceneLight, Light& light)
 	{
 		light.color = sceneLight.color;
@@ -339,7 +372,7 @@ namespace Dune::Graphics
 			light.flags |= fCastShadow;
 	}
 
-	void Renderer::GatherFrameData(Scene& scene)
+	void Renderer::GatherFrameData(const Scene& scene)
 	{
 		m_frameData.lights.allActive.clear();
 		m_frameData.lights.shadowCasters.clear();
@@ -351,9 +384,14 @@ namespace Dune::Graphics
 				return;
 			Light light{};
 			FillLight(sceneLight, light);
-			m_frameData.lights.allActive.push_back(light);
 			if (sceneLight.castShadow)
-				m_frameData.lights.shadowCasters.push_back((dU32)m_frameData.lights.allActive.size()-1);
+			{
+				dU32 casterIndex = (dU32)m_frameData.lights.shadowCasters.size();
+				light.shadowIndex = (dU32)m_frameData.lights.shadowCasters.size();
+				m_frameData.lights.shadowCasters.push_back((dU32)m_frameData.lights.allActive.size());
+				m_frameData.lights.shadowMatrices.push_back(ComputeShadowMatrix(light));
+			}
+			m_frameData.lights.allActive.push_back(light);
 		});
 
 		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
@@ -443,7 +481,7 @@ namespace Dune::Graphics
 			m_fence.Wait(fenceValue);
 	}
 
-	void Renderer::Render(Scene& scene, Camera& camera)
+	void Renderer::Render(const Scene& scene, const Camera& camera)
 	{
 		GatherFrameData(scene);
 
@@ -478,16 +516,15 @@ namespace Dune::Graphics
 		Device& device = m_pRenderContext->GetDevice();
 		Frame& frame = m_frames[m_frameIndex];
 		WaitForFrame(frame);
-		while (!frame.buffersToRelease.empty())
-		{
-			frame.buffersToRelease.front().Destroy();
-			frame.buffersToRelease.pop();
-		}
+		for (Buffer& buffer : frame.buffersToRelease)
+			buffer.Destroy();
+		frame.buffersToRelease.clear();
 		frame.commandAllocator.Reset();
 		frame.commandList.Reset(frame.commandAllocator);
 		frame.commandList.SetDescriptorHeaps(frame.srvHeap, frame.samplerHeap);
 		frame.srvHeap.Reset();
 		frame.samplerHeap.Reset();
+		frame.uploadOffset = 0;
 		
 		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
 		const BlockDescriptorHeap& sharedHeap = resourceManager.GetSRVHeap();
@@ -499,9 +536,9 @@ namespace Dune::Graphics
 
 		RenderPassContext context
 		{
-			.pRenderer = this,
-			.pCamera = &camera,
 			.pFrameData = &m_frameData,
+			.pCamera = &camera,
+			.pRenderer = this,
 			.pBarrier = &m_barrier,
 		};
 

@@ -17,7 +17,7 @@ namespace Dune::Graphics
 	void MaterialUpload::Setup(RenderGraphBuilder& builder, RenderPassContext& context, MaterialUploadData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		dVector<MaterialData>& materials = context.pFrameData->materials;
+		const dVector<MaterialData>& materials = context.pFrameData->materials;
 
 		dU32 materialCount = (dU32)materials.size();
 		const dU32 materialsByteSize = materialCount * (dU32)sizeof(MaterialData);
@@ -27,7 +27,7 @@ namespace Dune::Graphics
 			Frame& frame = renderer.GetCurrentFrame();
 			Device& device = renderer.GetRenderContext()->GetDevice();
 			if (pData->buffer.Get())
-				frame.buffersToRelease.push(pData->buffer);
+				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"MaterialBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ materialsByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = materialCount, .byteStride = sizeof(MaterialData) });
 			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
@@ -46,19 +46,27 @@ namespace Dune::Graphics
 		Renderer& renderer = *context.pRenderer;
 		Device& device = renderer.GetRenderContext()->GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
-		dVector<MaterialData>& materials = context.pFrameData->materials;
+		const dVector<MaterialData>& materials = context.pFrameData->materials;
 		const dU32 materialsByteSize = pData->buffer.GetByteSize();
 
-		Buffer uploadBuffer{};
-		uploadBuffer.Initialize(device, { .debugName{ L"MaterialUploadBuffer" }, .byteSize{ materialsByteSize } });
-
 		void* pMappedData{ nullptr };
-		uploadBuffer.Map(0, materialsByteSize, &pMappedData);
-		memcpy(pMappedData, materials.data(), materialsByteSize);
-		uploadBuffer.Unmap(0, materialsByteSize);
-
-		frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, materialsByteSize);
-		frame.buffersToRelease.push(uploadBuffer);
+		if (frame.uploadOffset + materialsByteSize < frame.uploadBuffer.GetByteSize())
+		{
+			pMappedData = (dU8*)frame.pUploadAddress + frame.uploadOffset;
+			memcpy(pMappedData, materials.data(), materialsByteSize);
+			frame.commandList.CopyBufferRegion(pData->buffer, 0, frame.uploadBuffer, frame.uploadOffset, materialsByteSize);
+			frame.uploadOffset += materialsByteSize;
+		}
+		else
+		{
+			Buffer uploadBuffer{};
+			uploadBuffer.Initialize(device, { .debugName{ L"MaterialUploadBuffer" }, .byteSize{ materialsByteSize } });
+			uploadBuffer.Map(0, materialsByteSize, &pMappedData);
+			memcpy(pMappedData, materials.data(), materialsByteSize);
+			uploadBuffer.Unmap(0, materialsByteSize);
+			frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, materialsByteSize);
+			frame.buffersToRelease.push_back(uploadBuffer);
+		}
 	}
 
 	void MaterialUpload::Destroy(Renderer& renderer, MaterialUploadData* pData)
