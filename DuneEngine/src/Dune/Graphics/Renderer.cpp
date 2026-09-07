@@ -12,8 +12,6 @@
 #include "Dune/Graphics/RenderPass/Tonemapping.h"
 #include "Dune/Graphics/RenderContext.h"
 #include "Dune/Scene/Camera.h"
-#include <imgui/imgui_impl_win32.h>
-#include <imgui/imgui_impl_dx12.h>
 
 namespace Dune::Graphics
 {
