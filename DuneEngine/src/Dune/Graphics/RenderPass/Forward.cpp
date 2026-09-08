@@ -118,10 +118,34 @@ namespace Dune::Graphics
 			builder.Read(pLightData->handle, EResourceState::ShaderResource);
 	}
 
+	dU32 Draw(CommandList& commandList, const DrawItem& drawItem, dU32 currentVariant, const FrameData& frameData, ForwardData* pData)
+	{
+		dU32 variant = drawItem.materialVariant;
+		if (currentVariant != variant)
+		{
+			commandList.SetPipelineState(pData->forwardPSO[variant]);
+			currentVariant = variant;
+		}
+
+		commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
+
+		InstanceData instanceData;
+		instanceData.objectToWorld = drawItem.objectToWorld;
+		commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
+
+		const GPUMeshView& mesh = frameData.meshes[drawItem.meshIdx];
+		commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
+		commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
+		commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
+
+		return currentVariant;
+	}
+
 	void Forward::Execute(RenderPassContext& context, ForwardData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
+		const FrameData& frameData = *context.pFrameData;
 		CommandList& commandList = frame.commandList;
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
 		RenderContext* pRenderContext = renderer.GetRenderContext();
@@ -145,36 +169,20 @@ namespace Dune::Graphics
 		const ShadowData& shadowData = *renderer.Get<Shadow>();
 		const MaterialUploadData& materialUploadData = *renderer.Get<MaterialUpload>();
 		globals.lightCount = lightUploadData.lightCount;
-		globals.lightBufferIndex = lightUploadData.srvIndex + context.pFrameData->reservedSharedSRV;
-		globals.lightMatricesIndex = shadowData.matricesPersistentSRVIndex + context.pFrameData->reservedSharedSRV;
+		globals.lightBufferIndex = lightUploadData.srvIndex + frameData.reservedSharedSRV;
+		globals.lightMatricesIndex = shadowData.matricesPersistentSRVIndex + frameData.reservedSharedSRV;
 		globals.shadowStartIndex = shadowData.shadowStartIndex;
-		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(materialUploadData.srv) + context.pFrameData->reservedSharedSRV;
+		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(materialUploadData.srv) + frameData.reservedSharedSRV;
 
 		commandList.SetGraphicsRootSignature(pData->forwardRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
 
 		dU32 currentVariant = dU32(-1);
-		for( const DrawItem& drawItem : context.pFrameData->drawItems )
-		{
-			dU32 variant = drawItem.materialVariant;
-			if (currentVariant != variant)
-			{
-				commandList.SetPipelineState(pData->forwardPSO[variant]);
-				currentVariant = variant;
-			}
-
-			commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
-
-			InstanceData instanceData;
-			instanceData.objectToWorld = drawItem.objectToWorld;
-			commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
-
-			Mesh& mesh = resourceManager.GetMesh(drawItem.meshIdx);
-			commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
-			commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
-			commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
-		}
+		for( dU32 drawIdx = 0; drawIdx < frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
+			currentVariant = Draw(commandList, frameData.drawItems[drawIdx], currentVariant, frameData, pData);
+		for (dU32 drawIdx = 0; drawIdx < frameData.blendDrawCount; drawIdx++)
+			currentVariant = Draw(commandList, frameData.drawItems[context.sortedBlendDraw[drawIdx]], currentVariant, frameData, pData);
 	}
 
 	void Forward::Destroy(Renderer&, ForwardData* pData)

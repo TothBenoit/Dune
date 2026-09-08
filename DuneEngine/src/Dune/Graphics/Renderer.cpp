@@ -395,7 +395,7 @@ namespace Dune::Graphics
 		});
 
 		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
-		m_frameData.blendingMaterialCount = 0;
+		m_frameData.blendDrawCount = 0;
 		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
 		{
 			dMatrix4x4 objectToWorld;
@@ -418,7 +418,7 @@ namespace Dune::Graphics
 				drawItem.vertexOffset = subMesh.vertexOffset;
 				const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
 				drawItem.materialVariant = material.GetVariant();
-				m_frameData.blendingMaterialCount += material.alphaMode == EAlphaMode::Blend ? 1 : 0;
+				m_frameData.blendDrawCount += material.alphaMode == EAlphaMode::Blend ? 1 : 0;
 			}
 		});
 
@@ -427,6 +427,29 @@ namespace Dune::Graphics
 		m_frameData.materials.reserve(materials.size());
 		for (const Material& material : materials)
 			m_frameData.materials.push_back(material.shaderData);
+
+		dVector<Mesh>& meshes = resourceManager.GetMeshes();
+		m_frameData.meshes.clear();
+		m_frameData.meshes.reserve(meshes.size());
+		for (Mesh& mesh : meshes)
+		{
+			Buffer& indexBuffer = mesh.GetIndexBuffer();
+			Buffer& vertexBuffer = mesh.GetVertexBuffer();
+			GPUMeshView& meshView = m_frameData.meshes.emplace_back();
+			meshView.indicesGPUAddress = indexBuffer.GetGPUAddress();
+			meshView.indicesByteSize = indexBuffer.GetByteSize();
+			meshView.indicesAre32Bit = mesh.IsIndex32bits();
+			meshView.verticesGPUAddress = vertexBuffer.GetGPUAddress();
+			meshView.verticesByteSize = vertexBuffer.GetByteSize();
+			meshView.verticesByteStride = mesh.GetVertexByteStride();
+		}
+
+		std::sort(m_frameData.drawItems.begin(), m_frameData.drawItems.end(),
+			[](const DrawItem& a, const DrawItem& b)
+			{
+				return a.materialVariant < b.materialVariant;
+			}
+		);
 	}
 
 	void Renderer::OnResize(dU32 width, dU32 height)
@@ -485,18 +508,18 @@ namespace Dune::Graphics
 	{
 		GatherFrameData(scene);
 
-		std::sort(m_frameData.drawItems.begin(), m_frameData.drawItems.end(),
-			[](const DrawItem& a, const DrawItem& b)
-			{
-				return a.materialVariant < b.materialVariant;
-			}
-		);
-
-		dU32 blendingMaterialStart = (dU32)m_frameData.drawItems.size() - m_frameData.blendingMaterialCount;
+		dU32 blendingMaterialStart = (dU32)m_frameData.drawItems.size() - m_frameData.blendDrawCount;
 		const dVec3& eye = camera.position;
-		std::sort(m_frameData.drawItems.begin() + blendingMaterialStart, m_frameData.drawItems.end(),
-			[&eye](const DrawItem& a, const DrawItem& b)
+		dU32 blendDrawCount = m_frameData.blendDrawCount;
+		dVector<dU32> sortedBlendDraw(blendDrawCount);
+		for (dU32 i = 0; i < blendDrawCount; i++)
+			sortedBlendDraw[i] = i + blendingMaterialStart;
+
+		std::stable_sort(sortedBlendDraw.begin(), sortedBlendDraw.end(),
+			[&](const dU32& aidx, const dU32& bidx)
 			{
+				const DrawItem& a = m_frameData.drawItems[aidx];
+				const DrawItem& b = m_frameData.drawItems[bidx];
 				const dMatrix4x4& ma = a.objectToWorld;
 				const float adx = ma._41 - eye.x;
 				const float ady = ma._42 - eye.y;
@@ -540,6 +563,7 @@ namespace Dune::Graphics
 			.pCamera = &camera,
 			.pRenderer = this,
 			.pBarrier = &m_barrier,
+			.sortedBlendDraw = std::move(sortedBlendDraw)
 		};
 
 		for (RenderPass& pass : m_passes)

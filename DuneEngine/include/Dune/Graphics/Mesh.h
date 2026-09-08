@@ -47,7 +47,9 @@ namespace Dune::Graphics
 		[[nodiscard]] const dVector<SubMesh>& GetSubMeshes() const { return m_subMeshes; }
 		[[nodiscard]] dU32                    GetMaterialSlotCount() const { return m_materialSlotCount; }
 		[[nodiscard]] Buffer&                 GetIndexBuffer() { return m_indexBuffer; }
+		[[nodiscard]] const Buffer&           GetIndexBuffer() const { return m_indexBuffer; }
 		[[nodiscard]] Buffer&                 GetVertexBuffer() { return m_vertexBuffer; }
+		[[nodiscard]] const Buffer&           GetVertexBuffer() const { return m_vertexBuffer; }
 		[[nodiscard]] dU32                    GetIndexCount() const { return m_indexCount; }
 		[[nodiscard]] dU32                    GetVertexCount() const { return m_vertexCount; }
 		[[nodiscard]] dU32                    GetVertexByteStride() const { return m_vertexByteStride; }

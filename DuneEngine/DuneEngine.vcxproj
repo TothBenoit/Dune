@@ -19,6 +19,7 @@
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\FileLoader.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
+    <ClInclude Include="include\Dune\Graphics\FrameData.h" />
     <ClInclude Include="include\Dune\Graphics\Material.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearDepth.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />

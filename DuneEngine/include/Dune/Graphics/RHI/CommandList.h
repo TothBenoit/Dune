@@ -92,7 +92,9 @@ namespace Dune::Graphics
 		void BindGraphicsGroup(dU32 slot, const Descriptor& srv);
 		void BindComputeGroup(dU32 slot, const Descriptor& srv);
 		void BindIndexBuffer(Buffer& indexBuffer, bool is32bits);
+		void BindIndexBuffer(dU64 indexBufferAddress, dU32 byteSize, bool is32bits);
 		void BindVertexBuffer(Buffer& vertexBuffer, dU32 byteStride);
+		void BindVertexBuffer(dU64 vertexBufferAddress, dU32 byteSize, dU32 byteStride);
 		void DrawInstanced(dU32 vertexCount, dU32 instanceCount, dU32 vertexStart, dU32 instanceStart);
 		void DrawIndexedInstanced(dU32 indexCount, dU32 instanceCount, dU32 indexStart, dU32 stride, dU32 instanceStart );
 		void Dispatch(dU32 threadGroupCountX, dU32 threadGroupCountY, dU32 threadGroupCountZ);

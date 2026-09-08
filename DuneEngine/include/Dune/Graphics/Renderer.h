@@ -2,7 +2,7 @@
 
 #include <Dune/Scene/Scene.h>
 #include <Dune/Graphics/RenderPass.h>
-#include <Dune/Resources/Shaders/ShaderInterop.h>
+#include <Dune/Graphics/FrameData.h>
 #include <Dune/Graphics/RHI/Barrier.h>
 #include <Dune/Graphics/RHI/Buffer.h>
 #include <Dune/Graphics/RHI/CommandList.h>
@@ -40,33 +40,6 @@ namespace Dune
 			dVector<Buffer> buffersToRelease;
 			ResourceHandle hdrTargetHandle{ kInvalidResourceHandle };
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
-		};
-
-		struct FrameLights
-		{
-			dVector<Light>      allActive;
-			dVector<dU32>       shadowCasters;
-			dVector<dMatrix4x4> shadowMatrices;
-		};
-
-		struct DrawItem
-		{
-			dMatrix4x4 objectToWorld;
-			dU32 meshIdx;
-			dU32 materialIdx;
-			dU32 indexOffset;
-			dU32 indexCount;
-			dU32 vertexOffset;
-			dU32 materialVariant;
-		};
-
-		struct FrameData
-		{
-			FrameLights lights;
-			dVector<MaterialData> materials;
-			dVector<DrawItem> drawItems;
-			dU32 blendingMaterialCount;
-			dU32 reservedSharedSRV;
 		};
 
 		struct ResourceEntry

@@ -209,7 +209,7 @@ namespace Dune::Graphics
 		commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
 
 		dU32 currentVariant = dU32(-1);
-		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendingMaterialCount; drawIdx++)
+		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
 		{
 			const DrawItem& drawItem = frameData.drawItems[drawIdx];
 			Assert(drawItem.materialVariant < Material::kDepthVariantCount);
@@ -228,9 +228,10 @@ namespace Dune::Graphics
 			InstanceData instanceData;
 			instanceData.objectToWorld = drawItem.objectToWorld;
 			commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
-			Mesh& mesh = resourceManager.GetMesh(drawItem.meshIdx);
-			commandList.BindIndexBuffer(mesh.GetIndexBuffer(), mesh.IsIndex32bits());
-			commandList.BindVertexBuffer(mesh.GetVertexBuffer(), mesh.GetVertexByteStride());
+
+			const GPUMeshView& mesh = frameData.meshes[drawItem.meshIdx];
+			commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
+			commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
 			commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
 		}
 	}

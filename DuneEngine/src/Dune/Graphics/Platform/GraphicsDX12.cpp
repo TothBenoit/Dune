@@ -827,6 +827,18 @@ namespace Dune::Graphics
 		pCommandList->IASetIndexBuffer(&ibv);
 	}
 
+	void CommandList::BindIndexBuffer(dU64 indexBufferAddress, dU32 byteSize, bool is32bits)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		D3D12_INDEX_BUFFER_VIEW ibv
+		{
+			.BufferLocation = indexBufferAddress,
+			.SizeInBytes = byteSize,
+			.Format = is32bits ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT
+		};
+		pCommandList->IASetIndexBuffer(&ibv);
+	}
+
 	void CommandList::BindVertexBuffer(Buffer& vertexBuffer, dU32 byteStride)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
@@ -834,6 +846,18 @@ namespace Dune::Graphics
 		{
 			.BufferLocation = ToResource(vertexBuffer.Get())->GetGPUVirtualAddress(),
 			.SizeInBytes = vertexBuffer.GetByteSize(),
+			.StrideInBytes = byteStride
+		};
+		pCommandList->IASetVertexBuffers(0, 1, &vbv);
+	}
+
+	void CommandList::BindVertexBuffer(dU64 vertexBufferAddress, dU32 byteSize, dU32 byteStride)
+	{
+		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
+		D3D12_VERTEX_BUFFER_VIEW vbv
+		{
+			.BufferLocation = vertexBufferAddress,
+			.SizeInBytes = byteSize,
 			.StrideInBytes = byteStride
 		};
 		pCommandList->IASetVertexBuffers(0, 1, &vbv);
@@ -1183,6 +1207,11 @@ namespace Dune::Graphics
 	void Buffer::Destroy()
 	{
 		ToResource(Get())->Release();
+	}
+
+	dU64 Buffer::GetGPUAddress()
+	{
+		return ToResource(Get())->GetGPUVirtualAddress();
 	}
 
 	void Buffer::Map(dU32 byteOffset, dU32 byteSize, void** pCpuAddress)

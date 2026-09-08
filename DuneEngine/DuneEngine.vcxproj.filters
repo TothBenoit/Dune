@@ -143,6 +143,9 @@
     <ClInclude Include="include\Dune\Graphics\RenderPass\MaterialUpload.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\FrameData.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">

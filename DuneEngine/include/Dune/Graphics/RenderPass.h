@@ -43,6 +43,7 @@ namespace Dune
 			const Camera* pCamera;
 			Renderer* pRenderer;
 			Barrier* pBarrier;
+			dVector<dU32> sortedBlendDraw;
 		};
 
 		class RenderGraphBuilder

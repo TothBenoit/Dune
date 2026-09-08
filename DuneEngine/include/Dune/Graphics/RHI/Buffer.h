@@ -37,12 +37,12 @@ namespace Dune::Graphics
 		void Destroy();
 
 		[[nodiscard]] inline dU32 GetByteSize() const { return m_byteSize; }
+		[[nodiscard]] dU64 GetGPUAddress();
 
 		void Map(dU32 byteOffset, dU32 byteSize, void** pCpuAdress);
 		void Unmap(dU32 byteOffset, dU32 byteSize);
 
 	private:
 		dU32            m_byteSize;
-		dU32            m_state;
 	};
 }
