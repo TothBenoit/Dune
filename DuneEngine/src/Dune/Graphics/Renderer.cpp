@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/Window.h"
+#include <Dune/Graphics/FrameData.h>
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
 #include "Dune/Graphics/RenderPass/ClearDepth.h"
@@ -10,17 +11,15 @@
 #include "Dune/Graphics/RenderPass/LightUpload.h"
 #include "Dune/Graphics/RenderPass/Forward.h"
 #include "Dune/Graphics/RenderPass/Tonemapping.h"
-#include "Dune/Graphics/RenderContext.h"
+#include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
 {
-	void Renderer::Initialize(RenderContext& context, Window& window)
+	void Renderer::Initialize(Device& device, Window& window)
 	{
-		m_pRenderContext = &context;
+		m_pDevice = &device;
 		m_pWindow = &window;
-
-		Device& device = m_pRenderContext->GetDevice();
 
 		dU32 width = m_pWindow->GetWidth();
 		dU32 height = m_pWindow->GetHeight();
@@ -160,7 +159,7 @@ namespace Dune::Graphics
 	ResourceHandle Renderer::CreateTexture(const TextureDesc& desc)
 	{
 		Texture* pTexture = new Texture();
-		pTexture->Initialize(m_pRenderContext->GetDevice(), desc);
+		pTexture->Initialize(*GetDevice(), desc);
 
 		const dU32 subresourceCount = desc.dimensions[2] * desc.mipLevels;
 		ResourceHandle handle = RegisterTexture(pTexture, desc.initialState, subresourceCount);
@@ -171,7 +170,7 @@ namespace Dune::Graphics
 	ResourceHandle Renderer::CreateBuffer(const BufferDesc& desc)
 	{
 		Buffer* pBuffer = new Buffer();
-		pBuffer->Initialize(m_pRenderContext->GetDevice(), desc);
+		pBuffer->Initialize(*GetDevice(), desc);
 
 		ResourceHandle handle = RegisterBuffer(pBuffer, desc.initialState);
 		m_resources[handle].isExternal = false;
@@ -303,155 +302,6 @@ namespace Dune::Graphics
 		}
 	}
 
-	dMatrix4x4 ComputeShadowMatrix(Light& light)
-	{
-		dMatrix4x4 lightMatrix;
-		if (light.IsPoint())
-			DirectX::XMStoreFloat4x4(&lightMatrix, DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), 1.0f, 0.1f, light.range));
-		else
-		{
-			dVec up{ 0.f, 1.f, 0.f, 0.f };
-			dVec to{ DirectX::XMLoadFloat3(&light.direction) };
-			dVec axis = DirectX::XMVector3Cross(up, to);
-			if (DirectX::XMVector3Equal(axis, { 0.0f, 0.0f, 0.0f }))
-				up = { 0.f, 0.f, 1.f, 0.f };
-
-			if (light.IsSpot())
-			{
-				dVec eye{ light.position.x, light.position.y, light.position.z };
-				dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
-				dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(light.angle * 2.0f, 1.0f, 0.1f, light.range) };
-				DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix * projectionMatrix);
-			}
-			else
-			{
-				float shadowWidth{ 4500.f }; // Hardcoded for sponza
-				dVec eye{ 0.f, 0.f, 0.f };
-				dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
-				dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(shadowWidth, shadowWidth, -shadowWidth, shadowWidth) };
-				DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix* projectionMatrix);
-			}
-		}
-		return lightMatrix;
-	}
-
-	void FillLight(const Dune::Light& sceneLight, Light& light)
-	{
-		light.color = sceneLight.color;
-		switch (sceneLight.type)
-		{
-		case ELightType::Directional:
-			light.intensity = sceneLight.intensity;
-			DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
-			break;
-		case ELightType::Point:
-		{
-			float lightSolidAngle = 4.0f * DirectX::XM_PI;
-			float candelaIntensity = sceneLight.intensity / lightSolidAngle;
-			light.intensity = candelaIntensity / (0.01f * 0.01f);
-		}
-		light.range = sceneLight.range;
-		light.position = sceneLight.position;
-		light.flags |= fIsPoint;
-		break;
-		case ELightType::Spot:
-			light.range = sceneLight.range;
-			light.position = sceneLight.position;
-			DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
-			light.angle = DirectX::XMScalarCos(sceneLight.angle);
-			{
-				float lightSolidAngle = 2.0f * DirectX::XM_PI * (1.0f - light.angle);
-				float candelaIntensity = sceneLight.intensity / lightSolidAngle;
-				light.intensity = candelaIntensity / (0.01f * 0.01f);
-			}
-			light.penumbra = 1.0f / (DirectX::XMScalarCos(sceneLight.angle * (1.0f - sceneLight.penumbra)) - light.angle);
-			light.flags |= fIsSpot;
-			break;
-		}
-		if ( sceneLight.castShadow )
-			light.flags |= fCastShadow;
-	}
-
-	void Renderer::GatherFrameData(const Scene& scene)
-	{
-		m_frameData.lights.allActive.clear();
-		m_frameData.lights.shadowCasters.clear();
-		m_frameData.drawItems.clear();
-
-		scene.registry.view<const Dune::Light>().each([&](const Dune::Light& sceneLight)
-		{
-			if (sceneLight.intensity <= 0.0f)
-				return;
-			Light light{};
-			FillLight(sceneLight, light);
-			if (sceneLight.castShadow)
-			{
-				dU32 casterIndex = (dU32)m_frameData.lights.shadowCasters.size();
-				light.shadowIndex = (dU32)m_frameData.lights.shadowCasters.size();
-				m_frameData.lights.shadowCasters.push_back((dU32)m_frameData.lights.allActive.size());
-				m_frameData.lights.shadowMatrices.push_back(ComputeShadowMatrix(light));
-			}
-			m_frameData.lights.allActive.push_back(light);
-		});
-
-		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
-		m_frameData.blendDrawCount = 0;
-		scene.registry.view<const Transform, const RenderData>().each([&](const Transform& transform, const RenderData& renderData)
-		{
-			dMatrix4x4 objectToWorld;
-			DirectX::XMStoreFloat4x4(&objectToWorld,
-				DirectX::XMMatrixScalingFromVector({ transform.scale, transform.scale, transform.scale }) *
-				DirectX::XMMatrixRotationQuaternion(transform.rotation) *
-				DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
-			);
-
-			Mesh& mesh = resourceManager.GetMesh(renderData.meshIdx);
-			Assert(renderData.materialSlotCount == mesh.GetMaterialSlotCount());
-			for (const SubMesh& subMesh : mesh.GetSubMeshes())
-			{
-				DrawItem& drawItem = m_frameData.drawItems.emplace_back();
-				drawItem.objectToWorld = objectToWorld;
-				drawItem.meshIdx = renderData.meshIdx;
-				drawItem.materialIdx = resourceManager.GetMaterialID(renderData.materialSlotStart + subMesh.materialSlot);
-				drawItem.indexOffset = subMesh.indexOffset;
-				drawItem.indexCount = subMesh.indexCount;
-				drawItem.vertexOffset = subMesh.vertexOffset;
-				const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
-				drawItem.materialVariant = material.GetVariant();
-				m_frameData.blendDrawCount += material.alphaMode == EAlphaMode::Blend ? 1 : 0;
-			}
-		});
-
-		const dVector<Material>& materials = resourceManager.GetMaterials();
-		m_frameData.materials.clear();
-		m_frameData.materials.reserve(materials.size());
-		for (const Material& material : materials)
-			m_frameData.materials.push_back(material.shaderData);
-
-		dVector<Mesh>& meshes = resourceManager.GetMeshes();
-		m_frameData.meshes.clear();
-		m_frameData.meshes.reserve(meshes.size());
-		for (Mesh& mesh : meshes)
-		{
-			Buffer& indexBuffer = mesh.GetIndexBuffer();
-			Buffer& vertexBuffer = mesh.GetVertexBuffer();
-			GPUMeshView& meshView = m_frameData.meshes.emplace_back();
-			meshView.indicesGPUAddress = indexBuffer.GetGPUAddress();
-			meshView.indicesByteSize = indexBuffer.GetByteSize();
-			meshView.indicesAre32Bit = mesh.IsIndex32bits();
-			meshView.verticesGPUAddress = vertexBuffer.GetGPUAddress();
-			meshView.verticesByteSize = vertexBuffer.GetByteSize();
-			meshView.verticesByteStride = mesh.GetVertexByteStride();
-		}
-
-		std::sort(m_frameData.drawItems.begin(), m_frameData.drawItems.end(),
-			[](const DrawItem& a, const DrawItem& b)
-			{
-				return a.materialVariant < b.materialVariant;
-			}
-		);
-	}
-
 	void Renderer::OnResize(dU32 width, dU32 height)
 	{
 		TextureDesc hdrTargetDesc
@@ -464,7 +314,7 @@ namespace Dune::Graphics
 			.initialState{ EResourceState::ShaderResource },
 		};
 
-		Device& device = m_pRenderContext->GetDevice();
+		Device& device = *GetDevice();
 		for (Frame& f : m_frames)
 		{
 			WaitForFrame(f);
@@ -504,13 +354,11 @@ namespace Dune::Graphics
 			m_fence.Wait(fenceValue);
 	}
 
-	void Renderer::Render(const Scene& scene, const Camera& camera)
+	void Renderer::Render(const FrameData& frameData, const Camera& camera)
 	{
-		GatherFrameData(scene);
-
-		dU32 blendingMaterialStart = (dU32)m_frameData.drawItems.size() - m_frameData.blendDrawCount;
+		dU32 blendingMaterialStart = (dU32)frameData.drawItems.size() - frameData.blendDrawCount;
 		const dVec3& eye = camera.position;
-		dU32 blendDrawCount = m_frameData.blendDrawCount;
+		dU32 blendDrawCount = frameData.blendDrawCount;
 		dVector<dU32> sortedBlendDraw(blendDrawCount);
 		for (dU32 i = 0; i < blendDrawCount; i++)
 			sortedBlendDraw[i] = i + blendingMaterialStart;
@@ -518,8 +366,8 @@ namespace Dune::Graphics
 		std::stable_sort(sortedBlendDraw.begin(), sortedBlendDraw.end(),
 			[&](const dU32& aidx, const dU32& bidx)
 			{
-				const DrawItem& a = m_frameData.drawItems[aidx];
-				const DrawItem& b = m_frameData.drawItems[bidx];
+				const DrawItem& a = frameData.drawItems[aidx];
+				const DrawItem& b = frameData.drawItems[bidx];
 				const dMatrix4x4& ma = a.objectToWorld;
 				const float adx = ma._41 - eye.x;
 				const float ady = ma._42 - eye.y;
@@ -536,7 +384,7 @@ namespace Dune::Graphics
 			}
 		);
 
-		Device& device = m_pRenderContext->GetDevice();
+		Device& device = *GetDevice();
 		Frame& frame = m_frames[m_frameIndex];
 		WaitForFrame(frame);
 		for (Buffer& buffer : frame.buffersToRelease)
@@ -548,18 +396,16 @@ namespace Dune::Graphics
 		frame.srvHeap.Reset();
 		frame.samplerHeap.Reset();
 		frame.uploadOffset = 0;
-		
-		ResourceManager& resourceManager = m_pRenderContext->GetResourceManager();
-		const BlockDescriptorHeap& sharedHeap = resourceManager.GetSRVHeap();
-		Assert(frame.srvHeap.GetCapacity() >= m_srvHeap.GetCapacity() + sharedHeap.GetCapacity() + kTransientSRVCapacity);
-		dU32 sharedSRVCapacity = m_frameData.reservedSharedSRV = sharedHeap.GetCapacity();
-		device.CopyDescriptors(sharedSRVCapacity, sharedHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
-		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress() + m_frameData.reservedSharedSRV * frame.srvHeap.GetDescriptorSize(), EDescriptorHeapType::SRV_CBV_UAV);
+
+		Assert(frame.srvHeap.GetCapacity() >= m_srvHeap.GetCapacity() + frameData.sharedSRVHeapCapacity + kTransientSRVCapacity);
+		dU32 sharedSRVCapacity = frameData.sharedSRVHeapCapacity;
+		device.CopyDescriptors(sharedSRVCapacity, frameData.sharedSRVHeapCPUAddress, frame.srvHeap.GetCPUAddress(), EDescriptorHeapType::SRV_CBV_UAV);
+		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress() + frameData.sharedSRVHeapCapacity * frame.srvHeap.GetDescriptorSize(), EDescriptorHeapType::SRV_CBV_UAV);
 		frame.srvHeap.Allocate(sharedSRVCapacity + m_srvHeap.GetCapacity());
 
 		RenderPassContext context
 		{
-			.pFrameData = &m_frameData,
+			.pFrameData = &frameData,
 			.pCamera = &camera,
 			.pRenderer = this,
 			.pBarrier = &m_barrier,

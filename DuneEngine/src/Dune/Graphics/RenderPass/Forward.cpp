@@ -4,27 +4,24 @@
 #include "Dune/Graphics/RenderPass/Shadow.h"
 #include "Dune/Graphics/RenderPass/LightUpload.h"
 #include "Dune/Graphics/RenderPass/MaterialUpload.h"
-#include "Dune/Graphics/RenderPass/DepthPrepass.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Graphics/RHI/Texture.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
-#include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/Material.h"
 #include "Dune/Graphics/RenderPass.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/RenderContext.h"
-#include "Dune/Graphics/ResourceManager.h"
+#include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/Window.h"
+#include "Dune/Core/FileSystem.h"
 #include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
 {
 	ForwardData* Forward::Create(Renderer& renderer)
 	{
-		Device& device = renderer.GetRenderContext()->GetDevice();
+		Device& device = *renderer.GetDevice();
 		ForwardData* pData = new ForwardData();
 
 		pData->forwardRS.Initialize(device,
@@ -148,16 +145,14 @@ namespace Dune::Graphics
 		const FrameData& frameData = *context.pFrameData;
 		CommandList& commandList = frame.commandList;
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
-		RenderContext* pRenderContext = renderer.GetRenderContext();
-		ResourceManager& resourceManager = pRenderContext->GetResourceManager();
-		Device& device = pRenderContext->GetDevice();
-		Window* pWindow = renderer.GetWindow();
+		Device& device = *renderer.GetDevice();
+		Window& window = *renderer.GetWindow();
 
 		Descriptor dsv = renderer.GetDepthBufferDSV();
 		commandList.ClearRenderTargetView(frame.hdrTargetRTV, frame.hdrTarget.GetClearValue());
 
-		Viewport viewport{ 0.0, 0.0, (float)pWindow->GetWidth(), (float)pWindow->GetHeight(), 0.0f, 1.0f };
-		Scissor scissor{ 0, 0, pWindow->GetWidth(), pWindow->GetHeight() };
+		Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
+		Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
 		commandList.SetViewports(1, &viewport);
 		commandList.SetScissors(1, &scissor);
 		commandList.SetRenderTarget(&frame.hdrTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
@@ -169,10 +164,10 @@ namespace Dune::Graphics
 		const ShadowData& shadowData = *renderer.Get<Shadow>();
 		const MaterialUploadData& materialUploadData = *renderer.Get<MaterialUpload>();
 		globals.lightCount = lightUploadData.lightCount;
-		globals.lightBufferIndex = lightUploadData.srvIndex + frameData.reservedSharedSRV;
-		globals.lightMatricesIndex = shadowData.matricesPersistentSRVIndex + frameData.reservedSharedSRV;
+		globals.lightBufferIndex = lightUploadData.srvIndex + frameData.sharedSRVHeapCapacity;
+		globals.lightMatricesIndex = shadowData.matricesPersistentSRVIndex + frameData.sharedSRVHeapCapacity;
 		globals.shadowStartIndex = shadowData.shadowStartIndex;
-		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(materialUploadData.srv) + frameData.reservedSharedSRV;
+		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(materialUploadData.srv) + frameData.sharedSRVHeapCapacity;
 
 		commandList.SetGraphicsRootSignature(pData->forwardRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);

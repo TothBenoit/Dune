@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/RenderContext.h"
+#include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RenderPass/MaterialUpload.h"
 
@@ -25,12 +25,12 @@ namespace Dune::Graphics
 		if (pData->buffer.GetByteSize() < materialsByteSize)
 		{
 			Frame& frame = renderer.GetCurrentFrame();
-			Device& device = renderer.GetRenderContext()->GetDevice();
+			Device& device = *renderer.GetDevice();
 			if (pData->buffer.Get())
 				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"MaterialBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ materialsByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = materialCount, .byteStride = sizeof(MaterialData) });
-			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->sharedSRVHeapCapacity).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
 				pData->handle = renderer.RegisterBuffer(&pData->buffer, EResourceState::Undefined);
@@ -44,7 +44,7 @@ namespace Dune::Graphics
 	void MaterialUpload::Execute(RenderPassContext& context, MaterialUploadData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		Device& device = renderer.GetRenderContext()->GetDevice();
+		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		const dVector<MaterialData>& materials = context.pFrameData->materials;
 		const dU32 materialsByteSize = pData->buffer.GetByteSize();

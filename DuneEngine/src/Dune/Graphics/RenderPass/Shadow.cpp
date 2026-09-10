@@ -7,11 +7,9 @@
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Format.h"
-#include "Dune/Graphics/Mesh.h"
-#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/ResourceManager.h"
-#include "Dune/Scene/Camera.h"
+#include "Dune/Graphics/FrameData.h"
+#include "Dune/Core/FileSystem.h"
 
 namespace Dune::Graphics
 {
@@ -39,7 +37,7 @@ namespace Dune::Graphics
 
 	ShadowData* Shadow::Create(Renderer& renderer)
 	{
-		Device& device = renderer.GetRenderContext()->GetDevice();
+		Device& device = *renderer.GetDevice();
 		ShadowData* pData = new ShadowData();
 
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
@@ -125,8 +123,7 @@ namespace Dune::Graphics
 
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
-		RenderContext& renderContext = *renderer.GetRenderContext();
-		Device& device = renderContext.GetDevice();
+		Device& device = *renderer.GetDevice();
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
 		dU32 shadowCount = (dU32)shadowCasters.size();
 		dU32 shadowStartIndex = pData->shadowStartIndex = srvHeap.GetIndex(srvHeap.Allocate(shadowCount));
@@ -175,7 +172,7 @@ namespace Dune::Graphics
 					.initialState{ EResourceState::Undefined }
 				});
 			device.CreateSRV(pData->matricesSRV, pData->matricesBuffer, { .elementCount = matrixCount, .byteStride = sizeof(dMatrix4x4) });
-			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, srvHeap.GetDescriptorAt(pData->matricesPersistentSRVIndex + frameData.reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, srvHeap.GetDescriptorAt(pData->matricesPersistentSRVIndex + frameData.sharedSRVHeapCapacity).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->matricesHandle == kInvalidResourceHandle)
 				pData->matricesHandle = renderer.RegisterBuffer(&pData->matricesBuffer, EResourceState::Undefined);
@@ -193,9 +190,7 @@ namespace Dune::Graphics
 		Frame& frame = renderer.GetCurrentFrame();
 		CommandList& commandList = frame.commandList;
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
-		RenderContext* pRenderContext = renderer.GetRenderContext();
-		ResourceManager& resourceManager = pRenderContext->GetResourceManager();
-		Device& device = pRenderContext->GetDevice();
+		Device& device = *renderer.GetDevice();
 
 		commandList.SetGraphicsRootSignature(pData->shadowRS);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
@@ -204,7 +199,7 @@ namespace Dune::Graphics
 		DepthGlobals globals
 		{
 			.viewProjectionMatrix = viewProjection,
-			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.reservedSharedSRV
+			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.sharedSRVHeapCapacity
 		};
 		commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
 
@@ -212,9 +207,9 @@ namespace Dune::Graphics
 		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
 		{
 			const DrawItem& drawItem = frameData.drawItems[drawIdx];
+			EAlphaMode alphaMode = Material::GetAlphaMode(drawItem.materialVariant);
 			Assert(drawItem.materialVariant < Material::kDepthVariantCount);
-			const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
-			Assert(material.alphaMode != EAlphaMode::Blend);
+			Assert(alphaMode != EAlphaMode::Blend);
 
 			if (currentVariant != drawItem.materialVariant)
 			{
@@ -222,7 +217,7 @@ namespace Dune::Graphics
 				commandList.SetPipelineState(pData->shadowPSO[currentVariant]);
 			}
 
-			if (material.alphaMode == EAlphaMode::Mask)
+			if (alphaMode == EAlphaMode::Mask)
 				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
 
 			InstanceData instanceData;
@@ -242,7 +237,7 @@ namespace Dune::Graphics
 		Frame& frame = renderer.GetCurrentFrame();
 		CommandList& commandList = frame.commandList;
 		const FrameData& frameData = *context.pFrameData;
-		Device& device = renderer.GetRenderContext()->GetDevice();
+		Device& device = *renderer.GetDevice();
 		BlockDescriptorHeap& dsvHeap = renderer.GetDSVHeap();
 
 		const dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;

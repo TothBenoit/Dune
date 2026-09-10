@@ -3,19 +3,27 @@
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/ResourceManager.h"
 
-namespace Dune::Graphics
+namespace Dune
 {
-	class RenderContext
+	class Scene;
+
+	namespace Graphics
 	{
-	public:
-		void Initialize();
-		void Destroy();
+		struct FrameData;
 
-		[[nodiscard]] Device& GetDevice() { return m_device; }
-		[[nodiscard]] ResourceManager& GetResourceManager() { return m_resourceManager; }
+		class RenderContext
+		{
+		public:
+			void Initialize();
+			void Destroy();
+			void GatherFrameData(const Scene& scene, FrameData& frameData);
 
-	private:
-		Device m_device{};
-		ResourceManager m_resourceManager{};
-	};
+			[[nodiscard]] Device& GetDevice() { return m_device; }
+			[[nodiscard]] ResourceManager& GetResourceManager() { return m_resourceManager; }
+
+		private:
+			Device m_device{};
+			ResourceManager m_resourceManager{};
+		};
+	}
 }

@@ -7,10 +7,10 @@
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Format.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/Window.h"
-#include "Dune/Scene/Scene.h"
+#include "Dune/Graphics/FrameData.h"
 #include "Dune/Scene/Camera.h"
+#include "Dune/Core/FileSystem.h"
 
 namespace Dune::Graphics
 {
@@ -23,7 +23,7 @@ namespace Dune::Graphics
 
 	TonemappingData* Tonemapping::Create(Renderer& renderer)
 	{
-		Device& device = renderer.GetRenderContext()->GetDevice();
+		Device& device = *renderer.GetDevice();
 		BlockDescriptorHeap& srvHeap = renderer.GetSRVHeap();
 
 		TonemappingData* pData = new TonemappingData();
@@ -144,8 +144,8 @@ namespace Dune::Graphics
 		Frame& frame = renderer.GetCurrentFrame();
 		CommandList& commandList = frame.commandList;
 		Descriptor histogramUAV = frame.srvHeap.Allocate(1);
-		Device& device = renderer.GetRenderContext()->GetDevice();
-		Window* pWindow = renderer.GetWindow();
+		Device& device = *renderer.GetDevice();
+		Window& window = *renderer.GetWindow();
 		Barrier& barrier = *context.pBarrier;
 
 		commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
@@ -156,8 +156,8 @@ namespace Dune::Graphics
 		float logLuminanceRange = pData->maxLogLuminance - pData->minLogLuminance;
 		LuminanceHistogramParams histogramParams
 		{
-			.width = pWindow->GetWidth(),
-			.height = pWindow->GetHeight(),
+			.width = window.GetWidth(),
+			.height = window.GetHeight(),
 			.minLogLuminance = pData->minLogLuminance,
 			.oneOverLogLuminanceRange = 1.0f / logLuminanceRange,
 		};
@@ -165,7 +165,7 @@ namespace Dune::Graphics
 		commandList.SetComputeRootSignature(pData->histogramRS);
 		commandList.SetPipelineState(pData->histogramPSO);
 		commandList.PushComputeConstants(0, &histogramParams, sizeof(histogramParams));
-		Descriptor hdrTargetSRV = frame.srvHeap.GetDescriptorAt(renderer.GetSRVHeap().GetIndex(frame.hdrTargetSRV) + context.pFrameData->reservedSharedSRV);
+		Descriptor hdrTargetSRV = frame.srvHeap.GetDescriptorAt(renderer.GetSRVHeap().GetIndex(frame.hdrTargetSRV) + context.pFrameData->sharedSRVHeapCapacity);
 		commandList.BindComputeGroup(1, hdrTargetSRV);
 		commandList.PushComputeUAV(2, pData->histogramBuffer);
 		commandList.Dispatch((histogramParams.width + 16 - 1) / 16, (histogramParams.height + 16 - 1) / 16, 1);

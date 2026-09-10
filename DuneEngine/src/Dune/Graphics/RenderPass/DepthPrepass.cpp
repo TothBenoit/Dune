@@ -7,17 +7,17 @@
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Format.h"
-#include "Dune/Graphics/RenderContext.h"
-#include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/Window.h"
+#include "Dune/Core/FileSystem.h"
 #include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
 {
 	DepthPrepassData* DepthPrepass::Create(Renderer& renderer)
 	{
-		Device& device = renderer.GetRenderContext()->GetDevice();
+		Device& device = *renderer.GetDevice();
 		DepthPrepassData* pData = new DepthPrepassData();
 
 		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
@@ -103,14 +103,12 @@ namespace Dune::Graphics
 		Frame& frame = renderer.GetCurrentFrame();
 		CommandList& commandList = frame.commandList;
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
-		RenderContext* pRenderContext = renderer.GetRenderContext();
-		ResourceManager& resourceManager = pRenderContext->GetResourceManager();
-		Device& device = pRenderContext->GetDevice();
-		Window* pWindow = renderer.GetWindow();
+		Device& device = *renderer.GetDevice();
+		Window& window = *renderer.GetWindow();
 
 		Descriptor dsv = renderer.GetDepthBufferDSV();
-		Viewport viewport{ 0.0, 0.0, (float)pWindow->GetWidth(), (float)pWindow->GetHeight(), 0.0f, 1.0f };
-		Scissor scissor{ 0, 0, pWindow->GetWidth(), pWindow->GetHeight() };
+		Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
+		Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
 		commandList.SetViewports(1, &viewport);
 		commandList.SetScissors(1, &scissor);
 		commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
@@ -121,7 +119,7 @@ namespace Dune::Graphics
 		const FrameData& frameData = *context.pFrameData;
 		DepthGlobals globals
 		{
-			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.reservedSharedSRV
+			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.sharedSRVHeapCapacity
 		};
 		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
 		commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));

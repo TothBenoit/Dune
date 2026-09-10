@@ -37,7 +37,8 @@ namespace Dune::Graphics
 		dVector<GPUMeshView> meshes;
 		dVector<MaterialData> materials;
 		dVector<DrawItem> drawItems;
+		dU64 sharedSRVHeapCPUAddress;
+		dU32 sharedSRVHeapCapacity;
 		dU32 blendDrawCount;
-		dU32 reservedSharedSRV;
 	};
 }

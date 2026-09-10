@@ -2,7 +2,6 @@
 #include "GraphicsDX12.h"
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RHI/Texture.h"
@@ -1775,7 +1774,7 @@ namespace Dune::Graphics
 		ImGui_ImplWin32_Init(window.GetHandle());
 
 		ImGui_ImplDX12_InitInfo init_info = {};
-		init_info.Device = ToDevice(renderer.GetRenderContext()->GetDevice().Get());
+		init_info.Device = ToDevice(renderer.GetDevice()->Get());
 		init_info.CommandQueue = ToCommandQueue(renderer.m_commandQueue.Get());;
 		init_info.NumFramesInFlight = _countof(renderer.m_frames);
 		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;

@@ -7,6 +7,7 @@
 #include <Dune/Graphics/Renderer.h>
 #include <Dune/Graphics/RenderContext.h>
 #include <Dune/Graphics/Window.h>
+#include <Dune/Graphics/FrameData.h>
 #include <Dune/Utilities/SimpleCameraController.h>
 #include <Dune/Scene/Scene.h>
 #include <Dune/Scene/Camera.h>
@@ -38,8 +39,10 @@ public:
 				pApp->m_camera.SetAspectRatio((float)msg.resize.width / msg.resize.height);
 			}, Graphics::EWindowMessageType::Resize
 		);
-		m_renderer.Initialize(*m_pRenderContext, m_window);
+		m_renderer.Initialize(m_pRenderContext->GetDevice(), m_window);
 		m_imgui.Initialize(m_window, m_renderer);
+
+		Graphics::FrameData frameData;
 
 		auto lastFrameTimer = std::chrono::high_resolution_clock::now();
 		while (m_window.Update())
@@ -50,7 +53,8 @@ public:
 
 			DrawGUI();
 			m_camera.Update(m_deltaTime, m_window.GetInput());
-			m_renderer.Render(*m_pScene, m_camera.GetCamera());
+			m_pRenderContext->GatherFrameData(*m_pScene, frameData);
+			m_renderer.Render(frameData, m_camera.GetCamera());
 		}
 
 		m_imgui.Destroy();

@@ -2,7 +2,6 @@
 
 #include <Dune/Scene/Scene.h>
 #include <Dune/Graphics/RenderPass.h>
-#include <Dune/Graphics/FrameData.h>
 #include <Dune/Graphics/RHI/Barrier.h>
 #include <Dune/Graphics/RHI/Buffer.h>
 #include <Dune/Graphics/RHI/CommandList.h>
@@ -20,8 +19,8 @@ namespace Dune
 	{
 		class Device;
 		class Window;
-		class RenderContext;
 		class Renderer;
+		struct FrameData;
 
 		struct Frame
 		{
@@ -61,13 +60,13 @@ namespace Dune
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
-			void Initialize(RenderContext& context, Window& window);
+			void Initialize(Device& device, Window& window);
 			void Destroy();
 
 			void OnResize(dU32 width, dU32 height);
-			void Render(const Scene& scene, const Camera& camera);
+			void Render(const FrameData& frameData, const Camera& camera);
 
-			[[nodiscard]] inline RenderContext* GetRenderContext() { return m_pRenderContext; }
+			[[nodiscard]] inline Device* GetDevice() { return m_pDevice; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
 			[[nodiscard]] inline BlockDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
@@ -138,14 +137,13 @@ namespace Dune
 			}
 
 		private:
-			void GatherFrameData(const Scene& scene);
 			void WaitForFrame(const Frame& frame);
 
 			void TransitionResource(const ResourceAccess& access);
 			void FlushBarriers(CommandList& commandList);
 
 		private:
-			RenderContext* m_pRenderContext{ nullptr };
+			Device* m_pDevice{ nullptr };
 			Window* m_pWindow{ nullptr };
 			ImGuiWrapper* m_pImGui{ nullptr };
 
@@ -160,8 +158,6 @@ namespace Dune
 
 			Descriptor m_depthBufferDSV;
 			ResourceHandle m_depthBufferHandle{ kInvalidResourceHandle };
-
-			FrameData m_frameData;
 
 			Fence m_fence{};
 			Frame m_frames[kFramesInFlight];

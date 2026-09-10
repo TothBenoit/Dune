@@ -3,8 +3,8 @@
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
-#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/FrameData.h"
 
 namespace Dune::Graphics
 {
@@ -25,7 +25,7 @@ namespace Dune::Graphics
 		if (pData->lightCount == 0)
 			return;
 
-		Device& device = renderer.GetRenderContext()->GetDevice();
+		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		const dU32 lightByteSize = pData->lightCount * (dU32)sizeof(Light);
 
@@ -35,7 +35,7 @@ namespace Dune::Graphics
 				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"LightBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ lightByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = pData->lightCount, .byteStride = sizeof(Light) });
-			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->reservedSharedSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->sharedSRVHeapCapacity).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
 				pData->handle = renderer.RegisterBuffer(&pData->buffer, EResourceState::Undefined);
@@ -49,7 +49,7 @@ namespace Dune::Graphics
 	void LightUpload::Execute(RenderPassContext& context, LightUploadData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		Device& device = renderer.GetRenderContext()->GetDevice();
+		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		const dVector<Light>& lights = context.pFrameData->lights.allActive;
 		const dU32 lightByteSize = pData->buffer.GetByteSize();
