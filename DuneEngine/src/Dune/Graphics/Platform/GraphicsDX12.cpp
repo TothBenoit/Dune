@@ -838,7 +838,7 @@ namespace Dune::Graphics
 		pCommandList->IASetIndexBuffer(&ibv);
 	}
 
-	void CommandList::BindVertexBuffer(Buffer& vertexBuffer, dU32 byteStride)
+	void CommandList::BindVertexBuffer(Buffer& vertexBuffer, dU32 byteStride, dU32 slot)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		D3D12_VERTEX_BUFFER_VIEW vbv
@@ -847,10 +847,10 @@ namespace Dune::Graphics
 			.SizeInBytes = vertexBuffer.GetByteSize(),
 			.StrideInBytes = byteStride
 		};
-		pCommandList->IASetVertexBuffers(0, 1, &vbv);
+		pCommandList->IASetVertexBuffers(slot, 1, &vbv);
 	}
 
-	void CommandList::BindVertexBuffer(dU64 vertexBufferAddress, dU32 byteSize, dU32 byteStride)
+	void CommandList::BindVertexBuffer(dU64 vertexBufferAddress, dU32 byteSize, dU32 byteStride, dU32 slot)
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		D3D12_VERTEX_BUFFER_VIEW vbv
@@ -859,7 +859,7 @@ namespace Dune::Graphics
 			.SizeInBytes = byteSize,
 			.StrideInBytes = byteStride
 		};
-		pCommandList->IASetVertexBuffers(0, 1, &vbv);
+		pCommandList->IASetVertexBuffers(slot, 1, &vbv);
 	}
 
 	void CommandList::DrawInstanced(dU32 vertexCount, dU32 instanceCount, dU32 vertexStart, dU32 instanceStart)
