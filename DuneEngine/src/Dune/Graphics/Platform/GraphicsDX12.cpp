@@ -13,8 +13,10 @@
 #include "Dune/Graphics/RHI/Swapchain.h"
 #include "Dune/Graphics/RHI/Barrier.h"
 #include "Dune/Graphics/RHI/Shader.h"
+#include "Dune/Graphics/RHI/PSOCache.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
 #include "Dune/Utilities/Utils.h"
+#include "Dune/Utilities/StringUtils.h"
 #include "WindowWin32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -1314,7 +1316,191 @@ namespace Dune::Graphics
 		}
 		return L"";
 	}
-	
+
+	void PSOCache::Initialize(Device& device)
+	{
+		m_pDevice = &device;
+
+		IDxcCompiler3* pCompiler{ nullptr };
+		ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
+		m_pCompiler = pCompiler;
+
+		IDxcUtils* pUtils{ nullptr };
+		ThrowIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils)));
+		m_pUtils = pUtils;
+
+		IDxcIncludeHandler* pIncludeHandler{ nullptr };
+		ThrowIfFailed(pUtils->CreateDefaultIncludeHandler(&pIncludeHandler));
+		m_pIncludeHandler = pIncludeHandler;
+	}
+
+	void PSOCache::Destroy()
+	{
+		for (GraphicsPSOEntry& entry : m_graphicsPSOs)
+			entry.pso.Destroy();
+		for (ComputePSOEntry& entry : m_computePSOs)
+			entry.pso.Destroy();
+		for (RootSignature& rootSignature : m_rootSignatures)
+			rootSignature.Destroy();
+		for (ShaderEntry& entry : m_shaders)
+			entry.shader.Destroy();
+
+		m_graphicsPSOs.clear();
+		m_graphicsPSOLookup.clear();
+		m_computePSOs.clear();
+		m_computePSOLookup.clear();
+		m_rootSignatures.clear();
+		m_shaders.clear();
+		m_shaderLookup.clear();
+
+		((IDxcIncludeHandler*)m_pIncludeHandler)->Release();
+		((IDxcUtils*)m_pUtils)->Release();
+		((IDxcCompiler3*)m_pCompiler)->Release();
+		m_pIncludeHandler = nullptr;
+		m_pUtils = nullptr;
+		m_pCompiler = nullptr;
+		m_pDevice = nullptr;
+	}
+
+	ShaderHandle PSOCache::ResolveShader(const ShaderEntryDesc& desc)
+	{
+		dU64 key = Hash(desc);
+		auto it = m_shaderLookup.find(key);
+		if (it != m_shaderLookup.end())
+			return it->second;
+
+		Assert((dU32(desc.variantMask) >> _countof(kShaderVariantDefines)) == 0);
+		dVector<const wchar_t*> args{ L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
+		for (dU32 bit = 0; bit < _countof(kShaderVariantDefines); bit++)
+		{
+			if (dU32(desc.variantMask) & (1u << bit))
+			{
+				args.push_back(L"-D");
+				args.push_back(kShaderVariantDefines[bit]);
+			}
+		}
+
+		const dWString path = StringUtils::ToWide(FileSystem::GetPath(desc.path));
+		IDxcUtils* pUtils = (IDxcUtils*)m_pUtils;
+		dU32 codePage{ CP_UTF8 };
+
+		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
+		Microsoft::WRL::ComPtr<IDxcCompilerArgs> pArgs{ nullptr };
+		ThrowIfFailed(pUtils->BuildArguments(path.c_str(), GetEntryPoint(desc.stage), GetTargetProfile(desc.stage), args.data(), (dU32)args.size(), NULL, 0, &pArgs));
+		ThrowIfFailed(pUtils->LoadFile(path.c_str(), &codePage, &pSourceBlob));
+
+		const DxcBuffer sourceBuffer
+		{
+			.Ptr = pSourceBlob->GetBufferPointer(),
+			.Size = pSourceBlob->GetBufferSize(),
+			.Encoding = codePage,
+		};
+
+		Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };
+		ThrowIfFailed(((IDxcCompiler3*)m_pCompiler)->Compile(
+			&sourceBuffer,
+			pArgs->GetArguments(), pArgs->GetCount(),
+			(IDxcIncludeHandler*)m_pIncludeHandler,
+			IID_PPV_ARGS(&pResult)
+		));
+
+		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pErrorsBlob{ nullptr };
+		if (SUCCEEDED(pResult->GetErrorBuffer(&pErrorsBlob)) && pErrorsBlob)
+		{
+			OutputDebugStringA((const char*)pErrorsBlob->GetBufferPointer());
+		}
+
+		IDxcBlob* pByteCode{ nullptr };
+		pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pByteCode), nullptr);
+
+		const dU32 index = (dU32)m_shaders.size();
+		ShaderEntry& entry = m_shaders.emplace_back();
+		entry.shader.m_pResource = pByteCode;
+		m_shaderLookup[key] = index;
+		return index;
+	}
+
+	RootSignatureHandle PSOCache::ResolveRootSignature(ShaderHandle shader, const RootSignatureDesc& desc)
+	{
+		ShaderEntry& entry = m_shaders[shader];
+		if (entry.rootSignature == kInvalidRootSignatureHandle)
+		{
+			entry.rootSignature = (RootSignatureHandle)m_rootSignatures.size();
+			m_rootSignatures.emplace_back().Initialize(*m_pDevice, desc);
+		}
+		return entry.rootSignature;
+	}
+
+	PSOHandle PSOCache::ResolvePSO(const GraphicsPSODesc& desc)
+	{
+		dVector<dU32>& candidates = m_graphicsPSOLookup[Hash(desc)];
+		for (dU32 index : candidates)
+		{
+			if (m_graphicsPSOs[index].desc == desc)
+				return index;
+		}
+
+		const bool hasPixelShader = desc.pixelShader != kInvalidShaderHandle;
+		const RootSignatureHandle rootSignature = m_shaders[hasPixelShader ? desc.pixelShader : desc.vertexShader].rootSignature;
+		Assert(rootSignature != kInvalidRootSignatureHandle);
+
+		const dU32 index = (dU32)m_graphicsPSOs.size();
+		GraphicsPSOEntry& entry = m_graphicsPSOs.emplace_back();
+		entry.desc = desc;
+		entry.rootSignature = rootSignature;
+
+		GraphicsPipelineDesc pipelineDesc
+		{
+			.pVertexShader = &m_shaders[desc.vertexShader].shader,
+			.pPixelShader = hasPixelShader ? &m_shaders[desc.pixelShader].shader : nullptr,
+			.pRootSignature = &m_rootSignatures[rootSignature],
+			.inputLayout = entry.desc.inputLayout,
+			.rasterizerState =
+			{
+				.depthBias = desc.depthBias,
+				.slopeScaledDepthBias = desc.slopeScaledDepthBias,
+				.cullingMode = desc.cullingMode,
+				.depthClipEnable = desc.depthClipEnable,
+			},
+			.depthStencilState =
+			{
+				.depthFunc = desc.depthFunc,
+				.depthEnabled = desc.depthEnabled,
+				.depthWrite = desc.depthWrite,
+			},
+			.renderTargetCount = desc.renderTargetCount,
+			.depthStencilFormat = desc.depthStencilFormat,
+		};
+
+		for (dU8 i = 0; i < desc.renderTargetCount; i++)
+		{
+			pipelineDesc.renderTargetsFormat[i] = desc.renderTargetsFormat[i];
+			pipelineDesc.renderTargetsBlend[i].blendEnable = desc.renderTargetsBlendEnable[i];
+		}
+
+		entry.pso.Initialize(*m_pDevice, pipelineDesc);
+		candidates.push_back(index);
+		return index;
+	}
+
+	PSOHandle PSOCache::ResolvePSO(const ComputePSODesc& desc)
+	{
+		auto it = m_computePSOLookup.find(desc.computeShader);
+		if (it != m_computePSOLookup.end() )
+			return it->second | kComputePSOFlag;
+
+		const RootSignatureHandle rootSignature = m_shaders[desc.computeShader].rootSignature;
+		Assert(rootSignature != kInvalidRootSignatureHandle);
+
+		const dU32 index = (dU32)m_computePSOs.size();
+		ComputePSOEntry& entry = m_computePSOs.emplace_back();
+		entry.rootSignature = rootSignature;
+		entry.pso.Initialize(*m_pDevice, ComputePipelineDesc{ .pComputeShader = &m_shaders[desc.computeShader].shader, .pRootSignature = &m_rootSignatures[rootSignature] });
+
+		m_computePSOLookup[desc.computeShader] = index;
+		return index | kComputePSOFlag;
+	}
+
 	void Shader::Initialize(const ShaderDesc& desc)
 	{
 		Microsoft::WRL::ComPtr<IDxcCompiler3> pCompiler{ nullptr };

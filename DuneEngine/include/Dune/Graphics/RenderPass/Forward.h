@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/RootSignature.h"
-#include "Dune/Graphics/RHI/PipelineState.h"
+#include "Dune/Graphics/RHI/PSOCache.h"
 #include "Dune/Graphics/Material.h"
 
 namespace Dune::Graphics
@@ -12,8 +11,7 @@ namespace Dune::Graphics
 
 	struct ForwardData
 	{
-		RootSignature forwardRS;
-		PipelineState forwardPSO[Material::kVariantCount];
+		PSOHandle forwardPSO[Material::kVariantCount];
 	};
 
 	class Forward

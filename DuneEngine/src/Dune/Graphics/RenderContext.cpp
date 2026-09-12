@@ -8,12 +8,14 @@ namespace Dune::Graphics
 	void RenderContext::Initialize()
 	{
 		m_device.Initialize();
+		m_psoCache.Initialize(m_device);
 		m_resourceManager.Initialize(m_device);
 	}
 
 	void RenderContext::Destroy()
 	{
 		m_resourceManager.Destroy();
+		m_psoCache.Destroy();
 		m_device.Destroy();
 	}
 

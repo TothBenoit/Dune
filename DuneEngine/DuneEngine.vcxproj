@@ -15,6 +15,7 @@
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearDepth.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\MaterialUpload.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RHI\PSOCache.cpp" />
     <ClCompile Include="src\Dune\Utilities\StringUtils.cpp" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\FileLoader.h" />
@@ -53,12 +54,14 @@
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\PipelineState.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\RootSignature.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\PSOCache.h" />
     <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h" />
     <ClInclude Include="src\Dune\Graphics\Platform\WindowWin32.h" />
     <ClInclude Include="include\Dune\Graphics\Window.h" />
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
     <ClInclude Include="include\Dune\Graphics\Mesh.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
+    <ClInclude Include="include\Dune\Utilities\HashUtils.h" />
     <ClInclude Include="include\Dune\Core\Types.h" />
     <ClInclude Include="include\Dune\Core\Input.h" />
     <ClInclude Include="include\Dune\Core\Logger.h" />

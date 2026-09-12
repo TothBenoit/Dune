@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Dune/Utilities/StringUtils.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
 #include "Dune/Graphics/RenderPass/MaterialUpload.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
@@ -37,75 +36,52 @@ namespace Dune::Graphics
 
 	ShadowData* Shadow::Create(Renderer& renderer)
 	{
-		Device& device = *renderer.GetDevice();
+		PSOCache& psoCache = *renderer.GetPSOCache();
 		ShadowData* pData = new ShadowData();
 
-		const wchar_t* args[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
-		const wchar_t* maskedArgs[] = { L"-all_resources_bound", L"-Zi", L"-Qembed_debug", L"-D", L"ALPHA_MASK" };
+		const FileSystem::SerializationID<EFileType::Shader> shaderPath = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/DepthOnly.hlsl");
+		const ShaderHandle shadowVS = psoCache.ResolveShader({ .path = shaderPath, .stage = EShaderStage::Vertex });
+		const ShaderHandle shadowMaskedVS = psoCache.ResolveShader({ .path = shaderPath, .stage = EShaderStage::Vertex, .variantMask = EShaderVariant::AlphaMask });
+		const ShaderHandle shadowMaskedPS = psoCache.ResolveShader({ .path = shaderPath, .stage = EShaderStage::Pixel, .variantMask = EShaderVariant::AlphaMask });
 
-		dWString shaderPath = StringUtils::ToWide(FileSystem::ResolvePath("engine://Shaders/DepthOnly.hlsl"));
-		ShaderDesc shaderDesc
+		const BindingSlot layout[]
 		{
-			.stage = EShaderStage::Vertex,
-			.filePath = shaderPath.c_str(),
-			.entryFunc = L"VSMain",
-			.args = args,
-			.argsCount = _countof(args),
+			{ .type = EBindingType::Constant, .byteSize = sizeof(DepthGlobals),  .visibility = EShaderVisibility::All },
+			{ .type = EBindingType::Constant, .byteSize = sizeof(InstanceData),  .visibility = EShaderVisibility::Vertex },
+			{ .type = EBindingType::Constant, .byteSize = sizeof(MaterialIndex), .visibility = EShaderVisibility::Pixel },
+		};
+		const RootSignatureDesc rootSignatureDesc{ .layout = layout, .allowInputLayout = true, .allowSRVHeapIndexing = true };
+		psoCache.ResolveRootSignature(shadowVS, rootSignatureDesc);
+		psoCache.ResolveRootSignature(shadowMaskedPS, rootSignatureDesc);
+
+		const dVector<VertexInput> maskedVertexInputs
+		{
+			VertexInput{ .pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false },
+			VertexInput{ .pName = "UV", .index = 0, .format = EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 40, .isPerInstance = false },
 		};
 
-		Shader shadowVS[2];
-		shadowVS[0].Initialize(shaderDesc);
-		shaderDesc.args = maskedArgs;
-		shaderDesc.argsCount = _countof(maskedArgs);
-		shadowVS[1].Initialize(shaderDesc);
-
-		Shader shadowMaskedPS;
-		shaderDesc.stage = EShaderStage::Pixel;
-		shaderDesc.entryFunc = L"PSMain";
-		shadowMaskedPS.Initialize(shaderDesc);
-
-		pData->shadowRS.Initialize(device,
-			{
-				.layout =
-				{
-					{.type = EBindingType::Constant, .byteSize = sizeof(DepthGlobals),   .visibility = EShaderVisibility::All},
-					{.type = EBindingType::Constant, .byteSize = sizeof(InstanceData), .visibility = EShaderVisibility::Vertex},
-					{.type = EBindingType::Constant, .byteSize = sizeof(MaterialIndex),         .visibility = EShaderVisibility::Pixel},
-				},
-				.allowInputLayout = true,
-				.allowSRVHeapIndexing = true,
-			});
-
-		VertexInput maskedVertexInputs[]
+		const dVector<VertexInput> vertexInputs
 		{
-			VertexInput{.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false },
-			VertexInput{.pName = "UV", .index = 0, .format = EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 40, .isPerInstance = false },
-		};
-
-		VertexInput vertexInputs[]
-		{
-			VertexInput{.pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false },
+			VertexInput{ .pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false },
 		};
 
 		for (dU32 variant = 0; variant < Material::kDepthVariantCount; variant++)
 		{
-			bool isMasked = Material::GetAlphaMode(variant) == EAlphaMode::Mask;
-			dSpan<VertexInput> inputLayout = isMasked ? dSpan<VertexInput>(maskedVertexInputs) : dSpan<VertexInput>(vertexInputs);
-			pData->shadowPSO[variant].Initialize(device,
+			const bool isMasked = Material::GetAlphaMode(variant) == EAlphaMode::Mask;
+			pData->shadowPSO[variant] = psoCache.ResolvePSO(GraphicsPSODesc
 			{
-				.pVertexShader = &shadowVS[isMasked ? 1 : 0],
-				.pPixelShader = isMasked ? &shadowMaskedPS : nullptr,
-				.pRootSignature = &pData->shadowRS,
-				.inputLayout = inputLayout,
-				.rasterizerState = {.depthBias = 10, .slopeScaledDepthBias = 4.0f, .cullingMode = Material::IsDoubleSided(variant) ? ECullingMode::None : ECullingMode::Back, .depthClipEnable = false },
-				.depthStencilState = {.depthEnabled = true, .depthWrite = true },
+				.vertexShader = isMasked ? shadowMaskedVS : shadowVS,
+				.pixelShader = isMasked ? shadowMaskedPS : kInvalidShaderHandle,
+				.inputLayout = isMasked ? maskedVertexInputs : vertexInputs,
+				.cullingMode = Material::IsDoubleSided(variant) ? ECullingMode::None : ECullingMode::Back,
+				.depthBias = 10,
+				.slopeScaledDepthBias = 4.0f,
+				.depthClipEnable = false,
+				.depthEnabled = true,
+				.depthWrite = true,
 				.depthStencilFormat = EFormat::D32_FLOAT,
 			});
 		}
-
-		shadowMaskedPS.Destroy();
-		for (Shader& vs : shadowVS)
-			vs.Destroy();
 
 		pData->matricesSRV = renderer.GetSRVHeap().Allocate();
 		pData->matricesPersistentSRVIndex = renderer.GetSRVHeap().GetIndex(pData->matricesSRV);
@@ -192,7 +168,8 @@ namespace Dune::Graphics
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
 		Device& device = *renderer.GetDevice();
 
-		commandList.SetGraphicsRootSignature(pData->shadowRS);
+		PSOCache& psoCache = *renderer.GetPSOCache();
+
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 
 		const FrameData& frameData = *context.pFrameData;
@@ -201,8 +178,8 @@ namespace Dune::Graphics
 			.viewProjectionMatrix = viewProjection,
 			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.sharedSRVHeapCapacity
 		};
-		commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
 
+		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;
 		dU32 currentVariant = dU32(-1);
 		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
 		{
@@ -214,7 +191,15 @@ namespace Dune::Graphics
 			if (currentVariant != drawItem.materialVariant)
 			{
 				currentVariant = drawItem.materialVariant;
-				commandList.SetPipelineState(pData->shadowPSO[currentVariant]);
+				const PSOHandle pso = pData->shadowPSO[currentVariant];
+				const RootSignatureHandle rootSignature = psoCache.GetRootSignatureHandle(pso);
+				if (boundRootSignature != rootSignature)
+				{
+					boundRootSignature = rootSignature;
+					commandList.SetGraphicsRootSignature(psoCache.GetRootSignature(rootSignature));
+					commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
+				}
+				commandList.SetPipelineState(psoCache.GetPipelineState(pso));
 			}
 
 			if (alphaMode == EAlphaMode::Mask)
@@ -316,9 +301,6 @@ namespace Dune::Graphics
 		renderer.GetSRVHeap().Free(pData->matricesSRV);
 		if (pData->matricesBuffer.Get())
 			pData->matricesBuffer.Destroy();
-		for (PipelineState& pso : pData->shadowPSO)
-			pso.Destroy();
-		pData->shadowRS.Destroy();
 		delete pData;
 	}
 }

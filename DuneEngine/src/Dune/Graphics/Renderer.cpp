@@ -11,15 +11,18 @@
 #include "Dune/Graphics/RenderPass/LightUpload.h"
 #include "Dune/Graphics/RenderPass/Forward.h"
 #include "Dune/Graphics/RenderPass/Tonemapping.h"
-#include "Dune/Graphics/ResourceManager.h"
+#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Scene/Camera.h"
 
 namespace Dune::Graphics
 {
-	void Renderer::Initialize(Device& device, Window& window)
+	void Renderer::Initialize(RenderContext& context, Window& window)
 	{
-		m_pDevice = &device;
+		m_pDevice = &context.GetDevice();
+		m_pPSOCache = &context.GetPSOCache();
 		m_pWindow = &window;
+
+		Device& device = *m_pDevice;
 
 		dU32 width = m_pWindow->GetWidth();
 		dU32 height = m_pWindow->GetHeight();

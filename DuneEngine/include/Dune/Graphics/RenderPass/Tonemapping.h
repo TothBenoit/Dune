@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Dune/Graphics/RenderPass.h"
-#include "Dune/Graphics/RHI/RootSignature.h"
-#include "Dune/Graphics/RHI/PipelineState.h"
+#include "Dune/Graphics/RHI/PSOCache.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 
@@ -17,16 +16,13 @@ namespace Dune::Graphics
 		float maxLogLuminance{ 24.0f };
 		float tau{ 1.0f };
 
-		RootSignature averageRS;
-		PipelineState averagePSO;
-		RootSignature histogramRS;
-		PipelineState histogramPSO;
+		PSOHandle averagePSO;
+		PSOHandle histogramPSO;
 		Descriptor histogramUAV;
 		Buffer histogramBuffer;
 		Buffer luminanceBuffer;
 
-		RootSignature tonemapRS;
-		PipelineState tonemapPSO;
+		PSOHandle tonemapPSO;
 	};
 
 	class Tonemapping

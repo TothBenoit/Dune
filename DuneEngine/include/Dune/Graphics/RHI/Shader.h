@@ -4,7 +4,7 @@
 
 namespace Dune::Graphics
 {
-	enum class EShaderStage
+	enum class EShaderStage : dU8
 	{
 		Vertex,
 		Pixel,
@@ -23,6 +23,7 @@ namespace Dune::Graphics
 
 	class Shader : public Resource
 	{
+		friend class PSOCache;
 	public:
 		void Initialize(const ShaderDesc& desc);
 		void Destroy();

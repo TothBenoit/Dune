@@ -39,7 +39,7 @@ public:
 				pApp->m_camera.SetAspectRatio((float)msg.resize.width / msg.resize.height);
 			}, Graphics::EWindowMessageType::Resize
 		);
-		m_renderer.Initialize(m_pRenderContext->GetDevice(), m_window);
+		m_renderer.Initialize(*m_pRenderContext, m_window);
 		m_imgui.Initialize(m_window, m_renderer);
 
 		Graphics::FrameData frameData;

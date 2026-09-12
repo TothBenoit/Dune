@@ -17,7 +17,9 @@ namespace Dune
 
 	namespace Graphics
 	{
+		class RenderContext;
 		class Device;
+		class PSOCache;
 		class Window;
 		class Renderer;
 		struct FrameData;
@@ -60,13 +62,14 @@ namespace Dune
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
-			void Initialize(Device& device, Window& window);
+			void Initialize(RenderContext& context, Window& window);
 			void Destroy();
 
 			void OnResize(dU32 width, dU32 height);
 			void Render(const FrameData& frameData, const Camera& camera);
 
 			[[nodiscard]] inline Device* GetDevice() { return m_pDevice; }
+			[[nodiscard]] inline PSOCache* GetPSOCache() { return m_pPSOCache; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
 			[[nodiscard]] inline BlockDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
@@ -144,6 +147,7 @@ namespace Dune
 
 		private:
 			Device* m_pDevice{ nullptr };
+			PSOCache* m_pPSOCache{ nullptr };
 			Window* m_pWindow{ nullptr };
 			ImGuiWrapper* m_pImGui{ nullptr };
 

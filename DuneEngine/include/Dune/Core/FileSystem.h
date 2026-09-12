@@ -6,6 +6,7 @@ namespace Dune
 	{
 		Image,
 		Model,
+		Shader,
 		Count
 	};
 
