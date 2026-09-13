@@ -129,9 +129,7 @@ namespace Dune::Graphics
 		static constexpr PSOHandle kComputePSOFlag{ 1u << 31 };
 
 		Device* m_pDevice{ nullptr };
-		void*   m_pCompiler{ nullptr };
-		void*   m_pUtils{ nullptr };
-		void*   m_pIncludeHandler{ nullptr };
+		ShaderCompiler m_compiler;
 
 		dVector<ShaderEntry>          m_shaders;
 		dHashMap<dU64, dU32>          m_shaderLookup;

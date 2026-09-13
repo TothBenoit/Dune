@@ -84,8 +84,6 @@ namespace Dune::Graphics
 		}
 
 		pData->matricesSRV = renderer.GetSRVHeap().Allocate();
-		pData->matricesPersistentSRVIndex = renderer.GetSRVHeap().GetIndex(pData->matricesSRV);
-
 		return pData;
 	}
 
@@ -150,7 +148,7 @@ namespace Dune::Graphics
 					.initialState{ EResourceState::Undefined }
 				});
 			device.CreateSRV(pData->matricesSRV, pData->matricesBuffer, { .elementCount = matrixCount, .byteStride = sizeof(dMatrix4x4) });
-			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, srvHeap.GetDescriptorAt(pData->matricesPersistentSRVIndex + frameData.sharedSRVHeapCapacity).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, context.GetGPUDescriptor(frame, pData->matricesSRV).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->matricesHandle == kInvalidResourceHandle)
 				pData->matricesHandle = renderer.RegisterBuffer(&pData->matricesBuffer, EResourceState::Undefined);
@@ -178,7 +176,7 @@ namespace Dune::Graphics
 		DepthGlobals globals
 		{
 			.viewProjectionMatrix = viewProjection,
-			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.sharedSRVHeapCapacity
+			.materialBufferIndex = context.GetBindlessIndex(renderer.Get<MaterialUpload>()->srv),
 		};
 
 		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;

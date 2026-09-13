@@ -93,8 +93,8 @@ namespace Dune::Graphics
 
 		const FrameData& frameData = *context.pFrameData;
 		DepthGlobals globals
-		{
-			.materialBufferIndex = renderer.GetSRVHeap().GetIndex(renderer.Get<MaterialUpload>()->srv) + frameData.sharedSRVHeapCapacity
+		{			
+			.materialBufferIndex = context.GetBindlessIndex(renderer.Get<MaterialUpload>()->srv)
 		};
 		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
 

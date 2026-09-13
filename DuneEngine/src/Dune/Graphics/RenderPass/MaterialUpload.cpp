@@ -10,7 +10,6 @@ namespace Dune::Graphics
 	{
 		MaterialUploadData* pData = new MaterialUploadData();
 		pData->srv = renderer.GetSRVHeap().Allocate();
-		pData->srvIndex = renderer.GetSRVHeap().GetIndex(pData->srv);
 		return pData;
 	}
 
@@ -32,7 +31,7 @@ namespace Dune::Graphics
 				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"MaterialBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ materialsByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = materialCount, .byteStride = sizeof(MaterialData) });
-			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->sharedSRVHeapCapacity).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
 				pData->handle = renderer.RegisterBuffer(&pData->buffer, EResourceState::Undefined);
@@ -49,7 +48,7 @@ namespace Dune::Graphics
 		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		const dVector<MaterialData>& materials = context.pFrameData->materials;
-		const dU32 materialsByteSize = pData->buffer.GetByteSize();
+		const dU32 materialsByteSize = (dU32)(materials.size() * sizeof(MaterialData));
 
 		void* pMappedData{ nullptr };
 		if (frame.uploadOffset + materialsByteSize < frame.uploadBuffer.GetByteSize())

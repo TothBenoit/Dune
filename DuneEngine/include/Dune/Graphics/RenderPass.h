@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Dune/Graphics/RHI/Barrier.h"
+#include "Dune/Graphics/RHI/DescriptorHeap.h"
 
 namespace Dune
 {
@@ -9,6 +10,7 @@ namespace Dune
 	namespace Graphics
 	{
 		class Renderer;
+		struct Frame;
 		struct FrameData;
 
 		using ResourceHandle = dU32;
@@ -44,6 +46,9 @@ namespace Dune
 			Renderer* pRenderer;
 			Barrier* pBarrier;
 			dVector<dU32> sortedBlendDraw;
+
+			[[nodiscard]] dU32 GetBindlessIndex(Descriptor persistentSRV) const;
+			[[nodiscard]] Descriptor GetGPUDescriptor(const Frame& frame, Descriptor persistentSRV) const;
 		};
 
 		class RenderGraphBuilder

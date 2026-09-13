@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Dune/Graphics/RenderPass.h"
-#include "Dune/Graphics/RHI/PSOCache.h"
+#include "Dune/Graphics/PSOCache.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 

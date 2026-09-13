@@ -48,6 +48,7 @@ namespace Dune::Graphics
 		dU32 m_capacity{ 0 };
 	};
 
+	// TODO : Move specialized heap outside RHI
 	class ScratchDescriptorHeap : public DescriptorHeap
 	{
 	public:

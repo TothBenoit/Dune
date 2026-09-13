@@ -12,7 +12,6 @@ namespace Dune::Graphics
 	{
 		LightUploadData* pData = new LightUploadData();
 		pData->srv = renderer.GetSRVHeap().Allocate();
-		pData->srvIndex = renderer.GetSRVHeap().GetIndex(pData->srv);
 		return pData;
 	}
 
@@ -35,7 +34,7 @@ namespace Dune::Graphics
 				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"LightBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ lightByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
-			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->sharedSRVHeapCapacity).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
 				pData->handle = renderer.RegisterBuffer(&pData->buffer, EResourceState::Undefined);

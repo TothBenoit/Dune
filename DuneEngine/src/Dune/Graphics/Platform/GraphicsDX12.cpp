@@ -13,10 +13,8 @@
 #include "Dune/Graphics/RHI/Swapchain.h"
 #include "Dune/Graphics/RHI/Barrier.h"
 #include "Dune/Graphics/RHI/Shader.h"
-#include "Dune/Graphics/RHI/PSOCache.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
 #include "Dune/Utilities/Utils.h"
-#include "Dune/Utilities/StringUtils.h"
 #include "WindowWin32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -181,138 +179,6 @@ namespace Dune::Graphics
 		dU8* pCpuAddress{ nullptr };
 		dU32 offset{ 0 };
 		dU32 byteSize{ 0 };
-	};
-
-	class RingBufferAllocator
-	{
-	public:
-		void Initialize(ID3D12Device* pDevice, dU32 byteSize)
-		{
-			Assert(!m_pResource);
-
-			D3D12_HEAP_PROPERTIES heapsProps{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-			D3D12_RESOURCE_DESC resourceDesc{};
-			resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			resourceDesc.Width = byteSize;
-			resourceDesc.Height = 1;
-			resourceDesc.DepthOrArraySize = 1;
-			resourceDesc.MipLevels = 1;
-			resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-			resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-			resourceDesc.SampleDesc.Count = 1;
-			resourceDesc.SampleDesc.Quality = 0;
-			resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			resourceDesc.Alignment = 0;
-
-			ThrowIfFailed(pDevice->CreateCommittedResource(&heapsProps, D3D12_HEAP_FLAG_NONE, &resourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pResource)));
-			D3D12_RANGE readRange{};
-			ThrowIfFailed(m_pResource->Map(0, &readRange, reinterpret_cast<void**>(&m_pCpuMemory)));
-			m_capacity = byteSize;
-		}
-
-		void Shutdown()
-		{
-			Assert(m_pResource);
-			Wait();
-			m_pResource->Release();
-			m_pResource = nullptr;
-			m_pCpuMemory = nullptr;
-			m_capacity = 0;
-			m_tailOffset = 0;
-			m_headOffset = 0;
-		}
-
-		bool Allocate(RingBufferAllocation& allocation, dU32 byteSize )
-		{	
-			std::lock_guard lock(m_lock);
-
-			while (!m_workingAllocation.empty())
-			{
-				const WorkingAllocation& workingAllocation = m_workingAllocation.front();
-
-				if (workingAllocation.pFence->GetValue() < workingAllocation.fenceValue)
-					break;
-				
-				m_tailOffset = workingAllocation.byteSize + workingAllocation.offset;
-				m_workingAllocation.pop();
-			}
-
-			constexpr dU32 invalidOffset = 0xFFFFFFFF;
-			dU32 offset = invalidOffset;
-
-			if ( byteSize > m_capacity)
-				return false;
-
-			if (m_headOffset >= m_tailOffset)
-			{
-				if (m_headOffset + byteSize <= m_capacity)
-				{
-					offset = m_headOffset;
-					m_headOffset += byteSize;
-				}
-				else if (byteSize <= m_tailOffset)
-				{
-					offset = 0;
-					m_headOffset = byteSize;
-				}
-			}
-			else if (m_headOffset + byteSize <= m_tailOffset)
-			{
-				offset = m_headOffset;
-				m_headOffset += byteSize;
-			}
-
-			if (offset == invalidOffset)
-				return false;
-			
-			allocation.pResource = m_pResource;
-			allocation.pCpuAddress = m_pCpuMemory + offset;
-			allocation.offset = offset;
-			allocation.byteSize = byteSize;
-
-			return true;
-		}
-
-		void Free(RingBufferAllocation& allocation, Fence* pFence, dU64 fenceValue)
-		{
-			std::lock_guard lock(m_lock);
-
-			WorkingAllocation workingAllocation;
-			workingAllocation.offset = allocation.offset;
-			workingAllocation.byteSize = allocation.byteSize;			
-			m_pLastFence = workingAllocation.pFence = pFence;
-			m_lastFenceValue = workingAllocation.fenceValue = fenceValue;
-			m_workingAllocation.push(workingAllocation);
-
-			allocation.pResource = nullptr;
-			allocation.pCpuAddress = nullptr;
-		}
-
-		void Wait()
-		{
-			if (m_pLastFence)
-				m_pLastFence->Wait(m_lastFenceValue);
-		}
-
-	private:
-		std::mutex m_lock;
-		ID3D12Resource* m_pResource { nullptr };
-		dU8* m_pCpuMemory{ nullptr };
-		dU64 m_capacity{ 0 };
-		dU32 m_tailOffset{ 0 };
-		dU32 m_headOffset{ 0 };
-
-		struct WorkingAllocation
-		{
-			dU32 offset{ 0 };
-			dU32 byteSize{ 0 };
-			Fence* pFence{ nullptr };
-			dU64 fenceValue{ 0 };
-		};
-
-		std::queue<WorkingAllocation> m_workingAllocation;
-		Fence* m_pLastFence{ nullptr };
-		dU64 m_lastFenceValue{ 0 };
 	};
 
 	struct DeviceInternal
@@ -1317,190 +1183,6 @@ namespace Dune::Graphics
 		return L"";
 	}
 
-	void PSOCache::Initialize(Device& device)
-	{
-		m_pDevice = &device;
-
-		IDxcCompiler3* pCompiler{ nullptr };
-		ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
-		m_pCompiler = pCompiler;
-
-		IDxcUtils* pUtils{ nullptr };
-		ThrowIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils)));
-		m_pUtils = pUtils;
-
-		IDxcIncludeHandler* pIncludeHandler{ nullptr };
-		ThrowIfFailed(pUtils->CreateDefaultIncludeHandler(&pIncludeHandler));
-		m_pIncludeHandler = pIncludeHandler;
-	}
-
-	void PSOCache::Destroy()
-	{
-		for (GraphicsPSOEntry& entry : m_graphicsPSOs)
-			entry.pso.Destroy();
-		for (ComputePSOEntry& entry : m_computePSOs)
-			entry.pso.Destroy();
-		for (RootSignature& rootSignature : m_rootSignatures)
-			rootSignature.Destroy();
-		for (ShaderEntry& entry : m_shaders)
-			entry.shader.Destroy();
-
-		m_graphicsPSOs.clear();
-		m_graphicsPSOLookup.clear();
-		m_computePSOs.clear();
-		m_computePSOLookup.clear();
-		m_rootSignatures.clear();
-		m_shaders.clear();
-		m_shaderLookup.clear();
-
-		((IDxcIncludeHandler*)m_pIncludeHandler)->Release();
-		((IDxcUtils*)m_pUtils)->Release();
-		((IDxcCompiler3*)m_pCompiler)->Release();
-		m_pIncludeHandler = nullptr;
-		m_pUtils = nullptr;
-		m_pCompiler = nullptr;
-		m_pDevice = nullptr;
-	}
-
-	ShaderHandle PSOCache::ResolveShader(const ShaderEntryDesc& desc)
-	{
-		dU64 key = Hash(desc);
-		auto it = m_shaderLookup.find(key);
-		if (it != m_shaderLookup.end())
-			return it->second;
-
-		Assert((dU32(desc.variantMask) >> _countof(kShaderVariantDefines)) == 0);
-		dVector<const wchar_t*> args{ L"-all_resources_bound", L"-Zi", L"-Qembed_debug" };
-		for (dU32 bit = 0; bit < _countof(kShaderVariantDefines); bit++)
-		{
-			if (dU32(desc.variantMask) & (1u << bit))
-			{
-				args.push_back(L"-D");
-				args.push_back(kShaderVariantDefines[bit]);
-			}
-		}
-
-		const dWString path = StringUtils::ToWide(FileSystem::GetPath(desc.path));
-		IDxcUtils* pUtils = (IDxcUtils*)m_pUtils;
-		dU32 codePage{ CP_UTF8 };
-
-		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
-		Microsoft::WRL::ComPtr<IDxcCompilerArgs> pArgs{ nullptr };
-		ThrowIfFailed(pUtils->BuildArguments(path.c_str(), GetEntryPoint(desc.stage), GetTargetProfile(desc.stage), args.data(), (dU32)args.size(), NULL, 0, &pArgs));
-		ThrowIfFailed(pUtils->LoadFile(path.c_str(), &codePage, &pSourceBlob));
-
-		const DxcBuffer sourceBuffer
-		{
-			.Ptr = pSourceBlob->GetBufferPointer(),
-			.Size = pSourceBlob->GetBufferSize(),
-			.Encoding = codePage,
-		};
-
-		Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };
-		ThrowIfFailed(((IDxcCompiler3*)m_pCompiler)->Compile(
-			&sourceBuffer,
-			pArgs->GetArguments(), pArgs->GetCount(),
-			(IDxcIncludeHandler*)m_pIncludeHandler,
-			IID_PPV_ARGS(&pResult)
-		));
-
-		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pErrorsBlob{ nullptr };
-		if (SUCCEEDED(pResult->GetErrorBuffer(&pErrorsBlob)) && pErrorsBlob)
-		{
-			OutputDebugStringA((const char*)pErrorsBlob->GetBufferPointer());
-		}
-
-		IDxcBlob* pByteCode{ nullptr };
-		pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pByteCode), nullptr);
-
-		const dU32 index = (dU32)m_shaders.size();
-		ShaderEntry& entry = m_shaders.emplace_back();
-		entry.shader.m_pResource = pByteCode;
-		m_shaderLookup[key] = index;
-		return index;
-	}
-
-	RootSignatureHandle PSOCache::ResolveRootSignature(ShaderHandle shader, const RootSignatureDesc& desc)
-	{
-		ShaderEntry& entry = m_shaders[shader];
-		if (entry.rootSignature == kInvalidRootSignatureHandle)
-		{
-			entry.rootSignature = (RootSignatureHandle)m_rootSignatures.size();
-			m_rootSignatures.emplace_back().Initialize(*m_pDevice, desc);
-		}
-		return entry.rootSignature;
-	}
-
-	PSOHandle PSOCache::ResolvePSO(const GraphicsPSODesc& desc)
-	{
-		dVector<dU32>& candidates = m_graphicsPSOLookup[Hash(desc)];
-		for (dU32 index : candidates)
-		{
-			if (m_graphicsPSOs[index].desc == desc)
-				return index;
-		}
-
-		const bool hasPixelShader = desc.pixelShader != kInvalidShaderHandle;
-		const RootSignatureHandle rootSignature = m_shaders[hasPixelShader ? desc.pixelShader : desc.vertexShader].rootSignature;
-		Assert(rootSignature != kInvalidRootSignatureHandle);
-
-		const dU32 index = (dU32)m_graphicsPSOs.size();
-		GraphicsPSOEntry& entry = m_graphicsPSOs.emplace_back();
-		entry.desc = desc;
-		entry.rootSignature = rootSignature;
-
-		GraphicsPipelineDesc pipelineDesc
-		{
-			.pVertexShader = &m_shaders[desc.vertexShader].shader,
-			.pPixelShader = hasPixelShader ? &m_shaders[desc.pixelShader].shader : nullptr,
-			.pRootSignature = &m_rootSignatures[rootSignature],
-			.inputLayout = entry.desc.inputLayout,
-			.rasterizerState =
-			{
-				.depthBias = desc.depthBias,
-				.slopeScaledDepthBias = desc.slopeScaledDepthBias,
-				.cullingMode = desc.cullingMode,
-				.depthClipEnable = desc.depthClipEnable,
-			},
-			.depthStencilState =
-			{
-				.depthFunc = desc.depthFunc,
-				.depthEnabled = desc.depthEnabled,
-				.depthWrite = desc.depthWrite,
-			},
-			.renderTargetCount = desc.renderTargetCount,
-			.depthStencilFormat = desc.depthStencilFormat,
-		};
-
-		for (dU8 i = 0; i < desc.renderTargetCount; i++)
-		{
-			pipelineDesc.renderTargetsFormat[i] = desc.renderTargetsFormat[i];
-			pipelineDesc.renderTargetsBlend[i].blendEnable = desc.renderTargetsBlendEnable[i];
-		}
-
-		entry.pso.Initialize(*m_pDevice, pipelineDesc);
-		candidates.push_back(index);
-		return index;
-	}
-
-	PSOHandle PSOCache::ResolvePSO(const ComputePSODesc& desc)
-	{
-		auto it = m_computePSOLookup.find(desc.computeShader);
-		if (it != m_computePSOLookup.end() )
-			return it->second | kComputePSOFlag;
-
-		const RootSignatureHandle rootSignature = m_shaders[desc.computeShader].rootSignature;
-		Assert(rootSignature != kInvalidRootSignatureHandle);
-
-		const dU32 index = (dU32)m_computePSOs.size();
-		ComputePSOEntry& entry = m_computePSOs.emplace_back();
-		entry.rootSignature = rootSignature;
-		entry.pso.Initialize(*m_pDevice, ComputePipelineDesc{ .pComputeShader = &m_shaders[desc.computeShader].shader, .pRootSignature = &m_rootSignatures[rootSignature] });
-
-		m_computePSOLookup[desc.computeShader] = index;
-		return index | kComputePSOFlag;
-	}
-
 	void Shader::Initialize(const ShaderDesc& desc)
 	{
 		Microsoft::WRL::ComPtr<IDxcCompiler3> pCompiler{ nullptr };
@@ -1517,6 +1199,15 @@ namespace Dune::Graphics
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
 		Microsoft::WRL::ComPtr<IDxcCompilerArgs> pArgs{ nullptr };
 		ThrowIfFailed(pUtils->BuildArguments(desc.filePath, desc.entryFunc, GetTargetProfile(desc.stage), desc.args, desc.argsCount, NULL, 0, &pArgs));
+		const wchar_t* baseArgs[] =
+		{
+			L"-all_resources_bound",
+#if _DEBUG
+			L"-Zi", L"-Qembed_debug"
+#endif
+		};
+		pArgs->AddArguments(baseArgs, _countof(baseArgs));
+
 		ThrowIfFailed(pUtils->LoadFile(desc.filePath, &codePage, &pSourceBlob));
 
 		Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };
@@ -1549,6 +1240,86 @@ namespace Dune::Graphics
 	void Shader::Destroy()
 	{
 		((IDxcBlob*)m_pResource)->Release();
+	}
+
+	struct ShaderCompilerInternal
+	{
+		IDxcCompiler3* pCompiler{ nullptr };
+		IDxcUtils* pUtils{ nullptr };
+		IDxcIncludeHandler* pIncludeHandler{ nullptr };
+	};
+
+	void ShaderCompiler::Initialize()
+	{
+		Assert(!m_pResource);
+		ShaderCompilerInternal* pInternal = new ShaderCompilerInternal();
+		m_pResource = pInternal;
+
+		IDxcCompiler3* pCompiler{ nullptr };
+		ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
+		pInternal->pCompiler = pCompiler;
+
+		IDxcUtils* pUtils{ nullptr };
+		ThrowIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils)));
+		pInternal->pUtils = pUtils;
+
+		IDxcIncludeHandler* pIncludeHandler{ nullptr };
+		ThrowIfFailed(pUtils->CreateDefaultIncludeHandler(&pIncludeHandler));
+		pInternal->pIncludeHandler = pIncludeHandler;
+	}
+
+	Shader ShaderCompiler::CompileShader(const ShaderDesc& desc)
+	{
+		Assert(m_pResource);
+		
+		ShaderCompilerInternal& internal = *(ShaderCompilerInternal*)m_pResource;
+
+		dU32 codePage{ CP_UTF8 };
+
+		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
+		Microsoft::WRL::ComPtr<IDxcCompilerArgs> pArgs{ nullptr };
+		ThrowIfFailed(internal.pUtils->BuildArguments(desc.filePath, desc.entryFunc, GetTargetProfile(desc.stage), desc.args, desc.argsCount, NULL, 0, &pArgs));
+		ThrowIfFailed(internal.pUtils->LoadFile(desc.filePath, &codePage, &pSourceBlob));
+
+		Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };
+
+		const DxcBuffer sourceBuffer
+		{
+			.Ptr = pSourceBlob->GetBufferPointer(),
+			.Size = pSourceBlob->GetBufferSize(),
+			.Encoding = codePage,
+		};
+
+		ThrowIfFailed(internal.pCompiler->Compile(
+			&sourceBuffer,
+			pArgs->GetArguments(), pArgs->GetCount(),
+			internal.pIncludeHandler,
+			IID_PPV_ARGS(&pResult)
+		));
+
+		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pErrorsBlob{ nullptr };
+		if (SUCCEEDED(pResult->GetErrorBuffer(&pErrorsBlob)) && pErrorsBlob)
+		{
+			OutputDebugStringA((const char*)pErrorsBlob->GetBufferPointer());
+		}
+
+		IDxcBlob* pByteCode{ nullptr };
+		pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pByteCode), nullptr);
+
+		Shader shader;
+		shader.m_pResource = pByteCode;
+		return shader;
+	}
+
+	void ShaderCompiler::Destroy()
+	{
+		Assert(m_pResource);
+		ShaderCompilerInternal* pInternal = (ShaderCompilerInternal*)m_pResource;
+		pInternal->pCompiler->Release();
+		pInternal->pUtils->Release();
+		pInternal->pIncludeHandler->Release();
+		delete pInternal;
+		m_pResource = nullptr;
 	}
 
 	constexpr D3D12_SHADER_VISIBILITY ConvertShaderVisibility(EShaderVisibility stage)

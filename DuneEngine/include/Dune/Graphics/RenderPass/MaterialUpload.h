@@ -13,7 +13,6 @@ namespace Dune::Graphics
 		Buffer         buffer;
 		Descriptor     srv;
 		ResourceHandle handle{ kInvalidResourceHandle };
-		dU32           srvIndex{ 0 };
 	};
 
 	class MaterialUpload

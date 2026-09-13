@@ -149,10 +149,10 @@ namespace Dune::Graphics
 		const ShadowData& shadowData = *renderer.Get<Shadow>();
 		const MaterialUploadData& materialUploadData = *renderer.Get<MaterialUpload>();
 		globals.lightCount = (dU32)frameData.lights.allActive.size();
-		globals.lightBufferIndex = lightUploadData.srvIndex + frameData.sharedSRVHeapCapacity;
-		globals.lightMatricesIndex = shadowData.matricesPersistentSRVIndex + frameData.sharedSRVHeapCapacity;
+		globals.lightBufferIndex = context.GetBindlessIndex(lightUploadData.srv);
+		globals.lightMatricesIndex = context.GetBindlessIndex(shadowData.matricesSRV);
 		globals.shadowStartIndex = shadowData.shadowStartIndex;
-		globals.materialBufferIndex = renderer.GetSRVHeap().GetIndex(materialUploadData.srv) + frameData.sharedSRVHeapCapacity;
+		globals.materialBufferIndex = context.GetBindlessIndex(materialUploadData.srv);
 
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 

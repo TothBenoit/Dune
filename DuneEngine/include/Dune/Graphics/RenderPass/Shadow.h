@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/PSOCache.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RenderPass.h"
+#include "Dune/Graphics/PSOCache.h"
 #include "Dune/Graphics/Material.h"
 
 namespace Dune::Graphics
@@ -22,7 +22,6 @@ namespace Dune::Graphics
 		Buffer         matricesBuffer;
 		Descriptor     matricesSRV;
 		ResourceHandle matricesHandle{ kInvalidResourceHandle };
-		dU32           matricesPersistentSRVIndex{ 0 };
 	};
 
 	class Shadow

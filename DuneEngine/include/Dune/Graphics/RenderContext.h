@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Dune/Graphics/RHI/Device.h"
-#include "Dune/Graphics/RHI/PSOCache.h"
+#include "Dune/Graphics/PSOCache.h"
 #include "Dune/Graphics/ResourceManager.h"
 
 namespace Dune

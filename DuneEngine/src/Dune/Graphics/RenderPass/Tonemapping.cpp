@@ -107,7 +107,7 @@ namespace Dune::Graphics
 		commandList.SetComputeRootSignature(psoCache.GetRootSignature(psoCache.GetRootSignatureHandle(pData->histogramPSO)));
 		commandList.SetPipelineState(psoCache.GetPipelineState(pData->histogramPSO));
 		commandList.PushComputeConstants(0, &histogramParams, sizeof(histogramParams));
-		Descriptor hdrTargetSRV = frame.srvHeap.GetDescriptorAt(renderer.GetSRVHeap().GetIndex(frame.hdrTargetSRV) + context.pFrameData->sharedSRVHeapCapacity);
+		Descriptor hdrTargetSRV = context.GetGPUDescriptor(frame, frame.hdrTargetSRV);
 		commandList.BindComputeGroup(1, hdrTargetSRV);
 		commandList.PushComputeUAV(2, pData->histogramBuffer);
 		commandList.Dispatch((histogramParams.width + 16 - 1) / 16, (histogramParams.height + 16 - 1) / 16, 1);

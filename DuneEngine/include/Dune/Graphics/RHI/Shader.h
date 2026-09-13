@@ -23,9 +23,17 @@ namespace Dune::Graphics
 
 	class Shader : public Resource
 	{
-		friend class PSOCache;
+		friend class ShaderCompiler;
 	public:
 		void Initialize(const ShaderDesc& desc);
+		void Destroy();
+	};
+
+	class ShaderCompiler : public Resource
+	{
+	public:
+		void Initialize();
+		Shader CompileShader(const ShaderDesc& desc);
 		void Destroy();
 	};
 }
