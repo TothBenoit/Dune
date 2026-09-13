@@ -41,6 +41,7 @@
     <ClInclude Include="include\Dune\Graphics\RHI\DescriptorHeap.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\CommandList.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\ImGuiWrapper.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\Outputs.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Resource.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Shader.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\Texture.h" />

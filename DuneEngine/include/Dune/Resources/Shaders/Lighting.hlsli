@@ -70,10 +70,10 @@ float3 ComputeLight(Light light, uint lightMatricesIndex, uint shadowStartIndex,
 		}
 	}
 
-	if (light.HasShadow())
+	if (light.HasShadow() && IsValid(shadowStartIndex))
 	{
-        attenuation *= 1.0f - Shadow(light, lightMatricesIndex, shadowStartIndex, worldPosition, n);
-    }
+		attenuation *= 1.0f - Shadow(light, lightMatricesIndex, shadowStartIndex, worldPosition, n);
+	}
 	
 	if ( attenuation <= 0.0f )
 		return 0.0f;

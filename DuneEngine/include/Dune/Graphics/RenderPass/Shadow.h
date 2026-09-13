@@ -17,7 +17,6 @@ namespace Dune::Graphics
 		dVector<ResourceHandle> shadowHandles;
 		dVector<ResourceHandle> cubeShadowHandles;
 		dVector<ResourceHandle> activeHandles;
-		dU32                    shadowStartIndex{ 0 };
 
 		Buffer         matricesBuffer;
 		Descriptor     matricesSRV;

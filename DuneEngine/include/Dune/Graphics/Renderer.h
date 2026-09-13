@@ -30,16 +30,12 @@ namespace Dune
 			CommandAllocator commandAllocator;
 			CommandList commandList;
 			Descriptor backBufferRTV;
-			Texture hdrTarget;
-			Descriptor hdrTargetRTV;
-			Descriptor hdrTargetSRV;
 			ScratchDescriptorHeap srvHeap;
 			ScratchDescriptorHeap samplerHeap;
 			Buffer uploadBuffer;
 			void* pUploadAddress;
 			dU32 uploadOffset;
 			dVector<Buffer> buffersToRelease;
-			ResourceHandle hdrTargetHandle{ kInvalidResourceHandle };
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
 		};
 
@@ -72,11 +68,15 @@ namespace Dune
 			[[nodiscard]] inline PSOCache* GetPSOCache() { return m_pPSOCache; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
+			[[nodiscard]] inline Barrier& GetBarrier() { return m_barrier; }
 			[[nodiscard]] inline BlockDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
 			[[nodiscard]] inline BlockDescriptorHeap& GetRTVHeap() { return m_rtvHeap; }
 			[[nodiscard]] inline BlockDescriptorHeap& GetDSVHeap() { return m_dsvHeap; }
-			[[nodiscard]] inline Descriptor GetDepthBufferDSV() const { return m_depthBufferDSV; }
+			[[nodiscard]] inline const Descriptor& GetDepthBufferDSV() const { return m_depthBufferDSV; }
+			[[nodiscard]] inline const Descriptor& GetHDRTargetRTV() const { return m_hdrTargetRTV; }
+			[[nodiscard]] inline const Descriptor& GetHDRTargetSRV() const { return m_hdrTargetSRV; }
 			[[nodiscard]] inline const Texture& GetDepthBuffer() const { return m_depthBuffer; }
+			[[nodiscard]] inline const Texture& GetHDRTarget() const { return m_hdrTarget; }
 
 			[[nodiscard]] ResourceHandle CreateTexture(const TextureDesc& desc);
 			[[nodiscard]] ResourceHandle CreateBuffer(const BufferDesc& desc);
@@ -88,7 +88,7 @@ namespace Dune
 			[[nodiscard]] Buffer& GetBuffer(ResourceHandle handle);
 
 			[[nodiscard]] inline ResourceHandle GetDepthBufferHandle() const { return m_depthBufferHandle; }
-			[[nodiscard]] inline ResourceHandle GetHDRTargetHandle() const { return m_frames[m_frameIndex].hdrTargetHandle; }
+			[[nodiscard]] inline ResourceHandle GetHDRTargetHandle() const { return m_hdrTargetHandle; }
 			[[nodiscard]] inline ResourceHandle GetBackBufferHandle() const { return m_frames[m_frameIndex].backBufferHandle; }
 
 			template<typename T>
@@ -100,11 +100,11 @@ namespace Dune
 			template<typename T, typename Neighbor>
 			void RegisterRenderPass(ERegistrationOrder order)
 			{
-				RegisterRenderPass<T>(GetRenderPassTypeID<Neighbor>(), order);
+				RegisterRenderPass<T>(GetRenderTypeID<Neighbor>(), order);
 			}
 
 			template<typename T>
-			void RegisterRenderPass(RenderPassTypeID neighborTypeID, ERegistrationOrder order)
+			void RegisterRenderPass(RenderTypeID neighborTypeID, ERegistrationOrder order)
 			{
 				using PassData = decltype(T::Create(*this));
 				RenderPass pass{};
@@ -112,7 +112,7 @@ namespace Dune
 				pass.pExecute = [](RenderPassContext& context, void* pData) { T::Execute(context, static_cast<PassData>(pData)); };
 				pass.pShutdown = [](Renderer& renderer, void* pData) { T::Destroy(renderer, static_cast<PassData>(pData)); };
 				pass.pData = T::Create(*this);
-				pass.typeID = GetRenderPassTypeID<T>();
+				pass.typeID = GetRenderTypeID<T>();
 				if (neighborTypeID)
 				{
 					auto it = std::find_if(m_passes.begin(), m_passes.end(), [=](const RenderPass& pass) { return pass.typeID == neighborTypeID; });
@@ -123,20 +123,6 @@ namespace Dune
 				}
 				else
 					m_passes.push_back(std::move(pass));
-			}
-
-			template<typename T>
-			[[nodiscard]] auto Get()
-			{
-				using PassData = decltype(T::Create(*this));
-				RenderPassTypeID typeID = GetRenderPassTypeID<T>();
-				for (RenderPass& pass : m_passes)
-				{
-					if (pass.typeID == typeID)
-						return static_cast<PassData>(pass.pData);
-				}
-				Assert(false);
-				return PassData{ nullptr };
 			}
 
 		private:
@@ -163,6 +149,11 @@ namespace Dune
 			Descriptor m_depthBufferDSV;
 			ResourceHandle m_depthBufferHandle{ kInvalidResourceHandle };
 
+			Texture m_hdrTarget;
+			Descriptor m_hdrTargetRTV;
+			Descriptor m_hdrTargetSRV;
+			ResourceHandle m_hdrTargetHandle{ kInvalidResourceHandle };
+
 			Fence m_fence{};
 			Frame m_frames[kFramesInFlight];
 			dU32 m_frameIndex{ 0 };
@@ -171,6 +162,7 @@ namespace Dune
 
 			dVector<ResourceEntry> m_resources;
 			dVector<RenderPass> m_passes;
+			RenderPassContext m_passContext;
 		};
 	}
 }

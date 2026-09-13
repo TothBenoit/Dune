@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/LightUpload.h"
+#include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
@@ -43,6 +44,7 @@ namespace Dune::Graphics
 		}
 
 		builder.Write(pData->handle, EResourceState::CopyDest);
+		context.blackboard.Add<LightOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv), .count = lightCount });
 	}
 
 	void LightUpload::Execute(RenderPassContext& context, LightUploadData* pData)

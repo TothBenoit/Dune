@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/DepthPrepass.h"
-#include "Dune/Graphics/RenderPass/MaterialUpload.h"
+#include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
@@ -65,10 +65,10 @@ namespace Dune::Graphics
 
 	void DepthPrepass::Setup(RenderGraphBuilder& builder, RenderPassContext& context, DepthPrepassData* pData)
 	{
-		if (context.pFrameData->drawItems.empty())
+		const MaterialOutputs* pMaterialOutputs = context.blackboard.TryGet<MaterialOutputs>();
+		if (!pMaterialOutputs)
 			return;
-		Renderer& renderer = *context.pRenderer;
-		builder.Read(renderer.Get<MaterialUpload>()->handle, EResourceState::ShaderResource);
+		builder.Read(pMaterialOutputs->buffer, EResourceState::ShaderResource);
 		builder.Write(context.pRenderer->GetDepthBufferHandle(), EResourceState::DepthStencil);
 	}
 
@@ -93,8 +93,8 @@ namespace Dune::Graphics
 
 		const FrameData& frameData = *context.pFrameData;
 		DepthGlobals globals
-		{			
-			.materialBufferIndex = context.GetBindlessIndex(renderer.Get<MaterialUpload>()->srv)
+		{
+			.materialBufferIndex = context.blackboard.Get<MaterialOutputs>().bufferIndex
 		};
 		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
 

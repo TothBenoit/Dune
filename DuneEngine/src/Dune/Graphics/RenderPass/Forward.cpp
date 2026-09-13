@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/Forward.h"
-#include "Dune/Graphics/RenderPass/Shadow.h"
-#include "Dune/Graphics/RenderPass/LightUpload.h"
-#include "Dune/Graphics/RenderPass/MaterialUpload.h"
+#include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/CommandList.h"
@@ -70,28 +68,26 @@ namespace Dune::Graphics
 
 	void Forward::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ForwardData* pData)
 	{
-		if (context.pFrameData->drawItems.empty())
+		const MaterialOutputs* pMaterialOutputs = context.blackboard.TryGet<MaterialOutputs>();
+		if (!pMaterialOutputs)
 			return;
-		Renderer& renderer = *context.pRenderer;
+		builder.Read(pMaterialOutputs->buffer, EResourceState::ShaderResource);
 
+		Renderer& renderer = *context.pRenderer;
 		builder.Write(renderer.GetHDRTargetHandle(), EResourceState::RenderTarget);
 		builder.Write(renderer.GetDepthBufferHandle(), EResourceState::DepthStencil);
-		builder.Read(renderer.Get<MaterialUpload>()->handle, EResourceState::ShaderResource);
 
-		const FrameLights& lights = context.pFrameData->lights;
-		if (lights.shadowCasters.size() > 0)
+		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
+		if (pShadowOutputs)
 		{
-			ShadowData* pShadowData = renderer.Get<Shadow>();
-			for (ResourceHandle handle : pShadowData->activeHandles)
+			for (ResourceHandle handle : pShadowOutputs->shadows)
 				builder.Read(handle, EResourceState::ShaderResource);
-			builder.Read(pShadowData->matricesHandle, EResourceState::ShaderResource);
+			builder.Read(pShadowOutputs->matrices, EResourceState::ShaderResource);
 		}
 
-		if (lights.allActive.size() > 0)
-		{
-			LightUploadData* pLightData = renderer.Get<LightUpload>();
-			builder.Read(pLightData->handle, EResourceState::ShaderResource);
-		}
+		const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
+		if (pLightOutputs)
+			builder.Read(pLightOutputs->buffer, EResourceState::ShaderResource);
 	}
 
 	static void Draw(CommandList& commandList, PSOCache& psoCache, const ForwardGlobals& globals, const DrawItem& drawItem, const FrameData& frameData, ForwardData* pData, dU32& currentVariant, RootSignatureHandle& boundRootSignature)
@@ -134,25 +130,23 @@ namespace Dune::Graphics
 		Window& window = *renderer.GetWindow();
 		PSOCache& psoCache = *renderer.GetPSOCache();
 
-		Descriptor dsv = renderer.GetDepthBufferDSV();
-
 		Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
 		Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
 		commandList.SetViewports(1, &viewport);
 		commandList.SetScissors(1, &scissor);
-		commandList.SetRenderTarget(&frame.hdrTargetRTV.cpuAddress, 1, &dsv.cpuAddress);
+		commandList.SetRenderTarget(&renderer.GetHDRTargetRTV().cpuAddress, 1, &renderer.GetDepthBufferDSV().cpuAddress);
 
 		ForwardGlobals globals;
 		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
 		globals.cameraPosition = context.pCamera->position;
-		const LightUploadData& lightUploadData = *renderer.Get<LightUpload>();
-		const ShadowData& shadowData = *renderer.Get<Shadow>();
-		const MaterialUploadData& materialUploadData = *renderer.Get<MaterialUpload>();
-		globals.lightCount = (dU32)frameData.lights.allActive.size();
-		globals.lightBufferIndex = context.GetBindlessIndex(lightUploadData.srv);
-		globals.lightMatricesIndex = context.GetBindlessIndex(shadowData.matricesSRV);
-		globals.shadowStartIndex = shadowData.shadowStartIndex;
-		globals.materialBufferIndex = context.GetBindlessIndex(materialUploadData.srv);
+		const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
+		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
+		const MaterialOutputs& materialOutputs = context.blackboard.Get<MaterialOutputs>();
+		globals.lightCount = pLightOutputs ? pLightOutputs->count : 0;
+		globals.lightBufferIndex = pLightOutputs ? pLightOutputs->bufferIndex : -1;
+		globals.lightMatricesIndex = pShadowOutputs ? pShadowOutputs->matricesIndex : -1;
+		globals.shadowStartIndex = pShadowOutputs ? pShadowOutputs->shadowStartIndex : -1;
+		globals.materialBufferIndex = materialOutputs.bufferIndex;
 
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 

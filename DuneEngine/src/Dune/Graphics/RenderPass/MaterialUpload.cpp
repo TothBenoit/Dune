@@ -3,6 +3,7 @@
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RenderPass/MaterialUpload.h"
+#include "Dune/Graphics/RenderPass/Outputs.h"
 
 namespace Dune::Graphics
 {
@@ -39,6 +40,7 @@ namespace Dune::Graphics
 				renderer.SetPhysicalResource(pData->handle, &pData->buffer, EResourceState::Undefined);
 		}
 
+		context.blackboard.Add<MaterialOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv) });
 		builder.Write(pData->handle, EResourceState::CopyDest);
 	}
 

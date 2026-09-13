@@ -87,7 +87,7 @@ namespace Dune::Graphics
 		Descriptor histogramUAV = frame.srvHeap.Allocate(1);
 		Device& device = *renderer.GetDevice();
 		Window& window = *renderer.GetWindow();
-		Barrier& barrier = *context.pBarrier;
+		Barrier& barrier = renderer.GetBarrier();
 		PSOCache& psoCache = *renderer.GetPSOCache();
 
 		commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
@@ -107,7 +107,7 @@ namespace Dune::Graphics
 		commandList.SetComputeRootSignature(psoCache.GetRootSignature(psoCache.GetRootSignatureHandle(pData->histogramPSO)));
 		commandList.SetPipelineState(psoCache.GetPipelineState(pData->histogramPSO));
 		commandList.PushComputeConstants(0, &histogramParams, sizeof(histogramParams));
-		Descriptor hdrTargetSRV = context.GetGPUDescriptor(frame, frame.hdrTargetSRV);
+		Descriptor hdrTargetSRV = context.GetGPUDescriptor(frame, renderer.GetHDRTargetSRV());
 		commandList.BindComputeGroup(1, hdrTargetSRV);
 		commandList.PushComputeUAV(2, pData->histogramBuffer);
 		commandList.Dispatch((histogramParams.width + 16 - 1) / 16, (histogramParams.height + 16 - 1) / 16, 1);

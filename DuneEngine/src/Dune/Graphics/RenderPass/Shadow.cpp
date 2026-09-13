@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
-#include "Dune/Graphics/RenderPass/MaterialUpload.h"
+#include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/RHI/Device.h"
@@ -90,9 +90,11 @@ namespace Dune::Graphics
 	void Shadow::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData)
 	{
 		pData->activeHandles.clear();
-		const FrameData& frameData = *context.pFrameData;
-		if (frameData.drawItems.empty())
+		const MaterialOutputs* pMaterialOutputs = context.blackboard.TryGet<MaterialOutputs>();
+		if (!pMaterialOutputs)
 			return;
+
+		const FrameData& frameData = *context.pFrameData;
 		const dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
 		if (shadowCasters.empty())
 			return;
@@ -102,7 +104,7 @@ namespace Dune::Graphics
 		Device& device = *renderer.GetDevice();
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
 		dU32 shadowCount = (dU32)shadowCasters.size();
-		dU32 shadowStartIndex = pData->shadowStartIndex = srvHeap.GetIndex(srvHeap.Allocate(shadowCount));
+		dU32 shadowStartIndex = srvHeap.GetIndex(srvHeap.Allocate(shadowCount));
 
 		dU32 cubeShadowIndex{ 0 };
 		dU32 shadowIndex{ 0 };
@@ -157,7 +159,8 @@ namespace Dune::Graphics
 		}
 
 		builder.Write(pData->matricesHandle, EResourceState::CopyDest);
-		builder.Read(renderer.Get<MaterialUpload>()->handle, EResourceState::ShaderResource);
+		builder.Read(pMaterialOutputs->buffer, EResourceState::ShaderResource);
+		context.blackboard.Add<ShadowOutputs>({ .shadows = { pData->activeHandles }, .matrices = pData->matricesHandle, .shadowStartIndex = shadowStartIndex, .matricesIndex = context.GetBindlessIndex(pData->matricesSRV) });
 	}
 
 	static void RenderDepth(RenderPassContext& context, ShadowData* pData, const dMatrix4x4& viewProjection)
@@ -176,7 +179,7 @@ namespace Dune::Graphics
 		DepthGlobals globals
 		{
 			.viewProjectionMatrix = viewProjection,
-			.materialBufferIndex = context.GetBindlessIndex(renderer.Get<MaterialUpload>()->srv),
+			.materialBufferIndex =context.blackboard.Get<MaterialOutputs>().bufferIndex,
 		};
 
 		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;

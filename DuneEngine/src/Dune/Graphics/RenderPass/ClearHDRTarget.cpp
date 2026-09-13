@@ -19,8 +19,7 @@ namespace Dune::Graphics
 	{
 		Renderer& renderer = *context.pRenderer;
 		CommandList& commandList = renderer.GetCurrentFrame().commandList;
-		Frame& frame = renderer.GetCurrentFrame();
-		commandList.ClearRenderTargetView(frame.hdrTargetRTV, frame.hdrTarget.GetClearValue());
+		commandList.ClearRenderTargetView(renderer.GetHDRTargetRTV(), renderer.GetHDRTarget().GetClearValue());
 	}
 
 	void ClearHDRTarget::Destroy(Renderer& renderer, void* pData)

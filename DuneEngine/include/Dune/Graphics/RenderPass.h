@@ -16,9 +16,9 @@ namespace Dune
 		using ResourceHandle = dU32;
 		inline constexpr ResourceHandle kInvalidResourceHandle{ (ResourceHandle)-1 };
 
-		using RenderPassTypeID = const void*;
+		using RenderTypeID = const void*;
 		template<typename T>
-		RenderPassTypeID GetRenderPassTypeID() { static dU8 id; return &id; }
+		RenderTypeID GetRenderTypeID() { static dU8 id; return &id; }
 
 		enum class ERegistrationOrder : dU8
 		{
@@ -39,13 +39,72 @@ namespace Dune
 			EResourceState state{ EResourceState::Undefined };
 		};
 
+		class RenderBlackboard
+		{
+		public:
+			void Reset()
+			{
+				m_storage.clear();
+				m_offsets.clear();
+#ifdef _DEBUG
+				m_missed.clear();
+#endif
+			}
+
+			template<typename T> void Add(const T& data)
+			{
+				static_assert(std::is_trivially_copyable_v<T>);
+				RenderTypeID id = GetRenderTypeID<T>();
+				Assert(!m_missed.contains(id));
+				auto it = m_offsets.find(id);
+				if (it == m_offsets.end())
+				{
+					const dU32 align = (dU32)alignof(T);
+					const dU32 offset = ((dU32)m_storage.size() + align - 1) & ~(align - 1);
+					m_storage.resize(offset + sizeof(T));
+					it = m_offsets.emplace(id, offset).first;
+				}
+				memcpy(m_storage.data() + it->second, &data, sizeof(T));
+			}
+
+			template<typename T> [[nodiscard]] const T* TryGet() const
+			{
+				RenderTypeID id = GetRenderTypeID<T>();
+				auto it = m_offsets.find(id);
+				if (it == m_offsets.end())
+				{
+#ifdef _DEBUG
+					m_missed.insert(id);
+#endif
+					return nullptr;
+				}
+				return (const T*)(m_storage.data() + it->second);
+			}
+
+			template<typename T> [[nodiscard]] const T& Get() const
+			{
+				RenderTypeID id = GetRenderTypeID<T>();
+				auto it = m_offsets.find(id);
+				Assert(it != m_offsets.end());
+
+				return *(const T*)(m_storage.data() + it->second);
+			}
+		
+		private:
+			dVector<dU8> m_storage;
+			dHashMap<RenderTypeID, dU32> m_offsets;
+#ifdef _DEBUG
+			mutable dHashSet<RenderTypeID> m_missed;
+#endif
+		};
+
 		struct RenderPassContext
 		{
 			const FrameData* pFrameData;
 			const Camera* pCamera;
 			Renderer* pRenderer;
-			Barrier* pBarrier;
 			dVector<dU32> sortedBlendDraw;
+			RenderBlackboard blackboard;
 
 			[[nodiscard]] dU32 GetBindlessIndex(Descriptor persistentSRV) const;
 			[[nodiscard]] Descriptor GetGPUDescriptor(const Frame& frame, Descriptor persistentSRV) const;
@@ -87,7 +146,7 @@ namespace Dune
 			void (*pExecute)(RenderPassContext&, void*);
 			void (*pShutdown)(Renderer&, void*);
 			void* pData{ nullptr };
-			RenderPassTypeID typeID{ nullptr };
+			RenderTypeID typeID{ nullptr };
 
 			RenderGraphBuilder builder;
 		};

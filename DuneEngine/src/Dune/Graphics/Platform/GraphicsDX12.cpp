@@ -1183,6 +1183,14 @@ namespace Dune::Graphics
 		return L"";
 	}
 
+	static const wchar_t* gs_baseArgs[] =
+	{
+		L"-all_resources_bound",
+#if _DEBUG
+		L"-Zi", L"-Qembed_debug"
+#endif
+	};
+
 	void Shader::Initialize(const ShaderDesc& desc)
 	{
 		Microsoft::WRL::ComPtr<IDxcCompiler3> pCompiler{ nullptr };
@@ -1199,14 +1207,7 @@ namespace Dune::Graphics
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
 		Microsoft::WRL::ComPtr<IDxcCompilerArgs> pArgs{ nullptr };
 		ThrowIfFailed(pUtils->BuildArguments(desc.filePath, desc.entryFunc, GetTargetProfile(desc.stage), desc.args, desc.argsCount, NULL, 0, &pArgs));
-		const wchar_t* baseArgs[] =
-		{
-			L"-all_resources_bound",
-#if _DEBUG
-			L"-Zi", L"-Qembed_debug"
-#endif
-		};
-		pArgs->AddArguments(baseArgs, _countof(baseArgs));
+		ThrowIfFailed(pArgs->AddArguments(gs_baseArgs, _countof(gs_baseArgs)));
 
 		ThrowIfFailed(pUtils->LoadFile(desc.filePath, &codePage, &pSourceBlob));
 
@@ -1279,6 +1280,7 @@ namespace Dune::Graphics
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
 		Microsoft::WRL::ComPtr<IDxcCompilerArgs> pArgs{ nullptr };
 		ThrowIfFailed(internal.pUtils->BuildArguments(desc.filePath, desc.entryFunc, GetTargetProfile(desc.stage), desc.args, desc.argsCount, NULL, 0, &pArgs));
+		ThrowIfFailed(pArgs->AddArguments(gs_baseArgs, _countof(gs_baseArgs)));
 		ThrowIfFailed(internal.pUtils->LoadFile(desc.filePath, &codePage, &pSourceBlob));
 
 		Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };

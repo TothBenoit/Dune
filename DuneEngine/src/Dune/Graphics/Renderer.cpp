@@ -37,21 +37,22 @@ namespace Dune::Graphics
 				.initialState = EResourceState::DepthStencil
 			});
 
-		TextureDesc colorTargetDesc
+		TextureDesc hdrTargetDesc
 		{
-			.debugName = L"ColorTarget",
+			.debugName = L"HDRTarget",
 			.usage{ ETextureUsage::RenderTarget | ETextureUsage::ShaderResource },
 			.dimensions = { width, height, 1},
 			.mipLevels{ 1 },
 			.format{ EFormat::R16G16B16A16_FLOAT },
 			.initialState{ EResourceState::ShaderResource },
 		};
+		m_hdrTarget.Initialize(device, hdrTargetDesc);
+
 		for (Frame& frame : m_frames)
 		{
 			frame.commandAllocator.Initialize(device, ECommandType::Direct);
 			frame.commandList.Initialize(device, ECommandType::Direct, frame.commandAllocator);
 			frame.commandList.Close();
-			frame.hdrTarget.Initialize(device, colorTargetDesc);
 			frame.srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = ResourceManager::kSharedSRVCapacity + kPersistentSRVCapacity + kTransientSRVCapacity, .isShaderVisible = true });
 			frame.samplerHeap.Initialize(device, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
 			frame.uploadBuffer.Initialize(device, { .debugName = L"UploadBuffer", .memory = EBufferMemory::CPU, .byteSize = kUploadBufferByteSize });
@@ -81,15 +82,16 @@ namespace Dune::Graphics
 		{
 			Frame& frame = m_frames[i];
 			frame.backBufferRTV = m_rtvHeap.Allocate();
-			frame.hdrTargetRTV = m_rtvHeap.Allocate();
-			frame.hdrTargetSRV = m_srvHeap.Allocate();
 			device.CreateRTV(frame.backBufferRTV, m_swapchain.GetBackBuffer(i), {});
-			device.CreateRTV(frame.hdrTargetRTV, frame.hdrTarget, {});
-			device.CreateSRV(frame.hdrTargetSRV, frame.hdrTarget);
 
-			frame.hdrTargetHandle = RegisterTexture(&frame.hdrTarget, EResourceState::ShaderResource);
 			frame.backBufferHandle = RegisterTexture(&m_swapchain.GetBackBuffer(i), EResourceState::Present);
 		}
+
+		m_hdrTargetRTV = m_rtvHeap.Allocate();
+		m_hdrTargetSRV = m_srvHeap.Allocate();
+		device.CreateRTV(m_hdrTargetRTV, m_hdrTarget, {});
+		device.CreateSRV(m_hdrTargetSRV, m_hdrTarget);
+		m_hdrTargetHandle = RegisterTexture(&m_hdrTarget, EResourceState::ShaderResource);
 
 		m_depthBufferDSV = m_dsvHeap.Allocate();
 		device.CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
@@ -105,6 +107,8 @@ namespace Dune::Graphics
 		RegisterRenderPass<ClearHDRTarget>();
 		RegisterRenderPass<Forward>();
 		RegisterRenderPass<Tonemapping>();
+
+		m_passContext.pRenderer = this;
 	}
 
 	void Renderer::Destroy()
@@ -116,16 +120,15 @@ namespace Dune::Graphics
 				buffer.Destroy();
 			frame.buffersToRelease.clear();
 			m_rtvHeap.Free(frame.backBufferRTV);
-			m_rtvHeap.Free(frame.hdrTargetRTV);
-			m_srvHeap.Free(frame.hdrTargetSRV);
 			frame.uploadBuffer.Destroy();
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
-			frame.hdrTarget.Destroy();
 			frame.srvHeap.Destroy();
 			frame.samplerHeap.Destroy();
 		}
 		m_dsvHeap.Free(m_depthBufferDSV);
+		m_rtvHeap.Free(m_hdrTargetRTV);
+		m_srvHeap.Free(m_hdrTargetSRV);
 
 		for (RenderPass& pass : m_passes)
 			pass.pShutdown(*this, pass.pData);
@@ -155,6 +158,7 @@ namespace Dune::Graphics
 		m_rtvHeap.Destroy();
 		m_dsvHeap.Destroy();
 		m_barrier.Destroy();
+		m_hdrTarget.Destroy();
 		m_depthBuffer.Destroy();
 		m_commandQueue.Destroy();
 		m_swapchain.Destroy();
@@ -309,6 +313,18 @@ namespace Dune::Graphics
 
 	void Renderer::OnResize(dU32 width, dU32 height)
 	{
+		Device& device = *GetDevice();
+		for (Frame& f : m_frames)
+			WaitForFrame(f);
+
+		m_swapchain.Resize(width, height);
+		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
+		for (dU32 i = 0; i < kFramesInFlight; i++)
+		{
+			device.CreateRTV(m_frames[i].backBufferRTV, m_swapchain.GetBackBuffer(i), {});
+			SetPhysicalResource(m_frames[i].backBufferHandle, &m_swapchain.GetBackBuffer(i), EResourceState::Present);
+		}
+
 		TextureDesc hdrTargetDesc
 		{
 			.debugName = L"HDRTarget",
@@ -319,24 +335,11 @@ namespace Dune::Graphics
 			.initialState{ EResourceState::ShaderResource },
 		};
 
-		Device& device = *GetDevice();
-		for (Frame& f : m_frames)
-		{
-			WaitForFrame(f);
-			f.hdrTarget.Destroy();
-			f.hdrTarget.Initialize(device, hdrTargetDesc);
-			device.CreateSRV(f.hdrTargetSRV, f.hdrTarget);
-			device.CreateRTV(f.hdrTargetRTV, f.hdrTarget, {});
-			SetPhysicalResource(f.hdrTargetHandle, &f.hdrTarget, EResourceState::ShaderResource);
-		}
-
-		m_swapchain.Resize(width, height);
-		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
-		for (dU32 i = 0; i < kFramesInFlight; i++)
-		{
-			device.CreateRTV(m_frames[i].backBufferRTV, m_swapchain.GetBackBuffer(i), {});
-			SetPhysicalResource(m_frames[i].backBufferHandle, &m_swapchain.GetBackBuffer(i), EResourceState::Present);
-		}
+		m_hdrTarget.Destroy();
+		m_hdrTarget.Initialize(device, hdrTargetDesc);
+		device.CreateSRV(m_hdrTargetSRV, m_hdrTarget);
+		device.CreateRTV(m_hdrTargetRTV, m_hdrTarget, {});
+		SetPhysicalResource(m_hdrTargetHandle, &m_hdrTarget, EResourceState::ShaderResource);
 
 		m_depthBuffer.Destroy();
 		m_depthBuffer.Initialize(device,
@@ -408,19 +411,15 @@ namespace Dune::Graphics
 		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress() + frameData.sharedSRVHeapCapacity * frame.srvHeap.GetDescriptorSize(), EDescriptorHeapType::SRV_CBV_UAV);
 		frame.srvHeap.Allocate(sharedSRVCapacity + m_srvHeap.GetCapacity());
 
-		RenderPassContext context
-		{
-			.pFrameData = &frameData,
-			.pCamera = &camera,
-			.pRenderer = this,
-			.pBarrier = &m_barrier,
-			.sortedBlendDraw = std::move(sortedBlendDraw)
-		};
+		m_passContext.pFrameData = &frameData;
+		m_passContext.pCamera = &camera;
+		m_passContext.sortedBlendDraw = std::move(sortedBlendDraw);
+		m_passContext.blackboard.Reset();
 
 		for (RenderPass& pass : m_passes)
 		{
 			pass.builder.Reset();
-			pass.pSetup(pass.builder, context, pass.pData);
+			pass.pSetup(pass.builder, m_passContext, pass.pData);
 		}
 
 #ifdef _DEBUG
@@ -445,7 +444,7 @@ namespace Dune::Graphics
 				TransitionResource(access);
 			FlushBarriers(frame.commandList);
 
-			pass.pExecute(context, pass.pData);
+			pass.pExecute(m_passContext, pass.pData);
 		}
 
 		if (m_pImGui)
