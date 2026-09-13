@@ -16,14 +16,16 @@ namespace Dune::Graphics
 
 	void MaterialUpload::Setup(RenderGraphBuilder& builder, RenderPassContext& context, MaterialUploadData* pData)
 	{
-		Renderer& renderer = *context.pRenderer;
 		const dVector<MaterialData>& materials = context.pFrameData->materials;
-
 		dU32 materialCount = (dU32)materials.size();
+		if (materialCount == 0)
+			return;
+
 		const dU32 materialsByteSize = materialCount * (dU32)sizeof(MaterialData);
 
 		if (pData->buffer.GetByteSize() < materialsByteSize)
 		{
+			Renderer& renderer = *context.pRenderer;
 			Frame& frame = renderer.GetCurrentFrame();
 			Device& device = *renderer.GetDevice();
 			if (pData->buffer.Get())

@@ -152,6 +152,7 @@
     <ClInclude Include="include\Dune\Graphics\FrameData.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RenderPass\ClearHDRTarget.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
@@ -236,6 +237,7 @@
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RHI\PSOCache.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderPass\ClearHDRTarget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\Dune\Resources\Shaders\DepthOnly.hlsl">

@@ -92,6 +92,7 @@ namespace Dune::Graphics
 	{
 		frameData.lights.allActive.clear();
 		frameData.lights.shadowCasters.clear();
+		frameData.lights.shadowMatrices.clear();
 		frameData.drawItems.clear();
 
 		ResourceManager& resourceManager = GetResourceManager();

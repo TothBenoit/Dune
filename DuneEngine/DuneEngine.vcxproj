@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearDepth.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderPass\ClearHDRTarget.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\MaterialUpload.cpp" />
     <ClCompile Include="src\Dune\Graphics\RHI\PSOCache.cpp" />
     <ClCompile Include="src\Dune\Utilities\StringUtils.cpp" />
@@ -23,6 +24,7 @@
     <ClInclude Include="include\Dune\Graphics\FrameData.h" />
     <ClInclude Include="include\Dune\Graphics\Material.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearDepth.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderPass\ClearHDRTarget.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass.h" />

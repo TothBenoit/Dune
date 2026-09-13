@@ -21,20 +21,20 @@ namespace Dune::Graphics
 		Renderer& renderer = *context.pRenderer;
 		const dVector<Light>& lights = context.pFrameData->lights.allActive;
 
-		pData->lightCount = (dU32)lights.size();
-		if (pData->lightCount == 0)
+		dU32 lightCount = (dU32)lights.size();
+		if (lightCount == 0)
 			return;
 
 		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
-		const dU32 lightByteSize = pData->lightCount * (dU32)sizeof(Light);
+		const dU32 lightByteSize = lightCount * (dU32)sizeof(Light);
 
 		if (pData->buffer.GetByteSize() < lightByteSize)
 		{
 			if (pData->buffer.Get())
 				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"LightBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ lightByteSize } });
-			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = pData->lightCount, .byteStride = sizeof(Light) });
+			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
 			device.CopyDescriptors(1, pData->srv.cpuAddress, frame.srvHeap.GetDescriptorAt(pData->srvIndex + context.pFrameData->sharedSRVHeapCapacity).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
@@ -52,7 +52,7 @@ namespace Dune::Graphics
 		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		const dVector<Light>& lights = context.pFrameData->lights.allActive;
-		const dU32 lightByteSize = pData->buffer.GetByteSize();
+		const dU32 lightByteSize = (dU32)(lights.size() * sizeof(Light));
 
 		void* pMappedData{ nullptr };
 		if( frame.uploadOffset + lightByteSize < frame.uploadBuffer.GetByteSize() )

@@ -70,21 +70,28 @@ namespace Dune::Graphics
 
 	void Forward::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ForwardData* pData)
 	{
+		if (context.pFrameData->drawItems.empty())
+			return;
 		Renderer& renderer = *context.pRenderer;
 
 		builder.Write(renderer.GetHDRTargetHandle(), EResourceState::RenderTarget);
 		builder.Write(renderer.GetDepthBufferHandle(), EResourceState::DepthStencil);
 		builder.Read(renderer.Get<MaterialUpload>()->handle, EResourceState::ShaderResource);
 
-		ShadowData* pShadowData = renderer.Get<Shadow>();
-		for (ResourceHandle handle : pShadowData->activeHandles)
-			builder.Read(handle, EResourceState::ShaderResource);
-		if (!pShadowData->activeHandles.empty())
+		const FrameLights& lights = context.pFrameData->lights;
+		if (lights.shadowCasters.size() > 0)
+		{
+			ShadowData* pShadowData = renderer.Get<Shadow>();
+			for (ResourceHandle handle : pShadowData->activeHandles)
+				builder.Read(handle, EResourceState::ShaderResource);
 			builder.Read(pShadowData->matricesHandle, EResourceState::ShaderResource);
+		}
 
-		LightUploadData* pLightData = renderer.Get<LightUpload>();
-		if (pLightData->lightCount > 0)
+		if (lights.allActive.size() > 0)
+		{
+			LightUploadData* pLightData = renderer.Get<LightUpload>();
 			builder.Read(pLightData->handle, EResourceState::ShaderResource);
+		}
 	}
 
 	static void Draw(CommandList& commandList, PSOCache& psoCache, const ForwardGlobals& globals, const DrawItem& drawItem, const FrameData& frameData, ForwardData* pData, dU32& currentVariant, RootSignatureHandle& boundRootSignature)
@@ -128,7 +135,6 @@ namespace Dune::Graphics
 		PSOCache& psoCache = *renderer.GetPSOCache();
 
 		Descriptor dsv = renderer.GetDepthBufferDSV();
-		commandList.ClearRenderTargetView(frame.hdrTargetRTV, frame.hdrTarget.GetClearValue());
 
 		Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
 		Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
@@ -142,7 +148,7 @@ namespace Dune::Graphics
 		const LightUploadData& lightUploadData = *renderer.Get<LightUpload>();
 		const ShadowData& shadowData = *renderer.Get<Shadow>();
 		const MaterialUploadData& materialUploadData = *renderer.Get<MaterialUpload>();
-		globals.lightCount = lightUploadData.lightCount;
+		globals.lightCount = (dU32)frameData.lights.allActive.size();
 		globals.lightBufferIndex = lightUploadData.srvIndex + frameData.sharedSRVHeapCapacity;
 		globals.lightMatricesIndex = shadowData.matricesPersistentSRVIndex + frameData.sharedSRVHeapCapacity;
 		globals.shadowStartIndex = shadowData.shadowStartIndex;

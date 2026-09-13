@@ -136,6 +136,10 @@ namespace Dune::Graphics
 		commandList.Transition(barrier);
 		barrier.Reset();
 
+		Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
+		Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
+		commandList.SetViewports(1, &viewport);
+		commandList.SetScissors(1, &scissor);
 		commandList.SetGraphicsRootSignature(psoCache.GetRootSignature(psoCache.GetRootSignatureHandle(pData->tonemapPSO)));
 		commandList.SetPipelineState(psoCache.GetPipelineState(pData->tonemapPSO));
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);

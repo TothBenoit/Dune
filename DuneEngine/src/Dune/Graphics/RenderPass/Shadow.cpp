@@ -91,9 +91,11 @@ namespace Dune::Graphics
 
 	void Shadow::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData)
 	{
-		const FrameData& frameData = *context.pFrameData;
-		const dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
 		pData->activeHandles.clear();
+		const FrameData& frameData = *context.pFrameData;
+		if (frameData.drawItems.empty())
+			return;
+		const dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
 		if (shadowCasters.empty())
 			return;
 

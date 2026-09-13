@@ -5,6 +5,7 @@
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
 #include "Dune/Graphics/RenderPass/ClearDepth.h"
+#include "Dune/Graphics/RenderPass/ClearHDRTarget.h"
 #include "Dune/Graphics/RenderPass/MaterialUpload.h"
 #include "Dune/Graphics/RenderPass/DepthPrepass.h"
 #include "Dune/Graphics/RenderPass/Shadow.h"
@@ -101,6 +102,7 @@ namespace Dune::Graphics
 		RegisterRenderPass<DepthPrepass>();
 		RegisterRenderPass<Shadow>();
 		RegisterRenderPass<LightUpload>();
+		RegisterRenderPass<ClearHDRTarget>();
 		RegisterRenderPass<Forward>();
 		RegisterRenderPass<Tonemapping>();
 	}
@@ -109,10 +111,10 @@ namespace Dune::Graphics
 	{
 		for (Frame& frame : m_frames)
 		{
+			WaitForFrame(frame);
 			for (Buffer& buffer : frame.buffersToRelease)
 				buffer.Destroy();
 			frame.buffersToRelease.clear();
-			WaitForFrame(frame);
 			m_rtvHeap.Free(frame.backBufferRTV);
 			m_rtvHeap.Free(frame.hdrTargetRTV);
 			m_srvHeap.Free(frame.hdrTargetSRV);
@@ -420,6 +422,17 @@ namespace Dune::Graphics
 			pass.builder.Reset();
 			pass.pSetup(pass.builder, context, pass.pData);
 		}
+
+#ifdef _DEBUG
+		dVector<bool> writtenResources(m_resources.size(), false);
+		for (const RenderPass& pass : m_passes)
+		{
+			for (const ResourceAccess& read : pass.builder.GetReads())
+				Assert(writtenResources[read.handle]);
+			for (const ResourceAccess& write : pass.builder.GetWrites())
+				writtenResources[write.handle] = true;
+		}
+#endif
 
 		for (RenderPass& pass : m_passes)
 		{

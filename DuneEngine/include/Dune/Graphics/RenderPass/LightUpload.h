@@ -14,7 +14,6 @@ namespace Dune::Graphics
 		Descriptor     srv;
 		ResourceHandle handle{ kInvalidResourceHandle };
 		dU32           srvIndex{ 0 };
-		dU32           lightCount{ 0 };
 	};
 
 	class LightUpload

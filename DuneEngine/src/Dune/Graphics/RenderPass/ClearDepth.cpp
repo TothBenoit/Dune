@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/ClearDepth.h"
 #include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Graphics/RHI/Device.h"
-#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/Renderer.h"
 
 namespace Dune::Graphics
