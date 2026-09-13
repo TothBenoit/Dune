@@ -211,7 +211,7 @@ namespace Dune::Graphics
 				.alphaCutoff = desc.alphaCutoff
 			},
 			.alphaMode = desc.alphaMode,
-			.isDoubleSided = desc.doubleSided
+			.faceCulling = desc.doubleSided ? ECullingMode::None : ECullingMode::Back,
 		};
 
 		if (material.shaderData.albedoIdx != dU32(-1))

@@ -45,15 +45,22 @@ namespace Dune::Graphics
 			VertexInput{ .pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false },
 		};
 
-		for (dU32 variant = 0; variant < Material::kDepthVariantCount; variant++)
+		for (MaterialKey key = 0; key < Material::kKeyTableSize; key++)
 		{
-			const bool isMasked = Material::GetAlphaMode(variant) == EAlphaMode::Mask;
-			pData->depthPSO[variant] = psoCache.ResolvePSO(GraphicsPSODesc
+			EAlphaMode alphaMode = Material::GetAlphaMode(key);
+			if (alphaMode == EAlphaMode::Blend)
+			{
+				pData->depthPSO[key] = kInvalidPSOHandle;
+				continue;
+			}
+
+			const bool isMasked = alphaMode == EAlphaMode::Mask;
+			pData->depthPSO[key] = psoCache.ResolvePSO(GraphicsPSODesc
 			{
 				.vertexShader = isMasked ? depthMaskedVS : depthVS,
 				.pixelShader = isMasked ? depthMaskedPS : kInvalidShaderHandle,
 				.inputLayout = isMasked ? maskedVertexInputs : vertexInputs,
-				.cullingMode = Material::IsDoubleSided(variant) ? ECullingMode::None : ECullingMode::Back,
+				.cullingMode = Material::GetFaceCulling(key),
 				.depthEnabled = true,
 				.depthWrite = true,
 				.depthStencilFormat = EFormat::D32_FLOAT,
@@ -99,15 +106,15 @@ namespace Dune::Graphics
 		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
 
 		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;
-		dU32 currentVariant = dU32(-1);
-		for( dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++  )
+		MaterialKey currentKey = MaterialKey(-1);
+		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
 		{
 			const DrawItem& drawItem = frameData.drawItems[drawIdx];
-			Assert(drawItem.materialVariant < Material::kDepthVariantCount);
-			if (currentVariant != drawItem.materialVariant)
+			if (currentKey != drawItem.materialKey)
 			{
-				currentVariant = drawItem.materialVariant;
-				const PSOHandle pso = pData->depthPSO[currentVariant];
+				currentKey = drawItem.materialKey;
+				const PSOHandle pso = pData->depthPSO[currentKey];
+				Assert(pso != kInvalidPSOHandle);
 				const RootSignatureHandle rootSignature = psoCache.GetRootSignatureHandle(pso);
 				if (boundRootSignature != rootSignature)
 				{
@@ -118,7 +125,7 @@ namespace Dune::Graphics
 				commandList.SetPipelineState(psoCache.GetPipelineState(pso));
 			}
 
-			if (Material::GetAlphaMode(drawItem.materialVariant) == EAlphaMode::Mask)
+			if (Material::GetAlphaMode(drawItem.materialKey) == EAlphaMode::Mask)
 				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
 
 			InstanceData instanceData;

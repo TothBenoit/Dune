@@ -10,7 +10,7 @@ namespace Dune::Graphics
 
 	struct DepthPrepassData
 	{
-		PSOHandle depthPSO[Material::kDepthVariantCount];
+		PSOHandle depthPSO[Material::kKeyTableSize];
 	};
 
 	class DepthPrepass

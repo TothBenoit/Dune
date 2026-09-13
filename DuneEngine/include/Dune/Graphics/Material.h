@@ -1,31 +1,40 @@
 #pragma once
 #include <Dune/Resources/Shaders/ShaderInterop.h>
+#include <Dune/Graphics/RHI/PipelineState.h>
 
 namespace Dune::Graphics
 {
-	enum class  EAlphaMode : dU8
+	enum class EAlphaMode : dU8
 	{
 		Opaque,
 		Mask,
 		Blend,
 		Count
 	};
+	static_assert((dU32)EAlphaMode::Blend == (dU32)EAlphaMode::Count - 1, "Blend must sort last");
 
+	using MaterialKey = dU32;
 	struct Material
 	{
+		static constexpr dU32 kKeyTableSize = (dU32)EAlphaMode::Count * (dU32)ECullingMode::Count;
+
+		[[nodiscard]] static constexpr dU32 MakeKey(EAlphaMode alphaMode, ECullingMode faceCulling) { return (dU32)faceCulling + (dU32)alphaMode * (dU32)ECullingMode::Count; }
+		[[nodiscard]] static constexpr EAlphaMode GetAlphaMode(MaterialKey key) { return (EAlphaMode)(key / (dU32)ECullingMode::Count); }
+		[[nodiscard]] static constexpr ECullingMode GetFaceCulling(MaterialKey key) { return (ECullingMode)(key % (dU32)ECullingMode::Count); }
+
+		[[nodiscard]] dU32 GetKey() const { return MakeKey(alphaMode, faceCulling); }
+
 		MaterialData shaderData;
 		EAlphaMode alphaMode{ EAlphaMode::Opaque };
-		bool isDoubleSided{ false };
-
-		[[nodiscard]] inline dU32 GetVariant() const { return (dU32)alphaMode * 2 + (isDoubleSided ? 1u : 0u); }
-
-		static inline constexpr dU32 kVariantCount = (dU32)EAlphaMode::Count * 2;
-		static inline constexpr dU32 kDepthVariantCount = 4;
-
-		static inline EAlphaMode GetAlphaMode(dU32 variant) { return (EAlphaMode)(variant >> 1); }
-		static inline bool       IsDoubleSided(dU32 variant) { return (variant & 1) != 0; }
-
-		static_assert((dU32)EAlphaMode::Blend == (dU32)EAlphaMode::Count - 1, "Blend must sort last");
-		static_assert(kDepthVariantCount == (dU32)EAlphaMode::Blend * 2, "Depth variants must cover every non-blend mode");
+		ECullingMode faceCulling{ ECullingMode::Back };
 	};
+
+	[[nodiscard]] static constexpr bool ValidateMaterialKeys()
+	{
+		for (dU32 k = 0; k < Material::kKeyTableSize; k++)
+			if (Material::MakeKey(Material::GetAlphaMode(k), Material::GetFaceCulling(k)) != k)
+				return false;
+		return true;
+	}
+	static_assert(ValidateMaterialKeys());
 }

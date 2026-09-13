@@ -80,9 +80,10 @@ namespace Dune::Graphics
 
 	enum class ECullingMode : dU8
 	{
-		None  = 1,
-		Front = 2,
-		Back  = 3
+		None,
+		Front,
+		Back,
+		Count,
 	};
 
 	struct RasterizerState

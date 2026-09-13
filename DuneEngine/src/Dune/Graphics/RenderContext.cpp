@@ -138,7 +138,7 @@ namespace Dune::Graphics
 					drawItem.indexCount = subMesh.indexCount;
 					drawItem.vertexOffset = subMesh.vertexOffset;
 					const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
-					drawItem.materialVariant = material.GetVariant();
+					drawItem.materialKey = material.GetKey();
 					frameData.blendDrawCount += material.alphaMode == EAlphaMode::Blend ? 1 : 0;
 				}
 			});
@@ -168,7 +168,7 @@ namespace Dune::Graphics
 		std::sort(frameData.drawItems.begin(), frameData.drawItems.end(),
 			[](const DrawItem& a, const DrawItem& b)
 			{
-				return a.materialVariant < b.materialVariant;
+				return a.materialKey < b.materialKey;
 			}
 		);
 	}

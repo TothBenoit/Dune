@@ -65,15 +65,22 @@ namespace Dune::Graphics
 			VertexInput{ .pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false },
 		};
 
-		for (dU32 variant = 0; variant < Material::kDepthVariantCount; variant++)
+		for (MaterialKey key = 0; key < Material::kKeyTableSize; key++)
 		{
-			const bool isMasked = Material::GetAlphaMode(variant) == EAlphaMode::Mask;
-			pData->shadowPSO[variant] = psoCache.ResolvePSO(GraphicsPSODesc
+			EAlphaMode alphaMode = Material::GetAlphaMode(key);
+			if (alphaMode == EAlphaMode::Blend)
+			{
+				pData->shadowPSO[key] = kInvalidPSOHandle;
+				continue;
+			}
+
+			const bool isMasked = alphaMode == EAlphaMode::Mask;
+			pData->shadowPSO[key] = psoCache.ResolvePSO(GraphicsPSODesc
 			{
 				.vertexShader = isMasked ? shadowMaskedVS : shadowVS,
 				.pixelShader = isMasked ? shadowMaskedPS : kInvalidShaderHandle,
 				.inputLayout = isMasked ? maskedVertexInputs : vertexInputs,
-				.cullingMode = Material::IsDoubleSided(variant) ? ECullingMode::None : ECullingMode::Back,
+				.cullingMode = Material::GetFaceCulling(key),
 				.depthBias = 10,
 				.slopeScaledDepthBias = 4.0f,
 				.depthClipEnable = false,
@@ -183,18 +190,18 @@ namespace Dune::Graphics
 		};
 
 		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;
-		dU32 currentVariant = dU32(-1);
+		MaterialKey currentKey = MaterialKey(-1);
 		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
 		{
 			const DrawItem& drawItem = frameData.drawItems[drawIdx];
-			EAlphaMode alphaMode = Material::GetAlphaMode(drawItem.materialVariant);
-			Assert(drawItem.materialVariant < Material::kDepthVariantCount);
+			EAlphaMode alphaMode = Material::GetAlphaMode(drawItem.materialKey);
 			Assert(alphaMode != EAlphaMode::Blend);
 
-			if (currentVariant != drawItem.materialVariant)
+			if (currentKey != drawItem.materialKey)
 			{
-				currentVariant = drawItem.materialVariant;
-				const PSOHandle pso = pData->shadowPSO[currentVariant];
+				currentKey = drawItem.materialKey;
+				const PSOHandle pso = pData->shadowPSO[currentKey];
+				Assert(pso != kInvalidPSOHandle);
 				const RootSignatureHandle rootSignature = psoCache.GetRootSignatureHandle(pso);
 				if (boundRootSignature != rootSignature)
 				{

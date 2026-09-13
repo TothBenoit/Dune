@@ -12,7 +12,7 @@ namespace Dune::Graphics
 
 	struct ShadowData
 	{
-		PSOHandle shadowPSO[Material::kDepthVariantCount];
+		PSOHandle shadowPSO[Material::kKeyTableSize];
 
 		dVector<ResourceHandle> shadowHandles;
 		dVector<ResourceHandle> cubeShadowHandles;

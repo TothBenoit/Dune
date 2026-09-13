@@ -44,15 +44,15 @@ namespace Dune::Graphics
 			VertexInput { .pName = "UV", .index = 0, .format = EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 40, .isPerInstance = false }
 		};
 
-		for (dU32 variant = 0; variant < Material::kVariantCount; variant++)
+		for (MaterialKey key = 0; key < Material::kKeyTableSize; key++)
 		{
-			const EAlphaMode alphaMode = Material::GetAlphaMode(variant);
-			pData->forwardPSO[variant] = psoCache.ResolvePSO(GraphicsPSODesc
+			const EAlphaMode alphaMode = Material::GetAlphaMode(key);
+			pData->forwardPSO[key] = psoCache.ResolvePSO(GraphicsPSODesc
 			{
 				.vertexShader = forwardVS,
 				.pixelShader = alphaMode == EAlphaMode::Mask ? forwardMaskedPS : forwardPS,
 				.inputLayout = vertexInputs,
-				.cullingMode = Material::IsDoubleSided(variant) ? ECullingMode::None : ECullingMode::Back,
+				.cullingMode = Material::GetFaceCulling(key),
 				.depthEnabled = true,
 				.depthWrite = false,
 				.depthFunc = alphaMode == EAlphaMode::Blend ? ECompFunc::LessEqual : ECompFunc::Equal,
@@ -90,13 +90,14 @@ namespace Dune::Graphics
 			builder.Read(pLightOutputs->buffer, EResourceState::ShaderResource);
 	}
 
-	static void Draw(CommandList& commandList, PSOCache& psoCache, const ForwardGlobals& globals, const DrawItem& drawItem, const FrameData& frameData, ForwardData* pData, dU32& currentVariant, RootSignatureHandle& boundRootSignature)
+	static void Draw(CommandList& commandList, PSOCache& psoCache, const ForwardGlobals& globals, const DrawItem& drawItem, const FrameData& frameData, ForwardData* pData, MaterialKey& currentKey, RootSignatureHandle& boundRootSignature)
 	{
-		const dU32 variant = drawItem.materialVariant;
-		if (currentVariant != variant)
+		const MaterialKey key = drawItem.materialKey;
+		if (currentKey != key)
 		{
-			currentVariant = variant;
-			const PSOHandle pso = pData->forwardPSO[variant];
+			currentKey = key;
+			const PSOHandle pso = pData->forwardPSO[key];
+			Assert(pso != kInvalidPSOHandle);
 			const RootSignatureHandle rootSignature = psoCache.GetRootSignatureHandle(pso);
 			if (boundRootSignature != rootSignature)
 			{
@@ -150,12 +151,12 @@ namespace Dune::Graphics
 
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 
-		dU32 currentVariant = dU32(-1);
+		MaterialKey currentKey = MaterialKey(-1);
 		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;
 		for( dU32 drawIdx = 0; drawIdx < frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
-			Draw(commandList, psoCache, globals, frameData.drawItems[drawIdx], frameData, pData, currentVariant, boundRootSignature);
+			Draw(commandList, psoCache, globals, frameData.drawItems[drawIdx], frameData, pData, currentKey, boundRootSignature);
 		for (dU32 drawIdx = 0; drawIdx < frameData.blendDrawCount; drawIdx++)
-			Draw(commandList, psoCache, globals, frameData.drawItems[context.sortedBlendDraw[drawIdx]], frameData, pData, currentVariant, boundRootSignature);
+			Draw(commandList, psoCache, globals, frameData.drawItems[context.sortedBlendDraw[drawIdx]], frameData, pData, currentKey, boundRootSignature);
 	}
 
 	void Forward::Destroy(Renderer&, ForwardData* pData)

@@ -1633,6 +1633,22 @@ namespace Dune::Graphics
 		};
 	}
 
+	constexpr D3D12_CULL_MODE ConvertCullMode(ECullingMode cullingMode)
+	{
+		switch (cullingMode)
+		{
+		case ECullingMode::None:
+			return D3D12_CULL_MODE_NONE;
+		case ECullingMode::Front:
+			return D3D12_CULL_MODE_FRONT;
+		case ECullingMode::Back:
+			return D3D12_CULL_MODE_BACK;
+		default:
+			break;
+		}
+		return D3D12_CULL_MODE_NONE;
+	}
+
 	void PipelineState::Initialize(Device& device, const GraphicsPipelineDesc& desc)
 	{
 		Assert(desc.pVertexShader);
@@ -1660,7 +1676,7 @@ namespace Dune::Graphics
 		psoDesc.PS.pShaderBytecode = (pPSBlob) ? pPSBlob->GetBufferPointer() : nullptr;
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		psoDesc.RasterizerState.FillMode = (desc.rasterizerState.isWireframe) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
-		psoDesc.RasterizerState.CullMode = (D3D12_CULL_MODE) desc.rasterizerState.cullingMode;
+		psoDesc.RasterizerState.CullMode = ConvertCullMode(desc.rasterizerState.cullingMode);
 		psoDesc.RasterizerState.DepthBias = desc.rasterizerState.depthBias;
 		psoDesc.RasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
 		psoDesc.RasterizerState.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias;

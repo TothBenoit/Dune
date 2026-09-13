@@ -1,5 +1,5 @@
 #pragma once
-#include <Dune/Resources/Shaders/ShaderInterop.h>
+#include <Dune/Graphics/Material.h>
 
 namespace Dune::Graphics
 {
@@ -18,7 +18,7 @@ namespace Dune::Graphics
 		dU32 indexOffset;
 		dU32 indexCount;
 		dU32 vertexOffset;
-		dU32 materialVariant;
+		MaterialKey materialKey;
 	};
 
 	struct GPUMeshView

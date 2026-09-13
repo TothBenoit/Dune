@@ -11,7 +11,7 @@ namespace Dune::Graphics
 
 	struct ForwardData
 	{
-		PSOHandle forwardPSO[Material::kVariantCount];
+		PSOHandle forwardPSO[Material::kKeyTableSize];
 	};
 
 	class Forward
