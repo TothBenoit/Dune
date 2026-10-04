@@ -9,8 +9,6 @@ namespace Dune::Job
 {
 	struct CounterInstance;
 
-	void UpdateWaitingJobs(const CounterInstance* pCounter);
-
 	class SpinLock
 	{
 	public:
@@ -26,19 +24,25 @@ namespace Dune::Job
 	class ConcurrentRingBuffer
 	{
 	public:
-		inline bool push_back(const T& item)
+		inline bool push_back(T&& item)
 		{
 			bool result = false;
 			lock.lock();
 			dSizeT next = (head + 1) % (capacity+1);
 			if(next != tail)
 			{
-				data[head] = item;
+				data[head] = std::move(item);
 				head = next;
 				result = true;
 			}
 			lock.unlock();
 			return result;
+		}
+
+		inline bool push_back(const T& item)
+		{
+			T copy{ item };
+			return push_back(std::move(copy));
 		}
 
 		inline bool pop_front(T& item)
@@ -47,7 +51,7 @@ namespace Dune::Job
 			lock.lock();
 			if (tail != head)
 			{
-				item = data[tail];
+				item = std::move(data[tail]);
 				tail = (tail + 1) % (capacity+1);
 				result = true;
 			}
@@ -65,8 +69,25 @@ namespace Dune::Job
 	struct JobInstance
 	{
 		std::function<void()> m_executable;
-		CounterInstance* m_pFence;
 		CounterInstance* m_pCounter;
+	};
+
+	struct PendingJob
+	{
+		JobInstance m_job;
+		PendingJob* m_pNext;
+	};
+
+	struct FiberDecl
+	{
+		void* pFiber;
+		dU32 threadIndex;
+	};
+
+	struct WaitingFiberEntry
+	{
+		FiberDecl m_fiber;
+		WaitingFiberEntry* m_pNext;
 	};
 
 	struct WaitingListEntry
@@ -75,42 +96,91 @@ namespace Dune::Job
 		WaitingListEntry* m_pNext;
 	};
 
+	void WakeFiber(const FiberDecl& fiber);
+	void PushJob(JobInstance&& job);
+
 	struct CounterInstance
 	{
 		uint32_t GetValue() const { return m_counter.load(); }
 
 		void Decrement()
 		{
-			m_waitingCountersLock.lock();
-			bool hasFinished = m_counter.fetch_sub(1) == 1;
-			bool hasWaitingJobs = m_hasWaitingJobs;
-			WaitingListEntry* pCurrentWaitingCounter = m_pWaitingCounters;
-			m_waitingCountersLock.unlock();
+			m_lock.lock();
+			const uint32_t previous = m_counter.fetch_sub(1);
+			Assert(previous > 0);
+			const bool hasFinished = previous == 1;
+			WaitingFiberEntry* pWaitingFiber = nullptr;
+			PendingJob* pPendingJob = nullptr;
+			WaitingListEntry* pCurrentWaitingCounter = nullptr;
 			if (hasFinished)
 			{
-				if (hasWaitingJobs)
-					UpdateWaitingJobs(this);
-				while (pCurrentWaitingCounter) {
-					pCurrentWaitingCounter->m_pCounter->Decrement();
-					pCurrentWaitingCounter = pCurrentWaitingCounter->m_pNext;
-				}
+				pWaitingFiber = m_pWaitingFibers;
+				m_pWaitingFibers = nullptr;
+				pPendingJob = m_pPendingJobs;
+				m_pPendingJobs = nullptr;
+				pCurrentWaitingCounter = m_pWaitingCounters;
+				m_pWaitingCounters = nullptr;
+			}
+			m_lock.unlock();
+
+			if (!hasFinished)
+				return;
+
+			while (pWaitingFiber)
+			{
+				WaitingFiberEntry* pNext = pWaitingFiber->m_pNext;
+				WakeFiber(pWaitingFiber->m_fiber);
+				pWaitingFiber = pNext;
+			}
+
+			while (pPendingJob)
+			{
+				PendingJob* pNext = pPendingJob->m_pNext;
+				PushJob(std::move(pPendingJob->m_job));
+				delete pPendingJob;
+				pPendingJob = pNext;
+			}
+
+			while (pCurrentWaitingCounter)
+			{
+				WaitingListEntry* pNext = pCurrentWaitingCounter->m_pNext;
+				pCurrentWaitingCounter->m_pCounter->Decrement();
+				pCurrentWaitingCounter->m_pCounter->Release();
+				delete pCurrentWaitingCounter;
+				pCurrentWaitingCounter = pNext;
 			}
 		}
 
-		bool RegisterWaitingJobs() const
+		bool TryAddWaitingFiber(WaitingFiberEntry& entry) const
 		{
-			m_waitingCountersLock.lock();
-			bool hasFinished = GetValue() == 0;
-			if (!hasFinished)
-				m_hasWaitingJobs = true;
-			m_waitingCountersLock.unlock();
-			return hasFinished;
+			m_lock.lock();
+			const bool shouldWait = GetValue() > 0;
+			if (shouldWait)
+			{
+				entry.m_pNext = m_pWaitingFibers;
+				m_pWaitingFibers = &entry;
+			}
+			m_lock.unlock();
+			return shouldWait;
+		}
+
+		bool TryAddPendingJob(PendingJob& pendingJob) const
+		{
+			m_lock.lock();
+			const bool shouldWait = GetValue() > 0;
+			if (shouldWait)
+			{
+				pendingJob.m_pNext = m_pPendingJobs;
+				m_pPendingJobs = &pendingJob;
+			}
+			m_lock.unlock();
+			return shouldWait;
 		}
 
 		void AddListener(CounterInstance& counter) const
 		{
 			counter.m_counter.fetch_add(1);
-			m_waitingCountersLock.lock();
+			m_lock.lock();
 			bool shouldAdd = GetValue() > 0;
 			if (shouldAdd)
 			{
@@ -120,17 +190,23 @@ namespace Dune::Job
 				pEntry->m_pNext = m_pWaitingCounters;
 				m_pWaitingCounters = pEntry;
 			}
-			m_waitingCountersLock.unlock();
+			m_lock.unlock();
 			if (!shouldAdd)
 				counter.Decrement();
 		}
 
+		void Release()
+		{
+			if (m_refCount.fetch_sub(1) == 1)
+				delete this;
+		}
+
 		~CounterInstance()
 		{
+			Assert(!m_pWaitingFibers && !m_pPendingJobs && !m_pWaitingCounters);
 			WaitingListEntry* pCurrentWaitingCounter = m_pWaitingCounters;
 			while (pCurrentWaitingCounter) {
-				if (pCurrentWaitingCounter->m_pCounter->m_refCount.fetch_sub(1) == 1)
-					delete pCurrentWaitingCounter->m_pCounter;
+				pCurrentWaitingCounter->m_pCounter->Release();
 				WaitingListEntry* pNext = pCurrentWaitingCounter->m_pNext;
 				delete pCurrentWaitingCounter;
 				pCurrentWaitingCounter = pNext;
@@ -140,157 +216,139 @@ namespace Dune::Job
 		std::atomic<uint32_t> m_counter{ 0 };
 		std::atomic<uint32_t> m_refCount{ 1 };
 		mutable WaitingListEntry* m_pWaitingCounters{ nullptr };
-		mutable SpinLock m_waitingCountersLock;
-		mutable bool m_hasWaitingJobs{ false };
+		mutable WaitingFiberEntry* m_pWaitingFibers{ nullptr };
+		mutable PendingJob* m_pPendingJobs{ nullptr };
+		mutable SpinLock m_lock;
 	};
 
-	struct FiberDecl
-	{
-		void* pFiber;
-		dU32 threadIndex;
-	};
+	const dU32 g_maxFiberPerThread{ 256 };
+	const dU32 g_initialFiberPerThread{ 32 };
+	const dU32 g_fiberStackCommitSize{ 64 * 1024 };
+	const dU32 g_fiberStackReserveSize{ 1024 * 1024 };
 
-	const dU32 g_fiberPerThread{ 32 };
 	struct Worker
 	{
 		Worker(void (*pFunc)(dU32))
 			: pEntryPoint{ pFunc }
 		{}
-		
+
 		void Run(dU32 threadID)
 		{
 			thread = std::thread(pEntryPoint, threadID);
 		}
 
+		bool CreateFiber(dU32 threadID, FiberDecl& outFiber);
+
 		void (*pEntryPoint)(dU32);
 		std::thread thread;
-		ConcurrentRingBuffer<FiberDecl, g_fiberPerThread> freeFibers;
-		ConcurrentRingBuffer<FiberDecl, g_fiberPerThread> sleepingFibers;
+		void* fibers[g_maxFiberPerThread]{};
+		dU32 fiberCount{ 0 };
+		ConcurrentRingBuffer<FiberDecl, g_maxFiberPerThread> freeFibers;
+		ConcurrentRingBuffer<FiberDecl, g_maxFiberPerThread> sleepingFibers;
 	};
 
 	std::vector<Worker*> g_pWorkers;
 	ConcurrentRingBuffer<JobInstance, 16384> g_jobPool;
 
-	SpinLock g_waitingFibersLock;
-	std::unordered_map <const CounterInstance*, std::vector<FiberDecl>> g_waitingFibers;
-
-#pragma optimize( "", off )
 	thread_local dU32 g_workerID;
 	thread_local void* g_pMainFiber{ nullptr };
-	thread_local FiberDecl g_pCurrentFiber{ nullptr, 0 };
-#pragma optimize( "", on )
+	thread_local FiberDecl g_currentFiber{ nullptr, 0 };
 
 	std::atomic<uint64_t>   g_currentLabel{ 0 };
 	std::atomic<uint64_t>   g_finishedLabel{ 0 };
-	bool                    g_workerRunning{ false };
+	std::atomic<bool>       g_workerRunning{ false };
 
-	void Switch_Fiber()
+	void WorkerMainLoop(void* pData);
+
+	bool Worker::CreateFiber(dU32 threadID, FiberDecl& outFiber)
 	{
-		bool result = g_pWorkers[g_workerID]->freeFibers.push_back(g_pCurrentFiber);
+		if (fiberCount == g_maxFiberPerThread)
+			return false;
+		void* pFiber = ::CreateFiberEx(g_fiberStackCommitSize, g_fiberStackReserveSize, 0, &WorkerMainLoop, nullptr);
+		Assert(pFiber);
+		fibers[fiberCount++] = pFiber;
+		outFiber = { pFiber, threadID };
+		return true;
+	}
 
+	void WakeFiber(const FiberDecl& fiber)
+	{
+		bool result = g_pWorkers[fiber.threadIndex]->sleepingFibers.push_back(fiber);
 		Assert(result);
-		if (!g_pWorkers[g_workerID]->sleepingFibers.pop_front(g_pCurrentFiber))
-		{
-			result = g_pWorkers[g_workerID]->freeFibers.pop_front(g_pCurrentFiber);
-			Assert(result);
-		}
-		Assert(g_pCurrentFiber.pFiber);
-
-		::SwitchToFiber(g_pCurrentFiber.pFiber);
 	}
 
-	void UpdateWaitingJobs(const CounterInstance* pCounter)
+	void PushJob(JobInstance&& job)
 	{
-		g_waitingFibersLock.lock();
-		auto it = g_waitingFibers.find(pCounter);
-		if (it != g_waitingFibers.end())
+		while (!g_jobPool.push_back(std::move(job))) { std::this_thread::yield(); }
+	}
+
+	void SwitchToFiber(const FiberDecl& fiber)
+	{
+		Assert(fiber.threadIndex == g_workerID);
+		g_currentFiber = fiber;
+		::SwitchToFiber(fiber.pFiber);
+	}
+
+	void WaitForCounter_Fiber(CounterInstance* pCounter)
+	{
+		Worker& worker = *g_pWorkers[g_workerID];
+		while (pCounter->GetValue() > 0)
 		{
-			for (FiberDecl& fiber : it->second)
+			FiberDecl next;
+			const bool isSleeping = worker.sleepingFibers.pop_front(next);
+			if (!isSleeping && !worker.freeFibers.pop_front(next) && !worker.CreateFiber(g_workerID, next))
 			{
-				while (!g_pWorkers[fiber.threadIndex]->sleepingFibers.push_back(fiber)) { Switch_Fiber(); }
+				Assert(false);
+				std::this_thread::yield();
+				continue;
 			}
-			g_waitingFibers.erase(it);
-		}
-		g_waitingFibersLock.unlock();
-	}
 
-	dU32 GetWorkerID()
-	{
-		return g_workerID;
-	}
+			WaitingFiberEntry entry{ .m_fiber = g_currentFiber, .m_pNext = nullptr };
+			if (pCounter->TryAddWaitingFiber(entry))
+			{
+				SwitchToFiber(next);
+				return;
+			}
 
-	dU32 GetWorkerCount()
-	{
-		return (dU32)g_pWorkers.size();
-	}
-
-	void Switch()
-	{
-		if (g_pCurrentFiber.pFiber)
-		{
-			Switch_Fiber();
-		}
-		else
-		{
-			std::this_thread::yield();
-		}
-	}
-
-	void WaitForCounter_Fiber(const CounterInstance* pCounter)
-	{
-		bool hasFinished = pCounter->RegisterWaitingJobs();
-		if (hasFinished)
+			bool result = isSleeping ? worker.sleepingFibers.push_back(next) : worker.freeFibers.push_back(next);
+			Assert(result);
 			return;
-		g_waitingFibersLock.lock();
-		g_waitingFibers[pCounter].push_back(g_pCurrentFiber);
-		g_waitingFibersLock.unlock();
-
-		if (!g_pWorkers[g_workerID]->sleepingFibers.pop_front(g_pCurrentFiber))
-			while (!g_pWorkers[g_workerID]->freeFibers.pop_front(g_pCurrentFiber)) { Switch_Fiber(); }
-		Assert(g_pCurrentFiber.pFiber);
-
-		::SwitchToFiber(g_pCurrentFiber.pFiber);
+		}
 	}
 
-	void WorkerMainLoop(void* pData)
+	void WorkerMainLoop(void*)
 	{
+		Worker& worker = *g_pWorkers[g_workerID];
 		{
 			JobInstance job;
-
-			while (g_workerRunning)
+			while (g_workerRunning.load())
 			{
-				if (g_jobPool.pop_front(job))
+				FiberDecl next;
+				if (worker.sleepingFibers.pop_front(next))
 				{
-					CounterInstance* pFence = job.m_pFence;
-					if (pFence && pFence->GetValue() > 0)
-					{
-						WaitForCounter_Fiber(pFence);
-					}
-
-					(job.m_executable)();
-
-					CounterInstance* pCounter = job.m_pCounter;
-					pCounter->Decrement();
-					if (pCounter->m_refCount.fetch_sub(1) == 1)
-						delete job.m_pCounter;
-					if (pFence && pFence->m_refCount.fetch_sub(1) == 1)
-						delete pFence;
-
-					g_finishedLabel.fetch_add(1);
+					bool result = worker.freeFibers.push_back(g_currentFiber);
+					Assert(result);
+					SwitchToFiber(next);
+					continue;
 				}
 
-				Switch_Fiber();
+				if (!g_jobPool.pop_front(job))
+				{
+					std::this_thread::yield();
+					continue;
+				}
+
+				job.m_executable();
+				job.m_executable = nullptr;
+
+				job.m_pCounter->Decrement();
+				job.m_pCounter->Release();
+
+				g_finishedLabel.fetch_add(1);
 			}
 		}
 
-		// Shutdown in progress
-		// Every job must exit the previous scope to destroy the jobInstance
-
-		if (!g_pWorkers[g_workerID]->sleepingFibers.pop_front(g_pCurrentFiber))
-			if (!g_pWorkers[g_workerID]->freeFibers.pop_front(g_pCurrentFiber))
-				g_pCurrentFiber.pFiber = g_pMainFiber;
-
-		::SwitchToFiber(g_pCurrentFiber.pFiber);
+		::SwitchToFiber(g_pMainFiber);
 	}
 
 	void InitWorker(dU32 workerID)
@@ -299,17 +357,25 @@ namespace Dune::Job
 		g_pMainFiber = ::ConvertThreadToFiber(nullptr);
 		g_workerID = workerID;
 
-		for (dU32 i = 0; i < g_fiberPerThread; i++)
+		Worker& worker = *g_pWorkers[g_workerID];
+		for (dU32 i = 0; i < g_initialFiberPerThread; i++)
 		{
-			FiberDecl decl{ ::CreateFiber(64 * 1024, &WorkerMainLoop, nullptr), g_workerID };
-			bool result = g_pWorkers[g_workerID]->freeFibers.push_back(decl);
+			FiberDecl fiber;
+			worker.CreateFiber(workerID, fiber);
+			bool result = worker.freeFibers.push_back(fiber);
 			Assert(result);
 		}
 
-		bool result = g_pWorkers[g_workerID]->freeFibers.pop_front(g_pCurrentFiber);
+		FiberDecl first;
+		bool result = worker.freeFibers.pop_front(first);
 		Assert(result);
+		SwitchToFiber(first);
 
-		::SwitchToFiber(g_pCurrentFiber.pFiber);
+		g_currentFiber = { nullptr, 0 };
+		for (dU32 i = 0; i < worker.fiberCount; i++)
+			::DeleteFiber(worker.fibers[i]);
+		::ConvertFiberToThread();
+		g_pMainFiber = nullptr;
 	}
 
 	void Initialize(dU32 workerCount)
@@ -317,14 +383,14 @@ namespace Dune::Job
 		g_workerRunning = true;
 		g_pWorkers.reserve(workerCount);
 		for (dU32 workerID = 0; workerID < workerCount; ++workerID)
-		{
 			g_pWorkers.push_back(new Worker(&InitWorker));
-			g_pWorkers.back()->Run(workerID);
-		}
+		for (dU32 workerID = 0; workerID < workerCount; ++workerID)
+			g_pWorkers[workerID]->Run(workerID);
 	}
 
 	void Shutdown()
 	{
+		Wait();
 		g_workerRunning = false;
 
 		for (Worker* pWorker : g_pWorkers)
@@ -343,40 +409,49 @@ namespace Dune::Job
 
 	void Wait()
 	{
-		Assert(!g_pCurrentFiber.pFiber); // Can't wait for all jobs to finish within a job
-		while (g_finishedLabel.load() < g_currentLabel.load()) { }
+		Assert(!g_currentFiber.pFiber);
+		while (g_finishedLabel.load() < g_currentLabel.load()) { std::this_thread::yield(); }
 	}
 
 	void WaitForCounter(const Counter& counter)
 	{
-		if (g_pCurrentFiber.pFiber)
-		{
-			if (counter.m_pCounterInstance && counter.m_pCounterInstance->GetValue() > 0)
-				WaitForCounter_Fiber(counter.m_pCounterInstance);
-		}
+		CounterInstance* pCounter = counter.m_pCounterInstance;
+		if (!pCounter)
+			return;
+
+		if (g_currentFiber.pFiber)
+			WaitForCounter_Fiber(pCounter);
 		else
-		{
-			while (counter.GetValue() != 0) { }
-		}
+			while (pCounter->GetValue() != 0) { std::this_thread::yield(); }
+	}
+
+	dU32 GetWorkerID()
+	{
+		return g_workerID;
+	}
+
+	dU32 GetWorkerCount()
+	{
+		return (dU32)g_pWorkers.size();
 	}
 
 	void SpinLock::lock()
 	{
 		while (true)
 		{
-			while (m_lock)
+			while (m_lock.load(std::memory_order_relaxed))
 			{
 				_mm_pause();
 			}
 
-			if (!m_lock.exchange(true))
+			if (!m_lock.exchange(true, std::memory_order_acquire))
 				break;
 		}
 	}
 
 	void SpinLock::unlock()
 	{
-		m_lock.store(false);
+		m_lock.store(false, std::memory_order_release);
 	}
 
 	Counter::Counter()
@@ -407,12 +482,8 @@ namespace Dune::Job
 
 	Counter::Counter(Counter&& other)
 	{
-		if (other.m_pCounterInstance)
-		{
-			m_pCounterInstance = other.m_pCounterInstance;
-			m_pCounterInstance->m_refCount.fetch_add(1);
-			other.Reset();
-		}
+		m_pCounterInstance = other.m_pCounterInstance;
+		other.m_pCounterInstance = nullptr;
 	}
 
 	Counter& Counter::operator=(Counter&& other)
@@ -420,16 +491,12 @@ namespace Dune::Job
 		if (other.m_pCounterInstance == m_pCounterInstance)
 			return *this;
 		Reset();
-		if (other.m_pCounterInstance)
-		{
-			m_pCounterInstance = other.m_pCounterInstance;
-			m_pCounterInstance->m_refCount.fetch_add(1);
-			other.Reset();
-		}
+		m_pCounterInstance = other.m_pCounterInstance;
+		other.m_pCounterInstance = nullptr;
 		return *this;
 	}
 
-	Counter::~Counter() 
+	Counter::~Counter()
 	{
 		Reset();
 	}
@@ -467,8 +534,7 @@ namespace Dune::Job
 		if (m_pCounterInstance)
 		{
 			m_pCounterInstance->AddListener(*pNewInstance);
-			if (m_pCounterInstance->m_refCount.fetch_sub(1) == 1)
-				delete m_pCounterInstance;
+			m_pCounterInstance->Release();
 		}
 		if (other.m_pCounterInstance)
 			other.m_pCounterInstance->AddListener(*pNewInstance);
@@ -484,15 +550,15 @@ namespace Dune::Job
 		return counter;
 	}
 
-	dU32 Counter::GetValue() const 
-	{ 
+	dU32 Counter::GetValue() const
+	{
 		return m_pCounterInstance ? m_pCounterInstance->GetValue() : 0;
 	}
 
 	void Counter::Reset()
 	{
-		if (m_pCounterInstance && m_pCounterInstance->m_refCount.fetch_sub(1) == 1)
-			delete m_pCounterInstance;
+		if (m_pCounterInstance)
+			m_pCounterInstance->Release();
 		m_pCounterInstance = nullptr;
 	}
 
@@ -520,9 +586,18 @@ namespace Dune::Job
 	{
 		m_accumulateCounter++;
 		g_currentLabel.fetch_add(1);
-		if (m_waitCounter.m_pCounterInstance)
-			m_waitCounter.m_pCounterInstance->m_refCount.fetch_add(1);
 		m_accumulateCounter.m_pCounterInstance->m_refCount.fetch_add(1);
-		while (!g_jobPool.push_back(JobInstance{ job, m_waitCounter.m_pCounterInstance, m_accumulateCounter.m_pCounterInstance })) { Switch(); }
+
+		JobInstance instance{ job, m_accumulateCounter.m_pCounterInstance };
+		CounterInstance* pFence = m_waitCounter.m_pCounterInstance;
+		if (pFence && pFence->GetValue() > 0)
+		{
+			PendingJob* pPendingJob = new PendingJob{ std::move(instance), nullptr };
+			if (pFence->TryAddPendingJob(*pPendingJob))
+				return;
+			instance = std::move(pPendingJob->m_job);
+			delete pPendingJob;
+		}
+		PushJob(std::move(instance));
 	}
 }
