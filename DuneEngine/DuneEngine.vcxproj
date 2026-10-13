@@ -19,6 +19,7 @@
     <ClCompile Include="src\Dune\Graphics\RenderPass\MaterialUpload.cpp" />
     <ClCompile Include="src\Dune\Graphics\PSOCache.cpp" />
     <ClCompile Include="src\Dune\Utilities\StringUtils.cpp" />
+    <ClCompile Include="src\Dune\Utilities\MeshUtils.cpp" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\FileLoader.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
@@ -68,6 +69,7 @@
     <ClInclude Include="include\Dune\Core\JobSystem.h" />
     <ClInclude Include="include\Dune\Graphics\Mesh.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
+    <ClInclude Include="include\Dune\Utilities\MeshUtils.h" />
     <ClInclude Include="include\Dune\Utilities\HashUtils.h" />
     <ClInclude Include="include\Dune\Core\Types.h" />
     <ClInclude Include="include\Dune\Core\Input.h" />
