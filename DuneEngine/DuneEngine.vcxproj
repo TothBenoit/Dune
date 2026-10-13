@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\Microsoft.Direct3D.DXC.1.8.2505.32\build\native\Microsoft.Direct3D.DXC.props" Condition="Exists('..\packages\Microsoft.Direct3D.DXC.1.8.2505.32\build\native\Microsoft.Direct3D.DXC.props')" />
   <Import Project="..\packages\Microsoft.Direct3D.D3D12.1.618.5\build\native\Microsoft.Direct3D.D3D12.props" Condition="Exists('..\packages\Microsoft.Direct3D.D3D12.1.618.5\build\native\Microsoft.Direct3D.D3D12.props')" />
@@ -58,7 +58,7 @@
     <ClInclude Include="include\Dune\Core\File.h" />
     <ClInclude Include="include\Dune\Core\FileSystem.h" />
     <ClInclude Include="include\Dune\Utilities\SceneLoader.h" />
-    <ClInclude Include="include\Dune\Utilities\DDSLoader.h" />
+    <ClInclude Include="include\Dune\Utilities\DDSImporter.h" />
     <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\PipelineState.h" />
     <ClInclude Include="include\Dune\Graphics\RHI\RootSignature.h" />
@@ -101,7 +101,7 @@
     <ClCompile Include="src\Dune\Graphics\Platform\GraphicsDX12.cpp" />
     <ClCompile Include="src\Dune\Core\Input.cpp" />
     <ClCompile Include="src\Dune\Core\Logger.cpp" />
-    <ClCompile Include="src\Dune\Utilities\DDSLoader.cpp" />
+    <ClCompile Include="src\Dune\Utilities\DDSImporter.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

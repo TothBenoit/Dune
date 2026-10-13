@@ -4,6 +4,7 @@
 #include "Dune/Graphics/RHI/Texture.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/Mesh.h"
+#include "Dune/Graphics/ImageData.h"
 #include "Dune/Graphics/Material.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 
@@ -62,6 +63,7 @@ namespace Dune::Graphics
 	private:
 		void RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot);
 		[[nodiscard]] dU32 CreateTextureFromPath(CommandList& commandList, dVector<Buffer>& uploadBuffers, const dString& path, bool sRGB);
+		[[nodiscard]] dU32 CreateTexture(const ImageData& image, bool sRGB, CommandList& commandList, dVector<Buffer>& uploadBuffers);
 		[[nodiscard]] dU32 CreateMaterial(const MaterialImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots);
 		[[nodiscard]] dU32 CreateMesh(const MeshData& meshData, CommandList& commandList, dVector<Buffer>& uploadBuffers);
 		void ImportModel(const dString& path, ModelData& outModel);

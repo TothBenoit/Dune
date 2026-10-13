@@ -4,7 +4,7 @@
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RHI/Fence.h"
 #include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Utilities/DDSLoader.h"
+#include "Dune/Utilities/DDSImporter.h"
 #include "Dune/Core/Logger.h"
 
 #include <assimp/Importer.hpp>
@@ -179,8 +179,26 @@ namespace Dune::Graphics
 
 	dU32 ResourceManager::CreateTextureFromPath(CommandList& commandList, dVector<Buffer>& uploadBuffers, const dString& path, bool sRGB)
 	{
+		ImageData image;
+		if (!DDSImporter::Import(path.c_str(), image))
+			return dU32(-1);
+		return CreateTexture(image, sRGB, commandList, uploadBuffers);
+	}
+
+	dU32 ResourceManager::CreateTexture(const ImageData& image, bool sRGB, CommandList& commandList, dVector<Buffer>& uploadBuffers)
+	{
+		Texture texture{};
+		texture.Initialize(*m_pDevice,
+			{
+				.usage = ETextureUsage::ShaderResource,
+				.dimensions = { image.width, image.height, 1 },
+				.mipLevels = image.mipLevels,
+				.format = sRGB ? ToSRGB(image.format) : image.format,
+			});
+
 		Buffer& uploadBuffer = uploadBuffers.emplace_back();
-		Texture texture = DDSTexture::CreateTextureFromFile(*m_pDevice, commandList, uploadBuffer, path.c_str(), sRGB);
+		uploadBuffer.Initialize(*m_pDevice, { .debugName = L"UploadBuffer", .memory = EBufferMemory::CPU, .byteSize = (dU32)texture.GetRequiredIntermediateSize(0, image.mipLevels) });
+		commandList.UploadTexture(texture, uploadBuffer, 0, 0, image.mipLevels, (void*)image.bytes.data());
 
 		Descriptor textureDescriptor = m_srvHeap.Allocate();
 		m_pDevice->CreateSRV(textureDescriptor, texture);
@@ -200,6 +218,8 @@ namespace Dune::Graphics
 		if (slot == dU32(-1))
 		{
 			slot = CreateTextureFromPath(commandList, uploadBuffers, path, sRGB);
+			if (slot == dU32(-1))
+				return slot;
 			newTextureSlots.push_back(slot);
 			RegisterImageSlot(id, slot);
 		}
@@ -262,6 +282,10 @@ namespace Dune::Graphics
 		if (id.index < (dU32)m_imageLookup.size() && m_imageLookup[id.index] != dU32(-1))
 			return m_imageLookup[id.index];
 
+		ImageData image;
+		if (!DDSImporter::Import(FileSystem::GetPath(id).c_str(), image))
+			return dU32(-1);
+
 		CommandQueue commandQueue;
 		commandQueue.Initialize(*m_pDevice, ECommandType::Direct);
 		CommandAllocator commandAllocator;
@@ -273,7 +297,7 @@ namespace Dune::Graphics
 		commandList.Reset(commandAllocator);
 
 		dVector<Buffer> uploadBuffers;
-		dU32 slot = CreateTextureFromPath(commandList, uploadBuffers, FileSystem::GetPath(id), sRGB);
+		dU32 slot = CreateTexture(image, sRGB, commandList, uploadBuffers);
 		RegisterImageSlot(id, slot);
 
 		Barrier barrier{};
