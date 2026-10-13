@@ -15,6 +15,8 @@
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
 #include "Dune/Utilities/Utils.h"
+#include "Dune/Utilities/StringUtils.h"
+#include "Dune/Core/Logger.h"
 #include "WindowWin32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -1275,42 +1277,61 @@ namespace Dune::Graphics
 		
 		ShaderCompilerInternal& internal = *(ShaderCompilerInternal*)m_pResource;
 
-		dU32 codePage{ CP_UTF8 };
-
-		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
 		Microsoft::WRL::ComPtr<IDxcCompilerArgs> pArgs{ nullptr };
 		ThrowIfFailed(internal.pUtils->BuildArguments(desc.filePath, desc.entryFunc, GetTargetProfile(desc.stage), desc.args, desc.argsCount, NULL, 0, &pArgs));
 		ThrowIfFailed(pArgs->AddArguments(gs_baseArgs, _countof(gs_baseArgs)));
-		ThrowIfFailed(internal.pUtils->LoadFile(desc.filePath, &codePage, &pSourceBlob));
 
-		Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };
-
-		const DxcBuffer sourceBuffer
+		while (true)
 		{
-			.Ptr = pSourceBlob->GetBufferPointer(),
-			.Size = pSourceBlob->GetBufferSize(),
-			.Encoding = codePage,
-		};
+			const dWString filePath{ desc.filePath };
+			dString errors{ "Cannot open file " + StringUtils::ToNarrow(filePath) };
+			dU32 codePage{ CP_UTF8 };
+			Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSourceBlob{ nullptr };
+			if (SUCCEEDED(internal.pUtils->LoadFile(desc.filePath, &codePage, &pSourceBlob)))
+			{
+				const DxcBuffer sourceBuffer
+				{
+					.Ptr = pSourceBlob->GetBufferPointer(),
+					.Size = pSourceBlob->GetBufferSize(),
+					.Encoding = codePage,
+				};
 
-		ThrowIfFailed(internal.pCompiler->Compile(
-			&sourceBuffer,
-			pArgs->GetArguments(), pArgs->GetCount(),
-			internal.pIncludeHandler,
-			IID_PPV_ARGS(&pResult)
-		));
+				Microsoft::WRL::ComPtr<IDxcResult> pResult{ nullptr };
+				ThrowIfFailed(internal.pCompiler->Compile(
+					&sourceBuffer,
+					pArgs->GetArguments(), pArgs->GetCount(),
+					internal.pIncludeHandler,
+					IID_PPV_ARGS(&pResult)
+				));
 
-		Microsoft::WRL::ComPtr<IDxcBlobEncoding> pErrorsBlob{ nullptr };
-		if (SUCCEEDED(pResult->GetErrorBuffer(&pErrorsBlob)) && pErrorsBlob)
-		{
-			OutputDebugStringA((const char*)pErrorsBlob->GetBufferPointer());
+				Microsoft::WRL::ComPtr<IDxcBlobUtf8> pErrors{ nullptr };
+				pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+				errors = (pErrors && pErrors->GetStringLength() > 0) ? dString{ pErrors->GetStringPointer(), pErrors->GetStringLength() } : dString{};
+				if (!errors.empty())
+					OutputDebugStringA(errors.c_str());
+
+				HRESULT status{ E_FAIL };
+				pResult->GetStatus(&status);
+				if (SUCCEEDED(status))
+				{
+					IDxcBlob* pByteCode{ nullptr };
+					pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pByteCode), nullptr);
+					Shader shader;
+					shader.m_pResource = pByteCode;
+					return shader;
+				}
+			}
+
+			LOG_ERROR(errors.c_str());
+
+			dWString message{ StringUtils::ToWide(errors) };
+			const dWString directory{ filePath.substr(0, filePath.find_last_of(L"/\\") + 1) };
+			for (dSizeT pos = message.find(directory); !directory.empty() && pos != dWString::npos; pos = message.find(directory, pos))
+				message.erase(pos, directory.size());
+
+			if (MessageBoxW(nullptr, message.c_str(), L"Shader compilation failed", MB_RETRYCANCEL | MB_ICONERROR) != IDRETRY)
+				ExitProcess(1);
 		}
-
-		IDxcBlob* pByteCode{ nullptr };
-		pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pByteCode), nullptr);
-
-		Shader shader;
-		shader.m_pResource = pByteCode;
-		return shader;
 	}
 
 	void ShaderCompiler::Destroy()

@@ -34,7 +34,11 @@ namespace Dune
 
 	Logger::~Logger()
 	{
-		m_shouldProcess = false;
+		{
+			std::lock_guard lock(m_logMutex);
+			m_shouldProcess = false;
+		}
+		m_logCondition.notify_one();
 		m_logThread.join();
 	}
 
@@ -44,6 +48,7 @@ namespace Dune
 			std::lock_guard lock(m_logMutex);
 			m_pendingMessages.push({ level, msg });
 		}
+		m_logCondition.notify_one();
 	}
 
 	void Logger::Log(LogLevel level, const dString& msg)
@@ -70,19 +75,18 @@ namespace Dune
 
 	void Logger::Update()
 	{
-		while (m_shouldProcess)
+		std::unique_lock lock(m_logMutex);
+		while (true)
 		{
-			while (!m_pendingMessages.empty())
-			{
-				std::pair<LogLevel, dString> msg;
-				{
-					std::lock_guard lock(m_logMutex);
-					msg = m_pendingMessages.front();
-					m_pendingMessages.pop();
-				}
-				Log(msg.first, msg.second);
-			}
-			std::this_thread::yield();
+			m_logCondition.wait(lock, [this]() { return !m_pendingMessages.empty() || !m_shouldProcess; });
+			if (m_pendingMessages.empty())
+				return;
+
+			std::pair<LogLevel, dString> msg = std::move(m_pendingMessages.front());
+			m_pendingMessages.pop();
+			lock.unlock();
+			Log(msg.first, msg.second);
+			lock.lock();
 		}
 	}
 

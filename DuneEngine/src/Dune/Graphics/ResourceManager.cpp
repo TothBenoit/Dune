@@ -20,6 +20,7 @@ namespace Dune::Graphics
 		const aiNode* pNode;
 		dVec3         position;
 		dQuat         rotation;
+		aiVector3D    scale;
 	};
 
 	static void FlattenNodes(const aiNode* pNode, const aiMatrix4x4& parentTransform, dVector<NodeRef>& outNodes)
@@ -28,10 +29,11 @@ namespace Dune::Graphics
 
 		if (pNode->mNumMeshes > 0)
 		{
+			aiVector3D   aiScale;
 			aiQuaternion aiRotation;
 			aiVector3D   aiPosition;
-			worldTransform.DecomposeNoScaling(aiRotation, aiPosition);
-			outNodes.push_back({ pNode, { aiPosition.x, aiPosition.y, aiPosition.z }, { aiRotation.x, aiRotation.y, aiRotation.z, aiRotation.w } });
+			worldTransform.Decompose(aiScale, aiRotation, aiPosition);
+			outNodes.push_back({ pNode, { aiPosition.x, aiPosition.y, aiPosition.z }, { aiRotation.x, aiRotation.y, aiRotation.z, aiRotation.w }, aiScale });
 		}
 
 		for (dU32 i = 0; i < pNode->mNumChildren; i++)
@@ -75,10 +77,12 @@ namespace Dune::Graphics
 			out.doubleSided = doubleSided != 0;
 	}
 
-	static void ExtractNodeMesh(const aiNode* pNode, const aiScene* pScene, MeshImportDesc& outMesh, dVector<dU32>& outMaterialIndices)
+	static void ExtractNodeMesh(const aiNode* pNode, const aiScene* pScene, const aiVector3D& scale, MeshImportDesc& outMesh, dVector<dU32>& outMaterialIndices)
 	{
 		if (pNode->mNumMeshes > 0)
 		{
+			const aiVector3D inverseScale{ 1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z };
+			const bool isMirrored = scale.x * scale.y * scale.z < 0.0f;
 			dVector<Vertex>&  vertices = outMesh.vertices;
 			dVector<dU32>&    indices = outMesh.indices;
 			dVector<SubMesh>& subMeshes = outMesh.subMeshes;
@@ -98,25 +102,28 @@ namespace Dune::Graphics
 				SubMesh& subMesh = subMeshes.emplace_back();
 				subMesh.vertexOffset = (dU32)vertices.size();
 				subMesh.indexOffset = (dU32)indices.size();
-				subMesh.indexCount = pMesh->mNumFaces * 3;
 				subMesh.materialSlot = materialSlot;
 
 				for (dU32 vertexIdx = 0; vertexIdx < pMesh->mNumVertices; vertexIdx++)
 				{
 					Vertex vertex{};
 					const aiVector3D& position = pMesh->mVertices[vertexIdx];
-					vertex.position = { position.x, position.y, position.z };
+					vertex.position = { position.x * scale.x, position.y * scale.y, position.z * scale.z };
 
 					if (pMesh->HasNormals())
 					{
-						const aiVector3D& normal = pMesh->mNormals[vertexIdx];
+						aiVector3D normal{ pMesh->mNormals[vertexIdx] };
+						normal = aiVector3D{ normal.x * inverseScale.x, normal.y * inverseScale.y, normal.z * inverseScale.z }.NormalizeSafe();
 						vertex.normal = { normal.x, normal.y, normal.z };
 
 						if (pMesh->HasTangentsAndBitangents())
 						{
 							float dotResult;
-							const aiVector3D& tangent = pMesh->mTangents[vertexIdx];
-							const aiVector3D& bitangent = pMesh->mBitangents[vertexIdx];
+							const aiVector3D& sourceTangent = pMesh->mTangents[vertexIdx];
+							const aiVector3D& sourceBitangent = pMesh->mBitangents[vertexIdx];
+							aiVector3D tangent{ sourceTangent.x * scale.x, sourceTangent.y * scale.y, sourceTangent.z * scale.z };
+							tangent.NormalizeSafe();
+							const aiVector3D bitangent{ sourceBitangent.x * scale.x, sourceBitangent.y * scale.y, sourceBitangent.z * scale.z };
 							dVec computedBitangent = DirectX::XMVector3Cross({ normal.x, normal.y, normal.z }, { tangent.x, tangent.y, tangent.z });
 							DirectX::XMStoreFloat(&dotResult, DirectX::XMVector3Dot(computedBitangent, { bitangent.x, bitangent.y, bitangent.z, }));
 							vertex.tangent = { tangent.x, tangent.y, tangent.z, dotResult > 0.0f ? 1.0f : -1.0f };
@@ -127,17 +134,20 @@ namespace Dune::Graphics
 					{
 						const aiVector3D& uv = pMesh->mTextureCoords[0][vertexIdx];
 						vertex.uv = { uv.x, uv.y };
-						vertices.push_back(vertex);
 					}
+					vertices.push_back(vertex);
 				}
-					
+
 				for (dU32 f = 0; f < pMesh->mNumFaces; f++)
 				{
 					const aiFace& face = pMesh->mFaces[f];
+					if (face.mNumIndices != 3)
+						continue;
 					indices.push_back(face.mIndices[0]);
-					indices.push_back(face.mIndices[1]);
-					indices.push_back(face.mIndices[2]);
+					indices.push_back(face.mIndices[isMirrored ? 2 : 1]);
+					indices.push_back(face.mIndices[isMirrored ? 1 : 2]);
 				}
+				subMesh.indexCount = (dU32)indices.size() - subMesh.indexOffset;
 			}
 			outMesh.materialSlotCount = (dU32)outMaterialIndices.size();
 		}
@@ -344,7 +354,7 @@ namespace Dune::Graphics
 			meshDesc.indices.clear();
 			meshDesc.subMeshes.clear();
 			nodeMaterials.clear();
-			ExtractNodeMesh(ref.pNode, pScene, meshDesc, nodeMaterials);
+			ExtractNodeMesh(ref.pNode, pScene, ref.scale, meshDesc, nodeMaterials);
 
 			if (nodeMaterials.size() == 0)
 				continue;

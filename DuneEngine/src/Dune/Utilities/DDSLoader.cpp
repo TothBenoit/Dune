@@ -17,6 +17,21 @@ namespace Dune::Graphics
 		return pixelFormat.RBitMask == r && pixelFormat.GBitMask == g && pixelFormat.BBitMask == b && pixelFormat.ABitMask == a;
 	}
 
+	constexpr EFormat ToSRGB(EFormat format)
+	{
+		switch (format)
+		{
+		case EFormat::R8G8B8A8_UNORM: return EFormat::R8G8B8A8_UNORM_SRGB;
+		case EFormat::B8G8R8A8_UNORM: return EFormat::B8G8R8A8_UNORM_SRGB;
+		case EFormat::B8G8R8X8_UNORM: return EFormat::B8G8R8X8_UNORM_SRGB;
+		case EFormat::BC1_UNORM:      return EFormat::BC1_UNORM_SRGB;
+		case EFormat::BC2_UNORM:      return EFormat::BC2_UNORM_SRGB;
+		case EFormat::BC3_UNORM:      return EFormat::BC3_UNORM_SRGB;
+		case EFormat::BC7_UNORM:      return EFormat::BC7_UNORM_SRGB;
+		default:                      return format;
+		}
+	}
+
 	DDSResult DDSTexture::Load(const char* filePath, DDSTexture& outDDSTexture)
 	{
 		Assert(!outDDSTexture.m_pFileBuffer);
@@ -128,18 +143,17 @@ namespace Dune::Graphics
 		Assert(result == Graphics::DDSResult::ESucceed);
 		void* pData = ddsTexture.GetData();
 		const Graphics::DDSHeader* pHeader = ddsTexture.GetHeader();
-		dU32 format = (dU32)ddsTexture.m_format;
-		if (sRGB) 
-			format++;
-		if (const Graphics::DDSHeaderDXT10* pHeader10 = ddsTexture.GetHeaderDXT10())
-			Assert(pHeader10->resourceDimension != DDSTextureDimension::ETexture3D && pHeader10->arraySize <= 1); // TODO support
+		const Graphics::EFormat format = sRGB ? ToSRGB(ddsTexture.m_format) : ddsTexture.m_format;
+		const Graphics::DDSHeaderDXT10* pHeader10 = ddsTexture.GetHeaderDXT10();
+		Assert(!pHeader10 || (pHeader10->resourceDimension != DDSTextureDimension::ETexture3D && pHeader10->arraySize <= 1)); // TODO support
+		const dU32 mipLevels = std::max(pHeader->mipMapCount, 1u);
 		Graphics::Texture texture{};
-		texture.Initialize(device, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->height, pHeader->width, pHeader->depth + 1 }, .mipLevels = pHeader->mipMapCount, .format = (Graphics::EFormat)format, .clearValue = {0.f, 0.f, 0.f, 0.f} });
+		texture.Initialize(device, { .usage = Graphics::ETextureUsage::ShaderResource, .dimensions = { pHeader->width, pHeader->height, 1 }, .mipLevels = mipLevels, .format = format, .clearValue = {0.f, 0.f, 0.f, 0.f} });
 
-		dU32 byteSize = (dU32)texture.GetRequiredIntermediateSize(0, pHeader->mipMapCount);
+		dU32 byteSize = (dU32)texture.GetRequiredIntermediateSize(0, mipLevels);
 		BufferDesc desc{ L"UploadBuffer", EBufferUsage::Default, EBufferMemory::CPU, byteSize };
 		uploadBuffer.Initialize(device, desc);
-		commandList.UploadTexture(texture, uploadBuffer, 0, 0, pHeader->mipMapCount, pData);
+		commandList.UploadTexture(texture, uploadBuffer, 0, 0, mipLevels, pData);
 
 		ddsTexture.Destroy();
 		return texture;

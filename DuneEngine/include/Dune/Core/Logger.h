@@ -31,8 +31,9 @@ namespace Dune
 	private:
 		std::thread m_logThread;
 		std::mutex m_logMutex;
+		std::condition_variable m_logCondition;
 		//TODO : Lock free queue
-		std::queue < std::pair<LogLevel, dString>> m_pendingMessages;
+		std::queue<std::pair<LogLevel, dString>> m_pendingMessages;
 		bool m_shouldProcess;
 	};
 

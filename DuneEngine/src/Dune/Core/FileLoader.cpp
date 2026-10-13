@@ -37,7 +37,8 @@ namespace Dune::FileLoader
 		}
 
 		Job::JobBuilder builder;
-		builder.DispatchJob([&]() {
+		builder.DispatchJob([path, pRequest]()
+		{
 			File file;
 			if (!File::Open(file, path.c_str(), File::EAccessMode::Read, File::EShareMode::None))
 				return;

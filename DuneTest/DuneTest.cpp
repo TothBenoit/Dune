@@ -1,5 +1,7 @@
 #include <Dune.h>
+#include <algorithm>
 #include <chrono>
+#include <thread>
 #include <Dune/Core/JobSystem.h>
 #include <Dune/Core/FileSystem.h>
 #include <Dune/Graphics/RHI/ImGuiWrapper.h>
@@ -426,8 +428,7 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
-	dU32 testCount{ 1 };
-	Job::Initialize(testCount);
+	Job::Initialize(std::max(2u, std::thread::hardware_concurrency()) - 1);
 	dString solutionDirectory(SOLUTION_DIR);
 	FileSystem::Initialize((solutionDirectory + "/DuneEngine/include/Dune/Resources/").c_str());
 	FileSystem::AddRoot("app", (solutionDirectory + "/Resources/").c_str());
@@ -481,10 +482,7 @@ int main(int argc, char** argv)
 	spotLight.type = ELightType::Spot;
 	spotLight.castShadow = true;
 
-	Job::JobBuilder jobBuilder{};
-	for (dU32 i = 0 ; i < testCount; i++)
-		jobBuilder.DispatchJob<Job::Fence::None>([&]() { Test(&renderContext, &scene); });
-	Job::Wait();
+	Test(&renderContext, &scene);
 
 	renderContext.Destroy();
 	FileSystem::Shutdown();

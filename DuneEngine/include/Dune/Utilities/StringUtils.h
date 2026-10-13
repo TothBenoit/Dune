@@ -29,4 +29,5 @@ namespace Dune::StringUtils
 	}
 
 	[[nodiscard]] dWString ToWide(const dString& str);
+	[[nodiscard]] dString ToNarrow(const dWString& str);
 }
