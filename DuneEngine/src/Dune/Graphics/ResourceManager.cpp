@@ -77,7 +77,7 @@ namespace Dune::Graphics
 			out.doubleSided = doubleSided != 0;
 	}
 
-	static void ExtractNodeMesh(const aiNode* pNode, const aiScene* pScene, const aiVector3D& scale, MeshImportDesc& outMesh, dVector<dU32>& outMaterialIndices)
+	static void ExtractNodeMesh(const aiNode* pNode, const aiScene* pScene, const aiVector3D& scale, MeshData& outMesh, dVector<dU32>& outMaterialIndices)
 	{
 		if (pNode->mNumMeshes > 0)
 		{
@@ -236,21 +236,21 @@ namespace Dune::Graphics
 		return slot;
 	}
 
-	dU32 ResourceManager::CreateMesh(const MeshImportDesc& importDesc, CommandList& commandList, dVector<Buffer>& uploadBuffers)
+	dU32 ResourceManager::CreateMesh(const MeshData& meshData, CommandList& commandList, dVector<Buffer>& uploadBuffers)
 	{
 		Mesh mesh{};
 		Buffer& uploadBuffer = uploadBuffers.emplace_back();
 		MeshDesc desc
 		{
-			.pVertices = importDesc.vertices.data(),
-			.vertexCount = (dU32)importDesc.vertices.size(),
+			.pVertices = meshData.vertices.data(),
+			.vertexCount = (dU32)meshData.vertices.size(),
 			.vertexByteStride = sizeof(Vertex),
-			.pIndices = importDesc.indices.data(),
-			.indexCount = (dU32)importDesc.indices.size(),
+			.pIndices = meshData.indices.data(),
+			.indexCount = (dU32)meshData.indices.size(),
 			.isIndex32bits = true,
-			.pSubMeshes = importDesc.subMeshes.data(),
-			.subMeshCount = (dU32)importDesc.subMeshes.size(),
-			.materialSlotCount = importDesc.materialSlotCount
+			.pSubMeshes = meshData.subMeshes.data(),
+			.subMeshCount = (dU32)meshData.subMeshes.size(),
+			.materialSlotCount = meshData.materialSlotCount
 		};
 		mesh.Initialize(*m_pDevice, commandList, uploadBuffer, desc);
 		m_meshes.push_back(mesh);
@@ -346,7 +346,7 @@ namespace Dune::Graphics
 		constexpr dU32 kInvalidMaterialIdx = dU32(-1);
 		dVector<dU32> materialLookup(pScene->mNumMaterials, kInvalidMaterialIdx);
 
-		MeshImportDesc meshDesc;
+		MeshData meshDesc;
 		dVector<dU32>  nodeMaterials;
 		for (const NodeRef& ref : nodeRefs)
 		{

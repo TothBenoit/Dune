@@ -1,6 +1,7 @@
 #pragma once
 #include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Graphics/RHI/PipelineState.h>
+#include <Dune/Graphics/Handles.h>
 
 namespace Dune::Graphics
 {
@@ -12,6 +13,19 @@ namespace Dune::Graphics
 		Count
 	};
 	static_assert((dU32)EAlphaMode::Blend == (dU32)EAlphaMode::Count - 1, "Blend must sort last");
+
+	struct MaterialDesc
+	{
+		dVec3         baseColor{ 1.0f, 1.0f, 1.0f };
+		float         metalness{ 0.0f };
+		float         roughness{ 0.5f };
+		float         alphaCutoff{ 0.5f };
+		EAlphaMode    alphaMode{ EAlphaMode::Opaque };
+		ECullingMode  faceCulling{ ECullingMode::Back };
+		TextureHandle albedo;
+		TextureHandle normal;
+		TextureHandle roughnessMetalness;
+	};
 
 	using MaterialKey = dU32;
 	struct Material

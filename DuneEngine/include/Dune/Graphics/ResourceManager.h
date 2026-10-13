@@ -26,14 +26,6 @@ namespace Dune::Graphics
 		bool doubleSided{ false };
 	};
 
-	struct MeshImportDesc
-	{
-		dVector<Vertex>  vertices;
-		dVector<dU32>    indices;
-		dVector<SubMesh> subMeshes;
-		dU32             materialSlotCount{ 0 };
-	};
-
 	struct ModelNode
 	{
 		dVec3 position;
@@ -71,7 +63,7 @@ namespace Dune::Graphics
 		void RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot);
 		[[nodiscard]] dU32 CreateTextureFromPath(CommandList& commandList, dVector<Buffer>& uploadBuffers, const dString& path, bool sRGB);
 		[[nodiscard]] dU32 CreateMaterial(const MaterialImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots);
-		[[nodiscard]] dU32 CreateMesh(const MeshImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers);
+		[[nodiscard]] dU32 CreateMesh(const MeshData& meshData, CommandList& commandList, dVector<Buffer>& uploadBuffers);
 		void ImportModel(const dString& path, ModelData& outModel);
 		dU32 ResolveTexture(const dString& path, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots, bool sRGB);
 

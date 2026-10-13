@@ -45,7 +45,7 @@ float Shadow(Light light, uint lightMatricesIndex, uint shadowStartIndex, float3
 
 float RangeAttenuation(float distanceSq, float range)
 {
-	const float distanceAttenuation = rcp(max(distanceSq, 1.0f));
+	const float distanceAttenuation = rcp(max(distanceSq, 0.01f * 0.01f));
 	const float window = Square(saturate(1.0f - Square(distanceSq * Square(rcp(range)))));
 	return distanceAttenuation * window;
 }

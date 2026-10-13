@@ -41,7 +41,7 @@ namespace Dune::Graphics
 			}
 			else
 			{
-				float shadowWidth{ 4500.f }; // Hardcoded for sponza
+				float shadowWidth{ 36.f }; // Hardcoded for sponza
 				dVec eye{ 0.f, 0.f, 0.f };
 				dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
 				dMatrix projectionMatrix{ DirectX::XMMatrixOrthographicLH(shadowWidth, shadowWidth, -shadowWidth, shadowWidth) };
@@ -64,7 +64,7 @@ namespace Dune::Graphics
 		{
 			float lightSolidAngle = 4.0f * DirectX::XM_PI;
 			float candelaIntensity = sceneLight.intensity / lightSolidAngle;
-			light.intensity = candelaIntensity / (0.01f * 0.01f);
+			light.intensity = candelaIntensity;
 		}
 		light.range = sceneLight.range;
 		light.position = sceneLight.position;
@@ -78,7 +78,7 @@ namespace Dune::Graphics
 			{
 				float lightSolidAngle = 2.0f * DirectX::XM_PI * (1.0f - light.angle);
 				float candelaIntensity = sceneLight.intensity / lightSolidAngle;
-				light.intensity = candelaIntensity / (0.01f * 0.01f);
+				light.intensity = candelaIntensity;
 			}
 			light.penumbra = 1.0f / (DirectX::XMScalarCos(sceneLight.angle * (1.0f - sceneLight.penumbra)) - light.angle);
 			light.flags |= fIsSpot;

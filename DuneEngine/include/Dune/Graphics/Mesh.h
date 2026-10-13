@@ -1,28 +1,13 @@
 #pragma once
 
 #include "Dune/Graphics/RHI/Buffer.h"
+#include "Dune/Graphics/MeshData.h"
 
 namespace Dune::Graphics
 {
 	class Buffer;
 	class Device;
 	class CommandList;
-
-	struct Vertex
-	{
-		dVec3 position;
-		dVec3 normal;
-		dVec4 tangent;
-		dVec2 uv;
-	};
-
-	struct SubMesh
-	{
-		dU32 indexOffset;
-		dU32 indexCount;
-		dU32 vertexOffset;
-		dU32 materialSlot;
-	};
 
 	struct MeshDesc
 	{

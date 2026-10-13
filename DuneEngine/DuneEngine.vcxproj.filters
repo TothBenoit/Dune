@@ -143,6 +143,15 @@
     <ClInclude Include="include\Dune\Graphics\Material.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\Handles.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\MeshData.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\ImageData.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderPass\MaterialUpload.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClInclude>

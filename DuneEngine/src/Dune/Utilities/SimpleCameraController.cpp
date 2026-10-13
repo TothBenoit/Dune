@@ -81,7 +81,7 @@ namespace Dune
 			);
 
 			//Apply translation
-			const float speed = (input.GetKey(KeyCode::ShiftKey)) ? 750.f : 250.f;
+			const float speed = (input.GetKey(KeyCode::ShiftKey)) ? 7.5f : 2.5f;
 			const float velocity = speed * clampedDeltaTime;
 			m_camera.position.x += translate.x * velocity;
 			m_camera.position.y += translate.y * velocity;

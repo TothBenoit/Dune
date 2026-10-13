@@ -24,6 +24,9 @@
     <ClInclude Include="include\Dune\Graphics\Format.h" />
     <ClInclude Include="include\Dune\Graphics\FrameData.h" />
     <ClInclude Include="include\Dune\Graphics\Material.h" />
+    <ClInclude Include="include\Dune\Graphics\Handles.h" />
+    <ClInclude Include="include\Dune\Graphics\MeshData.h" />
+    <ClInclude Include="include\Dune\Graphics\ImageData.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearDepth.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearHDRTarget.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
