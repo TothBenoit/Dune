@@ -428,7 +428,7 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
-	Job::Initialize(std::max(2u, std::thread::hardware_concurrency()) - 1);
+	Job::Initialize(std::min(4u, std::thread::hardware_concurrency()) - 1);
 	dString solutionDirectory(SOLUTION_DIR);
 	FileSystem::Initialize((solutionDirectory + "/DuneEngine/include/Dune/Resources/").c_str());
 	FileSystem::AddRoot("app", (solutionDirectory + "/Resources/").c_str());
