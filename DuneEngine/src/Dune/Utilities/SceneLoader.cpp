@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Dune/Utilities/SceneLoader.h"
 #include "Dune/Scene/Scene.h"
+#include "Dune/Component/Transform.h"
+#include "Dune/Component/Name.h"
+#include "Dune/Component/MeshInstance.h"
 #include "Dune/Graphics/ResourceManager.h"
 
 namespace Dune::SceneLoader
@@ -18,9 +21,9 @@ namespace Dune::SceneLoader
 			transform.rotation = DirectX::XMLoadFloat4(&node.rotation);
 			transform.scale = 1.0f;
 
-			RenderData& renderData = scene.registry.emplace<RenderData>(entity);
-			renderData.mesh = resources.meshes[node.mesh];
-			renderData.materials = resources.nodeMaterialSets[nodeIndex];
+			MeshInstance& meshInstance = scene.registry.emplace<MeshInstance>(entity);
+			meshInstance.mesh = resources.meshes[node.mesh];
+			meshInstance.materials = resources.nodeMaterialSets[nodeIndex];
 		}
 	}
 }

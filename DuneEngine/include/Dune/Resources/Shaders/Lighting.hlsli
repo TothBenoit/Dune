@@ -20,7 +20,7 @@ float3 GetFaceDirection(const float3 v)
 	return localDirection;
 }
 
-float Shadow(Light light, uint lightMatricesIndex, uint shadowStartIndex, float3 worldPosition, float3 n)
+float Shadow(LightData light, uint lightMatricesIndex, uint shadowStartIndex, float3 worldPosition, float3 n)
 {
 	StructuredBuffer<float4x4> lightMatrices = ResourceDescriptorHeap[lightMatricesIndex];
 	float4x4 lightMatrix = lightMatrices[light.shadowIndex];
@@ -50,7 +50,7 @@ float RangeAttenuation(float distanceSq, float range)
 	return distanceAttenuation * window;
 }
 
-float3 ComputeLight(Light light, uint lightMatricesIndex, uint shadowStartIndex, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
+float3 ComputeLight(LightData light, uint lightMatricesIndex, uint shadowStartIndex, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
 {
 	float3 l = -light.direction;
 	float attenuation = 1.f;

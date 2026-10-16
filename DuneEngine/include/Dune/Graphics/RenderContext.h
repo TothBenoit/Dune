@@ -1,32 +1,32 @@
 #pragma once
 
 #include "Dune/Graphics/RHI/Device.h"
+#include "Dune/Graphics/RHI/CommandList.h"
 #include "Dune/Graphics/PSOCache.h"
 #include "Dune/Graphics/ResourceManager.h"
 
-namespace Dune
+namespace Dune::Graphics
 {
-	class Scene;
+	class Renderer;
+	class Window;
 
-	namespace Graphics
+	class RenderContext
 	{
-		struct FrameData;
+	public:
+		void Initialize();
+		void Destroy();
 
-		class RenderContext
-		{
-		public:
-			void Initialize();
-			void Destroy();
-			void GatherFrameData(const Scene& scene, FrameData& frameData);
+		void InitializeRenderer(Renderer& renderer, Window& window);
 
-			[[nodiscard]] Device& GetDevice() { return m_device; }
-			[[nodiscard]] PSOCache& GetPSOCache() { return m_psoCache; }
-			[[nodiscard]] ResourceManager& GetResourceManager() { return m_resourceManager; }
+		[[nodiscard]] Device& GetDevice() { return m_device; }
+		[[nodiscard]] CommandQueue& GetCommandQueue() { return m_commandQueue; }
+		[[nodiscard]] PSOCache& GetPSOCache() { return m_psoCache; }
+		[[nodiscard]] ResourceManager& GetResourceManager() { return m_resourceManager; }
 
-		private:
-			Device m_device{};
-			PSOCache m_psoCache{};
-			ResourceManager m_resourceManager{};
-		};
-	}
+	private:
+		Device m_device{};
+		CommandQueue m_commandQueue{};
+		PSOCache m_psoCache{};
+		ResourceManager m_resourceManager{};
+	};
 }

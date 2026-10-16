@@ -10,7 +10,7 @@
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/Window.h"
 #include "Dune/Core/FileSystem.h"
-#include "Dune/Scene/Camera.h"
+#include "Dune/Component/Camera.h"
 
 namespace Dune::Graphics
 {
@@ -107,9 +107,9 @@ namespace Dune::Graphics
 
 		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;
 		MaterialKey currentKey = MaterialKey(-1);
-		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
+		for (dU32 drawIndex : context.blackboard.Get<VisibleSet>().opaqueDraws)
 		{
-			const DrawItem& drawItem = frameData.drawItems[drawIdx];
+			const DrawItem& drawItem = frameData.drawItems[drawIndex];
 			if (currentKey != drawItem.materialKey)
 			{
 				currentKey = drawItem.materialKey;

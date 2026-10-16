@@ -19,22 +19,24 @@ namespace Dune::Graphics
 	void LightUpload::Setup(RenderGraphBuilder& builder, RenderPassContext& context, LightUploadData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		const dVector<Light>& lights = context.pFrameData->lights.allActive;
+		const VisibleSet* pVisibleSet = context.blackboard.TryGet<VisibleSet>();
+		if (!pVisibleSet)
+			return;
 
-		dU32 lightCount = (dU32)lights.size();
+		dU32 lightCount = pVisibleSet->lights.GetSize();
 		if (lightCount == 0)
 			return;
 
 		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
-		const dU32 lightByteSize = lightCount * (dU32)sizeof(Light);
+		const dU32 lightByteSize = lightCount * (dU32)sizeof(LightData);
 
 		if (pData->buffer.GetByteSize() < lightByteSize)
 		{
 			if (pData->buffer.Get())
 				frame.buffersToRelease.push_back(pData->buffer);
 			pData->buffer.Initialize(device, { .debugName{ L"LightBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ lightByteSize } });
-			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = lightCount, .byteStride = sizeof(Light) });
+			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = lightCount, .byteStride = sizeof(LightData) });
 			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
@@ -51,11 +53,11 @@ namespace Dune::Graphics
 	{
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
-		const dVector<Light>& lights = context.pFrameData->lights.allActive;
-		const dU32 lightByteSize = (dU32)(lights.size() * sizeof(Light));
+		const dSpan<const LightData> lights = context.blackboard.Get<VisibleSet>().lights;
+		const dU32 lightByteSize = lights.GetSize() * (dU32)sizeof(LightData);
 
 		StagingMemory staging = renderer.AllocateStaging(lightByteSize, 16);
-		memcpy(staging.pCpuAddress, lights.data(), lightByteSize);
+		memcpy(staging.pCpuAddress, lights.GetData(), lightByteSize);
 		frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, lightByteSize);
 	}
 

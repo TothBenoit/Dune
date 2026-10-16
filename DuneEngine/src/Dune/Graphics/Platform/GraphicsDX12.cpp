@@ -1789,7 +1789,7 @@ namespace Dune::Graphics
 
 		ImGui_ImplDX12_InitInfo init_info = {};
 		init_info.Device = ToDevice(renderer.GetDevice()->Get());
-		init_info.CommandQueue = ToCommandQueue(renderer.m_commandQueue.Get());;
+		init_info.CommandQueue = ToCommandQueue(renderer.m_pCommandQueue->Get());
 		init_info.NumFramesInFlight = _countof(renderer.m_frames);
 		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 		init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;

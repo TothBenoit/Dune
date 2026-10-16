@@ -14,6 +14,7 @@ namespace Dune::Graphics
 {
 	class Device;
 	class CommandList;
+	struct FrameData;
 
 	struct MaterialSet
 	{
@@ -53,6 +54,8 @@ namespace Dune::Graphics
 		void Destroy(MaterialHandle handle);
 		void Destroy(MaterialSetHandle handle);
 		void Destroy(MeshHandle handle);
+
+		void FillFrameData(FrameData& frameData) const;
 
 		[[nodiscard]] const Mesh& GetMesh(MeshHandle handle) const { return m_meshes.Get(handle); }
 		[[nodiscard]] const Material& GetMaterial(MaterialHandle handle) const { return m_materials.Get(handle); }

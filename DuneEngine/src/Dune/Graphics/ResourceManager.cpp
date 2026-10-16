@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/ResourceManager.h"
+#include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/CommandList.h"
 
@@ -186,6 +187,37 @@ namespace Dune::Graphics
 		mesh.Upload(ToMeshDesc(meshData), commandList, staging);
 		commandList.Transition(mesh.GetIndexBuffer(), EResourceState::CopyDest, EResourceState::IndexBuffer);
 		commandList.Transition(mesh.GetVertexBuffer(), EResourceState::CopyDest, EResourceState::VertexBuffer);
+	}
+
+	static GPUMeshView ToMeshView(const Mesh& mesh)
+	{
+		const Buffer& indexBuffer = mesh.GetIndexBuffer();
+		const Buffer& vertexBuffer = mesh.GetVertexBuffer();
+		return
+		{
+			.indicesGPUAddress = indexBuffer.GetGPUAddress(),
+			.indicesByteSize = indexBuffer.GetByteSize(),
+			.indicesAre32Bit = mesh.IsIndex32bits(),
+			.verticesGPUAddress = vertexBuffer.GetGPUAddress(),
+			.verticesByteSize = vertexBuffer.GetByteSize(),
+			.verticesByteStride = mesh.GetVertexByteStride(),
+		};
+	}
+
+	void ResourceManager::FillFrameData(FrameData& frameData) const
+	{
+		frameData.meshes.assign(m_meshes.GetCapacity(), GPUMeshView{});
+		for (dU32 i = 0; i < m_meshes.GetCapacity(); i++)
+			if (m_meshes.IsAliveAt(i))
+				frameData.meshes[i] = ToMeshView(m_meshes.GetAt(i));
+
+		frameData.materials.assign(m_materials.GetCapacity(), MaterialData{});
+		for (dU32 i = 0; i < m_materials.GetCapacity(); i++)
+			if (m_materials.IsAliveAt(i))
+				frameData.materials[i] = m_materials.GetAt(i).shaderData;
+
+		frameData.sharedSRVHeapCPUAddress = m_srvHeap.GetCPUAddress();
+		frameData.sharedSRVHeapCapacity = m_srvHeap.GetCapacity();
 	}
 
 	void ResourceManager::Destroy(TextureHandle handle)

@@ -4,6 +4,7 @@
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
+#include "Dune/Graphics/RenderPass/Visibility.h"
 #include "Dune/Graphics/RenderPass/ClearDepth.h"
 #include "Dune/Graphics/RenderPass/ClearHDRTarget.h"
 #include "Dune/Graphics/RenderPass/MaterialUpload.h"
@@ -12,18 +13,17 @@
 #include "Dune/Graphics/RenderPass/LightUpload.h"
 #include "Dune/Graphics/RenderPass/Forward.h"
 #include "Dune/Graphics/RenderPass/Tonemapping.h"
-#include "Dune/Graphics/RenderContext.h"
-#include "Dune/Scene/Camera.h"
+#include "Dune/Graphics/ResourceManager.h"
+#include "Dune/Component/Camera.h"
 
 namespace Dune::Graphics
 {
-	void Renderer::Initialize(RenderContext& context, Window& window)
+	void Renderer::Initialize(Device& device, CommandQueue& commandQueue, PSOCache& psoCache, Window& window)
 	{
-		m_pDevice = &context.GetDevice();
-		m_pPSOCache = &context.GetPSOCache();
+		m_pDevice = &device;
+		m_pCommandQueue = &commandQueue;
+		m_pPSOCache = &psoCache;
 		m_pWindow = &window;
-
-		Device& device = *m_pDevice;
 
 		dU32 width = m_pWindow->GetWidth();
 		dU32 height = m_pWindow->GetHeight();
@@ -66,8 +66,7 @@ namespace Dune::Graphics
 
 		m_barrier.Initialize(kBarrierCapacity);
 		m_fence.Initialize(device, 0);
-		m_commandQueue.Initialize(device, ECommandType::Direct);
-		m_swapchain.Initialize(device, m_pWindow, &m_commandQueue, { .latency = kFramesInFlight });
+		m_swapchain.Initialize(device, m_pWindow, m_pCommandQueue, { .latency = kFramesInFlight });
 
 		DescriptorHeapDesc heapDesc { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = 64, .isShaderVisible = true };
 		m_srvImGuiHeap.Initialize(device, heapDesc);
@@ -104,6 +103,7 @@ namespace Dune::Graphics
 
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
+		RegisterRenderPass<Visibility>();
 		RegisterRenderPass<ClearDepth>();
 		RegisterRenderPass<MaterialUpload>();
 		RegisterRenderPass<DepthPrepass>();
@@ -167,7 +167,6 @@ namespace Dune::Graphics
 		m_barrier.Destroy();
 		m_hdrTarget.Destroy();
 		m_depthBuffer.Destroy();
-		m_commandQueue.Destroy();
 		m_swapchain.Destroy();
 		m_fence.Destroy();
 	}
@@ -391,8 +390,8 @@ namespace Dune::Graphics
 		if (!frame.hasUploads)
 			return;
 		frame.uploadCommandList.Close();
-		m_commandQueue.ExecuteCommandLists(&frame.uploadCommandList, 1);
-		m_commandQueue.Signal(m_fence, ++m_frameCount);
+		m_pCommandQueue->ExecuteCommandLists(&frame.uploadCommandList, 1);
+		m_pCommandQueue->Signal(m_fence, ++m_frameCount);
 		frame.fenceValue = m_frameCount;
 		frame.hasUploads = false;
 		frame.isPrepared = false;
@@ -425,34 +424,6 @@ namespace Dune::Graphics
 
 	void Renderer::Render(const FrameData& frameData, const Camera& camera)
 	{
-		dU32 blendingMaterialStart = (dU32)frameData.drawItems.size() - frameData.blendDrawCount;
-		const dVec3& eye = camera.position;
-		dU32 blendDrawCount = frameData.blendDrawCount;
-		dVector<dU32> sortedBlendDraw(blendDrawCount);
-		for (dU32 i = 0; i < blendDrawCount; i++)
-			sortedBlendDraw[i] = i + blendingMaterialStart;
-
-		std::stable_sort(sortedBlendDraw.begin(), sortedBlendDraw.end(),
-			[&](const dU32& aidx, const dU32& bidx)
-			{
-				const DrawItem& a = frameData.drawItems[aidx];
-				const DrawItem& b = frameData.drawItems[bidx];
-				const dMatrix4x4& ma = a.objectToWorld;
-				const float adx = ma._41 - eye.x;
-				const float ady = ma._42 - eye.y;
-				const float adz = ma._43 - eye.z;
-				const float aToCamDistSq = adx * adx + ady * ady + adz * adz;
-
-				const dMatrix4x4& mb = b.objectToWorld;
-				const float bdx = mb._41 - eye.x;
-				const float bdy = mb._42 - eye.y;
-				const float bdz = mb._43 - eye.z;
-				const float bToCamDistSq = bdx * bdx + bdy * bdy + bdz * bdz;
-
-				return aToCamDistSq > bToCamDistSq;
-			}
-		);
-
 		Device& device = *GetDevice();
 		Frame& frame = PrepareFrame();
 		frame.commandAllocator.Reset();
@@ -469,7 +440,6 @@ namespace Dune::Graphics
 
 		m_passContext.pFrameData = &frameData;
 		m_passContext.pCamera = &camera;
-		m_passContext.sortedBlendDraw = std::move(sortedBlendDraw);
 		m_passContext.blackboard.Reset();
 
 		for (RenderPass& pass : m_passes)
@@ -517,15 +487,15 @@ namespace Dune::Graphics
 		{
 			frame.uploadCommandList.Close();
 			CommandList commandLists[]{ frame.uploadCommandList, frame.commandList };
-			m_commandQueue.ExecuteCommandLists(commandLists, _countof(commandLists));
+			m_pCommandQueue->ExecuteCommandLists(commandLists, _countof(commandLists));
 			frame.hasUploads = false;
 		}
 		else
 		{
-			m_commandQueue.ExecuteCommandLists(&frame.commandList, 1);
+			m_pCommandQueue->ExecuteCommandLists(&frame.commandList, 1);
 		}
 		m_swapchain.Present();
-		m_commandQueue.Signal(m_fence, ++m_frameCount);
+		m_pCommandQueue->Signal(m_fence, ++m_frameCount);
 		frame.fenceValue = m_frameCount;
 		frame.isPrepared = false;
 		m_frameIndex = (m_frameIndex + 1) % kFramesInFlight;

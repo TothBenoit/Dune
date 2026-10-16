@@ -1,14 +1,9 @@
 #pragma once
 #include <Dune/Graphics/Material.h>
+#include <Dune/Component/Light.h>
 
 namespace Dune::Graphics
 {
-	struct FrameLights
-	{
-		dVector<Light>      allActive;
-		dVector<dU32>       shadowCasters;
-		dVector<dMatrix4x4> shadowMatrices;
-	};
 
 	struct DrawItem
 	{
@@ -33,12 +28,11 @@ namespace Dune::Graphics
 
 	struct FrameData
 	{
-		FrameLights lights;
+		dVector<Light> lights;
+		dVector<DrawItem> drawItems;
 		dVector<GPUMeshView> meshes;
 		dVector<MaterialData> materials;
-		dVector<DrawItem> drawItems;
 		dU64 sharedSRVHeapCPUAddress;
 		dU32 sharedSRVHeapCapacity;
-		dU32 blendDrawCount;
 	};
 }

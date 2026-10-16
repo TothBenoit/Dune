@@ -97,8 +97,26 @@
     <ClInclude Include="include\Dune\Scene\Scene.h">
       <Filter>Dune\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Scene\Camera.h">
+    <ClInclude Include="include\Dune\Scene\SceneRender.h">
       <Filter>Dune\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Component\Light.h">
+      <Filter>Dune\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Component\Transform.h">
+      <Filter>Dune\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Component\Name.h">
+      <Filter>Dune\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Component\MeshInstance.h">
+      <Filter>Dune\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RenderPass\Visibility.h">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Component\Camera.h">
+      <Filter>Dune\Component</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\File.h">
@@ -214,8 +232,14 @@
     <ClCompile Include="src\Dune\Graphics\RenderContext.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Scene\Camera.cpp">
+    <ClCompile Include="src\Dune\Scene\SceneRender.cpp">
       <Filter>Dune\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\RenderPass\Visibility.cpp">
+      <Filter>Dune\Graphics\RenderPass</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Component\Camera.cpp">
+      <Filter>Dune\Component</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\File.cpp">
       <Filter>Dune\Core</Filter>
@@ -341,6 +365,9 @@
     </Filter>
     <Filter Include="Dune\Graphics\Shaders">
       <UniqueIdentifier>{df74b725-f633-452c-9fba-ebcdaa67b2ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Component">
+      <UniqueIdentifier>{073b6d32-da85-40e0-b002-7b3aca7f20df}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Scene">
       <UniqueIdentifier>{7b0fdf36-69b2-489a-9039-ef1cffaee027}</UniqueIdentifier>

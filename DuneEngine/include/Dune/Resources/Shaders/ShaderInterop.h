@@ -101,7 +101,7 @@ static const uint fIsPoint      = 1 << 0;
 static const uint fIsSpot       = 1 << 1;
 static const uint fCastShadow   = 1 << 2;
 
-struct Light
+struct LightData
 {
 	float3     color;
 	float      intensity;

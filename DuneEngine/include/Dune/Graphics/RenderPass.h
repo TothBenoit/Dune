@@ -103,7 +103,6 @@ namespace Dune
 			const FrameData* pFrameData;
 			const Camera* pCamera;
 			Renderer* pRenderer;
-			dVector<dU32> sortedBlendDraw;
 			RenderBlackboard blackboard;
 
 			[[nodiscard]] dU32 GetBindlessIndex(Descriptor persistentSRV) const;

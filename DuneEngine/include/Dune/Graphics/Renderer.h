@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Dune/Scene/Scene.h>
 #include <Dune/Graphics/RenderPass.h>
 #include <Dune/Graphics/RHI/Barrier.h>
 #include <Dune/Graphics/RHI/Buffer.h>
@@ -18,7 +17,6 @@ namespace Dune
 
 	namespace Graphics
 	{
-		class RenderContext;
 		class Device;
 		class PSOCache;
 		class Window;
@@ -62,7 +60,7 @@ namespace Dune
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
-			void Initialize(RenderContext& context, Window& window);
+			void Initialize(Device& device, CommandQueue& commandQueue, PSOCache& psoCache, Window& window);
 			void Destroy();
 
 			void OnResize(dU32 width, dU32 height);
@@ -148,7 +146,7 @@ namespace Dune
 
 			Swapchain m_swapchain{};
 			Texture m_depthBuffer{};
-			CommandQueue m_commandQueue{};
+			CommandQueue* m_pCommandQueue{ nullptr };
 
 			BlockDescriptorHeap m_srvHeap{};
 			BlockDescriptorHeap m_srvImGuiHeap{};

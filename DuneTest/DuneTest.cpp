@@ -8,11 +8,15 @@
 #include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Graphics/Renderer.h>
 #include <Dune/Graphics/RenderContext.h>
+#include <Dune/Scene/SceneRender.h>
 #include <Dune/Graphics/Window.h>
 #include <Dune/Graphics/FrameData.h>
 #include <Dune/Utilities/SimpleCameraController.h>
 #include <Dune/Scene/Scene.h>
-#include <Dune/Scene/Camera.h>
+#include <Dune/Component/Light.h>
+#include <Dune/Component/Transform.h>
+#include <Dune/Component/Name.h>
+#include <Dune/Component/Camera.h>
 #include <Dune/Utilities/SceneLoader.h>
 #include <Dune/Utilities/ModelImporter.h>
 #include <Dune/Utilities/StringUtils.h>
@@ -55,11 +59,12 @@ public:
 				pApp->m_camera.SetAspectRatio((float)msg.resize.width / msg.resize.height);
 			}, Graphics::EWindowMessageType::Resize
 		);
-		m_renderer.Initialize(*m_pRenderContext, m_window);
+		m_pRenderContext->InitializeRenderer(m_renderer, m_window);
 		m_imgui.Initialize(m_window, m_renderer);
 		LoadModel("app://Sponza/Sponza.gltf");
 
 		Graphics::FrameData frameData;
+		Graphics::ResourceManager& resources = m_pRenderContext->GetResourceManager();
 
 		auto lastFrameTimer = std::chrono::high_resolution_clock::now();
 		while (m_window.Update())
@@ -70,7 +75,8 @@ public:
 
 			DrawGUI();
 			m_camera.Update(m_deltaTime, m_window.GetInput());
-			m_pRenderContext->GatherFrameData(*m_pScene, frameData);
+			SceneRender::Extract(*m_pScene, resources, frameData);
+			resources.FillFrameData(frameData);
 			m_renderer.Render(frameData, m_camera.GetCamera());
 		}
 

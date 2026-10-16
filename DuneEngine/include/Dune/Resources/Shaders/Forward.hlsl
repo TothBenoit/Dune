@@ -88,12 +88,12 @@ PS_OUTPUT PSMain(VSToPS input)
 	const float3 diffuseColor = albedo * (1.0 - metalness);
  
 	float3 directLighting = 0.f.xxx;
-	StructuredBuffer<Light> lights = ResourceDescriptorHeap[cGlobals.lightBufferIndex];
+	StructuredBuffer<LightData> lights = ResourceDescriptorHeap[cGlobals.lightBufferIndex];
 	for (int lightIndex = 0; lightIndex < cGlobals.lightCount; lightIndex++)
 	{
-		Light light = lights[lightIndex];
-        directLighting += ComputeLight(light, cGlobals.lightMatricesIndex, cGlobals.shadowStartIndex, n, v, input.worldPosition, diffuseColor, f0, roughness);
-    }
+		LightData light = lights[lightIndex];
+		directLighting += ComputeLight(light, cGlobals.lightMatricesIndex, cGlobals.shadowStartIndex, n, v, input.worldPosition, diffuseColor, f0, roughness);
+	}
 
 	output.color = float4(directLighting, alpha);
 	return output;

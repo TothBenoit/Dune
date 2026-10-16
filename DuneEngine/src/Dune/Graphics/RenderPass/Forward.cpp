@@ -12,7 +12,7 @@
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/Window.h"
 #include "Dune/Core/FileSystem.h"
-#include "Dune/Scene/Camera.h"
+#include "Dune/Component/Camera.h"
 
 namespace Dune::Graphics
 {
@@ -90,7 +90,7 @@ namespace Dune::Graphics
 			builder.Read(pLightOutputs->buffer, EResourceState::ShaderResource);
 	}
 
-	static void Draw(CommandList& commandList, PSOCache& psoCache, const ForwardGlobals& globals, const DrawItem& drawItem, const FrameData& frameData, ForwardData* pData, MaterialKey& currentKey, RootSignatureHandle& boundRootSignature)
+	static void Draw(CommandList& commandList, PSOCache& psoCache, const ForwardGlobals& globals, const FrameData& frameData, const DrawItem& drawItem, ForwardData* pData, MaterialKey& currentKey, RootSignatureHandle& boundRootSignature)
 	{
 		const MaterialKey key = drawItem.materialKey;
 		if (currentKey != key)
@@ -153,10 +153,11 @@ namespace Dune::Graphics
 
 		MaterialKey currentKey = MaterialKey(-1);
 		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;
-		for( dU32 drawIdx = 0; drawIdx < frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
-			Draw(commandList, psoCache, globals, frameData.drawItems[drawIdx], frameData, pData, currentKey, boundRootSignature);
-		for (dU32 drawIdx = 0; drawIdx < frameData.blendDrawCount; drawIdx++)
-			Draw(commandList, psoCache, globals, frameData.drawItems[context.sortedBlendDraw[drawIdx]], frameData, pData, currentKey, boundRootSignature);
+		const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
+		for (dU32 drawIndex : visibleSet.opaqueDraws)
+			Draw(commandList, psoCache, globals, frameData, frameData.drawItems[drawIndex], pData, currentKey, boundRootSignature);
+		for (dU32 drawIndex : visibleSet.blendDraws)
+			Draw(commandList, psoCache, globals, frameData, frameData.drawItems[drawIndex], pData, currentKey, boundRootSignature);
 	}
 
 	void Forward::Destroy(Renderer&, ForwardData* pData)

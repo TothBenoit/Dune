@@ -101,23 +101,25 @@ namespace Dune::Graphics
 		if (!pMaterialOutputs)
 			return;
 
-		const FrameData& frameData = *context.pFrameData;
-		const dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
-		if (shadowCasters.empty())
+		const VisibleSet* pVisibleSet = context.blackboard.TryGet<VisibleSet>();
+		if (!pVisibleSet)
+			return;
+		const dSpan<const dU32> shadowCasters = pVisibleSet->shadowCasters;
+		if (shadowCasters.IsEmpty())
 			return;
 
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
 		Device& device = *renderer.GetDevice();
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
-		dU32 shadowCount = (dU32)shadowCasters.size();
+		dU32 shadowCount = shadowCasters.GetSize();
 		dU32 shadowStartIndex = srvHeap.GetIndex(srvHeap.Allocate(shadowCount));
 
 		dU32 cubeShadowIndex{ 0 };
 		dU32 shadowIndex{ 0 };
 		for (dU32 casterIndex = 0; casterIndex < shadowCount; casterIndex++)
 		{
-			const Light& light = frameData.lights.allActive[shadowCasters[casterIndex]];
+			const LightData& light = pVisibleSet->lights[shadowCasters[casterIndex]];
 			Descriptor srv = srvHeap.GetDescriptorAt(shadowStartIndex + casterIndex);
 			if (light.IsPoint())
 			{
@@ -142,7 +144,7 @@ namespace Dune::Graphics
 		for (ResourceHandle handle : pData->activeHandles)
 			builder.Write(handle, EResourceState::DepthStencil);
 
-		const dU32 matrixCount = (dU32)shadowCasters.size();
+		const dU32 matrixCount = shadowCount;
 		const dU32 matricesByteSize = matrixCount * (dU32)sizeof(dMatrix4x4);
 
 		if (pData->matricesBuffer.GetByteSize() < matricesByteSize)
@@ -191,9 +193,9 @@ namespace Dune::Graphics
 
 		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;
 		MaterialKey currentKey = MaterialKey(-1);
-		for (dU32 drawIdx = 0; drawIdx < (dU32)frameData.drawItems.size() - frameData.blendDrawCount; drawIdx++)
+		for (dU32 drawIndex : context.blackboard.Get<VisibleSet>().opaqueDraws)
 		{
-			const DrawItem& drawItem = frameData.drawItems[drawIdx];
+			const DrawItem& drawItem = frameData.drawItems[drawIndex];
 			EAlphaMode alphaMode = Material::GetAlphaMode(drawItem.materialKey);
 			Assert(alphaMode != EAlphaMode::Blend);
 
@@ -231,23 +233,23 @@ namespace Dune::Graphics
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
 		CommandList& commandList = frame.commandList;
-		const FrameData& frameData = *context.pFrameData;
 		Device& device = *renderer.GetDevice();
 		BlockDescriptorHeap& dsvHeap = renderer.GetDSVHeap();
 
-		const dVector<dU32>& shadowCasters = frameData.lights.shadowCasters;
-		const dVector<Light>& lights = frameData.lights.allActive;
+		const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
+		const dSpan<const dU32> shadowCasters = visibleSet.shadowCasters;
+		const dSpan<const LightData> lights = visibleSet.lights;
 
 		Viewport viewport{ 0.0, 0.0, SHADOW_MAP_RESOLUTION_F, SHADOW_MAP_RESOLUTION_F, 0.0f, 1.0f };
 		Scissor scissor{ 0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION };
 		commandList.SetViewports(1, &viewport);
 		commandList.SetScissors(1, &scissor);
 
-		for (dU32 casterIndex = 0; casterIndex < (dU32)shadowCasters.size(); casterIndex++)
+		for (dU32 casterIndex = 0; casterIndex < shadowCasters.GetSize(); casterIndex++)
 		{
-			const Light& light = lights[shadowCasters[casterIndex]];
+			const LightData& light = lights[shadowCasters[casterIndex]];
 			Texture& shadowMap = renderer.GetTexture(pData->activeHandles[casterIndex]);
-			const dMatrix4x4& lightMatrix = frameData.lights.shadowMatrices[casterIndex];
+			const dMatrix4x4& lightMatrix = visibleSet.shadowMatrices[casterIndex];
 
 			Descriptor dsv = dsvHeap.Allocate();
 			if (light.IsPoint())
@@ -285,9 +287,9 @@ namespace Dune::Graphics
 			dsvHeap.Free(dsv);
 		}
 
-		const dU32 matricesByteSize = (dU32)shadowCasters.size() * (dU32)sizeof(dMatrix4x4);
+		const dU32 matricesByteSize = shadowCasters.GetSize() * (dU32)sizeof(dMatrix4x4);
 		StagingMemory staging = renderer.AllocateStaging(matricesByteSize, 16);
-		memcpy(staging.pCpuAddress, frameData.lights.shadowMatrices.data(), matricesByteSize);
+		memcpy(staging.pCpuAddress, visibleSet.shadowMatrices.GetData(), matricesByteSize);
 		commandList.CopyBufferRegion(pData->matricesBuffer, 0, staging.buffer, staging.offset, matricesByteSize);
 	}
 
