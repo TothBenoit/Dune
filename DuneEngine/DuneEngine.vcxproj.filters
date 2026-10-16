@@ -128,6 +128,9 @@
       <Filter>Dune\Component</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune.h" />
+    <ClInclude Include="include\Dune\Application.h">
+      <Filter>Dune</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Core\File.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
@@ -246,6 +249,9 @@
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\UploadContext.cpp">
       <Filter>Dune\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Application.cpp">
+      <Filter>Dune</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Scene\SceneRender.cpp">
       <Filter>Dune\Scene</Filter>

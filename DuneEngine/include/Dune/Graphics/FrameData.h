@@ -34,5 +34,6 @@ namespace Dune::Graphics
 		dVector<MaterialData> materials;
 		dU64 sharedSRVHeapCPUAddress;
 		dU32 sharedSRVHeapCapacity;
+		float deltaTime{ 0.0f };
 	};
 }

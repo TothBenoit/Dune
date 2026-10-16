@@ -1,24 +1,20 @@
 #include <Dune.h>
+#include <Dune/Application.h>
 #include <algorithm>
 #include <chrono>
 #include <thread>
-#include <Dune/Core/JobSystem.h>
-#include <Dune/Core/FileSystem.h>
 #include <Dune/Graphics/RHI/ImGuiWrapper.h>
 #include <Dune/Resources/Shaders/ShaderInterop.h>
-#include <Dune/Graphics/Renderer.h>
-#include <Dune/Graphics/RenderContext.h>
-#include <Dune/Scene/SceneRender.h>
 #include <Dune/Graphics/Window.h>
-#include <Dune/Graphics/FrameData.h>
 #include <Dune/Utilities/SimpleCameraController.h>
 #include <Dune/Scene/Scene.h>
 #include <Dune/Component/Light.h>
 #include <Dune/Component/Transform.h>
 #include <Dune/Component/Name.h>
+#include <Dune/Component/MeshInstance.h>
+#include <Dune/Graphics/Mesh.h>
+#include <Dune/Utilities/MeshUtils.h>
 #include <Dune/Component/Camera.h>
-#include <Dune/Utilities/SceneLoader.h>
-#include <Dune/Utilities/ModelImporter.h>
 #include <Dune/Utilities/StringUtils.h>
 #include <filesystem>
 #include <imgui/imgui.h>
@@ -29,63 +25,51 @@ using namespace Dune;
 class App
 {
 public:
-	App(Graphics::RenderContext* pRenderContext, Scene* pScene)
-		: m_pRenderContext{pRenderContext}
-		, m_pScene{pScene}
+	App(Application& application, ViewHandle view, Scene& scene)
+		: m_app{ application }
+		, m_view{ view }
+		, m_pScene{ &scene }
 	{}
 
-	void LoadModel(const char* pPath)
+	void SpawnPrimitive(const char* pName, const Graphics::MeshData& meshData, const Graphics::MaterialDesc& materialDesc, const dVec3& position)
 	{
-		Graphics::ModelData model;
-		if (!ModelImporter::Import(pPath, model))
-			return;
+		Graphics::ResourceManager& resources = m_app.GetRenderContext().GetResourceManager();
+		Graphics::UploadContext& uploadContext = m_app.GetRenderContext().GetUploadContext();
+		const Graphics::MeshHandle mesh = resources.CreateMesh(meshData);
+		const Graphics::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(mesh), Graphics::Mesh::kUploadAlignment);
+		resources.Upload(mesh, meshData, uploadContext.GetCommandList(), staging);
+		const Graphics::MaterialHandle materials[]{ resources.CreateMaterial(materialDesc) };
 
-		Graphics::ResourceManager& resources = m_pRenderContext->GetResourceManager();
-		Graphics::UploadContext& uploadContext = m_pRenderContext->GetUploadContext();
-		const Graphics::ModelResources modelResources = resources.CreateModel(model);
-		const Graphics::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(modelResources), Graphics::Texture::kUploadAlignment);
-		resources.Upload(modelResources, model, uploadContext.GetCommandList(), staging);
-		SceneLoader::Spawn(*m_pScene, model, modelResources);
+		entt::registry& registry = m_pScene->registry;
+		const EntityID entity = registry.create();
+		registry.emplace<Name>(entity, pName);
+		registry.emplace<Transform>(entity, Transform{ .position = position, .rotation = DirectX::XMQuaternionIdentity(), .scale = 1.0f });
+		registry.emplace<MeshInstance>(entity, MeshInstance{ .mesh = mesh, .materials = resources.CreateMaterialSet(materials) });
 	}
 
 	void Run()
 	{
 		m_camera.SetNear(0.1f);
 		m_camera.SetFar(500.0f);
-		m_window.Initialize({});
-		dU32 resizeEventHandle = m_window.RegisterEvent(this, [](void* pData, const Graphics::WindowMessage& msg)
-			{
-				App* pApp = (App*)pData;
-				pApp->m_renderer.OnResize(msg.resize.width, msg.resize.height);
-				pApp->m_camera.SetAspectRatio((float)msg.resize.width / msg.resize.height);
-			}, Graphics::EWindowMessageType::Resize
-		);
-		m_pRenderContext->InitializeRenderer(m_renderer, m_window);
-		m_imgui.Initialize(m_window, m_renderer);
-		LoadModel("app://Sponza/Sponza.gltf");
+		m_app.LoadModel(*m_pScene, "app://Sponza/Sponza.gltf");
+		SpawnPrimitive("Cube", MeshUtils::CreateCube({ 0.3f, 0.3f, 0.3f }), { .baseColor = { 0.8f, 0.1f, 0.1f } }, { -0.5f, 0.15f, 1.5f });
+		SpawnPrimitive("Sphere", MeshUtils::CreateSphere(0.15f), { .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }, { 0.0f, 0.15f, 1.5f });
+		Graphics::MeshData plane = MeshUtils::CreatePlane({ 0.3f, 0.3f });
+		MeshUtils::Transform(plane, DirectX::XMMatrixRotationX(-DirectX::XM_PIDIV2));
+		SpawnPrimitive("Plane", plane, { .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = Graphics::ECullingMode::None }, { 0.5f, 0.15f, 1.5f });
 
-		Graphics::FrameData frameData;
-		Graphics::ResourceManager& resources = m_pRenderContext->GetResourceManager();
-
-		auto lastFrameTimer = std::chrono::high_resolution_clock::now();
-		while (m_window.Update())
+		while (m_app.BeginFrame())
 		{
-			auto timer = std::chrono::high_resolution_clock::now();
-			m_deltaTime = (float)std::chrono::duration<float>(timer - lastFrameTimer).count();
-			lastFrameTimer = std::chrono::high_resolution_clock::now();
+			m_deltaTime = m_app.GetDeltaTime();
+			const Graphics::Window& window = m_app.GetWindow(m_view);
+			if (window.GetHeight() > 0)
+				m_camera.SetAspectRatio((float)window.GetWidth() / window.GetHeight());
 
 			DrawGUI();
-			m_camera.Update(m_deltaTime, m_window.GetInput());
-			SceneRender::Extract(*m_pScene, resources, frameData);
-			resources.FillFrameData(frameData);
-			m_pRenderContext->GetUploadContext().Submit();
-			m_renderer.Render(frameData, m_camera.GetCamera());
+			m_camera.Update(m_deltaTime, window.GetInput());
+			m_app.Render(m_view, *m_pScene, m_camera.GetCamera());
+			m_app.EndFrame();
 		}
-
-		m_imgui.Destroy();
-		m_renderer.Destroy();
-		m_window.UnregisterEvent(Graphics::EWindowMessageType::Resize, resizeEventHandle);
-		m_window.Destroy();
 	}
 
 	dMatrix4x4 ComputeTransformMatrix(dVec3& position, dQuat& rotation, float scale)
@@ -150,8 +134,9 @@ public:
 
 	void DrawGUI()
 	{
-		Graphics::ImGuiWrapper::LockGuard guard = m_imgui.AcquireContext();
-		m_imgui.NewFrame(guard);
+		Graphics::ImGuiWrapper& imgui = m_app.GetImGui(m_view);
+		Graphics::ImGuiWrapper::LockGuard guard = imgui.AcquireContext();
+		imgui.NewFrame(guard);
 		ImGuizmo::BeginFrame();
 
 		ImGui::GetStyle().Colors[ImGuiCol_WindowBg].w = 0.66f;
@@ -419,12 +404,10 @@ public:
 	}
 
 private:
-	Graphics::RenderContext* m_pRenderContext;
+	Application& m_app;
+	ViewHandle m_view{ kInvalidViewHandle };
 	Scene* m_pScene;
 
-	Graphics::Window m_window{};
-	Graphics::Renderer m_renderer{};
-	Graphics::ImGuiWrapper m_imgui{};
 	SimpleCameraController m_camera{};
 
 	float m_deltaTime{ 0.0f };
@@ -439,9 +422,9 @@ private:
 	ImGuizmo::OPERATION m_gizmoOperation{ ImGuizmo::ROTATE };
 };
 
-void Test(Graphics::RenderContext* pRenderContext, Scene* pScene)
+void Test(Application& application, ViewHandle view, Scene& scene)
 {
-	App app{ pRenderContext, pScene };
+	App app{ application, view, scene };
 	app.Run();
 }
 
@@ -451,12 +434,15 @@ int main(int argc, char** argv)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	
-	Job::Initialize(std::min(4u, std::thread::hardware_concurrency()) - 1);
-	dString solutionDirectory(SOLUTION_DIR);
-	FileSystem::Initialize((solutionDirectory + "/DuneEngine/include/Dune/Resources/").c_str());
-	FileSystem::AddRoot("app", (solutionDirectory + "/Resources/").c_str());
-	Graphics::RenderContext renderContext{};
-	renderContext.Initialize();
+	const dString solutionDirectory(SOLUTION_DIR);
+	Application application{};
+	application.Initialize(
+		{
+			.workerCount = std::min(4u, std::thread::hardware_concurrency()) - 1,
+			.engineResourcePath = solutionDirectory + "/DuneEngine/include/Dune/Resources/",
+			.roots = { { .name = "app", .path = solutionDirectory + "/Resources/" } },
+		});
+	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true });
 
 	Scene scene{};
 	entt::registry& registry = scene.registry;
@@ -503,11 +489,9 @@ int main(int argc, char** argv)
 	spotLight.type = ELightType::Spot;
 	spotLight.castShadow = true;
 
-	Test(&renderContext, &scene);
+	Test(application, view, scene);
 
-	renderContext.Destroy();
-	FileSystem::Shutdown();
-	Job::Shutdown();
+	application.Destroy();
 
 	return 0;
 }

@@ -124,7 +124,7 @@ namespace Dune::Graphics
 			.pixelCount = histogramParams.width * histogramParams.height,
 			.minLogLuminance = pData->minLogLuminance,
 			.logLuminanceRange = logLuminanceRange,
-			.timeDelta = 0.016f,
+			.timeDelta = context.pFrameData->deltaTime,
 			.tau = pData->tau
 		};
 
