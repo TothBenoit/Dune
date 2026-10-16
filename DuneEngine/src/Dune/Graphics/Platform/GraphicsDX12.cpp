@@ -1772,7 +1772,7 @@ namespace Dune::Graphics
 		return ImGui_ImplWin32_WndProcHandler(nativeEvent.hwnd, nativeEvent.uMsg, nativeEvent.wParam, nativeEvent.lParam) != 0;
 	}
 
-	void ImGuiWrapper::Initialize(Window& window, Renderer& renderer, dU32 priority)
+	void ImGuiWrapper::Initialize(Window& window, Renderer& renderer, const char* pLayoutPath, dU32 priority)
 	{
 		Assert(!renderer.m_pImGui);
 		Assert(!m_pContext);
@@ -1783,6 +1783,8 @@ namespace Dune::Graphics
 		Lock();
 		IMGUI_CHECKVERSION();
 		m_pContext = ImGui::CreateContext();
+		m_layoutPath = pLayoutPath ? pLayoutPath : "";
+		ImGui::GetIO().IniFilename = m_layoutPath.empty() ? nullptr : m_layoutPath.c_str();
 		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui::StyleColorsDark();
 		ImGui_ImplWin32_Init(window.GetHandle());
@@ -1845,6 +1847,7 @@ namespace Dune::Graphics
 		m_pWindow->UnregisterHook(m_hookHandle);
 		m_pRenderer->m_pImGui = nullptr;
 		m_pContext = nullptr;
+		m_layoutPath.clear();
 		m_pRenderer = nullptr;
 		m_pWindow = nullptr;
 	}

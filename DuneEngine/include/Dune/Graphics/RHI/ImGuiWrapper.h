@@ -26,7 +26,7 @@ namespace Dune::Graphics
 			ImGuiWrapper* m_pWrapper;
 		};
 
-		void Initialize(Window& window, Renderer& renderer, dU32 priority = kDefaultHookPriority);
+		void Initialize(Window& window, Renderer& renderer, const char* pLayoutPath = nullptr, dU32 priority = kDefaultHookPriority);
 		[[nodiscard]] LockGuard AcquireContext();
 		void NewFrame(const LockGuard& guard);
 		void Render(CommandList& commandList);
@@ -41,5 +41,6 @@ namespace Dune::Graphics
 		Window* m_pWindow{ nullptr };
 		Renderer* m_pRenderer{ nullptr };
 		dU32 m_hookHandle{ 0 };
+		dString m_layoutPath;
 	};
 }

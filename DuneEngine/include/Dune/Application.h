@@ -30,6 +30,7 @@ namespace Dune
 		dU32 width{ 1600 };
 		dU32 height{ 900 };
 		bool enableImGui{ false };
+		dString imguiLayoutPath;
 	};
 
 	using ViewHandle = dU32;

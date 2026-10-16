@@ -442,7 +442,7 @@ int main(int argc, char** argv)
 			.engineResourcePath = solutionDirectory + "/DuneEngine/include/Dune/Resources/",
 			.roots = { { .name = "app", .path = solutionDirectory + "/Resources/" } },
 		});
-	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true });
+	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true, .imguiLayoutPath = "app://imgui.ini" });
 
 	Scene scene{};
 	entt::registry& registry = scene.registry;

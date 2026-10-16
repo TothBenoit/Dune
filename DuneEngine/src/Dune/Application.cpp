@@ -46,7 +46,8 @@ namespace Dune
 		m_renderContext.InitializeRenderer(pView->renderer, pView->window);
 		if (desc.enableImGui)
 		{
-			pView->imgui.Initialize(pView->window, pView->renderer);
+			const FilePath layoutPath = desc.imguiLayoutPath.empty() ? FilePath{} : FileSystem::ResolvePath(desc.imguiLayoutPath.c_str());
+			pView->imgui.Initialize(pView->window, pView->renderer, layoutPath.empty() ? nullptr : layoutPath.c_str());
 			pView->hasImGui = true;
 		}
 
