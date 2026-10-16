@@ -9,6 +9,7 @@
 #include "Dune/Graphics/RHI/TextureData.h"
 #include "Dune/Graphics/ModelData.h"
 #include "Dune/Utilities/ResourcePool.h"
+#include "Dune/Utilities/HandleAllocator.h"
 
 namespace Dune::Graphics
 {
@@ -29,12 +30,22 @@ namespace Dune::Graphics
 		dVector<MaterialSetHandle> nodeMaterialSets;
 	};
 
+	struct ResourceHandles
+	{
+		[[nodiscard]] ModelResources AllocateModel(const ModelData& model);
+
+		HandleAllocator<Texture>     textures;
+		HandleAllocator<Material>    materials;
+		HandleAllocator<MaterialSet> materialSets;
+		HandleAllocator<Mesh>        meshes;
+	};
+
 	class ResourceManager
 	{
 	public:
 		static constexpr dU32 kSharedSRVCapacity = 512;
 
-		void Initialize(Device& device);
+		void Initialize(Device& device, ResourceHandles* pSharedHandles = nullptr);
 		void Destroy();
 
 		[[nodiscard]] TextureHandle     CreateTexture(const TextureData& image, bool sRGB);
@@ -42,6 +53,12 @@ namespace Dune::Graphics
 		[[nodiscard]] MaterialSetHandle CreateMaterialSet(dSpan<MaterialHandle> materials);
 		[[nodiscard]] MeshHandle        CreateMesh(const MeshData& meshData);
 		[[nodiscard]] ModelResources    CreateModel(const ModelData& model);
+
+		void CreateTexture(TextureHandle handle, const TextureData& image, bool sRGB);
+		void CreateMaterial(MaterialHandle handle, const MaterialDesc& desc);
+		void CreateMaterialSet(MaterialSetHandle handle, dSpan<MaterialHandle> materials);
+		void CreateMesh(MeshHandle handle, const MeshData& meshData);
+		void CreateModel(const ModelResources& handles, const ModelData& model);
 
 		[[nodiscard]] dU64 GetUploadSize(TextureHandle handle) const;
 		[[nodiscard]] dU64 GetUploadSize(MeshHandle handle) const;
@@ -76,6 +93,8 @@ namespace Dune::Graphics
 	private:
 		Device* m_pDevice{ nullptr }; // TODO Cleanup : A ResourceManager is owned by a RenderContext which already own a device. The resource manager should not need this
 
+		ResourceHandles                     m_ownHandles;
+		ResourceHandles*                    m_pHandles{ nullptr };
 		ResourcePool<TextureEntry, Texture> m_textures;
 		ResourcePool<Material>              m_materials;
 		ResourcePool<MaterialSet>           m_materialSets;

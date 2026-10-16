@@ -131,6 +131,9 @@
     <ClInclude Include="include\Dune\Application.h">
       <Filter>Dune</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Asset\AssetCache.h">
+      <Filter>Dune\Asset</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Core\File.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
@@ -203,6 +206,9 @@
     <ClInclude Include="include\Dune\Utilities\ResourcePool.h">
       <Filter>Dune\Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Utilities\HandleAllocator.h">
+      <Filter>Dune\Utilities</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderPass\MaterialUpload.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClInclude>
@@ -252,6 +258,9 @@
     </ClCompile>
     <ClCompile Include="src\Dune\Application.cpp">
       <Filter>Dune</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Asset\AssetCache.cpp">
+      <Filter>Dune\Asset</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Scene\SceneRender.cpp">
       <Filter>Dune\Scene</Filter>
@@ -389,6 +398,9 @@
     </Filter>
     <Filter Include="Dune\Component">
       <UniqueIdentifier>{073b6d32-da85-40e0-b002-7b3aca7f20df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Asset">
+      <UniqueIdentifier>{85302c11-64c9-4a79-b4d3-4394ed7ba272}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Scene">
       <UniqueIdentifier>{7b0fdf36-69b2-489a-9039-ef1cffaee027}</UniqueIdentifier>

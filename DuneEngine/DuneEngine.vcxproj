@@ -24,6 +24,7 @@
     <ClCompile Include="src\Dune\Graphics\ScratchAllocator.cpp" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Application.h" />
+    <ClInclude Include="include\Dune\Asset\AssetCache.h" />
     <ClInclude Include="include\Dune\Core\FileLoader.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
     <ClInclude Include="include\Dune\Graphics\FrameData.h" />
@@ -33,6 +34,7 @@
     <ClInclude Include="include\Dune\Graphics\RHI\TextureData.h" />
     <ClInclude Include="include\Dune\Utilities\Handle.h" />
     <ClInclude Include="include\Dune\Utilities\ResourcePool.h" />
+    <ClInclude Include="include\Dune\Utilities\HandleAllocator.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearDepth.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearHDRTarget.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
@@ -114,6 +116,7 @@
     <ClCompile Include="src\Dune\Graphics\ForwardPipeline.cpp" />
     <ClCompile Include="src\Dune\Graphics\UploadContext.cpp" />
     <ClCompile Include="src\Dune\Application.cpp" />
+    <ClCompile Include="src\Dune\Asset\AssetCache.cpp" />
     <ClCompile Include="src\Dune\Scene\SceneRender.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Visibility.cpp" />
     <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp" />

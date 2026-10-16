@@ -5,6 +5,7 @@
 #include "Dune/Graphics/Window.h"
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
+#include "Dune/Asset/AssetCache.h"
 
 namespace Dune
 {
@@ -49,7 +50,14 @@ namespace Dune
 		void Render(ViewHandle view, const Scene& scene, const Camera& camera);
 		void EndFrame();
 
-		void LoadModel(Scene& scene, const char* pPath);
+		[[nodiscard]] ModelHandle LoadModel(const char* pPath);
+		void Spawn(Scene& scene, ModelHandle model);
+		ModelHandle LoadModel(Scene& scene, const char* pPath);
+
+		[[nodiscard]] Graphics::MeshHandle        CreateMesh(const Graphics::MeshData& meshData);
+		[[nodiscard]] Graphics::MaterialHandle    CreateMaterial(const Graphics::MaterialDesc& desc);
+		[[nodiscard]] Graphics::MaterialSetHandle CreateMaterialSet(dSpan<Graphics::MaterialHandle> materials);
+		[[nodiscard]] Graphics::ModelResources    CreateModel(const Graphics::ModelData& model);
 
 		[[nodiscard]] bool IsViewOpen(ViewHandle view) const;
 		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
@@ -78,7 +86,9 @@ namespace Dune
 		[[nodiscard]] const Graphics::FrameData& GetFrameData(const Scene& scene);
 
 	private:
+		Graphics::ResourceHandles m_resourceHandles{};
 		Graphics::RenderContext m_renderContext{};
+		AssetCache m_assetCache{};
 		dVector<std::unique_ptr<View>> m_views;
 		dVector<SceneFrame> m_sceneFrames;
 		dU32 m_sceneFrameCount{ 0 };

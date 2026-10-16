@@ -4,15 +4,14 @@
 #include "Dune/Component/Transform.h"
 #include "Dune/Component/Name.h"
 #include "Dune/Component/MeshInstance.h"
-#include "Dune/Graphics/ResourceManager.h"
+#include "Dune/Asset/AssetCache.h"
 
 namespace Dune::SceneLoader
 {
-	void Spawn(Scene& scene, const Graphics::ModelData& model, const Graphics::ModelResources& resources)
+	void Spawn(Scene& scene, const Model& model)
 	{
-		for (dU32 nodeIndex = 0; nodeIndex < (dU32)model.nodes.size(); nodeIndex++)
+		for (const ModelNode& node : model.nodes)
 		{
-			const Graphics::ModelNode& node = model.nodes[nodeIndex];
 			EntityID entity = scene.registry.create();
 			scene.registry.emplace<Name>(entity).name.assign("Mesh");
 
@@ -22,8 +21,8 @@ namespace Dune::SceneLoader
 			transform.scale = 1.0f;
 
 			MeshInstance& meshInstance = scene.registry.emplace<MeshInstance>(entity);
-			meshInstance.mesh = resources.meshes[node.mesh];
-			meshInstance.materials = resources.nodeMaterialSets[nodeIndex];
+			meshInstance.mesh = node.mesh;
+			meshInstance.materials = node.materials;
 		}
 	}
 }

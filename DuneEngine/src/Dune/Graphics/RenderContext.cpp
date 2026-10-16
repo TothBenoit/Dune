@@ -5,12 +5,12 @@
 
 namespace Dune::Graphics
 {
-	void RenderContext::Initialize()
+	void RenderContext::Initialize(ResourceHandles* pSharedHandles)
 	{
 		m_device.Initialize();
 		m_commandQueue.Initialize(m_device, ECommandType::Direct);
 		m_psoCache.Initialize(m_device);
-		m_resourceManager.Initialize(m_device);
+		m_resourceManager.Initialize(m_device, pSharedHandles);
 		m_uploadContext.Initialize(m_device, m_commandQueue, {});
 	}
 

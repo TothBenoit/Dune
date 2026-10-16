@@ -12,7 +12,6 @@
 #include <Dune/Component/Transform.h>
 #include <Dune/Component/Name.h>
 #include <Dune/Component/MeshInstance.h>
-#include <Dune/Graphics/Mesh.h>
 #include <Dune/Utilities/MeshUtils.h>
 #include <Dune/Component/Camera.h>
 #include <Dune/Utilities/StringUtils.h>
@@ -33,18 +32,13 @@ public:
 
 	void SpawnPrimitive(const char* pName, const Graphics::MeshData& meshData, const Graphics::MaterialDesc& materialDesc, const dVec3& position)
 	{
-		Graphics::ResourceManager& resources = m_app.GetRenderContext().GetResourceManager();
-		Graphics::UploadContext& uploadContext = m_app.GetRenderContext().GetUploadContext();
-		const Graphics::MeshHandle mesh = resources.CreateMesh(meshData);
-		const Graphics::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(mesh), Graphics::Mesh::kUploadAlignment);
-		resources.Upload(mesh, meshData, uploadContext.GetCommandList(), staging);
-		const Graphics::MaterialHandle materials[]{ resources.CreateMaterial(materialDesc) };
+		const Graphics::MaterialHandle materials[]{ m_app.CreateMaterial(materialDesc) };
 
 		entt::registry& registry = m_pScene->registry;
 		const EntityID entity = registry.create();
 		registry.emplace<Name>(entity, pName);
 		registry.emplace<Transform>(entity, Transform{ .position = position, .rotation = DirectX::XMQuaternionIdentity(), .scale = 1.0f });
-		registry.emplace<MeshInstance>(entity, MeshInstance{ .mesh = mesh, .materials = resources.CreateMaterialSet(materials) });
+		registry.emplace<MeshInstance>(entity, MeshInstance{ .mesh = m_app.CreateMesh(meshData), .materials = m_app.CreateMaterialSet(materials) });
 	}
 
 	void Run()

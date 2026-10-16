@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Dune/Utilities/Handle.h"
+#include "Dune/Utilities/HandleAllocator.h"
 
 namespace Dune
 {
@@ -10,24 +11,23 @@ namespace Dune
 	public:
 		using HandleType = Handle<Tag>;
 
-		[[nodiscard]] HandleType Add(T&& item)
+		void Initialize(const HandleAllocator<Tag>& allocator)
 		{
-			dU32 index;
-			if (!m_freeIndices.empty())
+			m_pAllocator = &allocator;
+		}
+
+		void Insert(HandleType handle, T&& item)
+		{
+			Assert(m_pAllocator->IsValid(handle));
+			const dU32 index = handle.GetIndex();
+			if (index >= m_items.size())
 			{
-				index = m_freeIndices.back();
-				m_freeIndices.pop_back();
-				m_items[index] = std::move(item);
+				m_items.resize(index + 1);
+				m_isAlive.resize(index + 1, false);
 			}
-			else
-			{
-				index = (dU32)m_items.size();
-				m_items.push_back(std::move(item));
-				m_generations.push_back(0);
-				m_isAlive.push_back(false);
-			}
+			Assert(!m_isAlive[index]);
+			m_items[index] = std::move(item);
 			m_isAlive[index] = true;
-			return HandleType::Make(index, m_generations[index]);
 		}
 
 		T Remove(HandleType handle)
@@ -35,15 +35,13 @@ namespace Dune
 			Assert(IsValid(handle));
 			const dU32 index = handle.GetIndex();
 			m_isAlive[index] = false;
-			m_generations[index]++;
-			m_freeIndices.push_back(index);
 			return std::move(m_items[index]);
 		}
 
 		[[nodiscard]] bool IsValid(HandleType handle) const
 		{
 			const dU32 index = handle.GetIndex();
-			return handle.IsValid() && index < m_items.size() && m_isAlive[index] && m_generations[index] == handle.GetGeneration();
+			return index < m_items.size() && m_isAlive[index] && m_pAllocator->IsValid(handle);
 		}
 
 		[[nodiscard]] T& Get(HandleType handle) { Assert(IsValid(handle)); return m_items[handle.GetIndex()]; }
@@ -52,12 +50,11 @@ namespace Dune
 		[[nodiscard]] dU32 GetCapacity() const { return (dU32)m_items.size(); }
 		[[nodiscard]] bool IsAliveAt(dU32 index) const { return m_isAlive[index]; }
 		[[nodiscard]] const T& GetAt(dU32 index) const { Assert(m_isAlive[index]); return m_items[index]; }
-		[[nodiscard]] HandleType GetHandleAt(dU32 index) const { Assert(m_isAlive[index]); return HandleType::Make(index, m_generations[index]); }
+		[[nodiscard]] HandleType GetHandleAt(dU32 index) const { Assert(m_isAlive[index]); return m_pAllocator->GetHandleAt(index); }
 
 	private:
-		dVector<T>    m_items;
-		dVector<dU8>  m_generations;
-		dVector<bool> m_isAlive;
-		dVector<dU32> m_freeIndices;
+		const HandleAllocator<Tag>* m_pAllocator{ nullptr };
+		dVector<T>                  m_items;
+		dVector<bool>               m_isAlive;
 	};
 }

@@ -14,7 +14,7 @@ namespace Dune::Graphics
 	class RenderContext
 	{
 	public:
-		void Initialize();
+		void Initialize(ResourceHandles* pSharedHandles = nullptr);
 		void Destroy();
 
 		void InitializeRenderer(Renderer& renderer, Window& window);

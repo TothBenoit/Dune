@@ -35,9 +35,28 @@ namespace Dune::Graphics
 		};
 	}
 
-	void ResourceManager::Initialize(Device& device)
+	ModelResources ResourceHandles::AllocateModel(const ModelData& model)
+	{
+		ModelResources resources;
+		for (dU32 i = 0; i < (dU32)model.images.size(); i++)
+			resources.textures.push_back(textures.Allocate());
+		for (dU32 i = 0; i < (dU32)model.materials.size(); i++)
+			resources.materials.push_back(materials.Allocate());
+		for (dU32 i = 0; i < (dU32)model.meshes.size(); i++)
+			resources.meshes.push_back(meshes.Allocate());
+		for (dU32 i = 0; i < (dU32)model.nodes.size(); i++)
+			resources.nodeMaterialSets.push_back(materialSets.Allocate());
+		return resources;
+	}
+
+	void ResourceManager::Initialize(Device& device, ResourceHandles* pSharedHandles)
 	{
 		m_pDevice = &device;
+		m_pHandles = pSharedHandles ? pSharedHandles : &m_ownHandles;
+		m_textures.Initialize(m_pHandles->textures);
+		m_materials.Initialize(m_pHandles->materials);
+		m_materialSets.Initialize(m_pHandles->materialSets);
+		m_meshes.Initialize(m_pHandles->meshes);
 		m_srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
 	}
 
@@ -56,6 +75,13 @@ namespace Dune::Graphics
 
 	TextureHandle ResourceManager::CreateTexture(const TextureData& image, bool sRGB)
 	{
+		const TextureHandle handle = m_pHandles->textures.Allocate();
+		CreateTexture(handle, image, sRGB);
+		return handle;
+	}
+
+	void ResourceManager::CreateTexture(TextureHandle handle, const TextureData& image, bool sRGB)
+	{
 		Texture texture{};
 		texture.Initialize(*m_pDevice,
 			{
@@ -67,7 +93,7 @@ namespace Dune::Graphics
 
 		const Descriptor srv = m_srvHeap.Allocate();
 		m_pDevice->CreateSRV(srv, texture);
-		return m_textures.Add({ .texture = texture, .srv = srv });
+		m_textures.Insert(handle, { .texture = texture, .srv = srv });
 	}
 
 	dU32 ResourceManager::GetBindlessIndex(TextureHandle handle) const
@@ -77,7 +103,14 @@ namespace Dune::Graphics
 
 	MaterialHandle ResourceManager::CreateMaterial(const MaterialDesc& desc)
 	{
-		return m_materials.Add(
+		const MaterialHandle handle = m_pHandles->materials.Allocate();
+		CreateMaterial(handle, desc);
+		return handle;
+	}
+
+	void ResourceManager::CreateMaterial(MaterialHandle handle, const MaterialDesc& desc)
+	{
+		m_materials.Insert(handle,
 		{
 			.shaderData =
 			{
@@ -96,52 +129,66 @@ namespace Dune::Graphics
 
 	MaterialSetHandle ResourceManager::CreateMaterialSet(dSpan<MaterialHandle> materials)
 	{
+		const MaterialSetHandle handle = m_pHandles->materialSets.Allocate();
+		CreateMaterialSet(handle, materials);
+		return handle;
+	}
+
+	void ResourceManager::CreateMaterialSet(MaterialSetHandle handle, dSpan<MaterialHandle> materials)
+	{
 		for (MaterialHandle material : materials)
 			Assert(m_materials.IsValid(material));
-		return m_materialSets.Add({ .materials = dVector<MaterialHandle>(materials.begin(), materials.end()) });
+		m_materialSets.Insert(handle, { .materials = dVector<MaterialHandle>(materials.begin(), materials.end()) });
 	}
 
 	MeshHandle ResourceManager::CreateMesh(const MeshData& meshData)
 	{
+		const MeshHandle handle = m_pHandles->meshes.Allocate();
+		CreateMesh(handle, meshData);
+		return handle;
+	}
+
+	void ResourceManager::CreateMesh(MeshHandle handle, const MeshData& meshData)
+	{
 		Mesh mesh{};
 		mesh.Initialize(*m_pDevice, ToMeshDesc(meshData));
-		return m_meshes.Add(std::move(mesh));
+		m_meshes.Insert(handle, std::move(mesh));
 	}
 
 	ModelResources ResourceManager::CreateModel(const ModelData& model)
 	{
-		ModelResources resources;
+		const ModelResources resources = m_pHandles->AllocateModel(model);
+		CreateModel(resources, model);
+		return resources;
+	}
 
-		resources.textures.reserve(model.images.size());
-		for (const ModelImage& image : model.images)
-			resources.textures.push_back(CreateTexture(image.data, image.isSRGB));
+	void ResourceManager::CreateModel(const ModelResources& handles, const ModelData& model)
+	{
+		for (dU32 i = 0; i < (dU32)model.images.size(); i++)
+			CreateTexture(handles.textures[i], model.images[i].data, model.images[i].isSRGB);
 
-		const auto ToTexture = [&](dU32 imageIndex) { return imageIndex != kInvalidModelIndex ? resources.textures[imageIndex] : TextureHandle{}; };
-		resources.materials.reserve(model.materials.size());
-		for (const ModelMaterial& material : model.materials)
+		const auto ToTexture = [&](dU32 imageIndex) { return imageIndex != kInvalidModelIndex ? handles.textures[imageIndex] : TextureHandle{}; };
+		for (dU32 i = 0; i < (dU32)model.materials.size(); i++)
 		{
+			const ModelMaterial& material = model.materials[i];
 			MaterialDesc desc{ material.desc };
 			desc.albedo = ToTexture(material.albedoImage);
 			desc.normal = ToTexture(material.normalImage);
 			desc.roughnessMetalness = ToTexture(material.roughnessMetalnessImage);
-			resources.materials.push_back(CreateMaterial(desc));
+			CreateMaterial(handles.materials[i], desc);
 		}
 
-		resources.meshes.reserve(model.meshes.size());
-		for (const MeshData& mesh : model.meshes)
-			resources.meshes.push_back(CreateMesh(mesh));
+		for (dU32 i = 0; i < (dU32)model.meshes.size(); i++)
+			CreateMesh(handles.meshes[i], model.meshes[i]);
 
 		dVector<MaterialHandle> nodeMaterials;
-		resources.nodeMaterialSets.reserve(model.nodes.size());
-		for (const ModelNode& node : model.nodes)
+		for (dU32 i = 0; i < (dU32)model.nodes.size(); i++)
 		{
 			nodeMaterials.clear();
-			for (dU32 materialIndex : node.materials)
-				nodeMaterials.push_back(resources.materials[materialIndex]);
-			resources.nodeMaterialSets.push_back(CreateMaterialSet(nodeMaterials));
+			for (dU32 materialIndex : model.nodes[i].materials)
+				nodeMaterials.push_back(handles.materials[materialIndex]);
+			CreateMaterialSet(handles.nodeMaterialSets[i], nodeMaterials);
 		}
-
-		return resources;
 	}
 
 	dU64 ResourceManager::GetUploadSize(TextureHandle handle) const
@@ -225,20 +272,28 @@ namespace Dune::Graphics
 		TextureEntry entry = m_textures.Remove(handle);
 		entry.texture.Destroy();
 		m_srvHeap.Free(entry.srv);
+		if (m_pHandles == &m_ownHandles)
+			m_ownHandles.textures.Free(handle);
 	}
 
 	void ResourceManager::Destroy(MaterialHandle handle)
 	{
 		m_materials.Remove(handle);
+		if (m_pHandles == &m_ownHandles)
+			m_ownHandles.materials.Free(handle);
 	}
 
 	void ResourceManager::Destroy(MaterialSetHandle handle)
 	{
 		m_materialSets.Remove(handle);
+		if (m_pHandles == &m_ownHandles)
+			m_ownHandles.materialSets.Free(handle);
 	}
 
 	void ResourceManager::Destroy(MeshHandle handle)
 	{
 		m_meshes.Remove(handle).Destroy();
+		if (m_pHandles == &m_ownHandles)
+			m_ownHandles.meshes.Free(handle);
 	}
 }
