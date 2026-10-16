@@ -3,10 +3,13 @@
 #include "Dune/Graphics/RHI/Resource.h"
 #include "Dune/Graphics/Format.h"
 #include "Dune/Graphics/RHI/Barrier.h"
+#include "Dune/Graphics/RHI/TextureData.h"
+#include "Dune/Graphics/RHI/StagingMemory.h"
 
-namespace Dune::Graphics 
+namespace Dune::Graphics
 {
 	class Device;
+	class CommandList;
 
 	enum class ETextureUsage : dU32
 	{
@@ -42,15 +45,20 @@ namespace Dune::Graphics
 	class Texture : public Resource
 	{
 	public:
+		static constexpr dU64 kUploadAlignment{ 512 };
+
 		void Initialize(Device& device, const TextureDesc& desc);
 		void Destroy();
+
+		[[nodiscard]] dU64 GetUploadSize() const;
+		void Upload(const TextureData& data, CommandList& commandList, const StagingMemory& staging);
 
 		[[nodiscard]] const dU32* GetDimensions() const { return m_desc.dimensions; }
 		[[nodiscard]] const float* GetClearValue() const { return m_desc.clearValue; }
 		[[nodiscard]] EFormat GetFormat() const { return m_desc.format; }
 		[[nodiscard]] dU32 GetMipLevels() const { return m_desc.mipLevels; }
 
-		dU64 GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource);
+		[[nodiscard]] dU64 GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource) const;
 	private:
 		friend class Swapchain;
 

@@ -14,6 +14,7 @@ namespace Dune::Graphics
 	class Fence;
 	class Texture;
 	class Barrier;
+	enum class EResourceState : dU32;
 
 	enum class ECommandType
 	{
@@ -72,6 +73,7 @@ namespace Dune::Graphics
 		void UploadTexture(Texture& destTexture, Buffer& uploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 numSubresource, void* pSrcData);
 
 		void Transition(const Barrier& barrier);
+		void Transition(Resource& resource, EResourceState stateBefore, EResourceState stateAfter);
 		void SetDescriptorHeaps(DescriptorHeap& srvHeap);
 		void SetDescriptorHeaps(DescriptorHeap& srvHeap, DescriptorHeap& samplerHeap);
 		void SetGraphicsRootSignature(RootSignature& rootSignature);

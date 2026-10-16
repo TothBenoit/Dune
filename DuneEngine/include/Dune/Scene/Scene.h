@@ -1,6 +1,7 @@
 #pragma once
 
 #include <EnTT/entt.hpp>
+#include "Dune/Graphics/Handles.h"
 
 namespace Dune
 {
@@ -13,9 +14,8 @@ namespace Dune
 
 	struct RenderData
 	{
-		dU32 meshIdx;
-		dU32 materialSlotStart;
-		dU32 materialSlotCount;
+		Graphics::MeshHandle        mesh;
+		Graphics::MaterialSetHandle materials;
 	};
 
 	struct Name

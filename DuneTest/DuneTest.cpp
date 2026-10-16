@@ -14,6 +14,7 @@
 #include <Dune/Scene/Scene.h>
 #include <Dune/Scene/Camera.h>
 #include <Dune/Utilities/SceneLoader.h>
+#include <Dune/Utilities/ModelImporter.h>
 #include <Dune/Utilities/StringUtils.h>
 #include <filesystem>
 #include <imgui/imgui.h>
@@ -29,6 +30,19 @@ public:
 		, m_pScene{pScene}
 	{}
 
+	void LoadModel(const char* pPath)
+	{
+		Graphics::ModelData model;
+		if (!ModelImporter::Import(pPath, model))
+			return;
+
+		Graphics::ResourceManager& resources = m_pRenderContext->GetResourceManager();
+		const Graphics::ModelResources modelResources = resources.CreateModel(model);
+		const Graphics::StagingMemory staging = m_renderer.AllocateStaging(resources.GetUploadSize(modelResources), Graphics::Texture::kUploadAlignment);
+		resources.Upload(modelResources, model, m_renderer.GetUploadCommandList(), staging);
+		SceneLoader::Spawn(*m_pScene, model, modelResources);
+	}
+
 	void Run()
 	{
 		m_camera.SetNear(0.1f);
@@ -43,6 +57,7 @@ public:
 		);
 		m_renderer.Initialize(*m_pRenderContext, m_window);
 		m_imgui.Initialize(m_window, m_renderer);
+		LoadModel("app://Sponza/Sponza.gltf");
 
 		Graphics::FrameData frameData;
 
@@ -437,8 +452,6 @@ int main(int argc, char** argv)
 
 	Scene scene{};
 	entt::registry& registry = scene.registry;
-	dString sponzaPath("app://Sponza/Sponza.gltf");
-	SceneLoader::Load(sponzaPath.c_str(), scene, renderContext.GetResourceManager());
 
 	EntityID sun = registry.create();
 	Light& sunLight = registry.emplace<Light>(sun);

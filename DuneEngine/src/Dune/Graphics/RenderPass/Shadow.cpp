@@ -285,25 +285,10 @@ namespace Dune::Graphics
 			dsvHeap.Free(dsv);
 		}
 
-		void* pMappedData{ nullptr };
 		const dU32 matricesByteSize = (dU32)shadowCasters.size() * (dU32)sizeof(dMatrix4x4);
-		if (frame.uploadOffset + matricesByteSize < frame.uploadBuffer.GetByteSize())
-		{
-			pMappedData = (dU8*)frame.pUploadAddress + frame.uploadOffset;
-			memcpy(pMappedData, frameData.lights.shadowMatrices.data(), matricesByteSize);
-			frame.commandList.CopyBufferRegion(pData->matricesBuffer, 0, frame.uploadBuffer, frame.uploadOffset, matricesByteSize);
-			frame.uploadOffset += matricesByteSize;
-		}
-		else
-		{
-			Buffer uploadBuffer{};
-			uploadBuffer.Initialize(device, { .debugName{ L"ShadowMatricesUploadBuffer" }, .byteSize{ matricesByteSize } });
-			uploadBuffer.Map(0, matricesByteSize, &pMappedData);
-			memcpy(pMappedData, frameData.lights.shadowMatrices.data(), matricesByteSize);
-			uploadBuffer.Unmap(0, matricesByteSize);
-			frame.commandList.CopyBufferRegion(pData->matricesBuffer, 0, uploadBuffer, 0, matricesByteSize);
-			frame.buffersToRelease.push_back(uploadBuffer);
-		}
+		StagingMemory staging = renderer.AllocateStaging(matricesByteSize, 16);
+		memcpy(staging.pCpuAddress, frameData.lights.shadowMatrices.data(), matricesByteSize);
+		commandList.CopyBufferRegion(pData->matricesBuffer, 0, staging.buffer, staging.offset, matricesByteSize);
 	}
 
 	void Shadow::Destroy(Renderer& renderer, ShadowData* pData)

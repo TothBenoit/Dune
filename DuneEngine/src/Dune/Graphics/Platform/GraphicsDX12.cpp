@@ -569,6 +569,12 @@ namespace Dune::Graphics
 		ToCommandList(Get())->ResourceBarrier(barrier.GetBarrierCount(), (const D3D12_RESOURCE_BARRIER*)barrier.Get());
 	}
 
+	void CommandList::Transition(Resource& resource, EResourceState stateBefore, EResourceState stateAfter)
+	{
+		const D3D12_RESOURCE_BARRIER barrier{ CD3DX12_RESOURCE_BARRIER::Transition(ToResource(resource.Get()), ToResourceState(stateBefore), ToResourceState(stateAfter)) };
+		ToCommandList(Get())->ResourceBarrier(1, &barrier);
+	}
+
 	void CommandList::SetDescriptorHeaps(DescriptorHeap& srvHeap)
 	{
 		ID3D12DescriptorHeap* pDescriptorHeaps[]{ ToDescriptorHeap(srvHeap.Get()) };
@@ -1078,9 +1084,9 @@ namespace Dune::Graphics
 		ToResource(Get())->Release();
 	}
 
-	dU64 Buffer::GetGPUAddress()
+	dU64 Buffer::GetGPUAddress() const
 	{
-		return ToResource(Get())->GetGPUVirtualAddress();
+		return ToResource(m_pResource)->GetGPUVirtualAddress();
 	}
 
 	void Buffer::Map(dU32 byteOffset, dU32 byteSize, void** pCpuAddress)
@@ -1155,9 +1161,21 @@ namespace Dune::Graphics
 		ToResource(Get())->Release();
 	}
 
-	dU64 Texture::GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource)
+	dU64 Texture::GetUploadSize() const
 	{
-		ID3D12Resource* pResource{ ToResource(Get()) };
+		return GetRequiredIntermediateSize(0, m_desc.mipLevels);
+	}
+
+	void Texture::Upload(const TextureData& data, CommandList& commandList, const StagingMemory& staging)
+	{
+		Assert(staging.IsValid() && staging.offset % kUploadAlignment == 0 && data.mipLevels == m_desc.mipLevels);
+		Buffer stagingBuffer{ staging.buffer };
+		commandList.UploadTexture(*this, stagingBuffer, staging.offset, 0, data.mipLevels, (void*)data.bytes.data());
+	}
+
+	dU64 Texture::GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource) const
+	{
+		ID3D12Resource* pResource{ ToResource(m_pResource) };
 		D3D12_RESOURCE_DESC Desc = pResource->GetDesc();
 		dU64 requiredSize = 0;
 

@@ -4,7 +4,7 @@
 
 namespace Dune::Graphics
 {
-	struct ImageData
+	struct TextureData
 	{
 		EFormat      format{ EFormat::Unknown };
 		dU32         width{ 0 };

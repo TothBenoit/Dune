@@ -9,6 +9,7 @@
 #include <Dune/Graphics/RHI/Fence.h>
 #include <Dune/Graphics/RHI/Swapchain.h>
 #include <Dune/Graphics/RHI/Texture.h>
+#include <Dune/Graphics/ScratchAllocator.h>
 
 namespace Dune
 {
@@ -27,14 +28,17 @@ namespace Dune
 		struct Frame
 		{
 			dU32 fenceValue{ 0 };
+			bool isPrepared{ false };
+			bool hasUploads{ false };
 			CommandAllocator commandAllocator;
 			CommandList commandList;
+			CommandAllocator uploadCommandAllocator;
+			CommandList uploadCommandList;
 			Descriptor backBufferRTV;
 			ScratchDescriptorHeap srvHeap;
 			ScratchDescriptorHeap samplerHeap;
 			Buffer uploadBuffer;
-			void* pUploadAddress;
-			dU32 uploadOffset;
+			ScratchAllocator staging;
 			dVector<Buffer> buffersToRelease;
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
 		};
@@ -63,6 +67,9 @@ namespace Dune
 
 			void OnResize(dU32 width, dU32 height);
 			void Render(const FrameData& frameData, const Camera& camera);
+
+			[[nodiscard]] StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
+			[[nodiscard]] CommandList& GetUploadCommandList();
 
 			[[nodiscard]] inline Device* GetDevice() { return m_pDevice; }
 			[[nodiscard]] inline PSOCache* GetPSOCache() { return m_pPSOCache; }
@@ -127,6 +134,8 @@ namespace Dune
 
 		private:
 			void WaitForFrame(const Frame& frame);
+			Frame& PrepareFrame();
+			void SubmitPendingUploads(Frame& frame);
 
 			void TransitionResource(const ResourceAccess& access);
 			void FlushBarriers(CommandList& commandList);

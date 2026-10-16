@@ -20,6 +20,8 @@
     <ClCompile Include="src\Dune\Graphics\PSOCache.cpp" />
     <ClCompile Include="src\Dune\Utilities\StringUtils.cpp" />
     <ClCompile Include="src\Dune\Utilities\MeshUtils.cpp" />
+    <ClCompile Include="src\Dune\Utilities\ModelImporter.cpp" />
+    <ClCompile Include="src\Dune\Graphics\ScratchAllocator.cpp" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Core\FileLoader.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
@@ -27,7 +29,9 @@
     <ClInclude Include="include\Dune\Graphics\Material.h" />
     <ClInclude Include="include\Dune\Graphics\Handles.h" />
     <ClInclude Include="include\Dune\Graphics\MeshData.h" />
-    <ClInclude Include="include\Dune\Graphics\ImageData.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\TextureData.h" />
+    <ClInclude Include="include\Dune\Utilities\Handle.h" />
+    <ClInclude Include="include\Dune\Utilities\ResourcePool.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearDepth.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearHDRTarget.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
@@ -70,6 +74,10 @@
     <ClInclude Include="include\Dune\Graphics\Mesh.h" />
     <ClInclude Include="include\Dune\Utilities\StringUtils.h" />
     <ClInclude Include="include\Dune\Utilities\MeshUtils.h" />
+    <ClInclude Include="include\Dune\Utilities\ModelImporter.h" />
+    <ClInclude Include="include\Dune\Graphics\ModelData.h" />
+    <ClInclude Include="include\Dune\Graphics\RHI\StagingMemory.h" />
+    <ClInclude Include="include\Dune\Graphics\ScratchAllocator.h" />
     <ClInclude Include="include\Dune\Utilities\HashUtils.h" />
     <ClInclude Include="include\Dune\Core\Types.h" />
     <ClInclude Include="include\Dune\Core\Input.h" />

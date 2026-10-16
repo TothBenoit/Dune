@@ -1,44 +1,31 @@
 #pragma once
 
-#include "Dune/Core/FileSystem.h"
 #include "Dune/Graphics/RHI/Texture.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
+#include "Dune/Graphics/Handles.h"
+#include "Dune/Graphics/RHI/StagingMemory.h"
 #include "Dune/Graphics/Mesh.h"
-#include "Dune/Graphics/ImageData.h"
 #include "Dune/Graphics/Material.h"
-#include "Dune/Resources/Shaders/ShaderInterop.h"
+#include "Dune/Graphics/RHI/TextureData.h"
+#include "Dune/Graphics/ModelData.h"
+#include "Dune/Utilities/ResourcePool.h"
 
 namespace Dune::Graphics
 {
 	class Device;
 	class CommandList;
-	class Buffer;
 
-	struct MaterialImportDesc
+	struct MaterialSet
 	{
-		dVec3   baseColor{ 1.0f, 1.0f, 1.0f };
-		float   metalnessFactor{ 1.0f };
-		float   roughnessFactor{ 1.0f };
-		dString albedoPath;
-		dString normalPath;
-		dString roughnessMetalnessPath;
-		EAlphaMode alphaMode{ EAlphaMode::Opaque };
-		float alphaCutoff{ 0.5f };
-		bool doubleSided{ false };
+		dVector<MaterialHandle> materials;
 	};
 
-	struct ModelNode
+	struct ModelResources
 	{
-		dVec3 position;
-		dQuat rotation;
-		dU32 meshIndex;
-		dU32 materialSlotStart;
-		dU32 materialSlotCount;
-	};
-
-	struct ModelData
-	{
-		dVector<ModelNode> nodes;
+		dVector<TextureHandle>     textures;
+		dVector<MaterialHandle>    materials;
+		dVector<MeshHandle>        meshes;
+		dVector<MaterialSetHandle> nodeMaterialSets;
 	};
 
 	class ResourceManager
@@ -49,39 +36,47 @@ namespace Dune::Graphics
 		void Initialize(Device& device);
 		void Destroy();
 
-		[[nodiscard]] dU32 GetTexture(FileSystem::SerializationID<EFileType::Image> id, bool sRGB = false);
-		[[nodiscard]] Texture& GetTexture(dU32 index) { return m_textures[index]; }
+		[[nodiscard]] TextureHandle     CreateTexture(const TextureData& image, bool sRGB);
+		[[nodiscard]] MaterialHandle    CreateMaterial(const MaterialDesc& desc);
+		[[nodiscard]] MaterialSetHandle CreateMaterialSet(dSpan<MaterialHandle> materials);
+		[[nodiscard]] MeshHandle        CreateMesh(const MeshData& meshData);
+		[[nodiscard]] ModelResources    CreateModel(const ModelData& model);
 
-		[[nodiscard]] const ModelData& GetModel(FileSystem::SerializationID<EFileType::Model> id);
-		[[nodiscard]] Mesh& GetMesh(dU32 index) { return m_meshes[index]; }
-		[[nodiscard]] dVector<Mesh>& GetMeshes() { return m_meshes; }
-		[[nodiscard]] const Material& GetMaterial(dU32 id) const { return m_materials[id]; }
-		[[nodiscard]] const dVector<Material>& GetMaterials() const { return m_materials; }
-		[[nodiscard]] dU32 GetMaterialID(dU32 slot) const { return m_materialIDs[slot]; }
+		[[nodiscard]] dU64 GetUploadSize(TextureHandle handle) const;
+		[[nodiscard]] dU64 GetUploadSize(MeshHandle handle) const;
+		[[nodiscard]] dU64 GetUploadSize(const ModelResources& resources) const;
+		void Upload(TextureHandle handle, const TextureData& data, CommandList& commandList, const StagingMemory& staging);
+		void Upload(MeshHandle handle, const MeshData& meshData, CommandList& commandList, const StagingMemory& staging);
+		void Upload(const ModelResources& resources, const ModelData& model, CommandList& commandList, const StagingMemory& staging);
+
+		void Destroy(TextureHandle handle);
+		void Destroy(MaterialHandle handle);
+		void Destroy(MaterialSetHandle handle);
+		void Destroy(MeshHandle handle);
+
+		[[nodiscard]] const Mesh& GetMesh(MeshHandle handle) const { return m_meshes.Get(handle); }
+		[[nodiscard]] const Material& GetMaterial(MaterialHandle handle) const { return m_materials.Get(handle); }
+		[[nodiscard]] const MaterialSet& GetMaterialSet(MaterialSetHandle handle) const { return m_materialSets.Get(handle); }
+		[[nodiscard]] const ResourcePool<Mesh>& GetMeshes() const { return m_meshes; }
+		[[nodiscard]] const ResourcePool<Material>& GetMaterials() const { return m_materials; }
 		[[nodiscard]] const BlockDescriptorHeap& GetSRVHeap() const { return m_srvHeap; }
 
 	private:
-		void RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot);
-		[[nodiscard]] dU32 CreateTextureFromPath(CommandList& commandList, dVector<Buffer>& uploadBuffers, const dString& path, bool sRGB);
-		[[nodiscard]] dU32 CreateTexture(const ImageData& image, bool sRGB, CommandList& commandList, dVector<Buffer>& uploadBuffers);
-		[[nodiscard]] dU32 CreateMaterial(const MaterialImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots);
-		[[nodiscard]] dU32 CreateMesh(const MeshData& meshData, CommandList& commandList, dVector<Buffer>& uploadBuffers);
-		void ImportModel(const dString& path, ModelData& outModel);
-		dU32 ResolveTexture(const dString& path, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots, bool sRGB);
+		struct TextureEntry
+		{
+			Texture    texture;
+			Descriptor srv;
+		};
+
+		[[nodiscard]] dU32 GetBindlessIndex(TextureHandle handle) const;
 
 	private:
-
 		Device* m_pDevice{ nullptr }; // TODO Cleanup : A ResourceManager is owned by a RenderContext which already own a device. The resource manager should not need this
 
-		dVector<Texture>      m_textures;
-		dVector<Mesh>         m_meshes;
-		dVector<Material>     m_materials;
-		dVector<dU32>         m_materialIDs;
-		dVector<dU32>         m_textureIDs;
-		BlockDescriptorHeap   m_srvHeap;
-
-		dVector<dU32>         m_imageLookup;
-		dVector<dU32>         m_modelLookup;
-		dVector<ModelData>    m_models;
+		ResourcePool<TextureEntry, Texture> m_textures;
+		ResourcePool<Material>              m_materials;
+		ResourcePool<MaterialSet>           m_materialSets;
+		ResourcePool<Mesh>                  m_meshes;
+		BlockDescriptorHeap                 m_srvHeap;
 	};
 }

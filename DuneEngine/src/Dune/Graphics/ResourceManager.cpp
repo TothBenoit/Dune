@@ -1,266 +1,26 @@
 #include "pch.h"
 #include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/RHI/Device.h"
-#include "Dune/Graphics/RHI/Buffer.h"
-#include "Dune/Graphics/RHI/Fence.h"
 #include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Utilities/DDSImporter.h"
-#include "Dune/Core/Logger.h"
-
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-#include <assimp/GltfMaterial.h>
 
 namespace Dune::Graphics
 {
-
-	struct NodeRef
+	static dU64 AlignUp(dU64 value, dU64 alignment)
 	{
-		const aiNode* pNode;
-		dVec3         position;
-		dQuat         rotation;
-		aiVector3D    scale;
-	};
-
-	static void FlattenNodes(const aiNode* pNode, const aiMatrix4x4& parentTransform, dVector<NodeRef>& outNodes)
-	{
-		aiMatrix4x4 worldTransform = pNode->mTransformation * parentTransform;
-
-		if (pNode->mNumMeshes > 0)
-		{
-			aiVector3D   aiScale;
-			aiQuaternion aiRotation;
-			aiVector3D   aiPosition;
-			worldTransform.Decompose(aiScale, aiRotation, aiPosition);
-			outNodes.push_back({ pNode, { aiPosition.x, aiPosition.y, aiPosition.z }, { aiRotation.x, aiRotation.y, aiRotation.z, aiRotation.w }, aiScale });
-		}
-
-		for (dU32 i = 0; i < pNode->mNumChildren; i++)
-			FlattenNodes(pNode->mChildren[i], worldTransform, outNodes);
+		return (value + alignment - 1) & ~(alignment - 1);
 	}
 
-	static void ExtractMaterial(const aiMaterial* pMaterial, const dString& dirPath, MaterialImportDesc& out)
+	static StagingMemory SubAllocate(const StagingMemory& staging, dU64& offset, dU64 byteSize, dU64 alignment)
 	{
-		out = {};
-		aiString texturePath;
-		if (pMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &texturePath) == aiReturn_SUCCESS)
-			out.albedoPath = dirPath + texturePath.C_Str();
-		if (pMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == aiReturn_SUCCESS)
-			out.normalPath = dirPath + texturePath.C_Str();
-		if (pMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath) == aiReturn_SUCCESS)
-			out.roughnessMetalnessPath = dirPath + texturePath.C_Str();
-
-		aiUVTransform data;
-		if (pMaterial->Get(AI_MATKEY_BASE_COLOR, data) == aiReturn_SUCCESS)
-			out.baseColor = *((dVec3*)&data);
-		if (pMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, data) == aiReturn_SUCCESS)
-			out.roughnessFactor = *(float*)(&data);
-		if (pMaterial->Get(AI_MATKEY_METALLIC_FACTOR, data) == aiReturn_SUCCESS)
-			out.metalnessFactor = *(float*)(&data);
-
-		aiString alphaMode;
-		if (pMaterial->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == aiReturn_SUCCESS)
-		{
-			if (strcmp(alphaMode.C_Str(), "MASK") == 0)
-				out.alphaMode = EAlphaMode::Mask;
-			else if (strcmp(alphaMode.C_Str(), "BLEND") == 0) 
-				out.alphaMode = EAlphaMode::Blend;
-		}
-
-		float alphaCutoff;
-		if (pMaterial->Get(AI_MATKEY_GLTF_ALPHACUTOFF, alphaCutoff) == aiReturn_SUCCESS)
-			out.alphaCutoff = alphaCutoff;
-
-		int doubleSided;
-		if (pMaterial->Get(AI_MATKEY_TWOSIDED, doubleSided) == aiReturn_SUCCESS)
-			out.doubleSided = doubleSided != 0;
+		offset = AlignUp(offset, alignment);
+		const StagingMemory subRegion{ .buffer = staging.buffer, .offset = staging.offset + offset, .pCpuAddress = (dU8*)staging.pCpuAddress + offset };
+		offset += byteSize;
+		return subRegion;
 	}
 
-	static void ExtractNodeMesh(const aiNode* pNode, const aiScene* pScene, const aiVector3D& scale, MeshData& outMesh, dVector<dU32>& outMaterialIndices)
+	static MeshDesc ToMeshDesc(const MeshData& meshData)
 	{
-		if (pNode->mNumMeshes > 0)
-		{
-			const aiVector3D inverseScale{ 1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z };
-			const bool isMirrored = scale.x * scale.y * scale.z < 0.0f;
-			dVector<Vertex>&  vertices = outMesh.vertices;
-			dVector<dU32>&    indices = outMesh.indices;
-			dVector<SubMesh>& subMeshes = outMesh.subMeshes;
-			subMeshes.reserve(pNode->mNumMeshes);
-
-			for (dU32 i = 0; i < pNode->mNumMeshes; i++)
-			{
-				const aiMesh* pMesh = pScene->mMeshes[pNode->mMeshes[i]];
-
-				dU32 materialSlot;
-				for (materialSlot = 0; materialSlot < (dU32)outMaterialIndices.size(); materialSlot++)
-					if (outMaterialIndices[materialSlot] == pMesh->mMaterialIndex)
-						break;
-				if (materialSlot == outMaterialIndices.size())
-					outMaterialIndices.push_back(pMesh->mMaterialIndex);
-
-				SubMesh& subMesh = subMeshes.emplace_back();
-				subMesh.vertexOffset = (dU32)vertices.size();
-				subMesh.indexOffset = (dU32)indices.size();
-				subMesh.materialSlot = materialSlot;
-
-				for (dU32 vertexIdx = 0; vertexIdx < pMesh->mNumVertices; vertexIdx++)
-				{
-					Vertex vertex{};
-					const aiVector3D& position = pMesh->mVertices[vertexIdx];
-					vertex.position = { position.x * scale.x, position.y * scale.y, position.z * scale.z };
-
-					if (pMesh->HasNormals())
-					{
-						aiVector3D normal{ pMesh->mNormals[vertexIdx] };
-						normal = aiVector3D{ normal.x * inverseScale.x, normal.y * inverseScale.y, normal.z * inverseScale.z }.NormalizeSafe();
-						vertex.normal = { normal.x, normal.y, normal.z };
-
-						if (pMesh->HasTangentsAndBitangents())
-						{
-							float dotResult;
-							const aiVector3D& sourceTangent = pMesh->mTangents[vertexIdx];
-							const aiVector3D& sourceBitangent = pMesh->mBitangents[vertexIdx];
-							aiVector3D tangent{ sourceTangent.x * scale.x, sourceTangent.y * scale.y, sourceTangent.z * scale.z };
-							tangent.NormalizeSafe();
-							const aiVector3D bitangent{ sourceBitangent.x * scale.x, sourceBitangent.y * scale.y, sourceBitangent.z * scale.z };
-							dVec computedBitangent = DirectX::XMVector3Cross({ normal.x, normal.y, normal.z }, { tangent.x, tangent.y, tangent.z });
-							DirectX::XMStoreFloat(&dotResult, DirectX::XMVector3Dot(computedBitangent, { bitangent.x, bitangent.y, bitangent.z, }));
-							vertex.tangent = { tangent.x, tangent.y, tangent.z, dotResult > 0.0f ? 1.0f : -1.0f };
-						}
-					}
-
-					if (pMesh->GetNumUVChannels() > 0)
-					{
-						const aiVector3D& uv = pMesh->mTextureCoords[0][vertexIdx];
-						vertex.uv = { uv.x, uv.y };
-					}
-					vertices.push_back(vertex);
-				}
-
-				for (dU32 f = 0; f < pMesh->mNumFaces; f++)
-				{
-					const aiFace& face = pMesh->mFaces[f];
-					if (face.mNumIndices != 3)
-						continue;
-					indices.push_back(face.mIndices[0]);
-					indices.push_back(face.mIndices[isMirrored ? 2 : 1]);
-					indices.push_back(face.mIndices[isMirrored ? 1 : 2]);
-				}
-				subMesh.indexCount = (dU32)indices.size() - subMesh.indexOffset;
-			}
-			outMesh.materialSlotCount = (dU32)outMaterialIndices.size();
-		}
-	}
-
-	void ResourceManager::Initialize(Device& device)
-	{
-		m_pDevice = &device;
-		m_srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
-	}
-
-	void ResourceManager::Destroy()
-	{
-		for (Texture& texture : m_textures)
-			texture.Destroy();
-		for (dU32 textureID : m_textureIDs)
-			m_srvHeap.Free(m_srvHeap.GetDescriptorAt(textureID));
-		for (Mesh& mesh : m_meshes)
-			mesh.Destroy();
-		m_srvHeap.Destroy();
-	}
-
-	void ResourceManager::RegisterImageSlot(FileSystem::SerializationID<EFileType::Image> id, dU32 slot)
-	{
-		if (id.index >= (dU32)m_imageLookup.size())
-			m_imageLookup.resize(id.index + 1, dU32(-1));
-		m_imageLookup[id.index] = slot;
-	}
-
-	dU32 ResourceManager::CreateTextureFromPath(CommandList& commandList, dVector<Buffer>& uploadBuffers, const dString& path, bool sRGB)
-	{
-		ImageData image;
-		if (!DDSImporter::Import(path.c_str(), image))
-			return dU32(-1);
-		return CreateTexture(image, sRGB, commandList, uploadBuffers);
-	}
-
-	dU32 ResourceManager::CreateTexture(const ImageData& image, bool sRGB, CommandList& commandList, dVector<Buffer>& uploadBuffers)
-	{
-		Texture texture{};
-		texture.Initialize(*m_pDevice,
-			{
-				.usage = ETextureUsage::ShaderResource,
-				.dimensions = { image.width, image.height, 1 },
-				.mipLevels = image.mipLevels,
-				.format = sRGB ? ToSRGB(image.format) : image.format,
-			});
-
-		Buffer& uploadBuffer = uploadBuffers.emplace_back();
-		uploadBuffer.Initialize(*m_pDevice, { .debugName = L"UploadBuffer", .memory = EBufferMemory::CPU, .byteSize = (dU32)texture.GetRequiredIntermediateSize(0, image.mipLevels) });
-		commandList.UploadTexture(texture, uploadBuffer, 0, 0, image.mipLevels, (void*)image.bytes.data());
-
-		Descriptor textureDescriptor = m_srvHeap.Allocate();
-		m_pDevice->CreateSRV(textureDescriptor, texture);
-
-		dU32 slot = (dU32)m_textures.size();
-		m_textures.push_back(texture);
-		m_textureIDs.push_back(m_srvHeap.GetIndex(textureDescriptor));
-		return slot;
-	}
-
-	dU32 ResourceManager::ResolveTexture(const dString& path, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots, bool sRGB)
-	{
-		if (path.empty())
-			return dU32(-1);
-		FileSystem::SerializationID<EFileType::Image> id = FileSystem::Resolve<EFileType::Image>(path.c_str());
-		dU32 slot = id.index < (dU32)m_imageLookup.size() ? m_imageLookup[id.index] : dU32(-1);
-		if (slot == dU32(-1))
-		{
-			slot = CreateTextureFromPath(commandList, uploadBuffers, path, sRGB);
-			if (slot == dU32(-1))
-				return slot;
-			newTextureSlots.push_back(slot);
-			RegisterImageSlot(id, slot);
-		}
-		return slot;
-	};
-
-	dU32 ResourceManager::CreateMaterial(const MaterialImportDesc& desc, CommandList& commandList, dVector<Buffer>& uploadBuffers, dVector<dU32>& newTextureSlots)
-	{
-		Material material
-		{
-			.shaderData =
-			{
-				.baseColor = desc.baseColor,
-				.metalnessFactor = desc.metalnessFactor,
-				.roughnessFactor = desc.roughnessFactor,
-				.albedoIdx = ResolveTexture(desc.albedoPath, commandList, uploadBuffers, newTextureSlots, true),
-				.normalIdx = ResolveTexture(desc.normalPath, commandList, uploadBuffers, newTextureSlots, false),
-				.roughnessMetalnessIdx = ResolveTexture(desc.roughnessMetalnessPath, commandList, uploadBuffers, newTextureSlots, false),
-				.alphaCutoff = desc.alphaCutoff
-			},
-			.alphaMode = desc.alphaMode,
-			.faceCulling = desc.doubleSided ? ECullingMode::None : ECullingMode::Back,
-		};
-
-		if (material.shaderData.albedoIdx != dU32(-1))
-			material.shaderData.albedoIdx = m_textureIDs[material.shaderData.albedoIdx];
-		if (material.shaderData.normalIdx != dU32(-1))
-			material.shaderData.normalIdx = m_textureIDs[material.shaderData.normalIdx];
-		if (material.shaderData.roughnessMetalnessIdx != dU32(-1))
-			material.shaderData.roughnessMetalnessIdx = m_textureIDs[material.shaderData.roughnessMetalnessIdx];
-
-		dU32 slot = (dU32)m_materials.size();
-		m_materials.push_back(material);
-		return slot;
-	}
-
-	dU32 ResourceManager::CreateMesh(const MeshData& meshData, CommandList& commandList, dVector<Buffer>& uploadBuffers)
-	{
-		Mesh mesh{};
-		Buffer& uploadBuffer = uploadBuffers.emplace_back();
-		MeshDesc desc
+		return
 		{
 			.pVertices = meshData.vertices.data(),
 			.vertexCount = (dU32)meshData.vertices.size(),
@@ -272,156 +32,181 @@ namespace Dune::Graphics
 			.subMeshCount = (dU32)meshData.subMeshes.size(),
 			.materialSlotCount = meshData.materialSlotCount
 		};
-		mesh.Initialize(*m_pDevice, commandList, uploadBuffer, desc);
-		m_meshes.push_back(mesh);
-		return (dU32)m_meshes.size() - 1;
 	}
 
-	dU32 ResourceManager::GetTexture(FileSystem::SerializationID<EFileType::Image> id, bool sRGB)
+	void ResourceManager::Initialize(Device& device)
 	{
-		if (id.index < (dU32)m_imageLookup.size() && m_imageLookup[id.index] != dU32(-1))
-			return m_imageLookup[id.index];
-
-		ImageData image;
-		if (!DDSImporter::Import(FileSystem::GetPath(id).c_str(), image))
-			return dU32(-1);
-
-		CommandQueue commandQueue;
-		commandQueue.Initialize(*m_pDevice, ECommandType::Direct);
-		CommandAllocator commandAllocator;
-		commandAllocator.Initialize(*m_pDevice, ECommandType::Direct);
-		CommandList commandList;
-		commandList.Initialize(*m_pDevice, ECommandType::Direct, commandAllocator);
-		commandList.Close();
-		commandAllocator.Reset();
-		commandList.Reset(commandAllocator);
-
-		dVector<Buffer> uploadBuffers;
-		dU32 slot = CreateTexture(image, sRGB, commandList, uploadBuffers);
-		RegisterImageSlot(id, slot);
-
-		Barrier barrier{};
-		barrier.Initialize(1);
-		barrier.PushTransition(m_textures[slot], EResourceState::CopyDest, EResourceState::ShaderResource);
-		commandList.Transition(barrier);
-		barrier.Destroy();
-		commandList.Close();
-		commandQueue.ExecuteCommandLists(&commandList, 1);
-
-		Fence fence;
-		fence.Initialize(*m_pDevice, 0);
-		commandQueue.Signal(fence, 1);
-		fence.Wait(1);
-		fence.Destroy();
-
-		for (Buffer& buffer : uploadBuffers)
-			buffer.Destroy();
-		commandQueue.Destroy();
-		commandAllocator.Destroy();
-		commandList.Destroy();
-
-		return slot;
+		m_pDevice = &device;
+		m_srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
 	}
 
-	const ModelData& ResourceManager::GetModel(FileSystem::SerializationID<EFileType::Model> id)
+	void ResourceManager::Destroy()
 	{
-		if (id.index >= (dU32)m_modelLookup.size())
-			m_modelLookup.resize(id.index + 1, dU32(-1));
+		for (dU32 i = 0; i < m_textures.GetCapacity(); i++)
+			if (m_textures.IsAliveAt(i))
+				Destroy(m_textures.GetHandleAt(i));
+		for (dU32 i = 0; i < m_meshes.GetCapacity(); i++)
+			if (m_meshes.IsAliveAt(i))
+				Destroy(m_meshes.GetHandleAt(i));
 
-		dU32& slot = m_modelLookup[id.index];
-		if (slot == dU32(-1))
-		{
-			slot = (dU32)m_models.size();
-			m_models.emplace_back();
-			ImportModel(FileSystem::GetPath(id), m_models.back());
-		}
-		return m_models[slot];
+		m_srvHeap.Destroy();
+		m_pDevice = nullptr;
 	}
 
-	void ResourceManager::ImportModel(const dString& path, ModelData& outModel)
+	TextureHandle ResourceManager::CreateTexture(const TextureData& image, bool sRGB)
 	{
-		Assimp::Importer importer;
-		const aiScene* pScene{ importer.ReadFile(path, aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_CalcTangentSpace) };
-		if (!pScene)
-		{
-			LOG_ERROR(importer.GetErrorString());
-			return;
-		}
-
-		dSizeT lastSlash = path.find_last_of("/\\");
-		dString dirPath = (lastSlash == dString::npos) ? dString() : path.substr(0, lastSlash + 1);
-
-		CommandQueue commandQueue;
-		commandQueue.Initialize(*m_pDevice, ECommandType::Direct);
-		CommandAllocator commandAllocator;
-		commandAllocator.Initialize(*m_pDevice, ECommandType::Direct);
-		CommandList commandList;
-		commandList.Initialize(*m_pDevice, ECommandType::Direct, commandAllocator);
-		commandList.Close();
-		commandAllocator.Reset();
-		commandList.Reset(commandAllocator);
-
-		dVector<Buffer> uploadBuffers;
-		dVector<dU32>   newTextureSlots;
-
-		dVector<NodeRef> nodeRefs;
-		FlattenNodes(pScene->mRootNode, {}, nodeRefs);
-
-		constexpr dU32 kInvalidMaterialIdx = dU32(-1);
-		dVector<dU32> materialLookup(pScene->mNumMaterials, kInvalidMaterialIdx);
-
-		MeshData meshDesc;
-		dVector<dU32>  nodeMaterials;
-		for (const NodeRef& ref : nodeRefs)
-		{
-			meshDesc.vertices.clear();
-			meshDesc.indices.clear();
-			meshDesc.subMeshes.clear();
-			nodeMaterials.clear();
-			ExtractNodeMesh(ref.pNode, pScene, ref.scale, meshDesc, nodeMaterials);
-
-			if (nodeMaterials.size() == 0)
-				continue;
-
-			ModelNode& node = outModel.nodes.emplace_back();
-			node.position = ref.position;
-			node.rotation = ref.rotation;
-			node.meshIndex = CreateMesh(meshDesc, commandList, uploadBuffers);
-			node.materialSlotStart = (dU32)m_materialIDs.size();
-			node.materialSlotCount = (dU32)nodeMaterials.size();
-
-			for (dU32 aiMaterialIdx : nodeMaterials)
+		Texture texture{};
+		texture.Initialize(*m_pDevice,
 			{
-				dU32 materialIndex = materialLookup[aiMaterialIdx];
-				if (materialIndex == kInvalidMaterialIdx)
-				{
-					MaterialImportDesc materialDesc;
-					ExtractMaterial(pScene->mMaterials[aiMaterialIdx], dirPath, materialDesc);
-					materialLookup[aiMaterialIdx] = materialIndex = CreateMaterial(materialDesc, commandList, uploadBuffers, newTextureSlots);
-				}
-				m_materialIDs.push_back(materialIndex);
-			}
+				.usage = ETextureUsage::ShaderResource,
+				.dimensions = { image.width, image.height, 1 },
+				.mipLevels = image.mipLevels,
+				.format = sRGB ? ToSRGB(image.format) : image.format,
+			});
+
+		const Descriptor srv = m_srvHeap.Allocate();
+		m_pDevice->CreateSRV(srv, texture);
+		return m_textures.Add({ .texture = texture, .srv = srv });
+	}
+
+	dU32 ResourceManager::GetBindlessIndex(TextureHandle handle) const
+	{
+		return handle.IsValid() ? m_srvHeap.GetIndex(m_textures.Get(handle).srv) : dU32(-1);
+	}
+
+	MaterialHandle ResourceManager::CreateMaterial(const MaterialDesc& desc)
+	{
+		return m_materials.Add(
+		{
+			.shaderData =
+			{
+				.baseColor = desc.baseColor,
+				.metalnessFactor = desc.metalness,
+				.roughnessFactor = desc.roughness,
+				.albedoIdx = GetBindlessIndex(desc.albedo),
+				.normalIdx = GetBindlessIndex(desc.normal),
+				.roughnessMetalnessIdx = GetBindlessIndex(desc.roughnessMetalness),
+				.alphaCutoff = desc.alphaCutoff
+			},
+			.alphaMode = desc.alphaMode,
+			.faceCulling = desc.faceCulling,
+		});
+	}
+
+	MaterialSetHandle ResourceManager::CreateMaterialSet(dSpan<MaterialHandle> materials)
+	{
+		for (MaterialHandle material : materials)
+			Assert(m_materials.IsValid(material));
+		return m_materialSets.Add({ .materials = dVector<MaterialHandle>(materials.begin(), materials.end()) });
+	}
+
+	MeshHandle ResourceManager::CreateMesh(const MeshData& meshData)
+	{
+		Mesh mesh{};
+		mesh.Initialize(*m_pDevice, ToMeshDesc(meshData));
+		return m_meshes.Add(std::move(mesh));
+	}
+
+	ModelResources ResourceManager::CreateModel(const ModelData& model)
+	{
+		ModelResources resources;
+
+		resources.textures.reserve(model.images.size());
+		for (const ModelImage& image : model.images)
+			resources.textures.push_back(CreateTexture(image.data, image.isSRGB));
+
+		const auto ToTexture = [&](dU32 imageIndex) { return imageIndex != kInvalidModelIndex ? resources.textures[imageIndex] : TextureHandle{}; };
+		resources.materials.reserve(model.materials.size());
+		for (const ModelMaterial& material : model.materials)
+		{
+			MaterialDesc desc{ material.desc };
+			desc.albedo = ToTexture(material.albedoImage);
+			desc.normal = ToTexture(material.normalImage);
+			desc.roughnessMetalness = ToTexture(material.roughnessMetalnessImage);
+			resources.materials.push_back(CreateMaterial(desc));
 		}
 
-		Barrier barrier{};
-		barrier.Initialize((dU32)newTextureSlots.size());
-		for (dU32 slot : newTextureSlots)
-			barrier.PushTransition(m_textures[slot], EResourceState::CopyDest, EResourceState::ShaderResource);
-		commandList.Transition(barrier);
-		barrier.Destroy();
-		commandList.Close();
-		commandQueue.ExecuteCommandLists(&commandList, 1);
+		resources.meshes.reserve(model.meshes.size());
+		for (const MeshData& mesh : model.meshes)
+			resources.meshes.push_back(CreateMesh(mesh));
 
-		Fence fence;
-		fence.Initialize(*m_pDevice, 0);
-		commandQueue.Signal(fence, 1);
-		fence.Wait(1);
-		fence.Destroy();
-		commandQueue.Destroy();
-		commandAllocator.Destroy();
-		commandList.Destroy();
+		dVector<MaterialHandle> nodeMaterials;
+		resources.nodeMaterialSets.reserve(model.nodes.size());
+		for (const ModelNode& node : model.nodes)
+		{
+			nodeMaterials.clear();
+			for (dU32 materialIndex : node.materials)
+				nodeMaterials.push_back(resources.materials[materialIndex]);
+			resources.nodeMaterialSets.push_back(CreateMaterialSet(nodeMaterials));
+		}
 
-		for (Buffer& buffer : uploadBuffers)
-			buffer.Destroy();
+		return resources;
+	}
+
+	dU64 ResourceManager::GetUploadSize(TextureHandle handle) const
+	{
+		return m_textures.Get(handle).texture.GetUploadSize();
+	}
+
+	dU64 ResourceManager::GetUploadSize(MeshHandle handle) const
+	{
+		return m_meshes.Get(handle).GetUploadSize();
+	}
+
+	dU64 ResourceManager::GetUploadSize(const ModelResources& resources) const
+	{
+		dU64 byteSize = 0;
+		for (TextureHandle texture : resources.textures)
+			byteSize = AlignUp(byteSize, Texture::kUploadAlignment) + GetUploadSize(texture);
+		for (MeshHandle mesh : resources.meshes)
+			byteSize = AlignUp(byteSize, Mesh::kUploadAlignment) + GetUploadSize(mesh);
+		return byteSize;
+	}
+
+	void ResourceManager::Upload(const ModelResources& resources, const ModelData& model, CommandList& commandList, const StagingMemory& staging)
+	{
+		Assert(staging.IsValid() && staging.offset % Texture::kUploadAlignment == 0);
+		dU64 offset = 0;
+		for (dU32 i = 0; i < (dU32)resources.textures.size(); i++)
+			Upload(resources.textures[i], model.images[i].data, commandList, SubAllocate(staging, offset, GetUploadSize(resources.textures[i]), Texture::kUploadAlignment));
+		for (dU32 i = 0; i < (dU32)resources.meshes.size(); i++)
+			Upload(resources.meshes[i], model.meshes[i], commandList, SubAllocate(staging, offset, GetUploadSize(resources.meshes[i]), Mesh::kUploadAlignment));
+	}
+
+	void ResourceManager::Upload(TextureHandle handle, const TextureData& data, CommandList& commandList, const StagingMemory& staging)
+	{
+		Texture& texture = m_textures.Get(handle).texture;
+		texture.Upload(data, commandList, staging);
+		commandList.Transition(texture, EResourceState::CopyDest, EResourceState::ShaderResource);
+	}
+
+	void ResourceManager::Upload(MeshHandle handle, const MeshData& meshData, CommandList& commandList, const StagingMemory& staging)
+	{
+		Mesh& mesh = m_meshes.Get(handle);
+		mesh.Upload(ToMeshDesc(meshData), commandList, staging);
+		commandList.Transition(mesh.GetIndexBuffer(), EResourceState::CopyDest, EResourceState::IndexBuffer);
+		commandList.Transition(mesh.GetVertexBuffer(), EResourceState::CopyDest, EResourceState::VertexBuffer);
+	}
+
+	void ResourceManager::Destroy(TextureHandle handle)
+	{
+		TextureEntry entry = m_textures.Remove(handle);
+		entry.texture.Destroy();
+		m_srvHeap.Free(entry.srv);
+	}
+
+	void ResourceManager::Destroy(MaterialHandle handle)
+	{
+		m_materials.Remove(handle);
+	}
+
+	void ResourceManager::Destroy(MaterialSetHandle handle)
+	{
+		m_materialSets.Remove(handle);
+	}
+
+	void ResourceManager::Destroy(MeshHandle handle)
+	{
+		m_meshes.Remove(handle).Destroy();
 	}
 }

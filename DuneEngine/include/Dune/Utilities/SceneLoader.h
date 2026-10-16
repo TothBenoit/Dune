@@ -6,11 +6,12 @@ namespace Dune
 
 	namespace Graphics
 	{
-		class ResourceManager;
+		struct ModelData;
+		struct ModelResources;
 	}
 
 	namespace SceneLoader
 	{
-		bool Load(const char* path, Scene& scene, Graphics::ResourceManager& resourceManager);
+		void Spawn(Scene& scene, const Graphics::ModelData& model, const Graphics::ModelResources& resources);
 	}
 }

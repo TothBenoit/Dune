@@ -95,8 +95,8 @@ namespace Dune::Graphics
 		frameData.lights.shadowMatrices.clear();
 		frameData.drawItems.clear();
 
-		ResourceManager& resourceManager = GetResourceManager();
-		const BlockDescriptorHeap& sharedHeap = resourceManager.GetSRVHeap();
+		const ResourceManager& resources = GetResourceManager();
+		const BlockDescriptorHeap& sharedHeap = resources.GetSRVHeap();
 		frameData.sharedSRVHeapCPUAddress = sharedHeap.GetCPUAddress();
 		frameData.sharedSRVHeapCapacity = sharedHeap.GetCapacity();
 
@@ -126,37 +126,41 @@ namespace Dune::Graphics
 					DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
 				);
 
-				Mesh& mesh = resourceManager.GetMesh(renderData.meshIdx);
-				Assert(renderData.materialSlotCount == mesh.GetMaterialSlotCount());
+				const Mesh& mesh = resources.GetMesh(renderData.mesh);
+				const MaterialSet& materialSet = resources.GetMaterialSet(renderData.materials);
+				Assert(materialSet.materials.size() >= mesh.GetMaterialSlotCount());
 				for (const SubMesh& subMesh : mesh.GetSubMeshes())
 				{
+					const MaterialHandle materialHandle = materialSet.materials[subMesh.materialSlot];
 					DrawItem& drawItem = frameData.drawItems.emplace_back();
 					drawItem.objectToWorld = objectToWorld;
-					drawItem.meshIdx = renderData.meshIdx;
-					drawItem.materialIdx = resourceManager.GetMaterialID(renderData.materialSlotStart + subMesh.materialSlot);
+					drawItem.meshIdx = renderData.mesh.GetIndex();
+					drawItem.materialIdx = materialHandle.GetIndex();
 					drawItem.indexOffset = subMesh.indexOffset;
 					drawItem.indexCount = subMesh.indexCount;
 					drawItem.vertexOffset = subMesh.vertexOffset;
-					const Material& material = resourceManager.GetMaterial(drawItem.materialIdx);
+					const Material& material = resources.GetMaterial(materialHandle);
 					drawItem.materialKey = material.GetKey();
 					frameData.blendDrawCount += material.alphaMode == EAlphaMode::Blend ? 1 : 0;
 				}
 			});
 
-		const dVector<Material>& materials = resourceManager.GetMaterials();
-		frameData.materials.clear();
-		frameData.materials.reserve(materials.size());
-		for (const Material& material : materials)
-			frameData.materials.push_back(material.shaderData);
+		const ResourcePool<Material>& materials = resources.GetMaterials();
+		frameData.materials.assign(materials.GetCapacity(), MaterialData{});
+		for (dU32 i = 0; i < materials.GetCapacity(); i++)
+			if (materials.IsAliveAt(i))
+				frameData.materials[i] = materials.GetAt(i).shaderData;
 
-		dVector<Mesh>& meshes = resourceManager.GetMeshes();
-		frameData.meshes.clear();
-		frameData.meshes.reserve(meshes.size());
-		for (Mesh& mesh : meshes)
+		const ResourcePool<Mesh>& meshes = resources.GetMeshes();
+		frameData.meshes.assign(meshes.GetCapacity(), GPUMeshView{});
+		for (dU32 i = 0; i < meshes.GetCapacity(); i++)
 		{
-			Buffer& indexBuffer = mesh.GetIndexBuffer();
-			Buffer& vertexBuffer = mesh.GetVertexBuffer();
-			GPUMeshView& meshView = frameData.meshes.emplace_back();
+			if (!meshes.IsAliveAt(i))
+				continue;
+			const Mesh& mesh = meshes.GetAt(i);
+			const Buffer& indexBuffer = mesh.GetIndexBuffer();
+			const Buffer& vertexBuffer = mesh.GetVertexBuffer();
+			GPUMeshView& meshView = frameData.meshes[i];
 			meshView.indicesGPUAddress = indexBuffer.GetGPUAddress();
 			meshView.indicesByteSize = indexBuffer.GetByteSize();
 			meshView.indicesAre32Bit = mesh.IsIndex32bits();

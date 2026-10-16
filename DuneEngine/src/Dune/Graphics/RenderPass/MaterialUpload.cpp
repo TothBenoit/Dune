@@ -47,29 +47,13 @@ namespace Dune::Graphics
 	void MaterialUpload::Execute(RenderPassContext& context, MaterialUploadData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		const dVector<MaterialData>& materials = context.pFrameData->materials;
 		const dU32 materialsByteSize = (dU32)(materials.size() * sizeof(MaterialData));
 
-		void* pMappedData{ nullptr };
-		if (frame.uploadOffset + materialsByteSize < frame.uploadBuffer.GetByteSize())
-		{
-			pMappedData = (dU8*)frame.pUploadAddress + frame.uploadOffset;
-			memcpy(pMappedData, materials.data(), materialsByteSize);
-			frame.commandList.CopyBufferRegion(pData->buffer, 0, frame.uploadBuffer, frame.uploadOffset, materialsByteSize);
-			frame.uploadOffset += materialsByteSize;
-		}
-		else
-		{
-			Buffer uploadBuffer{};
-			uploadBuffer.Initialize(device, { .debugName{ L"MaterialUploadBuffer" }, .byteSize{ materialsByteSize } });
-			uploadBuffer.Map(0, materialsByteSize, &pMappedData);
-			memcpy(pMappedData, materials.data(), materialsByteSize);
-			uploadBuffer.Unmap(0, materialsByteSize);
-			frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, materialsByteSize);
-			frame.buffersToRelease.push_back(uploadBuffer);
-		}
+		StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);
+		memcpy(staging.pCpuAddress, materials.data(), materialsByteSize);
+		frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, materialsByteSize);
 	}
 
 	void MaterialUpload::Destroy(Renderer& renderer, MaterialUploadData* pData)

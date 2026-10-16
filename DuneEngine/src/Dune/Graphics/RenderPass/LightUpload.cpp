@@ -50,29 +50,13 @@ namespace Dune::Graphics
 	void LightUpload::Execute(RenderPassContext& context, LightUploadData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		const dVector<Light>& lights = context.pFrameData->lights.allActive;
 		const dU32 lightByteSize = (dU32)(lights.size() * sizeof(Light));
 
-		void* pMappedData{ nullptr };
-		if( frame.uploadOffset + lightByteSize < frame.uploadBuffer.GetByteSize() )
-		{
-			pMappedData = (dU8*)frame.pUploadAddress + frame.uploadOffset;
-			memcpy(pMappedData, lights.data(), lightByteSize);
-			frame.commandList.CopyBufferRegion(pData->buffer, 0, frame.uploadBuffer, frame.uploadOffset, lightByteSize);
-			frame.uploadOffset += lightByteSize;
-		}
-		else
-		{
-			Buffer uploadBuffer{};
-			uploadBuffer.Initialize(device, { .debugName{ L"LightUploadBuffer" }, .byteSize{ lightByteSize } });
-			uploadBuffer.Map(0, lightByteSize, &pMappedData);
-			memcpy(pMappedData, lights.data(), lightByteSize);
-			uploadBuffer.Unmap(0, lightByteSize);
-			frame.commandList.CopyBufferRegion(pData->buffer, 0, uploadBuffer, 0, lightByteSize);
-			frame.buffersToRelease.push_back(uploadBuffer);
-		}
+		StagingMemory staging = renderer.AllocateStaging(lightByteSize, 16);
+		memcpy(staging.pCpuAddress, lights.data(), lightByteSize);
+		frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, lightByteSize);
 	}
 
 	void LightUpload::Destroy(Renderer& renderer, LightUploadData* pData)

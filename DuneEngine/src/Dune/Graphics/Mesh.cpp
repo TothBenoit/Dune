@@ -23,16 +23,7 @@ namespace Dune::Graphics
 		return vertexBuffer;
 	}
 
-	void UploadBuffer(CommandList& commandList, Buffer& buffer, Buffer& uploadBuffer, const void* pData, dU32 byteSize, dU32 byteOffset )
-	{
-		void* pCpuAddress{ nullptr };
-		uploadBuffer.Map(0, 0, &pCpuAddress);
-		memcpy((void*)(dU64(pCpuAddress) + byteOffset), pData, byteSize);
-		commandList.CopyBufferRegion(buffer, 0, uploadBuffer, byteOffset, byteSize);
-		uploadBuffer.Unmap(0, 0);
-	}
-
-	void Mesh::Initialize(Device& device, CommandList& commandList, Buffer& uploadBuffer, const MeshDesc& desc)
+	void Mesh::Initialize(Device& device, const MeshDesc& desc)
 	{
 		m_subMeshes.assign(desc.pSubMeshes, desc.pSubMeshes + desc.subMeshCount);
 		m_materialSlotCount = desc.materialSlotCount;
@@ -41,17 +32,27 @@ namespace Dune::Graphics
 		m_vertexCount = desc.vertexCount;
 		m_indexCount = desc.indexCount;
 
-		dU32 vertexByteSize = m_vertexCount * m_vertexByteStride;
-		dU32 indexByteSize = m_indexCount * (m_isIndex32bits ? sizeof(dU32) : sizeof(dU16));
-		dU32 uploadByteSize = vertexByteSize + indexByteSize;
+		m_indexBuffer = CreateIndexBuffer(device, m_indexCount * (m_isIndex32bits ? sizeof(dU32) : sizeof(dU16)));
+		m_vertexBuffer = CreateVertexBuffer(device, m_vertexCount * m_vertexByteStride);
+	}
 
-		BufferDesc uploadBufferDesc{ L"UploadBuffer", EBufferUsage::Default, EBufferMemory::CPU, uploadByteSize };
-		uploadBuffer.Initialize(device, uploadBufferDesc);
+	dU64 Mesh::GetUploadSize() const
+	{
+		return (dU64)m_indexBuffer.GetByteSize() + m_vertexBuffer.GetByteSize();
+	}
 
-		m_indexBuffer = CreateIndexBuffer(device, indexByteSize);
-		UploadBuffer(commandList, m_indexBuffer, uploadBuffer, desc.pIndices, indexByteSize, 0);
-		m_vertexBuffer = CreateVertexBuffer(device, vertexByteSize);
-		UploadBuffer(commandList, m_vertexBuffer, uploadBuffer, desc.pVertices, vertexByteSize, indexByteSize);
+	void Mesh::Upload(const MeshDesc& desc, CommandList& commandList, const StagingMemory& staging)
+	{
+		Assert(staging.IsValid() && desc.indexCount == m_indexCount && desc.vertexCount == m_vertexCount);
+		const dU32 indexByteSize = m_indexBuffer.GetByteSize();
+		const dU32 vertexByteSize = m_vertexBuffer.GetByteSize();
+
+		memcpy(staging.pCpuAddress, desc.pIndices, indexByteSize);
+		memcpy((dU8*)staging.pCpuAddress + indexByteSize, desc.pVertices, vertexByteSize);
+
+		Buffer stagingBuffer{ staging.buffer };
+		commandList.CopyBufferRegion(m_indexBuffer, 0, stagingBuffer, staging.offset, indexByteSize);
+		commandList.CopyBufferRegion(m_vertexBuffer, 0, stagingBuffer, staging.offset + indexByteSize, vertexByteSize);
 	}
 
 	void Mesh::Destroy()

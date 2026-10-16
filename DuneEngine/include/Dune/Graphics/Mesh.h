@@ -2,6 +2,7 @@
 
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/MeshData.h"
+#include "Dune/Graphics/RHI/StagingMemory.h"
 
 namespace Dune::Graphics
 {
@@ -25,9 +26,13 @@ namespace Dune::Graphics
 	class Mesh
 	{
 	public:
-		void Initialize(Device& device, CommandList& commandList, Buffer& uploadBuffer, const MeshDesc& desc);
+		static constexpr dU64 kUploadAlignment{ 16 };
+
+		void Initialize(Device& device, const MeshDesc& desc);
 		void Destroy();
 
+		[[nodiscard]] dU64 GetUploadSize() const;
+		void Upload(const MeshDesc& desc, CommandList& commandList, const StagingMemory& staging);
 
 		[[nodiscard]] const dVector<SubMesh>& GetSubMeshes() const { return m_subMeshes; }
 		[[nodiscard]] dU32                    GetMaterialSlotCount() const { return m_materialSlotCount; }
