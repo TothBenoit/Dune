@@ -82,6 +82,12 @@
     <ClInclude Include="include\Dune\Graphics\RenderContext.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\ForwardPipeline.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\Pipeline.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RHI\Device.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
@@ -230,6 +236,9 @@
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RenderContext.cpp">
+      <Filter>Dune\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\ForwardPipeline.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Scene\SceneRender.cpp">

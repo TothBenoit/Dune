@@ -2,6 +2,7 @@
 
 #include "Dune/Graphics/RHI/Barrier.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
+#include "Dune/Graphics/Material.h"
 
 namespace Dune
 {
@@ -10,8 +11,11 @@ namespace Dune
 	namespace Graphics
 	{
 		class Renderer;
+		struct RenderPass;
+		struct PipelineDesc;
 		struct Frame;
 		struct FrameData;
+		struct PSO;
 
 		using ResourceHandle = dU32;
 		inline constexpr ResourceHandle kInvalidResourceHandle{ (ResourceHandle)-1 };
@@ -103,8 +107,11 @@ namespace Dune
 			const FrameData* pFrameData;
 			const Camera* pCamera;
 			Renderer* pRenderer;
+			RenderPass* pPass;
 			RenderBlackboard blackboard;
 
+			[[nodiscard]] PSO* GetPSO(MaterialKey key) const;
+			[[nodiscard]] PSO* GetPipeline(dU32 index) const;
 			[[nodiscard]] dU32 GetBindlessIndex(Descriptor persistentSRV) const;
 			[[nodiscard]] Descriptor GetGPUDescriptor(const Frame& frame, Descriptor persistentSRV) const;
 		};
@@ -144,8 +151,14 @@ namespace Dune
 			void (*pSetup)(RenderGraphBuilder&, RenderPassContext&, void*);
 			void (*pExecute)(RenderPassContext&, void*);
 			void (*pShutdown)(Renderer&, void*);
+			bool (*pIsPassMaterial)(MaterialKey){ nullptr };
+			PipelineDesc (*pGetPipelineDesc)(MaterialKey){ nullptr };
+			dVector<PipelineDesc> (*pGetPipelineDescs)(){ nullptr };
 			void* pData{ nullptr };
 			RenderTypeID typeID{ nullptr };
+
+			PSO* psos[Material::kKeyTableSize]{};
+			dVector<PSO*> pipelines;
 
 			RenderGraphBuilder builder;
 		};

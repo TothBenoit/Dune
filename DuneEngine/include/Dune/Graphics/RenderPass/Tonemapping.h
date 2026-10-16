@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Dune/Graphics/RenderPass.h"
-#include "Dune/Graphics/PSOCache.h"
+#include "Dune/Graphics/Pipeline.h"
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 
@@ -16,22 +16,24 @@ namespace Dune::Graphics
 		float maxLogLuminance{ 24.0f };
 		float tau{ 1.0f };
 
-		PSOHandle averagePSO;
-		PSOHandle histogramPSO;
 		Descriptor histogramUAV;
 		Buffer histogramBuffer;
 		Buffer luminanceBuffer;
-
-		PSOHandle tonemapPSO;
 	};
 
 	class Tonemapping
 	{
 	public:
-		static TonemappingData* Create(Renderer& renderer);
-		static void             Setup(RenderGraphBuilder& builder, RenderPassContext& context, TonemappingData* pData);
-		static void             Execute(RenderPassContext& context, TonemappingData* pData);
-		static void             Destroy(Renderer& renderer, TonemappingData* pData);
+		static constexpr dU32 kHistogramPipeline = 0;
+		static constexpr dU32 kAveragePipeline = 1;
+		static constexpr dU32 kTonemapPipeline = 2;
+		static constexpr dU32 kPipelineCount = 3;
+
+		static TonemappingData*      Create(Renderer& renderer);
+		static dVector<PipelineDesc> GetPipelineDescs();
+		static void                  Setup(RenderGraphBuilder& builder, RenderPassContext& context, TonemappingData* pData);
+		static void                  Execute(RenderPassContext& context, TonemappingData* pData);
+		static void                  Destroy(Renderer& renderer, TonemappingData* pData);
 	private:
 		Tonemapping() = delete;
 	};

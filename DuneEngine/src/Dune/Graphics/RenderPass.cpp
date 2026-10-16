@@ -5,6 +5,16 @@
 
 namespace Dune::Graphics
 {
+	PSO* RenderPassContext::GetPSO(MaterialKey key) const
+	{
+		return pPass->psos[key];
+	}
+
+	PSO* RenderPassContext::GetPipeline(dU32 index) const
+	{
+		return pPass->pipelines[index];
+	}
+
 	dU32 RenderPassContext::GetBindlessIndex(Descriptor persistentSRV) const
 	{ 
 		return pRenderer->GetSRVHeap().GetIndex(persistentSRV) + pFrameData->sharedSRVHeapCapacity; 

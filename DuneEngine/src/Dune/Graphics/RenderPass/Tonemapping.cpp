@@ -23,60 +23,61 @@ namespace Dune::Graphics
 	TonemappingData* Tonemapping::Create(Renderer& renderer)
 	{
 		Device& device = *renderer.GetDevice();
-		PSOCache& psoCache = *renderer.GetPSOCache();
 		BlockDescriptorHeap& srvHeap = renderer.GetSRVHeap();
 
 		TonemappingData* pData = new TonemappingData();
-
-		const ShaderHandle fullScreenTriangleVS = psoCache.ResolveShader({ .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/FullScreenTriangle.hlsl"), .stage = EShaderStage::Vertex });
-		const ShaderHandle tonemappingPS = psoCache.ResolveShader({ .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/Tonemapping.hlsl"), .stage = EShaderStage::Pixel });
-		psoCache.ResolveRootSignature(tonemappingPS,
-		{
-			.layout =
-			{
-				{ .type = EBindingType::Group, .groupDesc = {.resourceCount = 1}, .visibility = EShaderVisibility::Pixel },
-				{ .type = EBindingType::SRV, .visibility = EShaderVisibility::Pixel },
-			},
-		});
-		pData->tonemapPSO = psoCache.ResolvePSO(GraphicsPSODesc
-		{
-			.vertexShader = fullScreenTriangleVS,
-			.pixelShader = tonemappingPS,
-			.renderTargetCount = 1,
-			.renderTargetsFormat = { EFormat::R8G8B8A8_UNORM },
-		});
-
-		const ShaderHandle histogramCS = psoCache.ResolveShader({ .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/LuminanceHistogram.hlsl"), .stage = EShaderStage::Compute });
-		psoCache.ResolveRootSignature(histogramCS,
-		{
-			.layout =
-			{
-				{ .type = EBindingType::Constant, .byteSize = sizeof(LuminanceHistogramParams), .visibility = EShaderVisibility::All },
-				{ .type = EBindingType::Group, .groupDesc = {.resourceCount = 1}, .visibility = EShaderVisibility::All },
-				{ .type = EBindingType::UAV, .visibility = EShaderVisibility::All },
-			}
-		});
-		pData->histogramPSO = psoCache.ResolvePSO(ComputePSODesc{ .computeShader = histogramCS });
 
 		pData->histogramBuffer.Initialize(device, { .debugName = L"HistogramBuffer", .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32)});
 		pData->histogramUAV = srvHeap.Allocate();
 		device.CreateUAV(pData->histogramUAV, pData->histogramBuffer, { .format = EFormat::R32_UINT, .elementCount = 256 });
 
-		const ShaderHandle averageCS = psoCache.ResolveShader({ .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/LuminanceAverage.hlsl"), .stage = EShaderStage::Compute });
-		psoCache.ResolveRootSignature(averageCS,
-		{
-			.layout =
-			{
-				{ .type = EBindingType::Constant, .byteSize = sizeof(LuminanceAverageParams), .visibility = EShaderVisibility::All },
-				{ .type = EBindingType::SRV, .visibility = EShaderVisibility::All },
-				{ .type = EBindingType::UAV, .visibility = EShaderVisibility::All },
-			}
-		});
-		pData->averagePSO = psoCache.ResolvePSO(ComputePSODesc{ .computeShader = averageCS });
-
 		pData->luminanceBuffer.Initialize(device, { .debugName = L"LuminanceBuffer", .usage = EBufferUsage::UAV, .memory = EBufferMemory::GPU, .byteSize = sizeof(dU32)});
 
 		return pData;
+	}
+
+	dVector<PipelineDesc> Tonemapping::GetPipelineDescs()
+	{
+		static const BindingSlot kHistogramLayout[]
+		{
+			{ .type = EBindingType::Constant, .byteSize = sizeof(LuminanceHistogramParams), .visibility = EShaderVisibility::All },
+			{ .type = EBindingType::Group, .groupDesc = {.resourceCount = 1}, .visibility = EShaderVisibility::All },
+			{ .type = EBindingType::UAV, .visibility = EShaderVisibility::All },
+		};
+		static const BindingSlot kAverageLayout[]
+		{
+			{ .type = EBindingType::Constant, .byteSize = sizeof(LuminanceAverageParams), .visibility = EShaderVisibility::All },
+			{ .type = EBindingType::SRV, .visibility = EShaderVisibility::All },
+			{ .type = EBindingType::UAV, .visibility = EShaderVisibility::All },
+		};
+		static const BindingSlot kTonemapLayout[]
+		{
+			{ .type = EBindingType::Group, .groupDesc = {.resourceCount = 1}, .visibility = EShaderVisibility::Pixel },
+			{ .type = EBindingType::SRV, .visibility = EShaderVisibility::Pixel },
+		};
+
+		static_assert(kHistogramPipeline == 0 && kAveragePipeline == 1 && kTonemapPipeline == 2 && kPipelineCount == 3);
+		return
+		{
+			PipelineDesc
+			{
+				.computeShader = { .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/LuminanceHistogram.hlsl"), .stage = EShaderStage::Compute },
+				.rootSignature = { .layout = kHistogramLayout },
+			},
+			PipelineDesc
+			{
+				.computeShader = { .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/LuminanceAverage.hlsl"), .stage = EShaderStage::Compute },
+				.rootSignature = { .layout = kAverageLayout },
+			},
+			PipelineDesc
+			{
+				.vertexShader = { .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/FullScreenTriangle.hlsl"), .stage = EShaderStage::Vertex },
+				.pixelShader = { .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/Tonemapping.hlsl"), .stage = EShaderStage::Pixel },
+				.rootSignature = { .layout = kTonemapLayout },
+				.renderTargetCount = 1,
+				.renderTargetsFormat = { EFormat::R8G8B8A8_UNORM },
+			},
+		};
 	}
 
 	void Tonemapping::Execute(RenderPassContext& context, TonemappingData* pData)
@@ -88,7 +89,9 @@ namespace Dune::Graphics
 		Device& device = *renderer.GetDevice();
 		Window& window = *renderer.GetWindow();
 		Barrier& barrier = renderer.GetBarrier();
-		PSOCache& psoCache = *renderer.GetPSOCache();
+		PSO& histogramPSO = *context.GetPipeline(Tonemapping::kHistogramPipeline);
+		PSO& averagePSO = *context.GetPipeline(Tonemapping::kAveragePipeline);
+		PSO& tonemapPSO = *context.GetPipeline(Tonemapping::kTonemapPipeline);
 
 		commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
 
@@ -104,8 +107,8 @@ namespace Dune::Graphics
 			.oneOverLogLuminanceRange = 1.0f / logLuminanceRange,
 		};
 
-		commandList.SetComputeRootSignature(psoCache.GetRootSignature(psoCache.GetRootSignatureHandle(pData->histogramPSO)));
-		commandList.SetPipelineState(psoCache.GetPipelineState(pData->histogramPSO));
+		commandList.SetComputeRootSignature(*histogramPSO.pRootSignature);
+		commandList.SetPipelineState(histogramPSO.pipelineState);
 		commandList.PushComputeConstants(0, &histogramParams, sizeof(histogramParams));
 		Descriptor hdrTargetSRV = context.GetGPUDescriptor(frame, renderer.GetHDRTargetSRV());
 		commandList.BindComputeGroup(1, hdrTargetSRV);
@@ -125,8 +128,8 @@ namespace Dune::Graphics
 			.tau = pData->tau
 		};
 
-		commandList.SetComputeRootSignature(psoCache.GetRootSignature(psoCache.GetRootSignatureHandle(pData->averagePSO)));
-		commandList.SetPipelineState(psoCache.GetPipelineState(pData->averagePSO));
+		commandList.SetComputeRootSignature(*averagePSO.pRootSignature);
+		commandList.SetPipelineState(averagePSO.pipelineState);
 		commandList.PushComputeConstants(0, &averageParams, sizeof(averageParams));
 		commandList.PushComputeSRV(1, pData->histogramBuffer);
 		commandList.PushComputeUAV(2, pData->luminanceBuffer);
@@ -140,8 +143,8 @@ namespace Dune::Graphics
 		Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
 		commandList.SetViewports(1, &viewport);
 		commandList.SetScissors(1, &scissor);
-		commandList.SetGraphicsRootSignature(psoCache.GetRootSignature(psoCache.GetRootSignatureHandle(pData->tonemapPSO)));
-		commandList.SetPipelineState(psoCache.GetPipelineState(pData->tonemapPSO));
+		commandList.SetGraphicsRootSignature(*tonemapPSO.pRootSignature);
+		commandList.SetPipelineState(tonemapPSO.pipelineState);
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 		commandList.BindGraphicsGroup(0, hdrTargetSRV);
 		commandList.PushGraphicsSRV(1, pData->luminanceBuffer);

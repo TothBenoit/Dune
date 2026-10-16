@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Dune/Graphics/PSOCache.h"
+#include "Dune/Graphics/Pipeline.h"
+#include "Dune/Graphics/RenderPass.h"
 #include "Dune/Graphics/Material.h"
 
 namespace Dune::Graphics
@@ -9,18 +10,14 @@ namespace Dune::Graphics
 	class RenderGraphBuilder;
 	struct RenderPassContext;
 
-	struct ForwardData
-	{
-		PSOHandle forwardPSO[Material::kKeyTableSize];
-	};
-
 	class Forward
 	{
 	public:
-		static ForwardData* Create(Renderer& renderer);
-		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, ForwardData* pData);
-		static void         Execute(RenderPassContext& context, ForwardData* pData);
-		static void         Destroy(Renderer& renderer, ForwardData* pData);
+		static void*        Create(Renderer& renderer);
+		static PipelineDesc GetPipelineDesc(MaterialKey key);
+		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData);
+		static void         Execute(RenderPassContext& context, void* pData);
+		static void         Destroy(Renderer& renderer, void* pData);
 	private:
 		Forward() = delete;
 	};

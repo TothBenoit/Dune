@@ -4,16 +4,8 @@
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
-#include "Dune/Graphics/RenderPass/Visibility.h"
-#include "Dune/Graphics/RenderPass/ClearDepth.h"
-#include "Dune/Graphics/RenderPass/ClearHDRTarget.h"
-#include "Dune/Graphics/RenderPass/MaterialUpload.h"
-#include "Dune/Graphics/RenderPass/DepthPrepass.h"
-#include "Dune/Graphics/RenderPass/Shadow.h"
-#include "Dune/Graphics/RenderPass/LightUpload.h"
-#include "Dune/Graphics/RenderPass/Forward.h"
-#include "Dune/Graphics/RenderPass/Tonemapping.h"
 #include "Dune/Graphics/ResourceManager.h"
+#include "Dune/Graphics/PSOCache.h"
 #include "Dune/Component/Camera.h"
 
 namespace Dune::Graphics
@@ -103,17 +95,40 @@ namespace Dune::Graphics
 
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
-		RegisterRenderPass<Visibility>();
-		RegisterRenderPass<ClearDepth>();
-		RegisterRenderPass<MaterialUpload>();
-		RegisterRenderPass<DepthPrepass>();
-		RegisterRenderPass<Shadow>();
-		RegisterRenderPass<LightUpload>();
-		RegisterRenderPass<ClearHDRTarget>();
-		RegisterRenderPass<Forward>();
-		RegisterRenderPass<Tonemapping>();
-
 		m_passContext.pRenderer = this;
+	}
+
+	dVector<RenderPass>::iterator Renderer::FindRenderPass(RenderTypeID typeID)
+	{
+		return std::find_if(m_passes.begin(), m_passes.end(), [=](const RenderPass& pass) { return pass.typeID == typeID; });
+	}
+
+	void Renderer::DestroyRenderPass(RenderPass& pass)
+	{
+		for (const Frame& frame : m_frames)
+			WaitForFrame(frame);
+		pass.pShutdown(*this, pass.pData);
+	}
+
+	void Renderer::ResolvePipelines(RenderPass& pass)
+	{
+		if (!pass.pGetPipelineDescs)
+			return;
+		for (const PipelineDesc& desc : pass.pGetPipelineDescs())
+			pass.pipelines.push_back(m_pPSOCache->Resolve(desc));
+	}
+
+	PSO* Renderer::ResolvePSO(RenderPass& pass, MaterialKey key)
+	{
+		if (!pass.psos[key] && pass.pGetPipelineDesc && (!pass.pIsPassMaterial || pass.pIsPassMaterial(key)))
+			pass.psos[key] = m_pPSOCache->Resolve(pass.pGetPipelineDesc(key));
+		return pass.psos[key];
+	}
+
+	void Renderer::ResolvePSOs(MaterialKey key)
+	{
+		for (RenderPass& pass : m_passes)
+			ResolvePSO(pass, key);
 	}
 
 	void Renderer::Destroy()
@@ -442,9 +457,19 @@ namespace Dune::Graphics
 		m_passContext.pCamera = &camera;
 		m_passContext.blackboard.Reset();
 
+		bool usedKeys[Material::kKeyTableSize]{};
+		for (const DrawItem& drawItem : frameData.drawItems)
+			usedKeys[drawItem.materialKey] = true;
+		for (MaterialKey key = 0; key < Material::kKeyTableSize; key++)
+		{
+			if (usedKeys[key])
+				ResolvePSOs(key);
+		}
+
 		for (RenderPass& pass : m_passes)
 		{
 			pass.builder.Reset();
+			m_passContext.pPass = &pass;
 			pass.pSetup(pass.builder, m_passContext, pass.pData);
 		}
 
@@ -470,6 +495,7 @@ namespace Dune::Graphics
 				TransitionResource(access);
 			FlushBarriers(frame.commandList);
 
+			m_passContext.pPass = &pass;
 			pass.pExecute(m_passContext, pass.pData);
 		}
 

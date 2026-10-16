@@ -56,6 +56,8 @@
     <ClInclude Include="include\Dune\Graphics\Renderer.h" />
     <ClInclude Include="include\Dune\Graphics\ResourceManager.h" />
     <ClInclude Include="include\Dune\Graphics\RenderContext.h" />
+    <ClInclude Include="include\Dune\Graphics\ForwardPipeline.h" />
+    <ClInclude Include="include\Dune\Graphics\Pipeline.h" />
     <ClInclude Include="include\Dune\Resources\Shaders\ShaderInterop.h" />
     <ClInclude Include="include\Dune\Component\Camera.h" />
     <ClInclude Include="include\Dune\Scene\Scene.h" />
@@ -107,6 +109,7 @@
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
     <ClCompile Include="src\Dune\Graphics\ResourceManager.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderContext.cpp" />
+    <ClCompile Include="src\Dune\Graphics\ForwardPipeline.cpp" />
     <ClCompile Include="src\Dune\Scene\SceneRender.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Visibility.cpp" />
     <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp" />

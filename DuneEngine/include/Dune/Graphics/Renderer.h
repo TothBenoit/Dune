@@ -70,7 +70,6 @@ namespace Dune
 			[[nodiscard]] CommandList& GetUploadCommandList();
 
 			[[nodiscard]] inline Device* GetDevice() { return m_pDevice; }
-			[[nodiscard]] inline PSOCache* GetPSOCache() { return m_pPSOCache; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
 			[[nodiscard]] inline Barrier& GetBarrier() { return m_barrier; }
@@ -99,38 +98,78 @@ namespace Dune
 			template<typename T>
 			void RegisterRenderPass()
 			{
-				RegisterRenderPass<T>(nullptr, ERegistrationOrder::After);
+				Assert(FindRenderPass(GetRenderTypeID<T>()) == m_passes.end());
+				m_passes.push_back(MakeRenderPass<T>());
 			}
 
 			template<typename T, typename Neighbor>
-			void RegisterRenderPass(ERegistrationOrder order)
+			void InsertRenderPass(ERegistrationOrder order)
 			{
-				RegisterRenderPass<T>(GetRenderTypeID<Neighbor>(), order);
+				Assert(FindRenderPass(GetRenderTypeID<T>()) == m_passes.end());
+				auto it = FindRenderPass(GetRenderTypeID<Neighbor>());
+				Assert(it != m_passes.end());
+				if (order == ERegistrationOrder::After)
+					it = std::next(it);
+				m_passes.insert(it, MakeRenderPass<T>());
+			}
+
+			template<typename Old, typename New>
+			void ReplaceRenderPass()
+			{
+				Assert((std::is_same_v<Old, New> || FindRenderPass(GetRenderTypeID<New>()) == m_passes.end()));
+				auto it = FindRenderPass(GetRenderTypeID<Old>());
+				Assert(it != m_passes.end());
+				DestroyRenderPass(*it);
+				*it = MakeRenderPass<New>();
 			}
 
 			template<typename T>
-			void RegisterRenderPass(RenderTypeID neighborTypeID, ERegistrationOrder order)
+			void UnregisterRenderPass()
 			{
-				using PassData = decltype(T::Create(*this));
+				auto it = FindRenderPass(GetRenderTypeID<T>());
+				Assert(it != m_passes.end());
+				DestroyRenderPass(*it);
+				m_passes.erase(it);
+			}
+
+			void ResolvePSOs(MaterialKey key);
+
+			template<typename T>
+			void ResolvePSOs(MaterialKey key)
+			{
+				auto it = FindRenderPass(GetRenderTypeID<T>());
+				Assert(it != m_passes.end());
+				ResolvePSO(*it, key);
+			}
+
+			PSO* ResolvePSO(RenderPass& pass, MaterialKey key);
+
+		private:
+			template<typename T>
+			RenderPass MakeRenderPass()
+			{
+				auto* pPassData = T::Create(*this);
+				using PassData = decltype(pPassData);
 				RenderPass pass{};
 				pass.pSetup = [](RenderGraphBuilder& builder, RenderPassContext& context, void* pData) { T::Setup(builder, context, static_cast<PassData>(pData)); };
 				pass.pExecute = [](RenderPassContext& context, void* pData) { T::Execute(context, static_cast<PassData>(pData)); };
 				pass.pShutdown = [](Renderer& renderer, void* pData) { T::Destroy(renderer, static_cast<PassData>(pData)); };
-				pass.pData = T::Create(*this);
+				if constexpr (requires { T::IsPassMaterial(MaterialKey{}); })
+					pass.pIsPassMaterial = &T::IsPassMaterial;
+				if constexpr (requires { T::GetPipelineDesc(MaterialKey{}); })
+					pass.pGetPipelineDesc = &T::GetPipelineDesc;
+				if constexpr (requires { T::GetPipelineDescs(); })
+					pass.pGetPipelineDescs = &T::GetPipelineDescs;
+				pass.pData = pPassData;
 				pass.typeID = GetRenderTypeID<T>();
-				if (neighborTypeID)
-				{
-					auto it = std::find_if(m_passes.begin(), m_passes.end(), [=](const RenderPass& pass) { return pass.typeID == neighborTypeID; });
-					Assert(it != m_passes.end());
-					if (order == ERegistrationOrder::After)
-						it = std::next(it);
-					m_passes.insert(it, std::move(pass));
-				}
-				else
-					m_passes.push_back(std::move(pass));
+				ResolvePipelines(pass);
+				return pass;
 			}
 
-		private:
+			dVector<RenderPass>::iterator FindRenderPass(RenderTypeID typeID);
+			void DestroyRenderPass(RenderPass& pass);
+			void ResolvePipelines(RenderPass& pass);
+
 			void WaitForFrame(const Frame& frame);
 			Frame& PrepareFrame();
 			void SubmitPendingUploads(Frame& frame);

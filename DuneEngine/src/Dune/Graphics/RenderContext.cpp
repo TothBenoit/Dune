@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/ForwardPipeline.h"
 
 namespace Dune::Graphics
 {
@@ -23,5 +24,6 @@ namespace Dune::Graphics
 	void RenderContext::InitializeRenderer(Renderer& renderer, Window& window)
 	{
 		renderer.Initialize(m_device, m_commandQueue, m_psoCache, window);
+		ForwardPipeline::Register(renderer);
 	}
 }

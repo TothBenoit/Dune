@@ -3,7 +3,7 @@
 #include "Dune/Graphics/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RHI/Buffer.h"
 #include "Dune/Graphics/RenderPass.h"
-#include "Dune/Graphics/PSOCache.h"
+#include "Dune/Graphics/Pipeline.h"
 #include "Dune/Graphics/Material.h"
 
 namespace Dune::Graphics
@@ -12,7 +12,6 @@ namespace Dune::Graphics
 
 	struct ShadowData
 	{
-		PSOHandle shadowPSO[Material::kKeyTableSize];
 
 		dVector<ResourceHandle> shadowHandles;
 		dVector<ResourceHandle> cubeShadowHandles;
@@ -26,10 +25,12 @@ namespace Dune::Graphics
 	class Shadow
 	{
 	public:
-		static ShadowData* Create(Renderer& renderer);
-		static void        Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData);
-		static void        Execute(RenderPassContext& context, ShadowData* pData);
-		static void        Destroy(Renderer& renderer, ShadowData* pData);
+		static ShadowData*  Create(Renderer& renderer);
+		static bool         IsPassMaterial(MaterialKey key);
+		static PipelineDesc GetPipelineDesc(MaterialKey key);
+		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData);
+		static void         Execute(RenderPassContext& context, ShadowData* pData);
+		static void         Destroy(Renderer& renderer, ShadowData* pData);
 	private:
 		Shadow() = delete;
 	};

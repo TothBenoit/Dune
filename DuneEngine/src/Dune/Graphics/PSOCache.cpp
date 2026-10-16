@@ -14,9 +14,9 @@ namespace Dune::Graphics
 	void PSOCache::Destroy()
 	{
 		for (GraphicsPSOEntry& entry : m_graphicsPSOs)
-			entry.pso.Destroy();
-		for (ComputePSOEntry& entry : m_computePSOs)
-			entry.pso.Destroy();
+			entry.pso.pipelineState.Destroy();
+		for (PSO& pso : m_computePSOs)
+			pso.pipelineState.Destroy();
 		for (RootSignature& rootSignature : m_rootSignatures)
 			rootSignature.Destroy();
 		for (ShaderEntry& entry : m_shaders)
@@ -110,6 +110,44 @@ namespace Dune::Graphics
 		return a.computeShader == b.computeShader;
 	}
 
+	PSO* PSOCache::Resolve(const PipelineDesc& desc)
+	{
+		if (desc.computeShader.path.IsValid())
+		{
+			const ShaderHandle computeShader = ResolveShader(desc.computeShader);
+			ResolveRootSignature(computeShader, desc.rootSignature);
+			return ResolvePSO(ComputePSODesc{ .computeShader = computeShader });
+		}
+
+		Assert(desc.vertexShader.path.IsValid());
+
+		const ShaderHandle vertexShader = ResolveShader(desc.vertexShader);
+		const ShaderHandle pixelShader = desc.pixelShader.path.IsValid() ? ResolveShader(desc.pixelShader) : kInvalidShaderHandle;
+		ResolveRootSignature(pixelShader != kInvalidShaderHandle ? pixelShader : vertexShader, desc.rootSignature);
+
+		GraphicsPSODesc psoDesc
+		{
+			.vertexShader = vertexShader,
+			.pixelShader = pixelShader,
+			.inputLayout = desc.inputLayout,
+			.cullingMode = desc.cullingMode,
+			.depthBias = desc.depthBias,
+			.slopeScaledDepthBias = desc.slopeScaledDepthBias,
+			.depthClipEnable = desc.depthClipEnable,
+			.depthEnabled = desc.depthEnabled,
+			.depthWrite = desc.depthWrite,
+			.depthFunc = desc.depthFunc,
+			.renderTargetCount = desc.renderTargetCount,
+			.depthStencilFormat = desc.depthStencilFormat,
+		};
+		for (dU8 i = 0; i < desc.renderTargetCount; i++)
+		{
+			psoDesc.renderTargetsFormat[i] = desc.renderTargetsFormat[i];
+			psoDesc.renderTargetsBlendEnable[i] = desc.renderTargetsBlendEnable[i];
+		}
+		return ResolvePSO(psoDesc);
+	}
+
 	ShaderHandle PSOCache::ResolveShader(const ShaderEntryDesc& desc)
 	{
 		dU64 key = Hash(desc);
@@ -158,13 +196,13 @@ namespace Dune::Graphics
 		return entry.rootSignature;
 	}
 
-	PSOHandle PSOCache::ResolvePSO(const GraphicsPSODesc& desc)
+	PSO* PSOCache::ResolvePSO(const GraphicsPSODesc& desc)
 	{
 		dVector<dU32>& candidates = m_graphicsPSOLookup[Hash(desc)];
 		for (dU32 index : candidates)
 		{
 			if (m_graphicsPSOs[index].desc == desc)
-				return index;
+				return &m_graphicsPSOs[index].pso;
 		}
 
 		const bool hasPixelShader = desc.pixelShader != kInvalidShaderHandle;
@@ -174,7 +212,7 @@ namespace Dune::Graphics
 		const dU32 index = (dU32)m_graphicsPSOs.size();
 		GraphicsPSOEntry& entry = m_graphicsPSOs.emplace_back();
 		entry.desc = desc;
-		entry.rootSignature = rootSignature;
+		entry.pso.pRootSignature = &m_rootSignatures[rootSignature];
 
 		GraphicsPipelineDesc pipelineDesc
 		{
@@ -205,26 +243,26 @@ namespace Dune::Graphics
 			pipelineDesc.renderTargetsBlend[i].blendEnable = desc.renderTargetsBlendEnable[i];
 		}
 
-		entry.pso.Initialize(*m_pDevice, pipelineDesc);
+		entry.pso.pipelineState.Initialize(*m_pDevice, pipelineDesc);
 		candidates.push_back(index);
-		return index;
+		return &entry.pso;
 	}
 
-	PSOHandle PSOCache::ResolvePSO(const ComputePSODesc& desc)
+	PSO* PSOCache::ResolvePSO(const ComputePSODesc& desc)
 	{
 		auto it = m_computePSOLookup.find(desc.computeShader);
 		if (it != m_computePSOLookup.end())
-			return it->second | kComputePSOFlag;
+			return &m_computePSOs[it->second];
 
 		const RootSignatureHandle rootSignature = m_shaders[desc.computeShader].rootSignature;
 		Assert(rootSignature != kInvalidRootSignatureHandle);
 
 		const dU32 index = (dU32)m_computePSOs.size();
-		ComputePSOEntry& entry = m_computePSOs.emplace_back();
-		entry.rootSignature = rootSignature;
-		entry.pso.Initialize(*m_pDevice, ComputePipelineDesc{ .pComputeShader = &m_shaders[desc.computeShader].shader, .pRootSignature = &m_rootSignatures[rootSignature] });
+		PSO& pso = m_computePSOs.emplace_back();
+		pso.pRootSignature = &m_rootSignatures[rootSignature];
+		pso.pipelineState.Initialize(*m_pDevice, ComputePipelineDesc{ .pComputeShader = &m_shaders[desc.computeShader].shader, .pRootSignature = &m_rootSignatures[rootSignature] });
 
 		m_computePSOLookup[desc.computeShader] = index;
-		return index | kComputePSOFlag;
+		return &pso;
 	}
 }

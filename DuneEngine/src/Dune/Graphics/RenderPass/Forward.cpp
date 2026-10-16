@@ -16,61 +16,52 @@
 
 namespace Dune::Graphics
 {
-	ForwardData* Forward::Create(Renderer& renderer)
+	void* Forward::Create(Renderer&)
 	{
-		PSOCache& psoCache = *renderer.GetPSOCache();
-		ForwardData* pData = new ForwardData();
+		return nullptr;
+	}
 
-		const FileSystem::SerializationID<EFileType::Shader> shaderPath = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/Forward.hlsl");
-		const ShaderHandle forwardVS = psoCache.ResolveShader({ .path = shaderPath, .stage = EShaderStage::Vertex });
-		const ShaderHandle forwardPS = psoCache.ResolveShader({ .path = shaderPath, .stage = EShaderStage::Pixel });
-		const ShaderHandle forwardMaskedPS = psoCache.ResolveShader({ .path = shaderPath, .stage = EShaderStage::Pixel, .variantMask = EShaderVariant::AlphaMask });
-
-		const BindingSlot layout[]
+	PipelineDesc Forward::GetPipelineDesc(MaterialKey key)
+	{
+		static const BindingSlot kLayout[]
 		{
 			{ .type = EBindingType::Constant, .byteSize = sizeof(ForwardGlobals), .visibility = EShaderVisibility::All },
 			{ .type = EBindingType::Constant, .byteSize = sizeof(InstanceData),   .visibility = EShaderVisibility::Vertex },
 			{ .type = EBindingType::Constant, .byteSize = sizeof(MaterialIndex),  .visibility = EShaderVisibility::Pixel },
 		};
-		const RootSignatureDesc rootSignatureDesc{ .layout = layout, .allowInputLayout = true, .allowSRVHeapIndexing = true };
-		psoCache.ResolveRootSignature(forwardPS, rootSignatureDesc);
-		psoCache.ResolveRootSignature(forwardMaskedPS, rootSignatureDesc);
 
-		const dVector<VertexInput> vertexInputs
+		const FileSystem::SerializationID<EFileType::Shader> shaderPath = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/Forward.hlsl");
+		const EAlphaMode alphaMode = Material::GetAlphaMode(key);
+		return PipelineDesc
 		{
-			VertexInput { .pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false },
-			VertexInput { .pName = "NORMAL", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 12, .isPerInstance = false },
-			VertexInput { .pName = "TANGENT", .index = 0, .format = EFormat::R32G32B32A32_FLOAT, .slot = 0, .byteAlignedOffset = 24, .isPerInstance = false },
-			VertexInput { .pName = "UV", .index = 0, .format = EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 40, .isPerInstance = false }
-		};
-
-		for (MaterialKey key = 0; key < Material::kKeyTableSize; key++)
-		{
-			const EAlphaMode alphaMode = Material::GetAlphaMode(key);
-			pData->forwardPSO[key] = psoCache.ResolvePSO(GraphicsPSODesc
+			.vertexShader = { .path = shaderPath, .stage = EShaderStage::Vertex },
+			.pixelShader = { .path = shaderPath, .stage = EShaderStage::Pixel, .variantMask = alphaMode == EAlphaMode::Mask ? EShaderVariant::AlphaMask : EShaderVariant::None },
+			.rootSignature = { .layout = kLayout, .allowInputLayout = true, .allowSRVHeapIndexing = true },
+			.inputLayout =
 			{
-				.vertexShader = forwardVS,
-				.pixelShader = alphaMode == EAlphaMode::Mask ? forwardMaskedPS : forwardPS,
-				.inputLayout = vertexInputs,
-				.cullingMode = Material::GetFaceCulling(key),
-				.depthEnabled = true,
-				.depthWrite = false,
-				.depthFunc = alphaMode == EAlphaMode::Blend ? ECompFunc::LessEqual : ECompFunc::Equal,
-				.renderTargetCount = 1,
-				.renderTargetsFormat = { EFormat::R16G16B16A16_FLOAT },
-				.renderTargetsBlendEnable = { alphaMode == EAlphaMode::Blend },
-				.depthStencilFormat = EFormat::D32_FLOAT,
-			});
-		}
-
-		return pData;
+				VertexInput { .pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false },
+				VertexInput { .pName = "NORMAL", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 12, .isPerInstance = false },
+				VertexInput { .pName = "TANGENT", .index = 0, .format = EFormat::R32G32B32A32_FLOAT, .slot = 0, .byteAlignedOffset = 24, .isPerInstance = false },
+				VertexInput { .pName = "UV", .index = 0, .format = EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 40, .isPerInstance = false }
+			},
+			.cullingMode = Material::GetFaceCulling(key),
+			.depthEnabled = true,
+			.depthWrite = false,
+			.depthFunc = alphaMode == EAlphaMode::Blend ? ECompFunc::LessEqual : ECompFunc::Equal,
+			.renderTargetCount = 1,
+			.renderTargetsFormat = { EFormat::R16G16B16A16_FLOAT },
+			.renderTargetsBlendEnable = { alphaMode == EAlphaMode::Blend },
+			.depthStencilFormat = EFormat::D32_FLOAT,
+		};
 	}
 
-	void Forward::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ForwardData* pData)
+	void Forward::Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData)
 	{
 		const MaterialOutputs* pMaterialOutputs = context.blackboard.TryGet<MaterialOutputs>();
-		if (!pMaterialOutputs)
+		const VisibleSet* pVisibleSet = context.blackboard.TryGet<VisibleSet>();
+		if (!pMaterialOutputs || !pVisibleSet)
 			return;
+
 		builder.Read(pMaterialOutputs->buffer, EResourceState::ShaderResource);
 
 		Renderer& renderer = *context.pRenderer;
@@ -90,37 +81,7 @@ namespace Dune::Graphics
 			builder.Read(pLightOutputs->buffer, EResourceState::ShaderResource);
 	}
 
-	static void Draw(CommandList& commandList, PSOCache& psoCache, const ForwardGlobals& globals, const FrameData& frameData, const DrawItem& drawItem, ForwardData* pData, MaterialKey& currentKey, RootSignatureHandle& boundRootSignature)
-	{
-		const MaterialKey key = drawItem.materialKey;
-		if (currentKey != key)
-		{
-			currentKey = key;
-			const PSOHandle pso = pData->forwardPSO[key];
-			Assert(pso != kInvalidPSOHandle);
-			const RootSignatureHandle rootSignature = psoCache.GetRootSignatureHandle(pso);
-			if (boundRootSignature != rootSignature)
-			{
-				boundRootSignature = rootSignature;
-				commandList.SetGraphicsRootSignature(psoCache.GetRootSignature(rootSignature));
-				commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
-			}
-			commandList.SetPipelineState(psoCache.GetPipelineState(pso));
-		}
-
-		commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
-
-		InstanceData instanceData;
-		instanceData.objectToWorld = drawItem.objectToWorld;
-		commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
-
-		const GPUMeshView& mesh = frameData.meshes[drawItem.meshIdx];
-		commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
-		commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
-		commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
-	}
-
-	void Forward::Execute(RenderPassContext& context, ForwardData* pData)
+	void Forward::Execute(RenderPassContext& context, void* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
@@ -129,7 +90,6 @@ namespace Dune::Graphics
 		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
 		Device& device = *renderer.GetDevice();
 		Window& window = *renderer.GetWindow();
-		PSOCache& psoCache = *renderer.GetPSOCache();
 
 		Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
 		Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
@@ -151,17 +111,43 @@ namespace Dune::Graphics
 
 		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
 
-		MaterialKey currentKey = MaterialKey(-1);
-		RootSignatureHandle boundRootSignature = kInvalidRootSignatureHandle;
+		const RootSignature* pBoundRootSignature = nullptr;
+		MaterialKey boundKey = MaterialKey(-1);
 		const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
-		for (dU32 drawIndex : visibleSet.opaqueDraws)
-			Draw(commandList, psoCache, globals, frameData, frameData.drawItems[drawIndex], pData, currentKey, boundRootSignature);
-		for (dU32 drawIndex : visibleSet.blendDraws)
-			Draw(commandList, psoCache, globals, frameData, frameData.drawItems[drawIndex], pData, currentKey, boundRootSignature);
+		for (dSpan<const dU32> draws : { visibleSet.opaqueDraws, visibleSet.blendDraws })
+		{
+			for (dU32 drawIndex : draws)
+			{
+				const DrawItem& drawItem = frameData.drawItems[drawIndex];
+				if (boundKey != drawItem.materialKey)
+				{
+					boundKey = drawItem.materialKey;
+					PSO* pPSO = context.GetPSO(boundKey);
+					Assert(pPSO);
+					if (pBoundRootSignature != pPSO->pRootSignature)
+					{
+						pBoundRootSignature = pPSO->pRootSignature;
+						commandList.SetGraphicsRootSignature(*pPSO->pRootSignature);
+						commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
+					}
+					commandList.SetPipelineState(pPSO->pipelineState);
+				}
+
+				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
+
+				InstanceData instanceData;
+				instanceData.objectToWorld = drawItem.objectToWorld;
+				commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
+
+				const GPUMeshView& mesh = frameData.meshes[drawItem.meshIdx];
+				commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
+				commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
+				commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
+			}
+		}
 	}
 
-	void Forward::Destroy(Renderer&, ForwardData* pData)
+	void Forward::Destroy(Renderer&, void*)
 	{
-		delete pData;
 	}
 }
