@@ -6,6 +6,8 @@
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
 #include "Dune/Asset/AssetCache.h"
+#include "Dune/Scene/Scene.h"
+#include "Dune/Component/Transform.h"
 
 namespace Dune
 {
@@ -59,6 +61,10 @@ namespace Dune
 		[[nodiscard]] Graphics::MaterialSetHandle CreateMaterialSet(dSpan<Graphics::MaterialHandle> materials);
 		[[nodiscard]] Graphics::ModelResources    CreateModel(const Graphics::ModelData& model);
 
+		EntityID SpawnPrimitive(Scene& scene, EPrimitive primitive, const Transform& transform, Graphics::MaterialHandle material = {});
+		[[nodiscard]] Graphics::MeshHandle     GetPrimitive(EPrimitive primitive) const { return m_assetCache.GetPrimitive(primitive); }
+		[[nodiscard]] Graphics::MaterialHandle GetDefaultMaterial() const { return m_defaultMaterial; }
+
 		[[nodiscard]] bool IsViewOpen(ViewHandle view) const;
 		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
 		[[nodiscard]] Graphics::Window& GetWindow(ViewHandle view);
@@ -89,6 +95,7 @@ namespace Dune
 		Graphics::ResourceHandles m_resourceHandles{};
 		Graphics::RenderContext m_renderContext{};
 		AssetCache m_assetCache{};
+		Graphics::MaterialHandle m_defaultMaterial{};
 		dVector<std::unique_ptr<View>> m_views;
 		dVector<SceneFrame> m_sceneFrames;
 		dU32 m_sceneFrameCount{ 0 };

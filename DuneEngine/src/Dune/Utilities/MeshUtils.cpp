@@ -151,6 +151,22 @@ namespace Dune::MeshUtils
 		return meshData;
 	}
 
+	MeshData CreatePrimitive(EPrimitive primitive)
+	{
+		switch (primitive)
+		{
+		case EPrimitive::Cube:
+			return CreateCube();
+		case EPrimitive::Sphere:
+			return CreateSphere();
+		case EPrimitive::Plane:
+			return CreatePlane();
+		default:
+			Assert(false);
+			return {};
+		}
+	}
+
 	void Transform(MeshData& meshData, const dMatrix& matrix)
 	{
 		const dMatrix normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, matrix));

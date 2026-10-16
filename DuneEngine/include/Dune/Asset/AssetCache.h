@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Dune/Utilities/Handle.h"
+#include "Dune/Core/FileSystem.h"
 #include "Dune/Graphics/Handles.h"
+#include "Dune/Utilities/MeshUtils.h"
 
 namespace Dune
 {
@@ -15,7 +17,7 @@ namespace Dune
 
 	struct Model
 	{
-		dString                           sourcePath;
+		FileSystem::SerializationID<EFileType::Model> source;
 		dVector<Graphics::MaterialHandle> materials;
 		dVector<ModelNode>                nodes;
 	};
@@ -27,12 +29,20 @@ namespace Dune
 	public:
 		void Destroy();
 
-		[[nodiscard]] ModelHandle FindModel(const char* pPath) const;
-		[[nodiscard]] ModelHandle AddModel(const char* pPath, Model&& model);
+		[[nodiscard]] ModelHandle FindModel(FileSystem::SerializationID<EFileType::Model> source) const;
+		[[nodiscard]] ModelHandle AddModel(Model&& model);
 		[[nodiscard]] const Model& GetModel(ModelHandle handle) const;
 
+		void SetPrimitive(EPrimitive primitive, Graphics::MeshHandle mesh);
+		[[nodiscard]] Graphics::MeshHandle GetPrimitive(EPrimitive primitive) const;
+
+		void AddMaterialSet(Graphics::MaterialHandle material, Graphics::MaterialSetHandle materialSet);
+		[[nodiscard]] Graphics::MaterialSetHandle FindMaterialSet(Graphics::MaterialHandle material) const;
+
 	private:
-		dVector<Model>                 m_models;
-		dHashMap<dString, ModelHandle> m_modelLookup;
+		dVector<Model>                              m_models;
+		dHashMap<dU32, ModelHandle>                 m_modelLookup;
+		Graphics::MeshHandle                        m_primitives[(dU32)EPrimitive::Count];
+		dHashMap<dU32, Graphics::MaterialSetHandle> m_materialSets;
 	};
 }

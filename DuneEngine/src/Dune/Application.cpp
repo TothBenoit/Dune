@@ -6,6 +6,9 @@
 #include "Dune/Scene/SceneRender.h"
 #include "Dune/Utilities/SceneLoader.h"
 #include "Dune/Utilities/ModelImporter.h"
+#include "Dune/Utilities/MeshUtils.h"
+#include "Dune/Component/Name.h"
+#include "Dune/Component/MeshInstance.h"
 
 namespace Dune
 {
@@ -16,6 +19,9 @@ namespace Dune
 		for (const FileSystemRoot& root : desc.roots)
 			FileSystem::AddRoot(root.name.c_str(), root.path.c_str());
 		m_renderContext.Initialize(&m_resourceHandles);
+		for (dU32 primitive = 0; primitive < (dU32)EPrimitive::Count; primitive++)
+			m_assetCache.SetPrimitive((EPrimitive)primitive, CreateMesh(MeshUtils::CreatePrimitive((EPrimitive)primitive)));
+		m_defaultMaterial = CreateMaterial({});
 		m_lastFrameTime = std::chrono::steady_clock::now();
 	}
 
@@ -98,7 +104,8 @@ namespace Dune
 
 	ModelHandle Application::LoadModel(const char* pPath)
 	{
-		const ModelHandle cached = m_assetCache.FindModel(pPath);
+		const FileSystem::SerializationID<EFileType::Model> source = FileSystem::Resolve<EFileType::Model>(pPath);
+		const ModelHandle cached = m_assetCache.FindModel(source);
 		if (cached.IsValid())
 			return cached;
 
@@ -107,13 +114,13 @@ namespace Dune
 			return {};
 
 		const Graphics::ModelResources modelResources = CreateModel(modelData);
-		Model asset{ .materials = modelResources.materials };
+		Model asset{ .source = source, .materials = modelResources.materials };
 		for (dU32 nodeIndex = 0; nodeIndex < (dU32)modelData.nodes.size(); nodeIndex++)
 		{
 			const Graphics::ModelNode& node = modelData.nodes[nodeIndex];
 			asset.nodes.push_back({ .position = node.position, .rotation = node.rotation, .mesh = modelResources.meshes[node.mesh], .materials = modelResources.nodeMaterialSets[nodeIndex] });
 		}
-		const ModelHandle model = m_assetCache.AddModel(pPath, std::move(asset));
+		const ModelHandle model = m_assetCache.AddModel(std::move(asset));
 
 		const Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
 		for (Graphics::MaterialHandle material : m_assetCache.GetModel(model).materials)
@@ -139,6 +146,27 @@ namespace Dune
 		if (model.IsValid())
 			Spawn(scene, model);
 		return model;
+	}
+
+	EntityID Application::SpawnPrimitive(Scene& scene, EPrimitive primitive, const Transform& transform, Graphics::MaterialHandle material)
+	{
+		static constexpr const char* kPrimitiveNames[]{ "Cube", "Sphere", "Plane" };
+		static_assert(_countof(kPrimitiveNames) == (dU32)EPrimitive::Count);
+
+		const Graphics::MaterialHandle resolvedMaterial = material.IsValid() ? material : m_defaultMaterial;
+		Graphics::MaterialSetHandle materialSet = m_assetCache.FindMaterialSet(resolvedMaterial);
+		if (!materialSet.IsValid())
+		{
+			const Graphics::MaterialHandle materials[]{ resolvedMaterial };
+			materialSet = CreateMaterialSet(materials);
+			m_assetCache.AddMaterialSet(resolvedMaterial, materialSet);
+		}
+
+		const EntityID entity = scene.registry.create();
+		scene.registry.emplace<Name>(entity, kPrimitiveNames[(dU32)primitive]);
+		scene.registry.emplace<Transform>(entity, transform);
+		scene.registry.emplace<MeshInstance>(entity, MeshInstance{ .mesh = m_assetCache.GetPrimitive(primitive), .materials = materialSet });
+		return entity;
 	}
 
 	Graphics::MeshHandle Application::CreateMesh(const Graphics::MeshData& meshData)

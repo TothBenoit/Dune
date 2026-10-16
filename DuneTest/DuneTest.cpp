@@ -12,7 +12,6 @@
 #include <Dune/Component/Transform.h>
 #include <Dune/Component/Name.h>
 #include <Dune/Component/MeshInstance.h>
-#include <Dune/Utilities/MeshUtils.h>
 #include <Dune/Component/Camera.h>
 #include <Dune/Utilities/StringUtils.h>
 #include <filesystem>
@@ -30,27 +29,14 @@ public:
 		, m_pScene{ &scene }
 	{}
 
-	void SpawnPrimitive(const char* pName, const Graphics::MeshData& meshData, const Graphics::MaterialDesc& materialDesc, const dVec3& position)
-	{
-		const Graphics::MaterialHandle materials[]{ m_app.CreateMaterial(materialDesc) };
-
-		entt::registry& registry = m_pScene->registry;
-		const EntityID entity = registry.create();
-		registry.emplace<Name>(entity, pName);
-		registry.emplace<Transform>(entity, Transform{ .position = position, .rotation = DirectX::XMQuaternionIdentity(), .scale = 1.0f });
-		registry.emplace<MeshInstance>(entity, MeshInstance{ .mesh = m_app.CreateMesh(meshData), .materials = m_app.CreateMaterialSet(materials) });
-	}
-
 	void Run()
 	{
 		m_camera.SetNear(0.1f);
 		m_camera.SetFar(500.0f);
 		m_app.LoadModel(*m_pScene, "app://Sponza/Sponza.gltf");
-		SpawnPrimitive("Cube", MeshUtils::CreateCube({ 0.3f, 0.3f, 0.3f }), { .baseColor = { 0.8f, 0.1f, 0.1f } }, { -0.5f, 0.15f, 1.5f });
-		SpawnPrimitive("Sphere", MeshUtils::CreateSphere(0.15f), { .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }, { 0.0f, 0.15f, 1.5f });
-		Graphics::MeshData plane = MeshUtils::CreatePlane({ 0.3f, 0.3f });
-		MeshUtils::Transform(plane, DirectX::XMMatrixRotationX(-DirectX::XM_PIDIV2));
-		SpawnPrimitive("Plane", plane, { .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = Graphics::ECullingMode::None }, { 0.5f, 0.15f, 1.5f });
+		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Cube, { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }));
+		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Sphere, { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }));
+		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Plane, { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, m_app.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = Graphics::ECullingMode::None }));
 
 		while (m_app.BeginFrame())
 		{
