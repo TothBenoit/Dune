@@ -41,9 +41,10 @@ public:
 			return;
 
 		Graphics::ResourceManager& resources = m_pRenderContext->GetResourceManager();
+		Graphics::UploadContext& uploadContext = m_pRenderContext->GetUploadContext();
 		const Graphics::ModelResources modelResources = resources.CreateModel(model);
-		const Graphics::StagingMemory staging = m_renderer.AllocateStaging(resources.GetUploadSize(modelResources), Graphics::Texture::kUploadAlignment);
-		resources.Upload(modelResources, model, m_renderer.GetUploadCommandList(), staging);
+		const Graphics::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(modelResources), Graphics::Texture::kUploadAlignment);
+		resources.Upload(modelResources, model, uploadContext.GetCommandList(), staging);
 		SceneLoader::Spawn(*m_pScene, model, modelResources);
 	}
 
@@ -77,6 +78,7 @@ public:
 			m_camera.Update(m_deltaTime, m_window.GetInput());
 			SceneRender::Extract(*m_pScene, resources, frameData);
 			resources.FillFrameData(frameData);
+			m_pRenderContext->GetUploadContext().Submit();
 			m_renderer.Render(frameData, m_camera.GetCamera());
 		}
 

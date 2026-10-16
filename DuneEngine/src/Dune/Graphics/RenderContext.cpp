@@ -11,10 +11,12 @@ namespace Dune::Graphics
 		m_commandQueue.Initialize(m_device, ECommandType::Direct);
 		m_psoCache.Initialize(m_device);
 		m_resourceManager.Initialize(m_device);
+		m_uploadContext.Initialize(m_device, m_commandQueue, {});
 	}
 
 	void RenderContext::Destroy()
 	{
+		m_uploadContext.Destroy();
 		m_resourceManager.Destroy();
 		m_psoCache.Destroy();
 		m_commandQueue.Destroy();

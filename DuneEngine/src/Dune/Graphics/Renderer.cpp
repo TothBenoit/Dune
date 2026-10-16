@@ -45,9 +45,6 @@ namespace Dune::Graphics
 			frame.commandAllocator.Initialize(device, ECommandType::Direct);
 			frame.commandList.Initialize(device, ECommandType::Direct, frame.commandAllocator);
 			frame.commandList.Close();
-			frame.uploadCommandAllocator.Initialize(device, ECommandType::Direct);
-			frame.uploadCommandList.Initialize(device, ECommandType::Direct, frame.uploadCommandAllocator);
-			frame.uploadCommandList.Close();
 			frame.srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = ResourceManager::kSharedSRVCapacity + kPersistentSRVCapacity + kTransientSRVCapacity, .isShaderVisible = true });
 			frame.samplerHeap.Initialize(device, { .type = EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
 			frame.uploadBuffer.Initialize(device, { .debugName = L"UploadBuffer", .memory = EBufferMemory::CPU, .byteSize = kUploadBufferByteSize });
@@ -143,8 +140,6 @@ namespace Dune::Graphics
 			frame.uploadBuffer.Destroy();
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
-			frame.uploadCommandList.Destroy();
-			frame.uploadCommandAllocator.Destroy();
 			frame.srvHeap.Destroy();
 			frame.samplerHeap.Destroy();
 		}
@@ -335,7 +330,6 @@ namespace Dune::Graphics
 	void Renderer::OnResize(dU32 width, dU32 height)
 	{
 		Device& device = *GetDevice();
-		SubmitPendingUploads(m_frames[m_frameIndex]);
 		for (Frame& f : m_frames)
 			WaitForFrame(f);
 
@@ -387,34 +381,17 @@ namespace Dune::Graphics
 	Frame& Renderer::PrepareFrame()
 	{
 		Frame& frame = m_frames[m_frameIndex];
-		if (!frame.isPrepared)
-		{
-			WaitForFrame(frame);
-			for (Buffer& buffer : frame.buffersToRelease)
-				buffer.Destroy();
-			frame.buffersToRelease.clear();
-			frame.staging.Reset();
-			frame.uploadCommandAllocator.Reset();
-			frame.isPrepared = true;
-		}
+		WaitForFrame(frame);
+		for (Buffer& buffer : frame.buffersToRelease)
+			buffer.Destroy();
+		frame.buffersToRelease.clear();
+		frame.staging.Reset();
 		return frame;
-	}
-
-	void Renderer::SubmitPendingUploads(Frame& frame)
-	{
-		if (!frame.hasUploads)
-			return;
-		frame.uploadCommandList.Close();
-		m_pCommandQueue->ExecuteCommandLists(&frame.uploadCommandList, 1);
-		m_pCommandQueue->Signal(m_fence, ++m_frameCount);
-		frame.fenceValue = m_frameCount;
-		frame.hasUploads = false;
-		frame.isPrepared = false;
 	}
 
 	StagingMemory Renderer::AllocateStaging(dU64 byteSize, dU64 alignment)
 	{
-		Frame& frame = PrepareFrame();
+		Frame& frame = m_frames[m_frameIndex];
 		const StagingMemory staging = frame.staging.Allocate(byteSize, alignment);
 		if (staging.IsValid())
 			return staging;
@@ -424,17 +401,6 @@ namespace Dune::Graphics
 		void* pCpuAddress{ nullptr };
 		buffer.Map(0, 0, &pCpuAddress);
 		return { .buffer = buffer, .offset = 0, .pCpuAddress = pCpuAddress };
-	}
-
-	CommandList& Renderer::GetUploadCommandList()
-	{
-		Frame& frame = PrepareFrame();
-		if (!frame.hasUploads)
-		{
-			frame.uploadCommandList.Reset(frame.uploadCommandAllocator);
-			frame.hasUploads = true;
-		}
-		return frame.uploadCommandList;
 	}
 
 	void Renderer::Render(const FrameData& frameData, const Camera& camera)
@@ -509,21 +475,10 @@ namespace Dune::Graphics
 		FlushBarriers(frame.commandList);
 
 		frame.commandList.Close();
-		if (frame.hasUploads)
-		{
-			frame.uploadCommandList.Close();
-			CommandList commandLists[]{ frame.uploadCommandList, frame.commandList };
-			m_pCommandQueue->ExecuteCommandLists(commandLists, _countof(commandLists));
-			frame.hasUploads = false;
-		}
-		else
-		{
-			m_pCommandQueue->ExecuteCommandLists(&frame.commandList, 1);
-		}
+		m_pCommandQueue->ExecuteCommandLists(&frame.commandList, 1);
 		m_swapchain.Present();
 		m_pCommandQueue->Signal(m_fence, ++m_frameCount);
 		frame.fenceValue = m_frameCount;
-		frame.isPrepared = false;
 		m_frameIndex = (m_frameIndex + 1) % kFramesInFlight;
 	}
 }
