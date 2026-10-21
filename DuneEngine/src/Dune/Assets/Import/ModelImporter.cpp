@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Dune/Asset/Import/ModelImporter.h"
+#include "Dune/Assets/Import/ModelImporter.h"
 #include "Dune/Graphics/MeshUtils.h"
 #include "Dune/Core/FileSystem.h"
-#include "Dune/Core/Logger.h"
+#include "Dune/Platform/Logger.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>

@@ -5,10 +5,10 @@
 #include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
-#include "Dune/Asset/AssetCache.h"
+#include "Dune/Assets/AssetCache.h"
 #include "Dune/Graphics/MeshUtils.h"
-#include "Dune/Scene/Scene.h"
-#include "Dune/Component/Transform.h"
+#include "Dune/World/Scene.h"
+#include "Dune/World/Component/Transform.h"
 
 namespace Dune
 {

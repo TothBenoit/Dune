@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Dune/Asset/AssetCache.h"
+#include "Dune/Assets/AssetCache.h"
 
 namespace Dune
 {

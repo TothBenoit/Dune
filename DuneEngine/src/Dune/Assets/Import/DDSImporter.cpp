@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Dune/Asset/Import/DDSImporter.h"
-#include "Dune/Core/File.h"
-#include "Dune/Core/Logger.h"
+#include "Dune/Assets/Import/DDSImporter.h"
+#include "Dune/Platform/File.h"
+#include "Dune/Platform/Logger.h"
 
 namespace Dune::DDSImporter
 {

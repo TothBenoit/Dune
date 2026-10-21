@@ -2,14 +2,14 @@
 #include "Dune/Application.h"
 #include "Dune/Core/JobSystem.h"
 #include "Dune/Core/FileSystem.h"
-#include "Dune/Scene/Scene.h"
-#include "Dune/Scene/SceneRender.h"
-#include "Dune/Asset/Model.h"
-#include "Dune/Asset/Import/ModelImporter.h"
-#include "Dune/Asset/Import/DDSImporter.h"
+#include "Dune/World/Scene.h"
+#include "Dune/World/SceneRender.h"
+#include "Dune/Assets/Model.h"
+#include "Dune/Assets/Import/ModelImporter.h"
+#include "Dune/Assets/Import/DDSImporter.h"
 #include "Dune/Graphics/MeshUtils.h"
-#include "Dune/Component/Name.h"
-#include "Dune/Component/MeshInstance.h"
+#include "Dune/World/Component/Name.h"
+#include "Dune/World/Component/MeshInstance.h"
 
 namespace Dune
 {

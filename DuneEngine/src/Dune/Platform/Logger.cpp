@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Dune/Core/Logger.h"
+#include "Dune/Platform/Logger.h"
 
 namespace Dune
 {

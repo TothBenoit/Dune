@@ -16,6 +16,6 @@
 #include <atomic>
 #include <functional>
 #include <algorithm>
-#include <Dune/Core/Assert.h>
-#include <Dune/Core/Types.h>
+#include <Dune/Platform/Assert.h>
+#include <Dune/Platform/Types.h>
 #include <Dune/Utils.h>

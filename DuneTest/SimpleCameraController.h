@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Dune/Component/Camera.h"
+#include "Dune/World/Component/Camera.h"
 
 namespace Dune
 {

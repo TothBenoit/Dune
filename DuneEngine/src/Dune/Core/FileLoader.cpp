@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Core/FileLoader.h"
-#include "Dune/Core/File.h"
+#include "Dune/Platform/File.h"
 
 namespace Dune::FileLoader
 {

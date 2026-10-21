@@ -14,7 +14,7 @@
 #include "Dune/Graphics/RHI/Barrier.h"
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
-#include "Dune/Core/Logger.h"
+#include "Dune/Platform/Logger.h"
 #include "src/Dune/Platform/Win32/WindowWin32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

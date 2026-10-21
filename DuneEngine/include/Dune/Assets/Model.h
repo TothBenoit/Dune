@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Dune/Asset/Image.h"
+#include "Dune/Assets/Image.h"
 
 namespace Dune
 {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Dune/Asset/Model.h"
-#include "Dune/Asset/Image.h"
+#include "Dune/Assets/Model.h"
+#include "Dune/Assets/Image.h"
 #include "Dune/Core/HandleAllocator.h"
 #include "Dune/Core/ResourcePool.h"
 
