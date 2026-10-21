@@ -121,7 +121,7 @@ namespace Dune
 		Graphics::MeshHandle m_primitives[(dU32)EPrimitive::Count]{};
 		Graphics::MaterialHandle m_defaultMaterial{};
 		Graphics::MaterialSetHandle m_defaultMaterialSet{};
-		dVector<PendingRelease<Graphics::Texture>>          m_pendingTextures;
+		dVector<PendingRelease<Graphics::Texture>>     m_pendingTextures;
 		dVector<PendingRelease<Graphics::Mesh>>        m_pendingMeshes;
 		dVector<PendingRelease<Graphics::MaterialSet>> m_pendingMaterialSets;
 		dVector<std::unique_ptr<View>> m_views;
