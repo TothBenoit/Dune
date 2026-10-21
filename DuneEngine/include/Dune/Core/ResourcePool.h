@@ -2,6 +2,7 @@
 
 #include "Dune/Core/Handle.h"
 #include "Dune/Core/HandleAllocator.h"
+#include "Dune/Core/ChunkedArray.h"
 
 namespace Dune
 {
@@ -16,45 +17,57 @@ namespace Dune
 			m_pAllocator = &allocator;
 		}
 
+		void Destroy()
+		{
+			m_entries.Destroy();
+			m_capacity.store(0, std::memory_order_relaxed);
+			m_pAllocator = nullptr;
+		}
+
 		void Insert(HandleType handle, T&& item)
 		{
 			Assert(m_pAllocator->IsValid(handle));
 			const dU32 index = handle.GetIndex();
-			if (index >= m_items.size())
-			{
-				m_items.resize(index + 1);
-				m_isAlive.resize(index + 1, false);
-			}
-			Assert(!m_isAlive[index]);
-			m_items[index] = std::move(item);
-			m_isAlive[index] = true;
+			Entry& entry = m_entries.Resolve(index);
+			Assert(!entry.isAlive);
+			entry.item = std::move(item);
+			entry.isAlive = true;
+
+			dU32 capacity = m_capacity.load(std::memory_order_relaxed);
+			while (capacity <= index && !m_capacity.compare_exchange_weak(capacity, index + 1, std::memory_order_release, std::memory_order_relaxed)) {}
 		}
 
 		T Remove(HandleType handle)
 		{
 			Assert(IsValid(handle));
-			const dU32 index = handle.GetIndex();
-			m_isAlive[index] = false;
-			return std::move(m_items[index]);
+			Entry& entry = m_entries[handle.GetIndex()];
+			entry.isAlive = false;
+			return std::move(entry.item);
 		}
 
 		[[nodiscard]] bool IsValid(HandleType handle) const
 		{
-			const dU32 index = handle.GetIndex();
-			return index < m_items.size() && m_isAlive[index] && m_pAllocator->IsValid(handle);
+			const Entry* pEntry = m_entries.TryGet(handle.GetIndex());
+			return pEntry && pEntry->isAlive && m_pAllocator->IsValid(handle);
 		}
 
-		[[nodiscard]] T& Get(HandleType handle) { Assert(IsValid(handle)); return m_items[handle.GetIndex()]; }
-		[[nodiscard]] const T& Get(HandleType handle) const { Assert(IsValid(handle)); return m_items[handle.GetIndex()]; }
+		[[nodiscard]] T& Get(HandleType handle) { Assert(IsValid(handle)); return m_entries[handle.GetIndex()].item; }
+		[[nodiscard]] const T& Get(HandleType handle) const { Assert(IsValid(handle)); return m_entries[handle.GetIndex()].item; }
 
-		[[nodiscard]] dU32 GetCapacity() const { return (dU32)m_items.size(); }
-		[[nodiscard]] bool IsAliveAt(dU32 index) const { return m_isAlive[index]; }
-		[[nodiscard]] const T& GetAt(dU32 index) const { Assert(m_isAlive[index]); return m_items[index]; }
-		[[nodiscard]] HandleType GetHandleAt(dU32 index) const { Assert(m_isAlive[index]); return m_pAllocator->GetHandleAt(index); }
+		[[nodiscard]] dU32 GetCapacity() const { return m_capacity.load(std::memory_order_acquire); }
+		[[nodiscard]] bool IsAliveAt(dU32 index) const { const Entry* pEntry = m_entries.TryGet(index); return pEntry && pEntry->isAlive; }
+		[[nodiscard]] const T& GetAt(dU32 index) const { Assert(IsAliveAt(index)); return m_entries[index].item; }
+		[[nodiscard]] HandleType GetHandleAt(dU32 index) const { Assert(IsAliveAt(index)); return m_pAllocator->GetHandleAt(index); }
 
 	private:
+		struct Entry
+		{
+			T    item{};
+			bool isAlive{ false };
+		};
+
 		const HandleAllocator<Tag>* m_pAllocator{ nullptr };
-		dVector<T>                  m_items;
-		dVector<bool>               m_isAlive;
+		ChunkedArray<Entry>         m_entries;
+		std::atomic<dU32>           m_capacity{ 0 };
 	};
 }

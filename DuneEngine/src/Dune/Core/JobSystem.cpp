@@ -1,9 +1,7 @@
 #include "pch.h"
 #include "Dune/Core/JobSystem.h"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
+#include "Dune/Platform/Fiber.h"
+#include <immintrin.h>
 
 namespace Dune::Job
 {
@@ -264,7 +262,7 @@ namespace Dune::Job
 	{
 		if (fiberCount == g_maxFiberPerThread)
 			return false;
-		void* pFiber = ::CreateFiberEx(g_fiberStackCommitSize, g_fiberStackReserveSize, 0, &WorkerMainLoop, nullptr);
+		void* pFiber = Fiber::Create(g_fiberStackCommitSize, g_fiberStackReserveSize, &WorkerMainLoop, nullptr);
 		Assert(pFiber);
 		fibers[fiberCount++] = pFiber;
 		outFiber = { pFiber, threadID };
@@ -286,7 +284,7 @@ namespace Dune::Job
 	{
 		Assert(fiber.threadIndex == g_workerID);
 		g_currentFiber = fiber;
-		::SwitchToFiber(fiber.pFiber);
+		Fiber::SwitchTo(fiber.pFiber);
 	}
 
 	void WaitForCounter_Fiber(CounterInstance* pCounter)
@@ -348,13 +346,13 @@ namespace Dune::Job
 			}
 		}
 
-		::SwitchToFiber(g_pMainFiber);
+		Fiber::SwitchTo(g_pMainFiber);
 	}
 
 	void InitWorker(dU32 workerID)
 	{
 		Assert(!g_pMainFiber);
-		g_pMainFiber = ::ConvertThreadToFiber(nullptr);
+		g_pMainFiber = Fiber::ConvertThreadToFiber();
 		g_workerID = workerID;
 
 		Worker& worker = *g_pWorkers[g_workerID];
@@ -373,8 +371,8 @@ namespace Dune::Job
 
 		g_currentFiber = { nullptr, 0 };
 		for (dU32 i = 0; i < worker.fiberCount; i++)
-			::DeleteFiber(worker.fibers[i]);
-		::ConvertFiberToThread();
+			Fiber::Delete(worker.fibers[i]);
+		Fiber::ConvertFiberToThread();
 		g_pMainFiber = nullptr;
 	}
 

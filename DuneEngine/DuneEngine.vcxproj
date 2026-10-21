@@ -13,6 +13,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Platform\Win32\FiberWin32.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearDepth.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearHDRTarget.cpp" />
@@ -22,6 +23,8 @@
     <ClCompile Include="src\Dune\Graphics\MeshUtils.cpp" />
     <ClCompile Include="src\Dune\Assets\Import\ModelImporter.cpp" />
     <ClCompile Include="src\Dune\Graphics\ScratchAllocator.cpp" />
+    <ClInclude Include="include\Dune\Platform\Fiber.h" />
+    <ClInclude Include="include\Dune\Core\ChunkedArray.h" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Application.h" />
     <ClInclude Include="include\Dune\Assets\AssetCache.h" />

@@ -14,11 +14,11 @@ namespace Dune
 		Assert(m_modelLookup.empty() && m_imageLookup.empty());
 
 		m_imageLookup.clear();
-		m_images = {};
-		m_imageHandles = {};
+		m_images.Destroy();
+		m_imageHandles.Destroy();
 		m_modelLookup.clear();
-		m_models = {};
-		m_modelHandles = {};
+		m_models.Destroy();
+		m_modelHandles.Destroy();
 	}
 
 	ModelHandle AssetCache::AcquireModel(FileSystem::SerializationID<EFileType::Model> source)
