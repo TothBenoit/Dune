@@ -33,10 +33,10 @@ public:
 	{
 		m_camera.SetNear(0.1f);
 		m_camera.SetFar(500.0f);
-		m_app.LoadModel(*m_pScene, "app://Sponza/Sponza.gltf");
-		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Cube, { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }));
-		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Sphere, { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }));
-		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Plane, { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, m_app.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = Graphics::ECullingMode::None }));
+		const ModelHandle sponza = m_app.LoadModel(*m_pScene, "app://Sponza/Sponza.gltf");
+		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Cube, { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
+		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Sphere, { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }) }));
+		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Plane, { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = Graphics::ECullingMode::None }) }));
 
 		while (m_app.BeginFrame())
 		{
@@ -50,6 +50,9 @@ public:
 			m_app.Render(m_view, *m_pScene, m_camera.GetCamera());
 			m_app.EndFrame();
 		}
+
+		m_pScene->registry.clear();
+		m_app.UnloadModel(sponza);
 	}
 
 	dMatrix4x4 ComputeTransformMatrix(dVec3& position, dQuat& rotation, float scale)

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Dune/Utilities/ModelImporter.h"
-#include "Dune/Utilities/DDSImporter.h"
 #include "Dune/Utilities/MeshUtils.h"
 #include "Dune/Utilities/StringUtils.h"
 #include "Dune/Core/FileSystem.h"
@@ -62,13 +61,8 @@ namespace Dune::ModelImporter
 			if (it != context.imageLookup.end())
 				return it->second;
 
-			ModelImage image{ .isSRGB = isSRGB };
-			dU32 imageIndex = kInvalidModelIndex;
-			if (DDSImporter::Import(path.c_str(), image.data))
-			{
-				imageIndex = (dU32)context.pModel->images.size();
-				context.pModel->images.push_back(std::move(image));
-			}
+			const dU32 imageIndex = (dU32)context.pModel->images.size();
+			context.pModel->images.push_back({ .source = FileSystem::Resolve<EFileType::Image>(path.c_str()), .isSRGB = isSRGB });
 			context.imageLookup.emplace(path, imageIndex);
 			return imageIndex;
 		}

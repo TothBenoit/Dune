@@ -38,8 +38,6 @@ namespace Dune::Graphics
 	ModelResources ResourceHandles::AllocateModel(const ModelData& model)
 	{
 		ModelResources resources;
-		for (dU32 i = 0; i < (dU32)model.images.size(); i++)
-			resources.textures.push_back(textures.Allocate());
 		for (dU32 i = 0; i < (dU32)model.materials.size(); i++)
 			resources.materials.push_back(materials.Allocate());
 		for (dU32 i = 0; i < (dU32)model.meshes.size(); i++)
@@ -49,14 +47,13 @@ namespace Dune::Graphics
 		return resources;
 	}
 
-	void ResourceManager::Initialize(Device& device, ResourceHandles* pSharedHandles)
+	void ResourceManager::Initialize(Device& device, const ResourceHandles& handles)
 	{
 		m_pDevice = &device;
-		m_pHandles = pSharedHandles ? pSharedHandles : &m_ownHandles;
-		m_textures.Initialize(m_pHandles->textures);
-		m_materials.Initialize(m_pHandles->materials);
-		m_materialSets.Initialize(m_pHandles->materialSets);
-		m_meshes.Initialize(m_pHandles->meshes);
+		m_textures.Initialize(handles.textures);
+		m_materials.Initialize(handles.materials);
+		m_materialSets.Initialize(handles.materialSets);
+		m_meshes.Initialize(handles.meshes);
 		m_srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
 	}
 
@@ -71,13 +68,6 @@ namespace Dune::Graphics
 
 		m_srvHeap.Destroy();
 		m_pDevice = nullptr;
-	}
-
-	TextureHandle ResourceManager::CreateTexture(const TextureData& image, bool sRGB)
-	{
-		const TextureHandle handle = m_pHandles->textures.Allocate();
-		CreateTexture(handle, image, sRGB);
-		return handle;
 	}
 
 	void ResourceManager::CreateTexture(TextureHandle handle, const TextureData& image, bool sRGB)
@@ -101,13 +91,6 @@ namespace Dune::Graphics
 		return handle.IsValid() ? m_srvHeap.GetIndex(m_textures.Get(handle).srv) : dU32(-1);
 	}
 
-	MaterialHandle ResourceManager::CreateMaterial(const MaterialDesc& desc)
-	{
-		const MaterialHandle handle = m_pHandles->materials.Allocate();
-		CreateMaterial(handle, desc);
-		return handle;
-	}
-
 	void ResourceManager::CreateMaterial(MaterialHandle handle, const MaterialDesc& desc)
 	{
 		m_materials.Insert(handle,
@@ -127,25 +110,11 @@ namespace Dune::Graphics
 		});
 	}
 
-	MaterialSetHandle ResourceManager::CreateMaterialSet(dSpan<MaterialHandle> materials)
-	{
-		const MaterialSetHandle handle = m_pHandles->materialSets.Allocate();
-		CreateMaterialSet(handle, materials);
-		return handle;
-	}
-
 	void ResourceManager::CreateMaterialSet(MaterialSetHandle handle, dSpan<MaterialHandle> materials)
 	{
 		for (MaterialHandle material : materials)
 			Assert(m_materials.IsValid(material));
 		m_materialSets.Insert(handle, { .materials = dVector<MaterialHandle>(materials.begin(), materials.end()) });
-	}
-
-	MeshHandle ResourceManager::CreateMesh(const MeshData& meshData)
-	{
-		const MeshHandle handle = m_pHandles->meshes.Allocate();
-		CreateMesh(handle, meshData);
-		return handle;
 	}
 
 	void ResourceManager::CreateMesh(MeshHandle handle, const MeshData& meshData)
@@ -155,19 +124,10 @@ namespace Dune::Graphics
 		m_meshes.Insert(handle, std::move(mesh));
 	}
 
-	ModelResources ResourceManager::CreateModel(const ModelData& model)
+	void ResourceManager::CreateModel(const ModelResources& handles, const ModelData& model, dSpan<TextureHandle> images)
 	{
-		const ModelResources resources = m_pHandles->AllocateModel(model);
-		CreateModel(resources, model);
-		return resources;
-	}
-
-	void ResourceManager::CreateModel(const ModelResources& handles, const ModelData& model)
-	{
-		for (dU32 i = 0; i < (dU32)model.images.size(); i++)
-			CreateTexture(handles.textures[i], model.images[i].data, model.images[i].isSRGB);
-
-		const auto ToTexture = [&](dU32 imageIndex) { return imageIndex != kInvalidModelIndex ? handles.textures[imageIndex] : TextureHandle{}; };
+		Assert(images.GetSize() == model.images.size());
+		const auto ToTexture = [&](dU32 imageIndex) { return imageIndex != kInvalidModelIndex ? images[imageIndex] : TextureHandle{}; };
 		for (dU32 i = 0; i < (dU32)model.materials.size(); i++)
 		{
 			const ModelMaterial& material = model.materials[i];
@@ -204,8 +164,6 @@ namespace Dune::Graphics
 	dU64 ResourceManager::GetUploadSize(const ModelResources& resources) const
 	{
 		dU64 byteSize = 0;
-		for (TextureHandle texture : resources.textures)
-			byteSize = AlignUp(byteSize, Texture::kUploadAlignment) + GetUploadSize(texture);
 		for (MeshHandle mesh : resources.meshes)
 			byteSize = AlignUp(byteSize, Mesh::kUploadAlignment) + GetUploadSize(mesh);
 		return byteSize;
@@ -213,10 +171,8 @@ namespace Dune::Graphics
 
 	void ResourceManager::Upload(const ModelResources& resources, const ModelData& model, CommandList& commandList, const StagingMemory& staging)
 	{
-		Assert(staging.IsValid() && staging.offset % Texture::kUploadAlignment == 0);
+		Assert(staging.IsValid() && staging.offset % Mesh::kUploadAlignment == 0);
 		dU64 offset = 0;
-		for (dU32 i = 0; i < (dU32)resources.textures.size(); i++)
-			Upload(resources.textures[i], model.images[i].data, commandList, SubAllocate(staging, offset, GetUploadSize(resources.textures[i]), Texture::kUploadAlignment));
 		for (dU32 i = 0; i < (dU32)resources.meshes.size(); i++)
 			Upload(resources.meshes[i], model.meshes[i], commandList, SubAllocate(staging, offset, GetUploadSize(resources.meshes[i]), Mesh::kUploadAlignment));
 	}
@@ -272,28 +228,20 @@ namespace Dune::Graphics
 		TextureEntry entry = m_textures.Remove(handle);
 		entry.texture.Destroy();
 		m_srvHeap.Free(entry.srv);
-		if (m_pHandles == &m_ownHandles)
-			m_ownHandles.textures.Free(handle);
 	}
 
 	void ResourceManager::Destroy(MaterialHandle handle)
 	{
 		m_materials.Remove(handle);
-		if (m_pHandles == &m_ownHandles)
-			m_ownHandles.materials.Free(handle);
 	}
 
 	void ResourceManager::Destroy(MaterialSetHandle handle)
 	{
 		m_materialSets.Remove(handle);
-		if (m_pHandles == &m_ownHandles)
-			m_ownHandles.materialSets.Free(handle);
 	}
 
 	void ResourceManager::Destroy(MeshHandle handle)
 	{
 		m_meshes.Remove(handle).Destroy();
-		if (m_pHandles == &m_ownHandles)
-			m_ownHandles.meshes.Free(handle);
 	}
 }

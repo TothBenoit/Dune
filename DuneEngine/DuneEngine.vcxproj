@@ -25,6 +25,8 @@
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Application.h" />
     <ClInclude Include="include\Dune\Asset\AssetCache.h" />
+    <ClInclude Include="include\Dune\Asset\Image.h" />
+    <ClInclude Include="include\Dune\Asset\Model.h" />
     <ClInclude Include="include\Dune\Core\FileLoader.h" />
     <ClInclude Include="include\Dune\Graphics\Format.h" />
     <ClInclude Include="include\Dune\Graphics\FrameData.h" />

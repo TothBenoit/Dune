@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/TextureData.h"
 #include "Dune/Graphics/MeshData.h"
 #include "Dune/Graphics/Material.h"
+#include "Dune/Core/FileSystem.h"
 
 namespace Dune::Graphics
 {
@@ -10,8 +10,8 @@ namespace Dune::Graphics
 
 	struct ModelImage
 	{
-		TextureData data;
-		bool      isSRGB{ false };
+		FileSystem::SerializationID<EFileType::Image> source;
+		bool isSRGB{ false };
 	};
 
 	struct ModelMaterial

@@ -3,55 +3,94 @@
 
 namespace Dune
 {
-	void AssetCache::Destroy()
+	void AssetCache::Initialize()
 	{
-		m_materialSets.clear();
-		for (Graphics::MeshHandle& primitive : m_primitives)
-			primitive = {};
-		m_modelLookup.clear();
-		m_models.clear();
+		m_models.Initialize(m_modelHandles);
+		m_images.Initialize(m_imageHandles);
 	}
 
-	ModelHandle AssetCache::FindModel(FileSystem::SerializationID<EFileType::Model> source) const
+	void AssetCache::Destroy()
 	{
-		auto it = m_modelLookup.find(source.index);
-		return it != m_modelLookup.end() ? it->second : ModelHandle{};
+		Assert(m_modelLookup.empty() && m_imageLookup.empty());
+
+		m_imageLookup.clear();
+		m_images = {};
+		m_imageHandles = {};
+		m_modelLookup.clear();
+		m_models = {};
+		m_modelHandles = {};
+	}
+
+	ModelHandle AssetCache::AcquireModel(FileSystem::SerializationID<EFileType::Model> source)
+	{
+		auto it = m_modelLookup.find(source);
+		if (it == m_modelLookup.end())
+			return {};
+		m_models.Get(it->second).refCount++;
+		return it->second;
 	}
 
 	ModelHandle AssetCache::AddModel(Model&& model)
 	{
-		Assert(model.source.IsValid() && m_modelLookup.find(model.source.index) == m_modelLookup.end());
-		const ModelHandle handle = ModelHandle::Make((dU32)m_models.size(), 0);
-		m_modelLookup.emplace(model.source.index, handle);
-		m_models.push_back(std::move(model));
+		Assert(model.source.IsValid() && m_modelLookup.find(model.source) == m_modelLookup.end());
+		const ModelHandle handle = m_modelHandles.Allocate();
+		m_modelLookup.emplace(model.source, handle);
+		m_models.Insert(handle, { .model = std::move(model), .refCount = 1 });
 		return handle;
 	}
 
 	const Model& AssetCache::GetModel(ModelHandle handle) const
 	{
-		return m_models[handle.GetIndex()];
+		return m_models.Get(handle).model;
 	}
 
-	void AssetCache::SetPrimitive(EPrimitive primitive, Graphics::MeshHandle mesh)
+	bool AssetCache::ReleaseModel(ModelHandle handle, Model& outModel)
 	{
-		m_primitives[(dU32)primitive] = mesh;
+		CachedModel& cached = m_models.Get(handle);
+		Assert(cached.refCount > 0);
+		if (--cached.refCount > 0)
+			return false;
+
+		m_modelLookup.erase(cached.model.source);
+		outModel = m_models.Remove(handle).model;
+		m_modelHandles.Free(handle);
+		return true;
 	}
 
-	Graphics::MeshHandle AssetCache::GetPrimitive(EPrimitive primitive) const
+	ImageHandle AssetCache::AcquireImage(FileSystem::SerializationID<EFileType::Image> source, bool isSRGB)
 	{
-		Assert(m_primitives[(dU32)primitive].IsValid());
-		return m_primitives[(dU32)primitive];
+		auto it = m_imageLookup.find(ImageKey{ .source = source, .isSRGB = isSRGB });
+		if (it == m_imageLookup.end())
+			return {};
+		m_images.Get(it->second).refCount++;
+		return it->second;
 	}
 
-	void AssetCache::AddMaterialSet(Graphics::MaterialHandle material, Graphics::MaterialSetHandle materialSet)
+	ImageHandle AssetCache::AddImage(Image&& image)
 	{
-		Assert(m_materialSets.find(material.value) == m_materialSets.end());
-		m_materialSets.emplace(material.value, materialSet);
+		const ImageKey key{ .source = image.source, .isSRGB = image.isSRGB };
+		Assert(image.source.IsValid() && m_imageLookup.find(key) == m_imageLookup.end());
+		const ImageHandle handle = m_imageHandles.Allocate();
+		m_imageLookup.emplace(key, handle);
+		m_images.Insert(handle, { .image = std::move(image), .refCount = 1 });
+		return handle;
 	}
 
-	Graphics::MaterialSetHandle AssetCache::FindMaterialSet(Graphics::MaterialHandle material) const
+	const Image& AssetCache::GetImage(ImageHandle handle) const
 	{
-		auto it = m_materialSets.find(material.value);
-		return it != m_materialSets.end() ? it->second : Graphics::MaterialSetHandle{};
+		return m_images.Get(handle).image;
+	}
+
+	bool AssetCache::ReleaseImage(ImageHandle handle, Image& outImage)
+	{
+		CachedImage& cached = m_images.Get(handle);
+		Assert(cached.refCount > 0);
+		if (--cached.refCount > 0)
+			return false;
+
+		m_imageLookup.erase(ImageKey{ .source = cached.image.source, .isSRGB = cached.image.isSRGB });
+		outImage = m_images.Remove(handle).image;
+		m_imageHandles.Free(handle);
+		return true;
 	}
 }

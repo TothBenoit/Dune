@@ -4,13 +4,13 @@
 #include "Dune/Component/Transform.h"
 #include "Dune/Component/Name.h"
 #include "Dune/Component/MeshInstance.h"
-#include "Dune/Asset/AssetCache.h"
+#include "Dune/Asset/Model.h"
 
 namespace Dune::SceneLoader
 {
 	void Spawn(Scene& scene, const Model& model)
 	{
-		for (const ModelNode& node : model.nodes)
+		for (const Model::Node& node : model.nodes)
 		{
 			EntityID entity = scene.registry.create();
 			scene.registry.emplace<Name>(entity).name.assign("Mesh");

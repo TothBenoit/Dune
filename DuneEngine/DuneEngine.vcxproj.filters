@@ -134,6 +134,12 @@
     <ClInclude Include="include\Dune\Asset\AssetCache.h">
       <Filter>Dune\Asset</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Asset\Image.h">
+      <Filter>Dune\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Asset\Model.h">
+      <Filter>Dune\Asset</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Core\File.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
