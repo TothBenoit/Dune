@@ -26,6 +26,7 @@ namespace Dune
 		struct SerializationID
 		{
 			[[nodiscard]] bool IsValid() const { return index != dU32(-1); }
+			[[nodiscard]] bool operator==(const SerializationID& other) const = default;
 			dU32 index{ dU32(-1) };
 		};
 
@@ -47,3 +48,9 @@ namespace Dune
 		[[nodiscard]] static const FilePath& GetIndexPath(EFileType type, dU32 index);
 	};
 }
+
+template<Dune::EFileType type>
+struct std::hash<Dune::FileSystem::SerializationID<type>>
+{
+	[[nodiscard]] size_t operator()(Dune::FileSystem::SerializationID<type> id) const { return std::hash<Dune::dU32>{}(id.index); }
+};

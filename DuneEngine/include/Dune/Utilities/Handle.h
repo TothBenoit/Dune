@@ -23,3 +23,9 @@ namespace Dune
 		dU32 value{ kInvalidValue };
 	};
 }
+
+template<typename T>
+struct std::hash<Dune::Handle<T>>
+{
+	[[nodiscard]] size_t operator()(Dune::Handle<T> handle) const { return std::hash<Dune::dU32>{}(handle.value); }
+};
