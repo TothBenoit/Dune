@@ -9,7 +9,6 @@ namespace Dune
 	struct Image
 	{
 		FileSystem::SerializationID<EFileType::Image> source;
-		bool                                          isSRGB{ false };
 		Graphics::TextureHandle                       texture;
 	};
 

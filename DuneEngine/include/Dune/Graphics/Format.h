@@ -138,4 +138,26 @@ namespace Dune::Graphics
 		default:                      return format;
 		}
 	}
+
+	[[nodiscard]] constexpr EFormat ToTypeless(EFormat format)
+	{
+		switch (format)
+		{
+		case EFormat::R8G8B8A8_UNORM:
+		case EFormat::R8G8B8A8_UNORM_SRGB: return EFormat::R8G8B8A8_TYPELESS;
+		case EFormat::B8G8R8A8_UNORM:
+		case EFormat::B8G8R8A8_UNORM_SRGB: return EFormat::B8G8R8A8_TYPELESS;
+		case EFormat::B8G8R8X8_UNORM:
+		case EFormat::B8G8R8X8_UNORM_SRGB: return EFormat::B8G8R8X8_TYPELESS;
+		case EFormat::BC1_UNORM:
+		case EFormat::BC1_UNORM_SRGB:      return EFormat::BC1_TYPELESS;
+		case EFormat::BC2_UNORM:
+		case EFormat::BC2_UNORM_SRGB:      return EFormat::BC2_TYPELESS;
+		case EFormat::BC3_UNORM:
+		case EFormat::BC3_UNORM_SRGB:      return EFormat::BC3_TYPELESS;
+		case EFormat::BC7_UNORM:
+		case EFormat::BC7_UNORM_SRGB:      return EFormat::BC7_TYPELESS;
+		default:                           return format;
+		}
+	}
 }

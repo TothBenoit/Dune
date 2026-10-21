@@ -58,11 +58,11 @@ namespace Dune
 		void Spawn(Scene& scene, ModelHandle model);
 		[[nodiscard]] ModelHandle LoadModel(Scene& scene, const char* pPath);
 
-		[[nodiscard]] ImageHandle LoadImage(const char* pPath, bool isSRGB);
+		[[nodiscard]] ImageHandle LoadImage(const char* pPath);
 		void UnloadImage(ImageHandle image);
 		[[nodiscard]] const Image& GetImage(ImageHandle image) const;
 
-		[[nodiscard]] Graphics::TextureHandle     CreateTexture(const Graphics::TextureData& data, bool isSRGB);
+		[[nodiscard]] Graphics::TextureHandle     CreateTexture(const Graphics::TextureData& data);
 		[[nodiscard]] Graphics::MeshHandle        CreateMesh(const Graphics::MeshData& meshData);
 		[[nodiscard]] Graphics::MaterialHandle    CreateMaterial(const Graphics::MaterialDesc& desc);
 		[[nodiscard]] Graphics::MaterialSetHandle CreateMaterialSet(dSpan<Graphics::MaterialHandle> materials);
@@ -109,7 +109,7 @@ namespace Dune
 		};
 
 		void ReleasePendingResources();
-		[[nodiscard]] ImageHandle LoadImage(FileSystem::SerializationID<EFileType::Image> source, bool isSRGB);
+		[[nodiscard]] ImageHandle LoadImage(FileSystem::SerializationID<EFileType::Image> source);
 		[[nodiscard]] View& GetView(ViewHandle view);
 		[[nodiscard]] const Graphics::FrameData& GetFrameData(const Scene& scene);
 

@@ -11,7 +11,6 @@ namespace Dune::Graphics
 	struct ModelImage
 	{
 		FileSystem::SerializationID<EFileType::Image> source;
-		bool isSRGB{ false };
 	};
 
 	struct ModelMaterial

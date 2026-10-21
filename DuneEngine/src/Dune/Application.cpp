@@ -126,7 +126,7 @@ namespace Dune
 		dVector<Graphics::TextureHandle> textures;
 		for (const Graphics::ModelImage& modelImage : modelData.images)
 		{
-			const ImageHandle image = LoadImage(modelImage.source, modelImage.isSRGB);
+			const ImageHandle image = LoadImage(modelImage.source);
 			asset.images.push_back(image);
 			textures.push_back(image.IsValid() ? m_assetCache.GetImage(image).texture : Graphics::TextureHandle{});
 		}
@@ -170,14 +170,14 @@ namespace Dune
 			UnloadImage(image);
 	}
 
-	ImageHandle Application::LoadImage(const char* pPath, bool isSRGB)
+	ImageHandle Application::LoadImage(const char* pPath)
 	{
-		return LoadImage(FileSystem::Resolve<EFileType::Image>(pPath), isSRGB);
+		return LoadImage(FileSystem::Resolve<EFileType::Image>(pPath));
 	}
 
-	ImageHandle Application::LoadImage(FileSystem::SerializationID<EFileType::Image> source, bool isSRGB)
+	ImageHandle Application::LoadImage(FileSystem::SerializationID<EFileType::Image> source)
 	{
-		const ImageHandle cached = m_assetCache.AcquireImage(source, isSRGB);
+		const ImageHandle cached = m_assetCache.AcquireImage(source);
 		if (cached.IsValid())
 			return cached;
 
@@ -185,7 +185,7 @@ namespace Dune
 		if (!DDSImporter::Import(FileSystem::GetPath(source).c_str(), data))
 			return {};
 
-		return m_assetCache.AddImage({ .source = source, .isSRGB = isSRGB, .texture = CreateTexture(data, isSRGB) });
+		return m_assetCache.AddImage({ .source = source, .texture = CreateTexture(data) });
 	}
 
 	void Application::UnloadImage(ImageHandle image)
@@ -225,12 +225,12 @@ namespace Dune
 		return entity;
 	}
 
-	Graphics::TextureHandle Application::CreateTexture(const Graphics::TextureData& data, bool isSRGB)
+	Graphics::TextureHandle Application::CreateTexture(const Graphics::TextureData& data)
 	{
 		const Graphics::TextureHandle handle = m_resourceHandles.textures.Allocate();
 		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
 		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateTexture(handle, data, isSRGB);
+		resources.CreateTexture(handle, data);
 		const Graphics::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Texture::kUploadAlignment);
 		resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
 		return handle;

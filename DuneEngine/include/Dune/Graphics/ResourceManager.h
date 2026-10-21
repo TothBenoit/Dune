@@ -47,7 +47,7 @@ namespace Dune::Graphics
 		void Initialize(Device& device, const ResourceHandles& handles);
 		void Destroy();
 
-		void CreateTexture(TextureHandle handle, const TextureData& image, bool sRGB);
+		void CreateTexture(TextureHandle handle, const TextureData& image);
 		void CreateMaterial(MaterialHandle handle, const MaterialDesc& desc);
 		void CreateMaterialSet(MaterialSetHandle handle, dSpan<MaterialHandle> materials);
 		void CreateMesh(MeshHandle handle, const MeshData& meshData);
@@ -79,9 +79,10 @@ namespace Dune::Graphics
 		{
 			Texture    texture;
 			Descriptor srv;
+			Descriptor srgbSRV; // TODO : Texture view
 		};
 
-		[[nodiscard]] dU32 GetBindlessIndex(TextureHandle handle) const;
+		[[nodiscard]] dU32 GetBindlessIndex(TextureHandle handle, bool isSRGB) const;
 
 	private:
 		Device* m_pDevice{ nullptr }; // TODO Cleanup : A ResourceManager is owned by a RenderContext which already own a device. The resource manager should not need this

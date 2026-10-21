@@ -70,7 +70,7 @@ namespace Dune::Graphics
 		m_pDevice = nullptr;
 	}
 
-	void ResourceManager::CreateTexture(TextureHandle handle, const TextureData& image, bool sRGB)
+	void ResourceManager::CreateTexture(TextureHandle handle, const TextureData& image)
 	{
 		Texture texture{};
 		texture.Initialize(*m_pDevice,
@@ -78,17 +78,28 @@ namespace Dune::Graphics
 				.usage = ETextureUsage::ShaderResource,
 				.dimensions = { image.width, image.height, 1 },
 				.mipLevels = image.mipLevels,
-				.format = sRGB ? ToSRGB(image.format) : image.format,
+				.format = ToTypeless(image.format),
 			});
 
 		const Descriptor srv = m_srvHeap.Allocate();
-		m_pDevice->CreateSRV(srv, texture);
-		m_textures.Insert(handle, { .texture = texture, .srv = srv });
+		m_pDevice->CreateSRV(srv, texture, { .mipLevels = image.mipLevels, .format = image.format });
+
+		Descriptor srgbSRV = srv;
+		const EFormat srgbFormat = ToSRGB(image.format);
+		if (srgbFormat != image.format)
+		{
+			srgbSRV = m_srvHeap.Allocate();
+			m_pDevice->CreateSRV(srgbSRV, texture, { .mipLevels = image.mipLevels, .format = srgbFormat });
+		}
+		m_textures.Insert(handle, { .texture = texture, .srv = srv, .srgbSRV = srgbSRV });
 	}
 
-	dU32 ResourceManager::GetBindlessIndex(TextureHandle handle) const
+	dU32 ResourceManager::GetBindlessIndex(TextureHandle handle, bool isSRGB) const
 	{
-		return handle.IsValid() ? m_srvHeap.GetIndex(m_textures.Get(handle).srv) : dU32(-1);
+		if (!handle.IsValid())
+			return dU32(-1);
+		const TextureEntry& entry = m_textures.Get(handle);
+		return m_srvHeap.GetIndex(isSRGB ? entry.srgbSRV : entry.srv);
 	}
 
 	void ResourceManager::CreateMaterial(MaterialHandle handle, const MaterialDesc& desc)
@@ -100,9 +111,9 @@ namespace Dune::Graphics
 				.baseColor = desc.baseColor,
 				.metalnessFactor = desc.metalness,
 				.roughnessFactor = desc.roughness,
-				.albedoIdx = GetBindlessIndex(desc.albedo),
-				.normalIdx = GetBindlessIndex(desc.normal),
-				.roughnessMetalnessIdx = GetBindlessIndex(desc.roughnessMetalness),
+				.albedoIdx = GetBindlessIndex(desc.albedo, true),
+				.normalIdx = GetBindlessIndex(desc.normal, false),
+				.roughnessMetalnessIdx = GetBindlessIndex(desc.roughnessMetalness, false),
 				.alphaCutoff = desc.alphaCutoff
 			},
 			.alphaMode = desc.alphaMode,
@@ -227,6 +238,8 @@ namespace Dune::Graphics
 	{
 		TextureEntry entry = m_textures.Remove(handle);
 		entry.texture.Destroy();
+		if (entry.srgbSRV.cpuAddress != entry.srv.cpuAddress)
+			m_srvHeap.Free(entry.srgbSRV);
 		m_srvHeap.Free(entry.srv);
 	}
 

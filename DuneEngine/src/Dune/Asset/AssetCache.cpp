@@ -57,9 +57,9 @@ namespace Dune
 		return true;
 	}
 
-	ImageHandle AssetCache::AcquireImage(FileSystem::SerializationID<EFileType::Image> source, bool isSRGB)
+	ImageHandle AssetCache::AcquireImage(FileSystem::SerializationID<EFileType::Image> source)
 	{
-		auto it = m_imageLookup.find(ImageKey{ .source = source, .isSRGB = isSRGB });
+		auto it = m_imageLookup.find(source);
 		if (it == m_imageLookup.end())
 			return {};
 		m_images.Get(it->second).refCount++;
@@ -68,10 +68,9 @@ namespace Dune
 
 	ImageHandle AssetCache::AddImage(Image&& image)
 	{
-		const ImageKey key{ .source = image.source, .isSRGB = image.isSRGB };
-		Assert(image.source.IsValid() && m_imageLookup.find(key) == m_imageLookup.end());
+		Assert(image.source.IsValid() && m_imageLookup.find(image.source) == m_imageLookup.end());
 		const ImageHandle handle = m_imageHandles.Allocate();
-		m_imageLookup.emplace(key, handle);
+		m_imageLookup.emplace(image.source, handle);
 		m_images.Insert(handle, { .image = std::move(image), .refCount = 1 });
 		return handle;
 	}
@@ -88,7 +87,7 @@ namespace Dune
 		if (--cached.refCount > 0)
 			return false;
 
-		m_imageLookup.erase(ImageKey{ .source = cached.image.source, .isSRGB = cached.image.isSRGB });
+		m_imageLookup.erase(cached.image.source);
 		outImage = m_images.Remove(handle).image;
 		m_imageHandles.Free(handle);
 		return true;

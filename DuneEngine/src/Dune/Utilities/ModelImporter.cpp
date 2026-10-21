@@ -50,7 +50,7 @@ namespace Dune::ModelImporter
 				FlattenNodes(pNode->mChildren[i], worldTransform, outNodes);
 		}
 
-		dU32 ResolveImage(ImportContext& context, const aiMaterial* pMaterial, aiTextureType type, bool isSRGB)
+		dU32 ResolveImage(ImportContext& context, const aiMaterial* pMaterial, aiTextureType type)
 		{
 			aiString texturePath;
 			if (pMaterial->GetTexture(type, 0, &texturePath) != aiReturn_SUCCESS)
@@ -62,7 +62,7 @@ namespace Dune::ModelImporter
 				return it->second;
 
 			const dU32 imageIndex = (dU32)context.pModel->images.size();
-			context.pModel->images.push_back({ .source = FileSystem::Resolve<EFileType::Image>(path.c_str()), .isSRGB = isSRGB });
+			context.pModel->images.push_back({ .source = FileSystem::Resolve<EFileType::Image>(path.c_str()) });
 			context.imageLookup.emplace(path, imageIndex);
 			return imageIndex;
 		}
@@ -70,9 +70,9 @@ namespace Dune::ModelImporter
 		ModelMaterial ExtractMaterial(ImportContext& context, const aiMaterial* pMaterial)
 		{
 			ModelMaterial material{ .desc = { .metalness = 1.0f, .roughness = 1.0f } };
-			material.albedoImage = ResolveImage(context, pMaterial, aiTextureType_BASE_COLOR, true);
-			material.normalImage = ResolveImage(context, pMaterial, aiTextureType_NORMALS, false);
-			material.roughnessMetalnessImage = ResolveImage(context, pMaterial, aiTextureType_DIFFUSE_ROUGHNESS, false);
+			material.albedoImage = ResolveImage(context, pMaterial, aiTextureType_BASE_COLOR);
+			material.normalImage = ResolveImage(context, pMaterial, aiTextureType_NORMALS);
+			material.roughnessMetalnessImage = ResolveImage(context, pMaterial, aiTextureType_DIFFUSE_ROUGHNESS);
 
 			MaterialDesc& desc = material.desc;
 			aiUVTransform data;
