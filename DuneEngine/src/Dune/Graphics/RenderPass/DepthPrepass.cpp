@@ -10,7 +10,6 @@
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Core/FileSystem.h"
-#include "Dune/Component/Camera.h"
 
 namespace Dune::Graphics
 {
@@ -87,7 +86,7 @@ namespace Dune::Graphics
 		{
 			.materialBufferIndex = context.blackboard.Get<MaterialOutputs>().bufferIndex
 		};
-		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
+		globals.viewProjectionMatrix = context.pView->viewProjection;
 
 		const RootSignature* pBoundRootSignature = nullptr;
 		MaterialKey boundKey = MaterialKey(-1);

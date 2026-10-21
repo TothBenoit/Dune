@@ -14,7 +14,6 @@ namespace Dune
 {
 	class Scene;
 	class Window;
-	struct Camera;
 
 	namespace Graphics
 	{
@@ -22,6 +21,7 @@ namespace Dune
 		class PSOCache;
 		class Renderer;
 		struct FrameData;
+		struct ViewData;
 
 		struct Frame
 		{
@@ -60,7 +60,7 @@ namespace Dune
 			void Destroy();
 
 			void OnResize(dU32 width, dU32 height);
-			void Render(const FrameData& frameData, const Camera& camera);
+			void Render(const FrameData& frameData, const ViewData& view);
 
 			[[nodiscard]] StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
 

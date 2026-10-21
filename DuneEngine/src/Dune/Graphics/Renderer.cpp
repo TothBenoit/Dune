@@ -6,7 +6,6 @@
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"
 #include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/PSOCache.h"
-#include "Dune/Component/Camera.h"
 
 namespace Dune::Graphics
 {
@@ -403,7 +402,7 @@ namespace Dune::Graphics
 		return { .buffer = buffer, .offset = 0, .pCpuAddress = pCpuAddress };
 	}
 
-	void Renderer::Render(const FrameData& frameData, const Camera& camera)
+	void Renderer::Render(const FrameData& frameData, const ViewData& view)
 	{
 		Device& device = *GetDevice();
 		Frame& frame = PrepareFrame();
@@ -420,7 +419,7 @@ namespace Dune::Graphics
 		frame.srvHeap.Allocate(sharedSRVCapacity + m_srvHeap.GetCapacity());
 
 		m_passContext.pFrameData = &frameData;
-		m_passContext.pCamera = &camera;
+		m_passContext.pView = &view;
 		m_passContext.blackboard.Reset();
 
 		bool usedKeys[Material::kKeyTableSize]{};

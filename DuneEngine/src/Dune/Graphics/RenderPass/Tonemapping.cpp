@@ -8,7 +8,6 @@
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
-#include "Dune/Component/Camera.h"
 #include "Dune/Core/FileSystem.h"
 
 namespace Dune::Graphics

@@ -2,7 +2,6 @@
 #include "Dune/Graphics/RenderPass/Visibility.h"
 #include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Graphics/FrameData.h"
-#include "Dune/Component/Camera.h"
 
 namespace Dune::Graphics
 {
@@ -38,43 +37,6 @@ namespace Dune::Graphics
 		return lightMatrix;
 	}
 
-	static void FillLight(const Light& sceneLight, LightData& light)
-	{
-		light.color = sceneLight.color;
-		switch (sceneLight.type)
-		{
-		case ELightType::Directional:
-			light.intensity = sceneLight.intensity;
-			DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
-			break;
-		case ELightType::Point:
-		{
-			float lightSolidAngle = 4.0f * DirectX::XM_PI;
-			float candelaIntensity = sceneLight.intensity / lightSolidAngle;
-			light.intensity = candelaIntensity;
-		}
-		light.range = sceneLight.range;
-		light.position = sceneLight.position;
-		light.flags |= fIsPoint;
-		break;
-		case ELightType::Spot:
-			light.range = sceneLight.range;
-			light.position = sceneLight.position;
-			DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
-			light.angle = DirectX::XMScalarCos(sceneLight.angle);
-			{
-				float lightSolidAngle = 2.0f * DirectX::XM_PI * (1.0f - light.angle);
-				float candelaIntensity = sceneLight.intensity / lightSolidAngle;
-				light.intensity = candelaIntensity;
-			}
-			light.penumbra = 1.0f / (DirectX::XMScalarCos(sceneLight.angle * (1.0f - sceneLight.penumbra)) - light.angle);
-			light.flags |= fIsSpot;
-			break;
-		}
-		if (sceneLight.castShadow)
-			light.flags |= fCastShadow;
-	}
-
 	VisibilityData* Visibility::Create(Renderer&)
 	{
 		return new VisibilityData();
@@ -87,13 +49,9 @@ namespace Dune::Graphics
 		pData->lights.clear();
 		pData->shadowCasters.clear();
 		pData->shadowMatrices.clear();
-		for (const Light& sceneLight : frameData.lights)
+		for (LightData light : frameData.lights)
 		{
-			if (sceneLight.intensity <= 0.0f)
-				continue;
-			LightData light{};
-			FillLight(sceneLight, light);
-			if (sceneLight.castShadow)
+			if (light.HasShadow())
 			{
 				light.shadowIndex = (dU32)pData->shadowCasters.size();
 				pData->shadowCasters.push_back((dU32)pData->lights.size());
@@ -114,7 +72,7 @@ namespace Dune::Graphics
 		std::stable_sort(pData->opaqueDraws.begin(), pData->opaqueDraws.end(),
 			[&](dU32 a, dU32 b) { return frameData.drawItems[a].materialKey < frameData.drawItems[b].materialKey; });
 
-		const dVec3& eye = context.pCamera->position;
+		const dVec3& eye = context.pView->position;
 		const auto DistanceToCameraSq = [&](dU32 drawIndex)
 			{
 				const dMatrix4x4& objectToWorld = frameData.drawItems[drawIndex].objectToWorld;

@@ -12,7 +12,6 @@
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Core/FileSystem.h"
-#include "Dune/Component/Camera.h"
 
 namespace Dune::Graphics
 {
@@ -98,8 +97,8 @@ namespace Dune::Graphics
 		commandList.SetRenderTarget(&renderer.GetHDRTargetRTV().cpuAddress, 1, &renderer.GetDepthBufferDSV().cpuAddress);
 
 		ForwardGlobals globals;
-		ComputeViewProjectionMatrix(*context.pCamera, nullptr, nullptr, &globals.viewProjectionMatrix);
-		globals.cameraPosition = context.pCamera->position;
+		globals.viewProjectionMatrix = context.pView->viewProjection;
+		globals.cameraPosition = context.pView->position;
 		const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
 		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
 		const MaterialOutputs& materialOutputs = context.blackboard.Get<MaterialOutputs>();

@@ -1,9 +1,15 @@
 #pragma once
 #include <Dune/Graphics/Material.h>
-#include <Dune/Component/Light.h>
 
 namespace Dune::Graphics
 {
+	struct ViewData
+	{
+		dMatrix4x4 view;
+		dMatrix4x4 projection;
+		dMatrix4x4 viewProjection;
+		dVec3 position;
+	};
 
 	struct DrawItem
 	{
@@ -28,7 +34,7 @@ namespace Dune::Graphics
 
 	struct FrameData
 	{
-		dVector<Light> lights;
+		dVector<LightData> lights;
 		dVector<DrawItem> drawItems;
 		dVector<GPUMeshView> meshes;
 		dVector<MaterialData> materials;

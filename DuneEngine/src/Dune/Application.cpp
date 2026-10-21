@@ -100,7 +100,8 @@ namespace Dune
 	void Application::Render(ViewHandle view, const Scene& scene, const Camera& camera)
 	{
 		m_renderContext.GetUploadContext().Submit();
-		GetView(view).renderer.Render(GetFrameData(scene), camera);
+		const Graphics::ViewData viewData = SceneRender::ExtractView(camera);
+		GetView(view).renderer.Render(GetFrameData(scene), viewData);
 	}
 
 	void Application::EndFrame()

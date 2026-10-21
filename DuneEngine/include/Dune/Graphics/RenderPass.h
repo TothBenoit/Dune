@@ -6,8 +6,6 @@
 
 namespace Dune
 {
-	struct Camera;
-
 	namespace Graphics
 	{
 		class Renderer;
@@ -15,6 +13,7 @@ namespace Dune
 		struct PipelineDesc;
 		struct Frame;
 		struct FrameData;
+		struct ViewData;
 		struct PSO;
 
 		using ResourceHandle = dU32;
@@ -104,7 +103,7 @@ namespace Dune
 		struct RenderPassContext
 		{
 			const FrameData* pFrameData;
-			const Camera* pCamera;
+			const ViewData* pView;
 			Renderer* pRenderer;
 			RenderPass* pPass;
 			RenderBlackboard blackboard;
