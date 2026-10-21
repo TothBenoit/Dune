@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Resource.h"
-#include "Dune/Graphics/RHI/DescriptorHeap.h"
-#include "Dune/Graphics/Format.h"
+#include "Dune/Platform/RHI/Resource.h"
+#include "Dune/Platform/RHI/DescriptorHeap.h"
+#include "Dune/Platform/RHI/Format.h"
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	class Texture;
 	class Buffer;

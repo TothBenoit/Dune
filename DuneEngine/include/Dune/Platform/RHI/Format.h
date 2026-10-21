@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	enum class EFormat : dU32 {
 		Unknown = 0,

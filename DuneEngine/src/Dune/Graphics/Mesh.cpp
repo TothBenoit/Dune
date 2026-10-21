@@ -1,29 +1,29 @@
 #include "pch.h"
 #include "Dune/Graphics/Mesh.h"
-#include "Dune/Graphics/RHI/Buffer.h"
-#include "Dune/Graphics/RHI/CommandList.h"
+#include "Dune/Platform/RHI/Buffer.h"
+#include "Dune/Platform/RHI/CommandList.h"
 
 namespace Dune::Graphics
 {
-	Buffer CreateIndexBuffer(Device& device, dU32 byteSize)
+	RHI::Buffer CreateIndexBuffer(RHI::Device& device, dU32 byteSize)
 	{
 		Assert(byteSize != 0);
-		BufferDesc desc{ L"IndexBuffer", EBufferUsage::Default, EBufferMemory::GPU, byteSize };
-		Buffer indexBuffer{};
+		RHI::BufferDesc desc{ L"IndexBuffer", RHI::EBufferUsage::Default, RHI::EBufferMemory::GPU, byteSize };
+		RHI::Buffer indexBuffer{};
 		indexBuffer.Initialize(device, desc);
 		return indexBuffer;
 	}
 
-	Buffer CreateVertexBuffer(Device& device, dU32 byteSize)
+	RHI::Buffer CreateVertexBuffer(RHI::Device& device, dU32 byteSize)
 	{
 		Assert(byteSize != 0);
-		BufferDesc desc{ L"VertexBuffer", EBufferUsage::Default, EBufferMemory::GPU, byteSize };
-		Buffer vertexBuffer{};
+		RHI::BufferDesc desc{ L"VertexBuffer", RHI::EBufferUsage::Default, RHI::EBufferMemory::GPU, byteSize };
+		RHI::Buffer vertexBuffer{};
 		vertexBuffer.Initialize(device, desc);
 		return vertexBuffer;
 	}
 
-	void Mesh::Initialize(Device& device, const MeshDesc& desc)
+	void Mesh::Initialize(RHI::Device& device, const MeshDesc& desc)
 	{
 		m_subMeshes.assign(desc.pSubMeshes, desc.pSubMeshes + desc.subMeshCount);
 		m_materialSlotCount = desc.materialSlotCount;
@@ -41,7 +41,7 @@ namespace Dune::Graphics
 		return (dU64)m_indexBuffer.GetByteSize() + m_vertexBuffer.GetByteSize();
 	}
 
-	void Mesh::Upload(const MeshDesc& desc, CommandList& commandList, const StagingMemory& staging)
+	void Mesh::Upload(const MeshDesc& desc, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
 	{
 		Assert(staging.IsValid() && desc.indexCount == m_indexCount && desc.vertexCount == m_vertexCount);
 		const dU32 indexByteSize = m_indexBuffer.GetByteSize();
@@ -50,7 +50,7 @@ namespace Dune::Graphics
 		memcpy(staging.pCpuAddress, desc.pIndices, indexByteSize);
 		memcpy((dU8*)staging.pCpuAddress + indexByteSize, desc.pVertices, vertexByteSize);
 
-		Buffer stagingBuffer{ staging.buffer };
+		RHI::Buffer stagingBuffer{ staging.buffer };
 		commandList.CopyBufferRegion(m_indexBuffer, 0, stagingBuffer, staging.offset, indexByteSize);
 		commandList.CopyBufferRegion(m_vertexBuffer, 0, stagingBuffer, staging.offset + indexByteSize, vertexByteSize);
 	}

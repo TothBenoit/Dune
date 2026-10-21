@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Graphics/Format.h"
+#include "Dune/Platform/RHI/Format.h"
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	struct TextureData
 	{

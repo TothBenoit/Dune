@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Resource.h"
-#include "Dune/Graphics/Format.h"
-#include "Dune/Graphics/RHI/Barrier.h"
-#include "Dune/Graphics/RHI/TextureData.h"
-#include "Dune/Graphics/RHI/StagingMemory.h"
+#include "Dune/Platform/RHI/Resource.h"
+#include "Dune/Platform/RHI/Format.h"
+#include "Dune/Platform/RHI/Barrier.h"
+#include "Dune/Platform/RHI/TextureData.h"
+#include "Dune/Platform/RHI/StagingMemory.h"
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	class Device;
 	class CommandList;

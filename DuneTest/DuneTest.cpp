@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
-#include <Dune/Graphics/RHI/ImGuiWrapper.h>
+#include <Dune/Platform/RHI/ImGuiWrapper.h>
 #include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Platform/Window.h>
 #include "SimpleCameraController.h"
@@ -35,7 +35,7 @@ public:
 		const ModelHandle sponza = m_app.LoadModel(*m_pScene, "app://Sponza/Sponza.gltf");
 		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Cube, { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
 		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Sphere, { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }) }));
-		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Plane, { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = Graphics::ECullingMode::None }) }));
+		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Plane, { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = RHI::ECullingMode::None }) }));
 
 		while (m_app.BeginFrame())
 		{
@@ -116,8 +116,8 @@ public:
 
 	void DrawGUI()
 	{
-		Graphics::ImGuiWrapper& imgui = m_app.GetImGui(m_view);
-		Graphics::ImGuiWrapper::LockGuard guard = imgui.AcquireContext();
+		RHI::ImGuiWrapper& imgui = m_app.GetImGui(m_view);
+		RHI::ImGuiWrapper::LockGuard guard = imgui.AcquireContext();
 		imgui.NewFrame(guard);
 		ImGuizmo::BeginFrame();
 

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/FrameData.h"
-#include "Dune/Graphics/RHI/Device.h"
+#include "Dune/Platform/RHI/Device.h"
 #include "Dune/Graphics/RenderPass/MaterialUpload.h"
 #include "Dune/Graphics/RenderPass/Outputs.h"
 
@@ -27,21 +27,21 @@ namespace Dune::Graphics
 		{
 			Renderer& renderer = *context.pRenderer;
 			Frame& frame = renderer.GetCurrentFrame();
-			Device& device = *renderer.GetDevice();
+			RHI::Device& device = *renderer.GetDevice();
 			if (pData->buffer.Get())
 				frame.buffersToRelease.push_back(pData->buffer);
-			pData->buffer.Initialize(device, { .debugName{ L"MaterialBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ materialsByteSize } });
+			pData->buffer.Initialize(device, { .debugName{ L"MaterialBuffer" }, .memory{ RHI::EBufferMemory::GPU }, .byteSize{ materialsByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = materialCount, .byteStride = sizeof(MaterialData) });
-			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
-				pData->handle = renderer.RegisterBuffer(&pData->buffer, EResourceState::Undefined);
+				pData->handle = renderer.RegisterBuffer(&pData->buffer, RHI::EResourceState::Undefined);
 			else
-				renderer.SetPhysicalResource(pData->handle, &pData->buffer, EResourceState::Undefined);
+				renderer.SetPhysicalResource(pData->handle, &pData->buffer, RHI::EResourceState::Undefined);
 		}
 
 		context.blackboard.Add<MaterialOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv) });
-		builder.Write(pData->handle, EResourceState::CopyDest);
+		builder.Write(pData->handle, RHI::EResourceState::CopyDest);
 	}
 
 	void MaterialUpload::Execute(RenderPassContext& context, MaterialUploadData* pData)
@@ -51,7 +51,7 @@ namespace Dune::Graphics
 		const dVector<MaterialData>& materials = context.pFrameData->materials;
 		const dU32 materialsByteSize = (dU32)(materials.size() * sizeof(MaterialData));
 
-		StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);
+		RHI::StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);
 		memcpy(staging.pCpuAddress, materials.data(), materialsByteSize);
 		frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, materialsByteSize);
 	}

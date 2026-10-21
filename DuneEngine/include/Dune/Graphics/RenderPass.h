@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Barrier.h"
-#include "Dune/Graphics/RHI/DescriptorHeap.h"
+#include "Dune/Platform/RHI/Barrier.h"
+#include "Dune/Platform/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/Material.h"
 
 namespace Dune
@@ -37,9 +37,9 @@ namespace Dune
 
 		struct ResourceAccess
 		{
-			ResourceHandle handle{ kInvalidResourceHandle };
-			dU32           subresource{ kAllSubresources };
-			EResourceState state{ EResourceState::Undefined };
+			ResourceHandle      handle{ kInvalidResourceHandle };
+			dU32                subresource{ RHI::kAllSubresources };
+			RHI::EResourceState state{ RHI::EResourceState::Undefined };
 		};
 
 		class RenderBlackboard
@@ -110,8 +110,8 @@ namespace Dune
 
 			[[nodiscard]] PSO* GetPSO(MaterialKey key) const;
 			[[nodiscard]] PSO* GetPipeline(dU32 index) const;
-			[[nodiscard]] dU32 GetBindlessIndex(Descriptor persistentSRV) const;
-			[[nodiscard]] Descriptor GetGPUDescriptor(const Frame& frame, Descriptor persistentSRV) const;
+			[[nodiscard]] dU32 GetBindlessIndex(RHI::Descriptor persistentSRV) const;
+			[[nodiscard]] RHI::Descriptor GetGPUDescriptor(const Frame& frame, RHI::Descriptor persistentSRV) const;
 		};
 
 		class RenderGraphBuilder
@@ -123,13 +123,13 @@ namespace Dune
 				m_writes.clear(); 
 			}
 
-			void Read(ResourceHandle handle, EResourceState state, dU32 subresource = kAllSubresources)
+			void Read(ResourceHandle handle, RHI::EResourceState state, dU32 subresource = RHI::kAllSubresources)
 			{
 				Assert(handle != kInvalidResourceHandle);
 				m_reads.push_back({ .handle = handle, .subresource = subresource, .state = state });
 			}
 
-			void Write(ResourceHandle handle, EResourceState state, dU32 subresource = kAllSubresources)
+			void Write(ResourceHandle handle, RHI::EResourceState state, dU32 subresource = RHI::kAllSubresources)
 			{
 				Assert(handle != kInvalidResourceHandle);
 				m_writes.push_back({ .handle = handle, .subresource = subresource, .state = state });

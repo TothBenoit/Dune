@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Resource.h"
+#include "Dune/Platform/RHI/Resource.h"
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	inline constexpr dU32 kAllSubresources{ (dU32)-1 };
 

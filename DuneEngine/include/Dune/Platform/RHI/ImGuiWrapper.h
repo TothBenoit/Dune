@@ -10,6 +10,10 @@ namespace Dune
 namespace Dune::Graphics
 {
 	class Renderer;
+}
+
+namespace Dune::RHI
+{
 	class CommandList;
 
 	class ImGuiWrapper
@@ -30,7 +34,7 @@ namespace Dune::Graphics
 			ImGuiWrapper* m_pWrapper;
 		};
 
-		void Initialize(Window& window, Renderer& renderer, const char* pLayoutPath = nullptr, dU32 priority = kDefaultHookPriority);
+		void Initialize(Window& window, Graphics::Renderer& renderer, const char* pLayoutPath = nullptr, dU32 priority = kDefaultHookPriority);
 		[[nodiscard]] LockGuard AcquireContext();
 		void NewFrame(const LockGuard& guard);
 		void Render(CommandList& commandList);
@@ -43,7 +47,7 @@ namespace Dune::Graphics
 	private:
 		ImGuiContext* m_pContext{ nullptr };
 		Window* m_pWindow{ nullptr };
-		Renderer* m_pRenderer{ nullptr };
+		Graphics::Renderer* m_pRenderer{ nullptr };
 		dU32 m_hookHandle{ 0 };
 		dString m_layoutPath;
 	};

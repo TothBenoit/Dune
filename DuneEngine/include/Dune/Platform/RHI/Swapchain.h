@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Resource.h"
+#include "Dune/Platform/RHI/Resource.h"
 
 namespace Dune
 {
 	class Window;
 }
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	class Device;
 	class CommandQueue;

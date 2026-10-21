@@ -2,10 +2,10 @@
 #include "Dune/Graphics/RenderPass/DepthPrepass.h"
 #include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
-#include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Graphics/RHI/Device.h"
-#include "Dune/Graphics/RHI/Shader.h"
-#include "Dune/Graphics/Format.h"
+#include "Dune/Platform/RHI/CommandList.h"
+#include "Dune/Platform/RHI/Device.h"
+#include "Dune/Platform/RHI/Shader.h"
+#include "Dune/Platform/RHI/Format.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Platform/Window.h"
@@ -28,27 +28,27 @@ namespace Dune::Graphics
 		const EAlphaMode alphaMode = Material::GetAlphaMode(key);
 		Assert(alphaMode != EAlphaMode::Blend);
 
-		static const BindingSlot kLayout[]
+		static const RHI::BindingSlot kLayout[]
 		{
-			{ .type = EBindingType::Constant, .byteSize = sizeof(DepthGlobals),  .visibility = EShaderVisibility::All },
-			{ .type = EBindingType::Constant, .byteSize = sizeof(InstanceData),  .visibility = EShaderVisibility::Vertex },
-			{ .type = EBindingType::Constant, .byteSize = sizeof(MaterialIndex), .visibility = EShaderVisibility::Pixel },
+			{ .type = RHI::EBindingType::Constant, .byteSize = sizeof(DepthGlobals),  .visibility = RHI::EShaderVisibility::All },
+			{ .type = RHI::EBindingType::Constant, .byteSize = sizeof(InstanceData),  .visibility = RHI::EShaderVisibility::Vertex },
+			{ .type = RHI::EBindingType::Constant, .byteSize = sizeof(MaterialIndex), .visibility = RHI::EShaderVisibility::Pixel },
 		};
-		const VertexInput position{ .pName = "POSITION", .index = 0, .format = EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false };
-		const VertexInput uv{ .pName = "UV", .index = 0, .format = EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 40, .isPerInstance = false };
+		const RHI::VertexInput position{ .pName = "POSITION", .index = 0, .format = RHI::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false };
+		const RHI::VertexInput uv{ .pName = "UV", .index = 0, .format = RHI::EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 40, .isPerInstance = false };
 
 		const FileSystem::SerializationID<EFileType::Shader> shaderPath = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/DepthOnly.hlsl");
 		const bool isMasked = alphaMode == EAlphaMode::Mask;
 		return PipelineDesc
 		{
-			.vertexShader = { .path = shaderPath, .stage = EShaderStage::Vertex, .variantMask = isMasked ? EShaderVariant::AlphaMask : EShaderVariant::None },
-			.pixelShader = isMasked ? ShaderEntryDesc{ .path = shaderPath, .stage = EShaderStage::Pixel, .variantMask = EShaderVariant::AlphaMask } : ShaderEntryDesc{},
+			.vertexShader = { .path = shaderPath, .stage = RHI::EShaderStage::Vertex, .variantMask = isMasked ? EShaderVariant::AlphaMask : EShaderVariant::None },
+			.pixelShader = isMasked ? ShaderEntryDesc{ .path = shaderPath, .stage = RHI::EShaderStage::Pixel, .variantMask = EShaderVariant::AlphaMask } : ShaderEntryDesc{},
 			.rootSignature = { .layout = kLayout, .allowInputLayout = true, .allowSRVHeapIndexing = true },
-			.inputLayout = isMasked ? dVector<VertexInput>{ position, uv } : dVector<VertexInput>{ position },
+			.inputLayout = isMasked ? dVector<RHI::VertexInput>{ position, uv } : dVector<RHI::VertexInput>{ position },
 			.cullingMode = Material::GetFaceCulling(key),
 			.depthEnabled = true,
 			.depthWrite = true,
-			.depthStencilFormat = EFormat::D32_FLOAT,
+			.depthStencilFormat = RHI::EFormat::D32_FLOAT,
 		};
 	}
 
@@ -59,27 +59,27 @@ namespace Dune::Graphics
 		if (!pMaterialOutputs || !pVisibleSet)
 			return;
 
-		builder.Read(pMaterialOutputs->buffer, EResourceState::ShaderResource);
-		builder.Write(context.pRenderer->GetDepthBufferHandle(), EResourceState::DepthStencil);
+		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
+		builder.Write(context.pRenderer->GetDepthBufferHandle(), RHI::EResourceState::DepthStencil);
 	}
 
 	void DepthPrepass::Execute(RenderPassContext& context, void* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
-		CommandList& commandList = frame.commandList;
-		ScratchDescriptorHeap& srvHeap = frame.srvHeap;
-		Device& device = *renderer.GetDevice();
+		RHI::CommandList& commandList = frame.commandList;
+		RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
+		RHI::Device& device = *renderer.GetDevice();
 		Window& window = *renderer.GetWindow();
 
-		Descriptor dsv = renderer.GetDepthBufferDSV();
-		Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
-		Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
+		RHI::Descriptor dsv = renderer.GetDepthBufferDSV();
+		RHI::Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
+		RHI::Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
 		commandList.SetViewports(1, &viewport);
 		commandList.SetScissors(1, &scissor);
 		commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 
-		commandList.SetPrimitiveTopology(EPrimitiveTopology::TriangleList);
+		commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
 
 		const FrameData& frameData = *context.pFrameData;
 		DepthGlobals globals
@@ -88,7 +88,7 @@ namespace Dune::Graphics
 		};
 		globals.viewProjectionMatrix = context.pView->viewProjection;
 
-		const RootSignature* pBoundRootSignature = nullptr;
+		const RHI::RootSignature* pBoundRootSignature = nullptr;
 		MaterialKey boundKey = MaterialKey(-1);
 		for (dU32 drawIndex : context.blackboard.Get<VisibleSet>().opaqueDraws)
 		{

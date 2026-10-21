@@ -2,24 +2,24 @@
 #include "GraphicsDX12.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/RHI/Device.h"
-#include "Dune/Graphics/RHI/Buffer.h"
-#include "Dune/Graphics/RHI/Texture.h"
-#include "Dune/Graphics/RHI/DescriptorHeap.h"
-#include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Graphics/RHI/Fence.h"
-#include "Dune/Graphics/RHI/RootSignature.h"
-#include "Dune/Graphics/RHI/PipelineState.h"
-#include "Dune/Graphics/RHI/Swapchain.h"
-#include "Dune/Graphics/RHI/Barrier.h"
-#include "Dune/Graphics/RHI/Shader.h"
-#include "Dune/Graphics/RHI/ImGuiWrapper.h"
+#include "Dune/Platform/RHI/Device.h"
+#include "Dune/Platform/RHI/Buffer.h"
+#include "Dune/Platform/RHI/Texture.h"
+#include "Dune/Platform/RHI/DescriptorHeap.h"
+#include "Dune/Platform/RHI/CommandList.h"
+#include "Dune/Platform/RHI/Fence.h"
+#include "Dune/Platform/RHI/RootSignature.h"
+#include "Dune/Platform/RHI/PipelineState.h"
+#include "Dune/Platform/RHI/Swapchain.h"
+#include "Dune/Platform/RHI/Barrier.h"
+#include "Dune/Platform/RHI/Shader.h"
+#include "Dune/Platform/RHI/ImGuiWrapper.h"
 #include "Dune/Platform/Logger.h"
 #include "src/Dune/Platform/Win32/WindowWin32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	class DescriptorHeap;
 	class ViewInternal;
@@ -1770,7 +1770,7 @@ namespace Dune::Graphics
 		return ImGui_ImplWin32_WndProcHandler(nativeEvent.hwnd, nativeEvent.uMsg, nativeEvent.wParam, nativeEvent.lParam) != 0;
 	}
 
-	void ImGuiWrapper::Initialize(Window& window, Renderer& renderer, const char* pLayoutPath, dU32 priority)
+	void ImGuiWrapper::Initialize(Window& window, Graphics::Renderer& renderer, const char* pLayoutPath, dU32 priority)
 	{
 		Assert(!renderer.m_pImGui);
 		Assert(!m_pContext);

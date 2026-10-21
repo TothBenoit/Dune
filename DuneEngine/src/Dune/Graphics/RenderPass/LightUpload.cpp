@@ -2,8 +2,8 @@
 #include "Dune/Graphics/RenderPass/LightUpload.h"
 #include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
-#include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Graphics/RHI/Device.h"
+#include "Dune/Platform/RHI/CommandList.h"
+#include "Dune/Platform/RHI/Device.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/FrameData.h"
 
@@ -27,7 +27,7 @@ namespace Dune::Graphics
 		if (lightCount == 0)
 			return;
 
-		Device& device = *renderer.GetDevice();
+		RHI::Device& device = *renderer.GetDevice();
 		Frame& frame = renderer.GetCurrentFrame();
 		const dU32 lightByteSize = lightCount * (dU32)sizeof(LightData);
 
@@ -35,17 +35,17 @@ namespace Dune::Graphics
 		{
 			if (pData->buffer.Get())
 				frame.buffersToRelease.push_back(pData->buffer);
-			pData->buffer.Initialize(device, { .debugName{ L"LightBuffer" }, .memory{ EBufferMemory::GPU }, .byteSize{ lightByteSize } });
+			pData->buffer.Initialize(device, { .debugName{ L"LightBuffer" }, .memory{ RHI::EBufferMemory::GPU }, .byteSize{ lightByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = lightCount, .byteStride = sizeof(LightData) });
-			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, EDescriptorHeapType::SRV_CBV_UAV);
+			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
-				pData->handle = renderer.RegisterBuffer(&pData->buffer, EResourceState::Undefined);
+				pData->handle = renderer.RegisterBuffer(&pData->buffer, RHI::EResourceState::Undefined);
 			else
-				renderer.SetPhysicalResource(pData->handle, &pData->buffer, EResourceState::Undefined);
+				renderer.SetPhysicalResource(pData->handle, &pData->buffer, RHI::EResourceState::Undefined);
 		}
 
-		builder.Write(pData->handle, EResourceState::CopyDest);
+		builder.Write(pData->handle, RHI::EResourceState::CopyDest);
 		context.blackboard.Add<LightOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv), .count = lightCount });
 	}
 
@@ -56,7 +56,7 @@ namespace Dune::Graphics
 		const dSpan<const LightData> lights = context.blackboard.Get<VisibleSet>().lights;
 		const dU32 lightByteSize = lights.GetSize() * (dU32)sizeof(LightData);
 
-		StagingMemory staging = renderer.AllocateStaging(lightByteSize, 16);
+		RHI::StagingMemory staging = renderer.AllocateStaging(lightByteSize, 16);
 		memcpy(staging.pCpuAddress, lights.GetData(), lightByteSize);
 		frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, lightByteSize);
 	}

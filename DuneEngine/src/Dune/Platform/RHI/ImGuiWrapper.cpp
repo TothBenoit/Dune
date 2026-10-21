@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Dune/Graphics/RHI/ImGuiWrapper.h"
+#include "Dune/Platform/RHI/ImGuiWrapper.h"
 #include <mutex>
 #include <imgui/imgui.h>
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	std::recursive_mutex g_mutex{};
 

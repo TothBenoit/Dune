@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/DescriptorHeap.h"
-#include "Dune/Graphics/RHI/Buffer.h"
+#include "Dune/Platform/RHI/DescriptorHeap.h"
+#include "Dune/Platform/RHI/Buffer.h"
 #include "Dune/Graphics/RenderPass.h"
 #include "Dune/Graphics/Pipeline.h"
 #include "Dune/Graphics/Material.h"
@@ -17,9 +17,9 @@ namespace Dune::Graphics
 		dVector<ResourceHandle> cubeShadowHandles;
 		dVector<ResourceHandle> activeHandles;
 
-		Buffer         matricesBuffer;
-		Descriptor     matricesSRV;
-		ResourceHandle matricesHandle{ kInvalidResourceHandle };
+		RHI::Buffer     matricesBuffer;
+		RHI::Descriptor matricesSRV;
+		ResourceHandle  matricesHandle{ kInvalidResourceHandle };
 	};
 
 	class Shadow

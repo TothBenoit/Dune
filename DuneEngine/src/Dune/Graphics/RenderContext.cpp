@@ -8,7 +8,7 @@ namespace Dune::Graphics
 	void RenderContext::Initialize(const ResourceHandles& handles)
 	{
 		m_device.Initialize();
-		m_commandQueue.Initialize(m_device, ECommandType::Direct);
+		m_commandQueue.Initialize(m_device, RHI::ECommandType::Direct);
 		m_psoCache.Initialize(m_device);
 		m_resourceManager.Initialize(m_device, handles);
 		m_uploadContext.Initialize(m_device, m_commandQueue, {});

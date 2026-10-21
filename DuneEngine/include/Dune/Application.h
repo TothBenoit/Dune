@@ -4,7 +4,7 @@
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
-#include "Dune/Graphics/RHI/ImGuiWrapper.h"
+#include "Dune/Platform/RHI/ImGuiWrapper.h"
 #include "Dune/Assets/AssetCache.h"
 #include "Dune/Graphics/MeshUtils.h"
 #include "Dune/World/Scene.h"
@@ -62,7 +62,7 @@ namespace Dune
 		void UnloadImage(ImageHandle image);
 		[[nodiscard]] const Image& GetImage(ImageHandle image) const;
 
-		[[nodiscard]] Graphics::TextureHandle     CreateTexture(const Graphics::TextureData& data);
+		[[nodiscard]] Graphics::TextureHandle     CreateTexture(const RHI::TextureData& data);
 		[[nodiscard]] Graphics::MeshHandle        CreateMesh(const Graphics::MeshData& meshData);
 		[[nodiscard]] Graphics::MaterialHandle    CreateMaterial(const Graphics::MaterialDesc& desc);
 		[[nodiscard]] Graphics::MaterialSetHandle CreateMaterialSet(dSpan<Graphics::MaterialHandle> materials);
@@ -82,7 +82,7 @@ namespace Dune
 		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
 		[[nodiscard]] Window& GetWindow(ViewHandle view);
 		[[nodiscard]] Graphics::Renderer& GetRenderer(ViewHandle view);
-		[[nodiscard]] Graphics::ImGuiWrapper& GetImGui(ViewHandle view);
+		[[nodiscard]] RHI::ImGuiWrapper& GetImGui(ViewHandle view);
 		[[nodiscard]] Graphics::RenderContext& GetRenderContext() { return m_renderContext; }
 
 	private:
@@ -90,7 +90,7 @@ namespace Dune
 		{
 			Window window;
 			Graphics::Renderer renderer;
-			Graphics::ImGuiWrapper imgui;
+			RHI::ImGuiWrapper imgui;
 			dU32 resizeEventHandle{ 0 };
 			bool hasImGui{ false };
 		};
@@ -120,7 +120,7 @@ namespace Dune
 		Graphics::MeshHandle m_primitives[(dU32)EPrimitive::Count]{};
 		Graphics::MaterialHandle m_defaultMaterial{};
 		Graphics::MaterialSetHandle m_defaultMaterialSet{};
-		dVector<PendingRelease<Graphics::Texture>>     m_pendingTextures;
+		dVector<PendingRelease<RHI::Texture>>          m_pendingTextures;
 		dVector<PendingRelease<Graphics::Mesh>>        m_pendingMeshes;
 		dVector<PendingRelease<Graphics::MaterialSet>> m_pendingMaterialSets;
 		dVector<std::unique_ptr<View>> m_views;

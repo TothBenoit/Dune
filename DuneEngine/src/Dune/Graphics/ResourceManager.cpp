@@ -1,15 +1,15 @@
 #include "pch.h"
 #include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/FrameData.h"
-#include "Dune/Graphics/RHI/Device.h"
-#include "Dune/Graphics/RHI/CommandList.h"
+#include "Dune/Platform/RHI/Device.h"
+#include "Dune/Platform/RHI/CommandList.h"
 
 namespace Dune::Graphics
 {
-	static StagingMemory SubAllocate(const StagingMemory& staging, dU64& offset, dU64 byteSize, dU64 alignment)
+	static RHI::StagingMemory SubAllocate(const RHI::StagingMemory& staging, dU64& offset, dU64 byteSize, dU64 alignment)
 	{
 		offset = MemoryUtils::AlignUp(offset, alignment);
-		const StagingMemory subRegion{ .buffer = staging.buffer, .offset = staging.offset + offset, .pCpuAddress = (dU8*)staging.pCpuAddress + offset };
+		const RHI::StagingMemory subRegion{ .buffer = staging.buffer, .offset = staging.offset + offset, .pCpuAddress = (dU8*)staging.pCpuAddress + offset };
 		offset += byteSize;
 		return subRegion;
 	}
@@ -42,14 +42,14 @@ namespace Dune::Graphics
 		return resources;
 	}
 
-	void ResourceManager::Initialize(Device& device, const ResourceHandles& handles)
+	void ResourceManager::Initialize(RHI::Device& device, const ResourceHandles& handles)
 	{
 		m_pDevice = &device;
 		m_textures.Initialize(handles.textures);
 		m_materials.Initialize(handles.materials);
 		m_materialSets.Initialize(handles.materialSets);
 		m_meshes.Initialize(handles.meshes);
-		m_srvHeap.Initialize(device, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
+		m_srvHeap.Initialize(device, { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
 	}
 
 	void ResourceManager::Destroy()
@@ -65,22 +65,22 @@ namespace Dune::Graphics
 		m_pDevice = nullptr;
 	}
 
-	void ResourceManager::CreateTexture(TextureHandle handle, const TextureData& image)
+	void ResourceManager::CreateTexture(TextureHandle handle, const RHI::TextureData& image)
 	{
-		Texture texture{};
+		RHI::Texture texture{};
 		texture.Initialize(*m_pDevice,
 			{
-				.usage = ETextureUsage::ShaderResource,
+				.usage = RHI::ETextureUsage::ShaderResource,
 				.dimensions = { image.width, image.height, 1 },
 				.mipLevels = image.mipLevels,
-				.format = ToTypeless(image.format),
+				.format = RHI::ToTypeless(image.format),
 			});
 
-		const Descriptor srv = m_srvHeap.Allocate();
+		const RHI::Descriptor srv = m_srvHeap.Allocate();
 		m_pDevice->CreateSRV(srv, texture, { .mipLevels = image.mipLevels, .format = image.format });
 
-		Descriptor srgbSRV = srv;
-		const EFormat srgbFormat = ToSRGB(image.format);
+		RHI::Descriptor srgbSRV = srv;
+		const RHI::EFormat srgbFormat = RHI::ToSRGB(image.format);
 		if (srgbFormat != image.format)
 		{
 			srgbSRV = m_srvHeap.Allocate();
@@ -175,7 +175,7 @@ namespace Dune::Graphics
 		return byteSize;
 	}
 
-	void ResourceManager::Upload(const ModelResources& resources, const ModelData& model, CommandList& commandList, const StagingMemory& staging)
+	void ResourceManager::Upload(const ModelResources& resources, const ModelData& model, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
 	{
 		Assert(staging.IsValid() && staging.offset % Mesh::kUploadAlignment == 0);
 		dU64 offset = 0;
@@ -183,25 +183,25 @@ namespace Dune::Graphics
 			Upload(resources.meshes[i], model.meshes[i], commandList, SubAllocate(staging, offset, GetUploadSize(resources.meshes[i]), Mesh::kUploadAlignment));
 	}
 
-	void ResourceManager::Upload(TextureHandle handle, const TextureData& data, CommandList& commandList, const StagingMemory& staging)
+	void ResourceManager::Upload(TextureHandle handle, const RHI::TextureData& data, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
 	{
-		Texture& texture = m_textures.Get(handle).texture;
+		RHI::Texture& texture = m_textures.Get(handle).texture;
 		texture.Upload(data, commandList, staging);
-		commandList.Transition(texture, EResourceState::CopyDest, EResourceState::ShaderResource);
+		commandList.Transition(texture, RHI::EResourceState::CopyDest, RHI::EResourceState::ShaderResource);
 	}
 
-	void ResourceManager::Upload(MeshHandle handle, const MeshData& meshData, CommandList& commandList, const StagingMemory& staging)
+	void ResourceManager::Upload(MeshHandle handle, const MeshData& meshData, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
 	{
 		Mesh& mesh = m_meshes.Get(handle);
 		mesh.Upload(ToMeshDesc(meshData), commandList, staging);
-		commandList.Transition(mesh.GetIndexBuffer(), EResourceState::CopyDest, EResourceState::IndexBuffer);
-		commandList.Transition(mesh.GetVertexBuffer(), EResourceState::CopyDest, EResourceState::VertexBuffer);
+		commandList.Transition(mesh.GetIndexBuffer(), RHI::EResourceState::CopyDest, RHI::EResourceState::IndexBuffer);
+		commandList.Transition(mesh.GetVertexBuffer(), RHI::EResourceState::CopyDest, RHI::EResourceState::VertexBuffer);
 	}
 
 	static GPUMeshView ToMeshView(const Mesh& mesh)
 	{
-		const Buffer& indexBuffer = mesh.GetIndexBuffer();
-		const Buffer& vertexBuffer = mesh.GetVertexBuffer();
+		const RHI::Buffer& indexBuffer = mesh.GetIndexBuffer();
+		const RHI::Buffer& vertexBuffer = mesh.GetVertexBuffer();
 		return
 		{
 			.indicesGPUAddress = indexBuffer.GetGPUAddress(),

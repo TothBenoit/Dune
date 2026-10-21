@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	class Resource
 	{

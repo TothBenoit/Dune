@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Device.h"
-#include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Graphics/RHI/Fence.h"
+#include "Dune/Platform/RHI/Device.h"
+#include "Dune/Platform/RHI/CommandList.h"
+#include "Dune/Platform/RHI/Fence.h"
 #include "Dune/Graphics/PSOCache.h"
 #include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/UploadContext.h"
@@ -24,8 +24,8 @@ namespace Dune::Graphics
 
 		void InitializeRenderer(Renderer& renderer, Window& window);
 
-		[[nodiscard]] Device& GetDevice() { return m_device; }
-		[[nodiscard]] CommandQueue& GetCommandQueue() { return m_commandQueue; }
+		[[nodiscard]] RHI::Device& GetDevice() { return m_device; }
+		[[nodiscard]] RHI::CommandQueue& GetCommandQueue() { return m_commandQueue; }
 		[[nodiscard]] PSOCache& GetPSOCache() { return m_psoCache; }
 		[[nodiscard]] ResourceManager& GetResourceManager() { return m_resourceManager; }
 		[[nodiscard]] UploadContext& GetUploadContext() { return m_uploadContext; }
@@ -35,12 +35,12 @@ namespace Dune::Graphics
 		[[nodiscard]] dU64 GetCompletedFenceValue() { return m_fence.GetValue(); }
 
 	private:
-		Device m_device{};
-		CommandQueue m_commandQueue{};
+		RHI::Device m_device{};
+		RHI::CommandQueue m_commandQueue{};
 		PSOCache m_psoCache{};
 		ResourceManager m_resourceManager{};
 		UploadContext m_uploadContext{};
-		Fence m_fence{};
+		RHI::Fence m_fence{};
 		dU64 m_fenceValue{ 0 };
 	};
 }

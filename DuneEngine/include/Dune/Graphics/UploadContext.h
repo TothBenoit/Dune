@@ -1,15 +1,18 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Buffer.h"
-#include "Dune/Graphics/RHI/CommandList.h"
-#include "Dune/Graphics/RHI/Fence.h"
-#include "Dune/Graphics/RHI/StagingMemory.h"
+#include "Dune/Platform/RHI/Buffer.h"
+#include "Dune/Platform/RHI/CommandList.h"
+#include "Dune/Platform/RHI/Fence.h"
+#include "Dune/Platform/RHI/StagingMemory.h"
 #include "Dune/Graphics/ScratchAllocator.h"
+
+namespace Dune::RHI
+{
+	class Device;
+}
 
 namespace Dune::Graphics
 {
-	class Device;
-
 	struct UploadContextDesc
 	{
 		dU64 stagingByteSize{ 16 * 1024 * 1024 };
@@ -19,30 +22,30 @@ namespace Dune::Graphics
 	class UploadContext
 	{
 	public:
-		void Initialize(Device& device, CommandQueue& commandQueue, const UploadContextDesc& desc);
+		void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, const UploadContextDesc& desc);
 		void Destroy();
 
-		[[nodiscard]] StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
-		[[nodiscard]] CommandList& GetCommandList();
+		[[nodiscard]] RHI::StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
+		[[nodiscard]] RHI::CommandList& GetCommandList();
 		void Submit();
 
 	private:
 		struct Batch
 		{
-			CommandAllocator commandAllocator;
-			CommandList commandList;
-			Buffer stagingBuffer;
+			RHI::CommandAllocator commandAllocator;
+			RHI::CommandList commandList;
+			RHI::Buffer stagingBuffer;
 			ScratchAllocator staging;
-			dVector<Buffer> buffersToRelease;
+			dVector<RHI::Buffer> buffersToRelease;
 			dU64 fenceValue{ 0 };
 		};
 
 		Batch& PrepareBatch();
 
 	private:
-		Device* m_pDevice{ nullptr };
-		CommandQueue* m_pCommandQueue{ nullptr };
-		Fence m_fence{};
+		RHI::Device* m_pDevice{ nullptr };
+		RHI::CommandQueue* m_pCommandQueue{ nullptr };
+		RHI::Fence m_fence{};
 		dU64 m_fenceValue{ 0 };
 		dVector<Batch> m_batches;
 		dU32 m_batchIndex{ 0 };

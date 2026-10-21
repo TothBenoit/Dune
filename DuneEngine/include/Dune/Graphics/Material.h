@@ -1,6 +1,6 @@
 #pragma once
 #include <Dune/Resources/Shaders/ShaderInterop.h>
-#include <Dune/Graphics/RHI/PipelineState.h>
+#include <Dune/Platform/RHI/PipelineState.h>
 #include <Dune/Graphics/Handles.h>
 
 namespace Dune::Graphics
@@ -21,7 +21,7 @@ namespace Dune::Graphics
 		float         roughness{ 0.5f };
 		float         alphaCutoff{ 0.5f };
 		EAlphaMode    alphaMode{ EAlphaMode::Opaque };
-		ECullingMode  faceCulling{ ECullingMode::Back };
+		RHI::ECullingMode  faceCulling{ RHI::ECullingMode::Back };
 		TextureHandle albedo;
 		TextureHandle normal;
 		TextureHandle roughnessMetalness;
@@ -30,17 +30,17 @@ namespace Dune::Graphics
 	using MaterialKey = dU32;
 	struct Material
 	{
-		static constexpr dU32 kKeyTableSize = (dU32)EAlphaMode::Count * (dU32)ECullingMode::Count;
+		static constexpr dU32 kKeyTableSize = (dU32)EAlphaMode::Count * (dU32)RHI::ECullingMode::Count;
 
-		[[nodiscard]] static constexpr dU32 MakeKey(EAlphaMode alphaMode, ECullingMode faceCulling) { return (dU32)faceCulling + (dU32)alphaMode * (dU32)ECullingMode::Count; }
-		[[nodiscard]] static constexpr EAlphaMode GetAlphaMode(MaterialKey key) { return (EAlphaMode)(key / (dU32)ECullingMode::Count); }
-		[[nodiscard]] static constexpr ECullingMode GetFaceCulling(MaterialKey key) { return (ECullingMode)(key % (dU32)ECullingMode::Count); }
+		[[nodiscard]] static constexpr dU32 MakeKey(EAlphaMode alphaMode, RHI::ECullingMode faceCulling) { return (dU32)faceCulling + (dU32)alphaMode * (dU32)RHI::ECullingMode::Count; }
+		[[nodiscard]] static constexpr EAlphaMode GetAlphaMode(MaterialKey key) { return (EAlphaMode)(key / (dU32)RHI::ECullingMode::Count); }
+		[[nodiscard]] static constexpr RHI::ECullingMode GetFaceCulling(MaterialKey key) { return (RHI::ECullingMode)(key % (dU32)RHI::ECullingMode::Count); }
 
 		[[nodiscard]] dU32 GetKey() const { return MakeKey(alphaMode, faceCulling); }
 
 		MaterialData shaderData;
 		EAlphaMode alphaMode{ EAlphaMode::Opaque };
-		ECullingMode faceCulling{ ECullingMode::Back };
+		RHI::ECullingMode faceCulling{ RHI::ECullingMode::Back };
 	};
 
 	[[nodiscard]] static constexpr bool ValidateMaterialKeys()

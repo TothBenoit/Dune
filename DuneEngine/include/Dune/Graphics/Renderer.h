@@ -1,14 +1,20 @@
 #pragma once
 
 #include <Dune/Graphics/RenderPass.h>
-#include <Dune/Graphics/RHI/Barrier.h>
-#include <Dune/Graphics/RHI/Buffer.h>
-#include <Dune/Graphics/RHI/CommandList.h>
-#include <Dune/Graphics/RHI/DescriptorHeap.h>
-#include <Dune/Graphics/RHI/Fence.h>
-#include <Dune/Graphics/RHI/Swapchain.h>
-#include <Dune/Graphics/RHI/Texture.h>
+#include <Dune/Platform/RHI/Barrier.h>
+#include <Dune/Platform/RHI/Buffer.h>
+#include <Dune/Platform/RHI/CommandList.h>
+#include <Dune/Platform/RHI/DescriptorHeap.h>
+#include <Dune/Platform/RHI/Fence.h>
+#include <Dune/Platform/RHI/Swapchain.h>
+#include <Dune/Platform/RHI/Texture.h>
 #include <Dune/Graphics/ScratchAllocator.h>
+
+namespace Dune::RHI
+{
+	class Device;
+	class ImGuiWrapper;
+}
 
 namespace Dune
 {
@@ -17,7 +23,6 @@ namespace Dune
 
 	namespace Graphics
 	{
-		class Device;
 		class PSOCache;
 		class Renderer;
 		struct FrameData;
@@ -26,29 +31,29 @@ namespace Dune
 		struct Frame
 		{
 			dU32 fenceValue{ 0 };
-			CommandAllocator commandAllocator;
-			CommandList commandList;
-			Descriptor backBufferRTV;
-			ScratchDescriptorHeap srvHeap;
-			ScratchDescriptorHeap samplerHeap;
-			Buffer uploadBuffer;
+			RHI::CommandAllocator commandAllocator;
+			RHI::CommandList commandList;
+			RHI::Descriptor backBufferRTV;
+			RHI::ScratchDescriptorHeap srvHeap;
+			RHI::ScratchDescriptorHeap samplerHeap;
+			RHI::Buffer uploadBuffer;
 			ScratchAllocator staging;
-			dVector<Buffer> buffersToRelease;
+			dVector<RHI::Buffer> buffersToRelease;
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
 		};
 
 		struct ResourceEntry
 		{
-			Resource* pPhysicalResource{ nullptr };
-			dVector<EResourceState> subresourceStates;
-			EResourceState resourceState;
+			RHI::Resource* pPhysicalResource{ nullptr };
+			dVector<RHI::EResourceState> subresourceStates;
+			RHI::EResourceState resourceState;
 			EResourceType type;
 			bool isExternal : 1;
 		};
 
 		class Renderer
 		{
-			friend class ImGuiWrapper;
+			friend class RHI::ImGuiWrapper;
 		public:
 			static constexpr dU32 kFramesInFlight = 3;
 			static constexpr dU32 kPersistentSRVCapacity = 4096;
@@ -56,35 +61,35 @@ namespace Dune
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
-			void Initialize(Device& device, CommandQueue& commandQueue, PSOCache& psoCache, Window& window);
+			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, Window& window);
 			void Destroy();
 
 			void OnResize(dU32 width, dU32 height);
 			void Render(const FrameData& frameData, const ViewData& view);
 
-			[[nodiscard]] StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
+			[[nodiscard]] RHI::StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
 
-			[[nodiscard]] inline Device* GetDevice() { return m_pDevice; }
+			[[nodiscard]] inline RHI::Device* GetDevice() { return m_pDevice; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
-			[[nodiscard]] inline Barrier& GetBarrier() { return m_barrier; }
-			[[nodiscard]] inline BlockDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
-			[[nodiscard]] inline BlockDescriptorHeap& GetRTVHeap() { return m_rtvHeap; }
-			[[nodiscard]] inline BlockDescriptorHeap& GetDSVHeap() { return m_dsvHeap; }
-			[[nodiscard]] inline const Descriptor& GetDepthBufferDSV() const { return m_depthBufferDSV; }
-			[[nodiscard]] inline const Descriptor& GetHDRTargetRTV() const { return m_hdrTargetRTV; }
-			[[nodiscard]] inline const Descriptor& GetHDRTargetSRV() const { return m_hdrTargetSRV; }
-			[[nodiscard]] inline const Texture& GetDepthBuffer() const { return m_depthBuffer; }
-			[[nodiscard]] inline const Texture& GetHDRTarget() const { return m_hdrTarget; }
+			[[nodiscard]] inline RHI::Barrier& GetBarrier() { return m_barrier; }
+			[[nodiscard]] inline RHI::BlockDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
+			[[nodiscard]] inline RHI::BlockDescriptorHeap& GetRTVHeap() { return m_rtvHeap; }
+			[[nodiscard]] inline RHI::BlockDescriptorHeap& GetDSVHeap() { return m_dsvHeap; }
+			[[nodiscard]] inline const RHI::Descriptor& GetDepthBufferDSV() const { return m_depthBufferDSV; }
+			[[nodiscard]] inline const RHI::Descriptor& GetHDRTargetRTV() const { return m_hdrTargetRTV; }
+			[[nodiscard]] inline const RHI::Descriptor& GetHDRTargetSRV() const { return m_hdrTargetSRV; }
+			[[nodiscard]] inline const RHI::Texture& GetDepthBuffer() const { return m_depthBuffer; }
+			[[nodiscard]] inline const RHI::Texture& GetHDRTarget() const { return m_hdrTarget; }
 
-			[[nodiscard]] ResourceHandle CreateTexture(const TextureDesc& desc);
-			[[nodiscard]] ResourceHandle CreateBuffer(const BufferDesc& desc);
-			[[nodiscard]] ResourceHandle RegisterTexture(Texture* pTexture, EResourceState initialState, dU32 subresourceCount = 1);
-			[[nodiscard]] ResourceHandle RegisterBuffer(Buffer* pBuffer, EResourceState initialState);
-			void SetPhysicalResource(ResourceHandle handle, Resource* pResource, EResourceState state);
+			[[nodiscard]] ResourceHandle CreateTexture(const RHI::TextureDesc& desc);
+			[[nodiscard]] ResourceHandle CreateBuffer(const RHI::BufferDesc& desc);
+			[[nodiscard]] ResourceHandle RegisterTexture(RHI::Texture* pTexture, RHI::EResourceState initialState, dU32 subresourceCount = 1);
+			[[nodiscard]] ResourceHandle RegisterBuffer(RHI::Buffer* pBuffer, RHI::EResourceState initialState);
+			void SetPhysicalResource(ResourceHandle handle, RHI::Resource* pResource, RHI::EResourceState state);
 
-			[[nodiscard]] Texture& GetTexture(ResourceHandle handle);
-			[[nodiscard]] Buffer& GetBuffer(ResourceHandle handle);
+			[[nodiscard]] RHI::Texture& GetTexture(ResourceHandle handle);
+			[[nodiscard]] RHI::Buffer& GetBuffer(ResourceHandle handle);
 
 			[[nodiscard]] inline ResourceHandle GetDepthBufferHandle() const { return m_depthBufferHandle; }
 			[[nodiscard]] inline ResourceHandle GetHDRTargetHandle() const { return m_hdrTargetHandle; }
@@ -169,36 +174,36 @@ namespace Dune
 			Frame& PrepareFrame();
 
 			void TransitionResource(const ResourceAccess& access);
-			void FlushBarriers(CommandList& commandList);
+			void FlushBarriers(RHI::CommandList& commandList);
 
 		private:
-			Device* m_pDevice{ nullptr };
+			RHI::Device* m_pDevice{ nullptr };
 			PSOCache* m_pPSOCache{ nullptr };
 			Window* m_pWindow{ nullptr };
-			ImGuiWrapper* m_pImGui{ nullptr };
+			RHI::ImGuiWrapper* m_pImGui{ nullptr };
 
-			Swapchain m_swapchain{};
-			Texture m_depthBuffer{};
-			CommandQueue* m_pCommandQueue{ nullptr };
+			RHI::Swapchain m_swapchain{};
+			RHI::Texture m_depthBuffer{};
+			RHI::CommandQueue* m_pCommandQueue{ nullptr };
 
-			BlockDescriptorHeap m_srvHeap{};
-			BlockDescriptorHeap m_srvImGuiHeap{};
-			BlockDescriptorHeap m_rtvHeap{};
-			BlockDescriptorHeap m_dsvHeap{};
+			RHI::BlockDescriptorHeap m_srvHeap{};
+			RHI::BlockDescriptorHeap m_srvImGuiHeap{};
+			RHI::BlockDescriptorHeap m_rtvHeap{};
+			RHI::BlockDescriptorHeap m_dsvHeap{};
 
-			Descriptor m_depthBufferDSV;
+			RHI::Descriptor m_depthBufferDSV;
 			ResourceHandle m_depthBufferHandle{ kInvalidResourceHandle };
 
-			Texture m_hdrTarget;
-			Descriptor m_hdrTargetRTV;
-			Descriptor m_hdrTargetSRV;
+			RHI::Texture m_hdrTarget;
+			RHI::Descriptor m_hdrTargetRTV;
+			RHI::Descriptor m_hdrTargetSRV;
 			ResourceHandle m_hdrTargetHandle{ kInvalidResourceHandle };
 
-			Fence m_fence{};
+			RHI::Fence m_fence{};
 			Frame m_frames[kFramesInFlight];
 			dU32 m_frameIndex{ 0 };
 			dU32 m_frameCount{ 0 };
-			Barrier m_barrier{};
+			RHI::Barrier m_barrier{};
 
 			dVector<ResourceEntry> m_resources;
 			dVector<RenderPass> m_passes;

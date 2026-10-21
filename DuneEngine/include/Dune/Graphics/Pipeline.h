@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Shader.h"
-#include "Dune/Graphics/RHI/RootSignature.h"
-#include "Dune/Graphics/RHI/PipelineState.h"
+#include "Dune/Platform/RHI/Shader.h"
+#include "Dune/Platform/RHI/RootSignature.h"
+#include "Dune/Platform/RHI/PipelineState.h"
 #include "Dune/Core/FileSystem.h"
 
 namespace Dune::Graphics
@@ -21,33 +21,33 @@ namespace Dune::Graphics
 	struct ShaderEntryDesc
 	{
 		FileSystem::SerializationID<EFileType::Shader> path;
-		EShaderStage   stage{ EShaderStage::Vertex };
+		RHI::EShaderStage stage{ RHI::EShaderStage::Vertex };
 		EShaderVariant variantMask{ EShaderVariant::None };
 	};
 
 	struct PipelineDesc
 	{
-		ShaderEntryDesc      vertexShader;
-		ShaderEntryDesc      pixelShader;
-		ShaderEntryDesc      computeShader;
-		RootSignatureDesc    rootSignature;
-		dVector<VertexInput> inputLayout;
-		ECullingMode         cullingMode{ ECullingMode::Back };
-		dS32                 depthBias{ 0 };
-		float                slopeScaledDepthBias{ 0.0f };
-		bool                 depthClipEnable{ true };
-		bool                 depthEnabled{ false };
-		bool                 depthWrite{ false };
-		ECompFunc            depthFunc{ ECompFunc::LessEqual };
-		dU8                  renderTargetCount{ 0 };
-		EFormat              renderTargetsFormat[8]{};
-		bool                 renderTargetsBlendEnable[8]{};
-		EFormat              depthStencilFormat{ EFormat::Unknown };
+		ShaderEntryDesc           vertexShader;
+		ShaderEntryDesc           pixelShader;
+		ShaderEntryDesc           computeShader;
+		RHI::RootSignatureDesc    rootSignature;
+		dVector<RHI::VertexInput> inputLayout;
+		RHI::ECullingMode         cullingMode{ RHI::ECullingMode::Back };
+		dS32                      depthBias{ 0 };
+		float                     slopeScaledDepthBias{ 0.0f };
+		bool                      depthClipEnable{ true };
+		bool                      depthEnabled{ false };
+		bool                      depthWrite{ false };
+		RHI::ECompFunc            depthFunc{ RHI::ECompFunc::LessEqual };
+		dU8                       renderTargetCount{ 0 };
+		RHI::EFormat              renderTargetsFormat[8]{};
+		bool                      renderTargetsBlendEnable[8]{};
+		RHI::EFormat              depthStencilFormat{ RHI::EFormat::Unknown };
 	};
 
 	struct PSO
 	{
-		PipelineState  pipelineState;
-		RootSignature* pRootSignature{ nullptr };
+		RHI::PipelineState  pipelineState;
+		RHI::RootSignature* pRootSignature{ nullptr };
 	};
 }

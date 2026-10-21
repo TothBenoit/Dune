@@ -3,7 +3,7 @@
 
 namespace Dune::Graphics
 {
-	void ScratchAllocator::Initialize(const Buffer& buffer, void* pCpuAddress, dU64 capacity)
+	void ScratchAllocator::Initialize(const RHI::Buffer& buffer, void* pCpuAddress, dU64 capacity)
 	{
 		m_buffer = buffer;
 		m_pCpuAddress = (dU8*)pCpuAddress;
@@ -11,7 +11,7 @@ namespace Dune::Graphics
 		m_offset = 0;
 	}
 
-	StagingMemory ScratchAllocator::Allocate(dU64 byteSize, dU64 alignment)
+	RHI::StagingMemory ScratchAllocator::Allocate(dU64 byteSize, dU64 alignment)
 	{
 		Assert(alignment > 0 && (alignment & (alignment - 1)) == 0);
 		const dU64 offset = (m_offset + alignment - 1) & ~(alignment - 1);

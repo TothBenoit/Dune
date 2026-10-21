@@ -182,7 +182,7 @@ namespace Dune
 		if (cached.IsValid())
 			return cached;
 
-		Graphics::TextureData data;
+		RHI::TextureData data;
 		if (!DDSImporter::Import(FileSystem::GetPath(source).c_str(), data))
 			return {};
 
@@ -239,13 +239,13 @@ namespace Dune
 		return entity;
 	}
 
-	Graphics::TextureHandle Application::CreateTexture(const Graphics::TextureData& data)
+	Graphics::TextureHandle Application::CreateTexture(const RHI::TextureData& data)
 	{
 		const Graphics::TextureHandle handle = m_resourceHandles.textures.Allocate();
 		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
 		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateTexture(handle, data);
-		const Graphics::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Texture::kUploadAlignment);
+		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), RHI::Texture::kUploadAlignment);
 		resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
 		return handle;
 	}
@@ -256,7 +256,7 @@ namespace Dune
 		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
 		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateMesh(handle, meshData);
-		const Graphics::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Mesh::kUploadAlignment);
+		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Mesh::kUploadAlignment);
 		resources.Upload(handle, meshData, uploadContext.GetCommandList(), staging);
 		return handle;
 	}
@@ -281,7 +281,7 @@ namespace Dune
 		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
 		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateModel(handles, model, images);
-		const Graphics::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handles), Graphics::Mesh::kUploadAlignment);
+		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handles), Graphics::Mesh::kUploadAlignment);
 		resources.Upload(handles, model, uploadContext.GetCommandList(), staging);
 		return handles;
 	}
@@ -347,7 +347,7 @@ namespace Dune
 		return GetView(view).renderer;
 	}
 
-	Graphics::ImGuiWrapper& Application::GetImGui(ViewHandle view)
+	RHI::ImGuiWrapper& Application::GetImGui(ViewHandle view)
 	{
 		View& v = GetView(view);
 		Assert(v.hasImGui);

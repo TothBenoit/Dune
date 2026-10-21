@@ -3,7 +3,7 @@
 
 namespace Dune::Graphics
 {
-	void PSOCache::Initialize(Device& device)
+	void PSOCache::Initialize(RHI::Device& device)
 	{
 		m_pDevice = &device;
 		m_compiler.Initialize();
@@ -15,7 +15,7 @@ namespace Dune::Graphics
 			entry.pso.pipelineState.Destroy();
 		for (PSO& pso : m_computePSOs)
 			pso.pipelineState.Destroy();
-		for (RootSignature& rootSignature : m_rootSignatures)
+		for (RHI::RootSignature& rootSignature : m_rootSignatures)
 			rootSignature.Destroy();
 		for (ShaderEntry& entry : m_shaders)
 			entry.shader.Destroy();
@@ -51,7 +51,7 @@ namespace Dune::Graphics
 		dU64 hash{ HashUtils::kHashOffsetBasis };
 		HashUtils::HashValue(hash, desc.vertexShader);
 		HashUtils::HashValue(hash, desc.pixelShader);
-		for (const VertexInput& input : desc.inputLayout)
+		for (const RHI::VertexInput& input : desc.inputLayout)
 		{
 			HashUtils::HashBytes(hash, input.pName, strlen(input.pName) + 1);
 			HashUtils::HashValue(hash, input.index);
@@ -87,8 +87,8 @@ namespace Dune::Graphics
 
 		for (dSizeT i = 0; i < a.inputLayout.size(); i++)
 		{
-			const VertexInput& inputA = a.inputLayout[i];
-			const VertexInput& inputB = b.inputLayout[i];
+			const RHI::VertexInput& inputA = a.inputLayout[i];
+			const RHI::VertexInput& inputB = b.inputLayout[i];
 			if (strcmp(inputA.pName, inputB.pName) != 0 || inputA.index != inputB.index || inputA.format != inputB.format
 				|| inputA.slot != inputB.slot || inputA.byteAlignedOffset != inputB.byteAlignedOffset || inputA.isPerInstance != inputB.isPerInstance)
 				return false;
@@ -167,7 +167,7 @@ namespace Dune::Graphics
 
 		const dWString path = StringUtils::ToWide(FileSystem::GetPath(desc.path));
 
-		Shader shader = m_compiler.CompileShader
+		RHI::Shader shader = m_compiler.CompileShader
 		({
 			.stage = desc.stage,
 			.filePath = path.c_str(),
@@ -183,7 +183,7 @@ namespace Dune::Graphics
 		return index;
 	}
 
-	RootSignatureHandle PSOCache::ResolveRootSignature(ShaderHandle shader, const RootSignatureDesc& desc)
+	RootSignatureHandle PSOCache::ResolveRootSignature(ShaderHandle shader, const RHI::RootSignatureDesc& desc)
 	{
 		ShaderEntry& entry = m_shaders[shader];
 		if (entry.rootSignature == kInvalidRootSignatureHandle)
@@ -212,7 +212,7 @@ namespace Dune::Graphics
 		entry.desc = desc;
 		entry.pso.pRootSignature = &m_rootSignatures[rootSignature];
 
-		GraphicsPipelineDesc pipelineDesc
+		RHI::GraphicsPipelineDesc pipelineDesc
 		{
 			.pVertexShader = &m_shaders[desc.vertexShader].shader,
 			.pPixelShader = hasPixelShader ? &m_shaders[desc.pixelShader].shader : nullptr,
@@ -258,7 +258,7 @@ namespace Dune::Graphics
 		const dU32 index = (dU32)m_computePSOs.size();
 		PSO& pso = m_computePSOs.emplace_back();
 		pso.pRootSignature = &m_rootSignatures[rootSignature];
-		pso.pipelineState.Initialize(*m_pDevice, ComputePipelineDesc{ .pComputeShader = &m_shaders[desc.computeShader].shader, .pRootSignature = &m_rootSignatures[rootSignature] });
+		pso.pipelineState.Initialize(*m_pDevice, RHI::ComputePipelineDesc{ .pComputeShader = &m_shaders[desc.computeShader].shader, .pRootSignature = &m_rootSignatures[rootSignature] });
 
 		m_computePSOLookup[desc.computeShader] = index;
 		return &pso;

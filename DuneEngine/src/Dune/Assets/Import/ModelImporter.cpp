@@ -97,7 +97,7 @@ namespace Dune::ModelImporter
 
 			int doubleSided;
 			if (pMaterial->Get(AI_MATKEY_TWOSIDED, doubleSided) == aiReturn_SUCCESS && doubleSided != 0)
-				desc.faceCulling = ECullingMode::None;
+				desc.faceCulling = RHI::ECullingMode::None;
 
 			return material;
 		}

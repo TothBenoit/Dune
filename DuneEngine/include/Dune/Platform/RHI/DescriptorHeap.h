@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Resource.h"
+#include "Dune/Platform/RHI/Resource.h"
 #include <mutex>
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	class Device;
 

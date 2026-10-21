@@ -15,12 +15,12 @@ namespace Dune::Graphics
 		return pPass->pipelines[index];
 	}
 
-	dU32 RenderPassContext::GetBindlessIndex(Descriptor persistentSRV) const
+	dU32 RenderPassContext::GetBindlessIndex(RHI::Descriptor persistentSRV) const
 	{ 
 		return pRenderer->GetSRVHeap().GetIndex(persistentSRV) + pFrameData->sharedSRVHeapCapacity; 
 	}
 
-	Descriptor RenderPassContext::GetGPUDescriptor(const Frame& frame, Descriptor persistentSRV) const
+	RHI::Descriptor RenderPassContext::GetGPUDescriptor(const Frame& frame, RHI::Descriptor persistentSRV) const
 	{ 
 		return frame.srvHeap.GetDescriptorAt(GetBindlessIndex(persistentSRV)); 
 	}

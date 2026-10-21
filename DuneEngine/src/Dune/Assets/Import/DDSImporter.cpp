@@ -7,7 +7,7 @@ namespace Dune::DDSImporter
 {
 	namespace
 	{
-		using Graphics::EFormat;
+		using RHI::EFormat;
 
 		enum class DDSTextureDimension : dU32 {
 			EUnknown    = 0,
@@ -17,7 +17,7 @@ namespace Dune::DDSImporter
 		};
 
 		struct DDSHeaderDXT10 {
-			EFormat format;
+			RHI::EFormat format;
 			DDSTextureDimension resourceDimension;
 			dU32 miscFlag;
 			dU32 arraySize;
@@ -79,24 +79,24 @@ namespace Dune::DDSImporter
 			return pixelFormat.RBitMask == r && pixelFormat.GBitMask == g && pixelFormat.BBitMask == b && pixelFormat.ABitMask == a;
 		}
 
-		EFormat ToFormat(const DDSPixelFormat& pixelFormat)
+		RHI::EFormat ToFormat(const DDSPixelFormat& pixelFormat)
 		{
 			switch (pixelFormat.fourCC)
 			{
-			case MakeFourCC('B', 'C', '4', 'U'): return EFormat::BC4_UNORM;
-			case MakeFourCC('D', 'X', 'T', '1'): return EFormat::BC1_UNORM;
-			case MakeFourCC('D', 'X', 'T', '3'): return EFormat::BC2_UNORM;
-			case MakeFourCC('D', 'X', 'T', '5'): return EFormat::BC3_UNORM;
-			case MakeFourCC('B', 'C', '5', 'U'): return EFormat::BC5_UNORM;
-			case MakeFourCC('A', 'T', 'I', '2'): return EFormat::BC5_UNORM;
+			case MakeFourCC('B', 'C', '4', 'U'): return RHI::EFormat::BC4_UNORM;
+			case MakeFourCC('D', 'X', 'T', '1'): return RHI::EFormat::BC1_UNORM;
+			case MakeFourCC('D', 'X', 'T', '3'): return RHI::EFormat::BC2_UNORM;
+			case MakeFourCC('D', 'X', 'T', '5'): return RHI::EFormat::BC3_UNORM;
+			case MakeFourCC('B', 'C', '5', 'U'): return RHI::EFormat::BC5_UNORM;
+			case MakeFourCC('A', 'T', 'I', '2'): return RHI::EFormat::BC5_UNORM;
 			case 0:
 				if (HasBitMask(pixelFormat, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000))
-					return EFormat::R8G8B8A8_UNORM;
+					return RHI::EFormat::R8G8B8A8_UNORM;
 				if (HasBitMask(pixelFormat, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000))
-					return EFormat::B8G8R8A8_UNORM;
-				return EFormat::Unknown;
+					return RHI::EFormat::B8G8R8A8_UNORM;
+				return RHI::EFormat::Unknown;
 			default:
-				return EFormat::Unknown;
+				return RHI::EFormat::Unknown;
 			}
 		}
 
@@ -108,7 +108,7 @@ namespace Dune::DDSImporter
 		}
 	}
 
-	bool Import(const char* filePath, Graphics::TextureData& outImage)
+	bool Import(const char* filePath, RHI::TextureData& outImage)
 	{
 		File file;
 		if (!File::Open(file, filePath, File::EAccessMode::Read, File::EShareMode::None))
@@ -128,7 +128,7 @@ namespace Dune::DDSImporter
 			return Fail(file, filePath, "cubemaps are not supported");
 
 		dU64 dataOffset = sizeof(magicWord) + sizeof(DDSHeader);
-		EFormat format{ EFormat::Unknown };
+		RHI::EFormat format{ RHI::EFormat::Unknown };
 		if ((header.pixelFormat.flags & dU32(DDSPixelFormatFlagBits::FourCC)) && header.pixelFormat.fourCC == MakeFourCC('D', 'X', '1', '0'))
 		{
 			DDSHeaderDXT10 headerDXT10{};
@@ -144,7 +144,7 @@ namespace Dune::DDSImporter
 			format = ToFormat(header.pixelFormat);
 		}
 
-		if (format == EFormat::Unknown)
+		if (format == RHI::EFormat::Unknown)
 			return Fail(file, filePath, "unsupported pixel format");
 
 		outImage.format = format;

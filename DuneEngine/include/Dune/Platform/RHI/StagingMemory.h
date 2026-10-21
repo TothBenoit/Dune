@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Buffer.h"
+#include "Dune/Platform/RHI/Buffer.h"
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	struct StagingMemory
 	{

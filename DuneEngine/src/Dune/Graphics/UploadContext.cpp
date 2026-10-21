@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Dune/Graphics/UploadContext.h"
-#include "Dune/Graphics/RHI/Device.h"
+#include "Dune/Platform/RHI/Device.h"
 
 namespace Dune::Graphics
 {
-	void UploadContext::Initialize(Device& device, CommandQueue& commandQueue, const UploadContextDesc& desc)
+	void UploadContext::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, const UploadContextDesc& desc)
 	{
 		Assert(desc.batchCount > 0);
 		m_pDevice = &device;
@@ -14,10 +14,10 @@ namespace Dune::Graphics
 		m_batches.resize(desc.batchCount);
 		for (Batch& batch : m_batches)
 		{
-			batch.commandAllocator.Initialize(device, ECommandType::Direct);
-			batch.commandList.Initialize(device, ECommandType::Direct, batch.commandAllocator);
+			batch.commandAllocator.Initialize(device, RHI::ECommandType::Direct);
+			batch.commandList.Initialize(device, RHI::ECommandType::Direct, batch.commandAllocator);
 			batch.commandList.Close();
-			batch.stagingBuffer.Initialize(device, { .debugName = L"UploadStaging", .memory = EBufferMemory::CPU, .byteSize = (dU32)desc.stagingByteSize });
+			batch.stagingBuffer.Initialize(device, { .debugName = L"UploadStaging", .memory = RHI::EBufferMemory::CPU, .byteSize = (dU32)desc.stagingByteSize });
 			void* pCpuAddress{ nullptr };
 			batch.stagingBuffer.Map(0, 0, &pCpuAddress);
 			batch.staging.Initialize(batch.stagingBuffer, pCpuAddress, desc.stagingByteSize);
@@ -32,7 +32,7 @@ namespace Dune::Graphics
 
 		for (Batch& batch : m_batches)
 		{
-			for (Buffer& buffer : batch.buffersToRelease)
+			for (RHI::Buffer& buffer : batch.buffersToRelease)
 				buffer.Destroy();
 			batch.stagingBuffer.Destroy();
 			batch.commandList.Destroy();
@@ -49,7 +49,7 @@ namespace Dune::Graphics
 		{
 			if (m_fence.GetValue() < batch.fenceValue)
 				m_fence.Wait(batch.fenceValue);
-			for (Buffer& buffer : batch.buffersToRelease)
+			for (RHI::Buffer& buffer : batch.buffersToRelease)
 				buffer.Destroy();
 			batch.buffersToRelease.clear();
 			batch.staging.Reset();
@@ -59,21 +59,21 @@ namespace Dune::Graphics
 		return batch;
 	}
 
-	StagingMemory UploadContext::AllocateStaging(dU64 byteSize, dU64 alignment)
+	RHI::StagingMemory UploadContext::AllocateStaging(dU64 byteSize, dU64 alignment)
 	{
 		Batch& batch = PrepareBatch();
-		const StagingMemory staging = batch.staging.Allocate(byteSize, alignment);
+		const RHI::StagingMemory staging = batch.staging.Allocate(byteSize, alignment);
 		if (staging.IsValid())
 			return staging;
 
-		Buffer& buffer = batch.buffersToRelease.emplace_back();
-		buffer.Initialize(*m_pDevice, { .debugName = L"UploadStagingFallback", .memory = EBufferMemory::CPU, .byteSize = (dU32)byteSize });
+		RHI::Buffer& buffer = batch.buffersToRelease.emplace_back();
+		buffer.Initialize(*m_pDevice, { .debugName = L"UploadStagingFallback", .memory = RHI::EBufferMemory::CPU, .byteSize = (dU32)byteSize });
 		void* pCpuAddress{ nullptr };
 		buffer.Map(0, 0, &pCpuAddress);
 		return { .buffer = buffer, .offset = 0, .pCpuAddress = pCpuAddress };
 	}
 
-	CommandList& UploadContext::GetCommandList()
+	RHI::CommandList& UploadContext::GetCommandList()
 	{
 		Batch& batch = PrepareBatch();
 		if (!m_isRecording)

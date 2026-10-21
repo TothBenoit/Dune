@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Graphics/RHI/Resource.h"
+#include "Dune/Platform/RHI/Resource.h"
 
-namespace Dune::Graphics
+namespace Dune::RHI
 {
 	class DescriptorHeap;
 	struct Descriptor;
