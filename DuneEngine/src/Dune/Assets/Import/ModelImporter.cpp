@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Dune/Assets/Import/ModelImporter.h"
-#include "Dune/Graphics/MeshUtils.h"
 #include "Dune/Core/FileSystem.h"
 #include "Dune/Platform/Logger.h"
 
@@ -11,8 +10,6 @@
 
 namespace Dune::ModelImporter
 {
-	using namespace Graphics;
-
 	namespace
 	{
 		struct NodeRef
@@ -66,38 +63,58 @@ namespace Dune::ModelImporter
 			return imageIndex;
 		}
 
+		void ScaleMesh(ModelMesh& mesh, const aiVector3D& scale)
+		{
+			const dMatrix matrix = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
+			const dMatrix normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, matrix));
+			const bool isMirrored = scale.x * scale.y * scale.z < 0.0f;
+
+			for (Vertex& vertex : mesh.vertices)
+			{
+				DirectX::XMStoreFloat3(&vertex.position, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&vertex.position), matrix));
+				DirectX::XMStoreFloat3(&vertex.normal, DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&vertex.normal), normalMatrix)));
+				const dVec tangent = DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat4(&vertex.tangent), matrix));
+				DirectX::XMStoreFloat4(&vertex.tangent, DirectX::XMVectorSetW(tangent, isMirrored ? -vertex.tangent.w : vertex.tangent.w));
+			}
+
+			if (isMirrored)
+			{
+				for (dSizeT i = 0; i + 2 < mesh.indices.size(); i += 3)
+					std::swap(mesh.indices[i + 1], mesh.indices[i + 2]);
+			}
+		}
+
 		ModelMaterial ExtractMaterial(ImportContext& context, const aiMaterial* pMaterial)
 		{
-			ModelMaterial material{ .desc = { .metalness = 1.0f, .roughness = 1.0f } };
+			ModelMaterial material{ .metalness = 1.0f, .roughness = 1.0f };
 			material.albedoImage = ResolveImage(context, pMaterial, aiTextureType_BASE_COLOR);
 			material.normalImage = ResolveImage(context, pMaterial, aiTextureType_NORMALS);
 			material.roughnessMetalnessImage = ResolveImage(context, pMaterial, aiTextureType_DIFFUSE_ROUGHNESS);
 
-			MaterialDesc& desc = material.desc;
 			aiUVTransform data;
 			if (pMaterial->Get(AI_MATKEY_BASE_COLOR, data) == aiReturn_SUCCESS)
-				desc.baseColor = *((dVec3*)&data);
+				material.baseColor = *((dVec3*)&data);
 			if (pMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, data) == aiReturn_SUCCESS)
-				desc.roughness = *(float*)(&data);
+				material.roughness = *(float*)(&data);
 			if (pMaterial->Get(AI_MATKEY_METALLIC_FACTOR, data) == aiReturn_SUCCESS)
-				desc.metalness = *(float*)(&data);
+				material.metalness = *(float*)(&data);
 
 			aiString alphaMode;
 			if (pMaterial->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == aiReturn_SUCCESS)
 			{
 				if (strcmp(alphaMode.C_Str(), "MASK") == 0)
-					desc.alphaMode = EAlphaMode::Mask;
+					material.alphaMode = EAlphaMode::Mask;
 				else if (strcmp(alphaMode.C_Str(), "BLEND") == 0)
-					desc.alphaMode = EAlphaMode::Blend;
+					material.alphaMode = EAlphaMode::Blend;
 			}
 
 			float alphaCutoff;
 			if (pMaterial->Get(AI_MATKEY_GLTF_ALPHACUTOFF, alphaCutoff) == aiReturn_SUCCESS)
-				desc.alphaCutoff = alphaCutoff;
+				material.alphaCutoff = alphaCutoff;
 
 			int doubleSided;
 			if (pMaterial->Get(AI_MATKEY_TWOSIDED, doubleSided) == aiReturn_SUCCESS && doubleSided != 0)
-				desc.faceCulling = RHI::ECullingMode::None;
+				material.faceCulling = RHI::ECullingMode::None;
 
 			return material;
 		}
@@ -113,7 +130,7 @@ namespace Dune::ModelImporter
 			return materialIndex;
 		}
 
-		void ExtractNodeMesh(ImportContext& context, const NodeRef& ref, MeshData& outMesh, dVector<dU32>& outMaterials)
+		void ExtractNodeMesh(ImportContext& context, const NodeRef& ref, ModelMesh& outMesh, dVector<dU32>& outMaterials)
 		{
 			const aiNode* pNode = ref.pNode;
 			dVector<dU32> aiMaterialIndices;
@@ -179,7 +196,7 @@ namespace Dune::ModelImporter
 			outMesh.materialSlotCount = (dU32)aiMaterialIndices.size();
 
 			if (ref.scale.x != 1.0f || ref.scale.y != 1.0f || ref.scale.z != 1.0f)
-				MeshUtils::Transform(outMesh, DirectX::XMMatrixScaling(ref.scale.x, ref.scale.y, ref.scale.z));
+				ScaleMesh(outMesh, ref.scale);
 
 			outMaterials.reserve(aiMaterialIndices.size());
 			for (dU32 aiMaterialIndex : aiMaterialIndices)
@@ -214,7 +231,7 @@ namespace Dune::ModelImporter
 
 		for (const NodeRef& ref : nodeRefs)
 		{
-			MeshData mesh;
+			ModelMesh mesh;
 			ModelNode node{ .position = ref.position, .rotation = ref.rotation };
 			ExtractNodeMesh(context, ref, mesh, node.materials);
 			if (node.materials.empty())

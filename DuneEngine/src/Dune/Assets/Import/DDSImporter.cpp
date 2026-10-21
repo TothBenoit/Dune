@@ -108,7 +108,7 @@ namespace Dune::DDSImporter
 		}
 	}
 
-	bool Import(const char* filePath, RHI::TextureData& outImage)
+	bool Import(const char* filePath, ImageData& outImage)
 	{
 		File file;
 		if (!File::Open(file, filePath, File::EAccessMode::Read, File::EShareMode::None))

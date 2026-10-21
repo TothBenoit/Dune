@@ -2,18 +2,10 @@
 #include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Platform/RHI/PipelineState.h>
 #include <Dune/Graphics/Handles.h>
+#include <Dune/Core/RenderTypes.h>
 
 namespace Dune::Graphics
 {
-	enum class EAlphaMode : dU8
-	{
-		Opaque,
-		Mask,
-		Blend,
-		Count
-	};
-	static_assert((dU32)EAlphaMode::Blend == (dU32)EAlphaMode::Count - 1, "Blend must sort last");
-
 	struct MaterialDesc
 	{
 		dVec3         baseColor{ 1.0f, 1.0f, 1.0f };

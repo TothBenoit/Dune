@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Dune/Platform/RHI/Texture.h"
 #include "Dune/Platform/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/Handles.h"
 #include "Dune/Platform/RHI/StagingMemory.h"
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/Material.h"
-#include "Dune/Platform/RHI/TextureData.h"
-#include "Dune/Graphics/ModelData.h"
+#include "Dune/Graphics/Texture.h"
+#include "Dune/Graphics/TextureData.h"
+#include "Dune/Assets/Model.h"
 #include "Dune/Core/ResourcePool.h"
 #include "Dune/Core/HandleAllocator.h"
 
@@ -37,7 +37,7 @@ namespace Dune::Graphics
 	{
 		[[nodiscard]] ModelResources AllocateModel(const ModelData& model);
 
-		HandleAllocator<RHI::Texture> textures;
+		HandleAllocator<Texture>      textures;
 		HandleAllocator<Material>     materials;
 		HandleAllocator<MaterialSet>  materialSets;
 		HandleAllocator<Mesh>         meshes;
@@ -51,7 +51,8 @@ namespace Dune::Graphics
 		void Initialize(RHI::Device& device, const ResourceHandles& handles);
 		void Destroy();
 
-		void CreateTexture(TextureHandle handle, const RHI::TextureData& image);
+		void CreateTexture(TextureHandle handle, const TextureData& data);
+		void CreateTexture(TextureHandle handle, const ImageData& image);
 		void CreateMaterial(MaterialHandle handle, const MaterialDesc& desc);
 		void CreateMaterialSet(MaterialSetHandle handle, dSpan<MaterialHandle> materials);
 		void CreateMesh(MeshHandle handle, const MeshData& meshData);
@@ -60,7 +61,8 @@ namespace Dune::Graphics
 		[[nodiscard]] dU64 GetUploadSize(TextureHandle handle) const;
 		[[nodiscard]] dU64 GetUploadSize(MeshHandle handle) const;
 		[[nodiscard]] dU64 GetUploadSize(const ModelResources& resources) const;
-		void Upload(TextureHandle handle, const RHI::TextureData& data, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
+		void Upload(TextureHandle handle, const TextureData& data, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
+		void Upload(TextureHandle handle, const ImageData& image, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
 		void Upload(MeshHandle handle, const MeshData& meshData, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
 		void Upload(const ModelResources& resources, const ModelData& model, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
 
@@ -79,22 +81,18 @@ namespace Dune::Graphics
 		[[nodiscard]] const RHI::BlockDescriptorHeap& GetSRVHeap() const { return m_srvHeap; }
 
 	private:
-		struct TextureEntry
-		{
-			RHI::Texture    texture;
-			RHI::Descriptor srv;
-			RHI::Descriptor srgbSRV; // TODO : Texture view
-		};
-
-		[[nodiscard]] dU32 GetBindlessIndex(TextureHandle handle, bool isSRGB) const;
+		void CreateMesh(MeshHandle handle, const MeshDesc& desc);
+		void Upload(MeshHandle handle, const MeshDesc& desc, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
+		[[nodiscard]] dU32 GetViewIndex(TextureHandle handle) const;
+		[[nodiscard]] dU32 ResolveSRGBViewIndex(TextureHandle handle);
 
 	private:
 		RHI::Device* m_pDevice{ nullptr }; // TODO Cleanup : A ResourceManager is owned by a RenderContext which already own a device. The resource manager should not need this
 
-		ResourcePool<TextureEntry, RHI::Texture> m_textures;
+		ResourcePool<Texture>               m_textures;
 		ResourcePool<Material>              m_materials;
 		ResourcePool<MaterialSet>           m_materialSets;
 		ResourcePool<Mesh>                  m_meshes;
-		RHI::BlockDescriptorHeap                 m_srvHeap;
+		RHI::BlockDescriptorHeap            m_srvHeap;
 	};
 }

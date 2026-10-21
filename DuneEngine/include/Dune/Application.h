@@ -62,11 +62,10 @@ namespace Dune
 		void UnloadImage(ImageHandle image);
 		[[nodiscard]] const Image& GetImage(ImageHandle image) const;
 
-		[[nodiscard]] Graphics::TextureHandle     CreateTexture(const RHI::TextureData& data);
+		[[nodiscard]] Graphics::TextureHandle     CreateTexture(const Graphics::TextureData& data);
 		[[nodiscard]] Graphics::MeshHandle        CreateMesh(const Graphics::MeshData& meshData);
 		[[nodiscard]] Graphics::MaterialHandle    CreateMaterial(const Graphics::MaterialDesc& desc);
 		[[nodiscard]] Graphics::MaterialSetHandle CreateMaterialSet(dSpan<Graphics::MaterialHandle> materials);
-		[[nodiscard]] Graphics::ModelResources    CreateModel(const Graphics::ModelData& model, dSpan<Graphics::TextureHandle> images);
 
 		void DestroyTexture(Graphics::TextureHandle texture);
 		void DestroyMesh(Graphics::MeshHandle mesh);
@@ -110,6 +109,8 @@ namespace Dune
 
 		void ReleasePendingResources();
 		[[nodiscard]] ImageHandle LoadImage(FileSystem::SerializationID<EFileType::Image> source);
+		[[nodiscard]] Graphics::TextureHandle CreateTexture(const ImageData& image);
+		[[nodiscard]] Graphics::ModelResources CreateModel(const ModelData& model, dSpan<Graphics::TextureHandle> images);
 		[[nodiscard]] View& GetView(ViewHandle view);
 		[[nodiscard]] const Graphics::FrameData& GetFrameData(const Scene& scene);
 
@@ -120,7 +121,7 @@ namespace Dune
 		Graphics::MeshHandle m_primitives[(dU32)EPrimitive::Count]{};
 		Graphics::MaterialHandle m_defaultMaterial{};
 		Graphics::MaterialSetHandle m_defaultMaterialSet{};
-		dVector<PendingRelease<RHI::Texture>>          m_pendingTextures;
+		dVector<PendingRelease<Graphics::Texture>>          m_pendingTextures;
 		dVector<PendingRelease<Graphics::Mesh>>        m_pendingMeshes;
 		dVector<PendingRelease<Graphics::MaterialSet>> m_pendingMaterialSets;
 		dVector<std::unique_ptr<View>> m_views;

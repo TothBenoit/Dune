@@ -2,11 +2,11 @@
 
 #include "Dune/Platform/RHI/Format.h"
 
-namespace Dune::RHI
+namespace Dune::Graphics
 {
 	struct TextureData
 	{
-		EFormat      format{ EFormat::Unknown };
+		RHI::EFormat format{ RHI::EFormat::Unknown };
 		dU32         width{ 0 };
 		dU32         height{ 0 };
 		dU32         mipLevels{ 1 };

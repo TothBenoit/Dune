@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Platform/RHI/TextureData.h"
+#include "Dune/Assets/Image.h"
 
 namespace Dune::DDSImporter
 {
-	[[nodiscard]] bool Import(const char* filePath, RHI::TextureData& outImage);
+	[[nodiscard]] bool Import(const char* filePath, ImageData& outImage);
 }

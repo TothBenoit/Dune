@@ -5,7 +5,6 @@
 namespace Dune::MeshUtils
 {
 	using Graphics::MeshData;
-	using Graphics::Vertex;
 
 	static float ComputeTangentSign(dVec normal, dVec tangent, dVec bitangent)
 	{
@@ -195,7 +194,7 @@ namespace Dune::MeshUtils
 
 		destination.vertices.insert(destination.vertices.end(), source.vertices.begin(), source.vertices.end());
 		destination.indices.insert(destination.indices.end(), source.indices.begin(), source.indices.end());
-		for (Graphics::SubMesh subMesh : source.subMeshes)
+		for (SubMesh subMesh : source.subMeshes)
 		{
 			subMesh.vertexOffset += vertexOffset;
 			subMesh.indexOffset += indexOffset;

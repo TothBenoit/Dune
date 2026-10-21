@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClInclude Include="include\Dune\Graphics\Texture.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\RenderTypes.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Platform\Fiber.h">
       <Filter>Dune\Platform</Filter>
     </ClInclude>
@@ -21,9 +27,6 @@
     </ClInclude>
     <ClInclude Include="include\Dune\Assets\Import\ModelImporter.h">
       <Filter>Dune\Assets\Import</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\ModelData.h">
-      <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Platform\RHI\StagingMemory.h">
       <Filter>Dune\Platform\RHI</Filter>
@@ -197,8 +200,8 @@
     <ClInclude Include="include\Dune\Graphics\MeshData.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Platform\RHI\TextureData.h">
-      <Filter>Dune\Platform\RHI</Filter>
+    <ClInclude Include="include\Dune\Graphics\TextureData.h">
+      <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Handle.h">
       <Filter>Dune\Core</Filter>
@@ -226,6 +229,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Graphics\Texture.cpp">
+      <Filter>Dune\Graphics</Filter>
+    </ClCompile>
     <ClCompile Include="src\Dune\Platform\Win32\FiberWin32.cpp">
       <Filter>Dune\Platform\Win32</Filter>
     </ClCompile>

@@ -30,6 +30,22 @@ namespace Dune::Graphics
 		};
 	}
 
+	static MeshDesc ToMeshDesc(const ModelMesh& meshData)
+	{
+		return
+		{
+			.pVertices = meshData.vertices.data(),
+			.vertexCount = (dU32)meshData.vertices.size(),
+			.vertexByteStride = sizeof(Vertex),
+			.pIndices = meshData.indices.data(),
+			.indexCount = (dU32)meshData.indices.size(),
+			.isIndex32bits = true,
+			.pSubMeshes = meshData.subMeshes.data(),
+			.subMeshCount = (dU32)meshData.subMeshes.size(),
+			.materialSlotCount = meshData.materialSlotCount
+		};
+	}
+
 	ModelResources ResourceHandles::AllocateModel(const ModelData& model)
 	{
 		ModelResources resources;
@@ -65,36 +81,32 @@ namespace Dune::Graphics
 		m_pDevice = nullptr;
 	}
 
-	void ResourceManager::CreateTexture(TextureHandle handle, const RHI::TextureData& image)
+	void ResourceManager::CreateTexture(TextureHandle handle, const TextureData& data)
 	{
-		RHI::Texture texture{};
-		texture.Initialize(*m_pDevice,
-			{
-				.usage = RHI::ETextureUsage::ShaderResource,
-				.dimensions = { image.width, image.height, 1 },
-				.mipLevels = image.mipLevels,
-				.format = RHI::ToTypeless(image.format),
-			});
-
-		const RHI::Descriptor srv = m_srvHeap.Allocate();
-		m_pDevice->CreateSRV(srv, texture, { .mipLevels = image.mipLevels, .format = image.format });
-
-		RHI::Descriptor srgbSRV = srv;
-		const RHI::EFormat srgbFormat = RHI::ToSRGB(image.format);
-		if (srgbFormat != image.format)
-		{
-			srgbSRV = m_srvHeap.Allocate();
-			m_pDevice->CreateSRV(srgbSRV, texture, { .mipLevels = image.mipLevels, .format = srgbFormat });
-		}
-		m_textures.Insert(handle, { .texture = texture, .srv = srv, .srgbSRV = srgbSRV });
+		Texture texture{};
+		texture.Initialize(*m_pDevice, m_srvHeap, { .format = data.format, .width = data.width, .height = data.height, .mipLevels = data.mipLevels });
+		m_textures.Insert(handle, std::move(texture));
 	}
 
-	dU32 ResourceManager::GetBindlessIndex(TextureHandle handle, bool isSRGB) const
+	void ResourceManager::CreateTexture(TextureHandle handle, const ImageData& image)
+	{
+		Texture texture{};
+		texture.Initialize(*m_pDevice, m_srvHeap, { .format = image.format, .width = image.width, .height = image.height, .mipLevels = image.mipLevels });
+		m_textures.Insert(handle, std::move(texture));
+	}
+
+	dU32 ResourceManager::GetViewIndex(TextureHandle handle) const
 	{
 		if (!handle.IsValid())
 			return dU32(-1);
-		const TextureEntry& entry = m_textures.Get(handle);
-		return m_srvHeap.GetIndex(isSRGB ? entry.srgbSRV : entry.srv);
+		return m_srvHeap.GetIndex(m_textures.Get(handle).GetView());
+	}
+
+	dU32 ResourceManager::ResolveSRGBViewIndex(TextureHandle handle)
+	{
+		if (!handle.IsValid())
+			return dU32(-1);
+		return m_srvHeap.GetIndex(m_textures.Get(handle).ResolveSRGBView(*m_pDevice, m_srvHeap));
 	}
 
 	void ResourceManager::CreateMaterial(MaterialHandle handle, const MaterialDesc& desc)
@@ -106,9 +118,9 @@ namespace Dune::Graphics
 				.baseColor = desc.baseColor,
 				.metalnessFactor = desc.metalness,
 				.roughnessFactor = desc.roughness,
-				.albedoIdx = GetBindlessIndex(desc.albedo, true),
-				.normalIdx = GetBindlessIndex(desc.normal, false),
-				.roughnessMetalnessIdx = GetBindlessIndex(desc.roughnessMetalness, false),
+				.albedoIdx = ResolveSRGBViewIndex(desc.albedo),
+				.normalIdx = GetViewIndex(desc.normal),
+				.roughnessMetalnessIdx = GetViewIndex(desc.roughnessMetalness),
 				.alphaCutoff = desc.alphaCutoff
 			},
 			.alphaMode = desc.alphaMode,
@@ -125,8 +137,13 @@ namespace Dune::Graphics
 
 	void ResourceManager::CreateMesh(MeshHandle handle, const MeshData& meshData)
 	{
+		CreateMesh(handle, ToMeshDesc(meshData));
+	}
+
+	void ResourceManager::CreateMesh(MeshHandle handle, const MeshDesc& desc)
+	{
 		Mesh mesh{};
-		mesh.Initialize(*m_pDevice, ToMeshDesc(meshData));
+		mesh.Initialize(*m_pDevice, desc);
 		m_meshes.Insert(handle, std::move(mesh));
 	}
 
@@ -137,15 +154,22 @@ namespace Dune::Graphics
 		for (dU32 i = 0; i < (dU32)model.materials.size(); i++)
 		{
 			const ModelMaterial& material = model.materials[i];
-			MaterialDesc desc{ material.desc };
-			desc.albedo = ToTexture(material.albedoImage);
-			desc.normal = ToTexture(material.normalImage);
-			desc.roughnessMetalness = ToTexture(material.roughnessMetalnessImage);
-			CreateMaterial(handles.materials[i], desc);
+			CreateMaterial(handles.materials[i],
+				{
+					.baseColor = material.baseColor,
+					.metalness = material.metalness,
+					.roughness = material.roughness,
+					.alphaCutoff = material.alphaCutoff,
+					.alphaMode = material.alphaMode,
+					.faceCulling = material.faceCulling,
+					.albedo = ToTexture(material.albedoImage),
+					.normal = ToTexture(material.normalImage),
+					.roughnessMetalness = ToTexture(material.roughnessMetalnessImage),
+				});
 		}
 
 		for (dU32 i = 0; i < (dU32)model.meshes.size(); i++)
-			CreateMesh(handles.meshes[i], model.meshes[i]);
+			CreateMesh(handles.meshes[i], ToMeshDesc(model.meshes[i]));
 
 		dVector<MaterialHandle> nodeMaterials;
 		for (dU32 i = 0; i < (dU32)model.nodes.size(); i++)
@@ -159,7 +183,7 @@ namespace Dune::Graphics
 
 	dU64 ResourceManager::GetUploadSize(TextureHandle handle) const
 	{
-		return m_textures.Get(handle).texture.GetUploadSize();
+		return m_textures.Get(handle).GetUploadSize();
 	}
 
 	dU64 ResourceManager::GetUploadSize(MeshHandle handle) const
@@ -180,20 +204,28 @@ namespace Dune::Graphics
 		Assert(staging.IsValid() && staging.offset % Mesh::kUploadAlignment == 0);
 		dU64 offset = 0;
 		for (dU32 i = 0; i < (dU32)resources.meshes.size(); i++)
-			Upload(resources.meshes[i], model.meshes[i], commandList, SubAllocate(staging, offset, GetUploadSize(resources.meshes[i]), Mesh::kUploadAlignment));
+			Upload(resources.meshes[i], ToMeshDesc(model.meshes[i]), commandList, SubAllocate(staging, offset, GetUploadSize(resources.meshes[i]), Mesh::kUploadAlignment));
 	}
 
-	void ResourceManager::Upload(TextureHandle handle, const RHI::TextureData& data, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	void ResourceManager::Upload(TextureHandle handle, const TextureData& data, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
 	{
-		RHI::Texture& texture = m_textures.Get(handle).texture;
-		texture.Upload(data, commandList, staging);
-		commandList.Transition(texture, RHI::EResourceState::CopyDest, RHI::EResourceState::ShaderResource);
+		m_textures.Get(handle).Upload(data.bytes.data(), commandList, staging);
+	}
+
+	void ResourceManager::Upload(TextureHandle handle, const ImageData& image, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	{
+		m_textures.Get(handle).Upload(image.bytes.data(), commandList, staging);
 	}
 
 	void ResourceManager::Upload(MeshHandle handle, const MeshData& meshData, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
 	{
+		Upload(handle, ToMeshDesc(meshData), commandList, staging);
+	}
+
+	void ResourceManager::Upload(MeshHandle handle, const MeshDesc& desc, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	{
 		Mesh& mesh = m_meshes.Get(handle);
-		mesh.Upload(ToMeshDesc(meshData), commandList, staging);
+		mesh.Upload(desc, commandList, staging);
 		commandList.Transition(mesh.GetIndexBuffer(), RHI::EResourceState::CopyDest, RHI::EResourceState::IndexBuffer);
 		commandList.Transition(mesh.GetVertexBuffer(), RHI::EResourceState::CopyDest, RHI::EResourceState::VertexBuffer);
 	}
@@ -231,11 +263,7 @@ namespace Dune::Graphics
 
 	void ResourceManager::Destroy(TextureHandle handle)
 	{
-		TextureEntry entry = m_textures.Remove(handle);
-		entry.texture.Destroy();
-		if (entry.srgbSRV.cpuAddress != entry.srv.cpuAddress)
-			m_srvHeap.Free(entry.srgbSRV);
-		m_srvHeap.Free(entry.srv);
+		m_textures.Remove(handle).Destroy(m_srvHeap);
 	}
 
 	void ResourceManager::Destroy(MaterialHandle handle)

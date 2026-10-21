@@ -119,13 +119,13 @@ namespace Dune
 		if (cached.IsValid())
 			return cached;
 
-		Graphics::ModelData modelData;
+		ModelData modelData;
 		if (!ModelImporter::Import(pPath, modelData))
 			return {};
 
 		Model asset{ .source = source };
 		dVector<Graphics::TextureHandle> textures;
-		for (const Graphics::ModelImage& modelImage : modelData.images)
+		for (const ModelImage& modelImage : modelData.images)
 		{
 			const ImageHandle image = LoadImage(modelImage.source);
 			asset.images.push_back(image);
@@ -137,7 +137,7 @@ namespace Dune
 		asset.meshes = modelResources.meshes;
 		for (dU32 nodeIndex = 0; nodeIndex < (dU32)modelData.nodes.size(); nodeIndex++)
 		{
-			const Graphics::ModelNode& node = modelData.nodes[nodeIndex];
+			const ModelNode& node = modelData.nodes[nodeIndex];
 			asset.nodes.push_back({ .position = node.position, .rotation = node.rotation, .mesh = modelResources.meshes[node.mesh], .materials = modelResources.nodeMaterialSets[nodeIndex] });
 		}
 		const ModelHandle model = m_assetCache.AddModel(std::move(asset));
@@ -182,7 +182,7 @@ namespace Dune
 		if (cached.IsValid())
 			return cached;
 
-		RHI::TextureData data;
+		ImageData data;
 		if (!DDSImporter::Import(FileSystem::GetPath(source).c_str(), data))
 			return {};
 
@@ -239,14 +239,25 @@ namespace Dune
 		return entity;
 	}
 
-	Graphics::TextureHandle Application::CreateTexture(const RHI::TextureData& data)
+	Graphics::TextureHandle Application::CreateTexture(const Graphics::TextureData& data)
 	{
 		const Graphics::TextureHandle handle = m_resourceHandles.textures.Allocate();
 		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
 		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateTexture(handle, data);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), RHI::Texture::kUploadAlignment);
+		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Texture::kUploadAlignment);
 		resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
+		return handle;
+	}
+
+	Graphics::TextureHandle Application::CreateTexture(const ImageData& image)
+	{
+		const Graphics::TextureHandle handle = m_resourceHandles.textures.Allocate();
+		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
+		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
+		resources.CreateTexture(handle, image);
+		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Texture::kUploadAlignment);
+		resources.Upload(handle, image, uploadContext.GetCommandList(), staging);
 		return handle;
 	}
 
@@ -275,7 +286,7 @@ namespace Dune
 		return handle;
 	}
 
-	Graphics::ModelResources Application::CreateModel(const Graphics::ModelData& model, dSpan<Graphics::TextureHandle> images)
+	Graphics::ModelResources Application::CreateModel(const ModelData& model, dSpan<Graphics::TextureHandle> images)
 	{
 		const Graphics::ModelResources handles = m_resourceHandles.AllocateModel(model);
 		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();

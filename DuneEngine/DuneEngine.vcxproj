@@ -13,6 +13,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\Graphics\Texture.cpp" />
     <ClCompile Include="src\Dune\Platform\Win32\FiberWin32.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearDepth.cpp" />
@@ -23,6 +24,8 @@
     <ClCompile Include="src\Dune\Graphics\MeshUtils.cpp" />
     <ClCompile Include="src\Dune\Assets\Import\ModelImporter.cpp" />
     <ClCompile Include="src\Dune\Graphics\ScratchAllocator.cpp" />
+    <ClInclude Include="include\Dune\Graphics\Texture.h" />
+    <ClInclude Include="include\Dune\Core\RenderTypes.h" />
     <ClInclude Include="include\Dune\Platform\Fiber.h" />
     <ClInclude Include="include\Dune\Core\ChunkedArray.h" />
     <ClInclude Include="include\Dune.h" />
@@ -36,7 +39,7 @@
     <ClInclude Include="include\Dune\Graphics\Material.h" />
     <ClInclude Include="include\Dune\Graphics\Handles.h" />
     <ClInclude Include="include\Dune\Graphics\MeshData.h" />
-    <ClInclude Include="include\Dune\Platform\RHI\TextureData.h" />
+    <ClInclude Include="include\Dune\Graphics\TextureData.h" />
     <ClInclude Include="include\Dune\Core\Handle.h" />
     <ClInclude Include="include\Dune\Core\ResourcePool.h" />
     <ClInclude Include="include\Dune\Core\HandleAllocator.h" />
@@ -90,7 +93,6 @@
     <ClInclude Include="include\Dune\Utils.h" />
     <ClInclude Include="include\Dune\Graphics\MeshUtils.h" />
     <ClInclude Include="include\Dune\Assets\Import\ModelImporter.h" />
-    <ClInclude Include="include\Dune\Graphics\ModelData.h" />
     <ClInclude Include="include\Dune\Platform\RHI\StagingMemory.h" />
     <ClInclude Include="include\Dune\Graphics\ScratchAllocator.h" />
     <ClInclude Include="include\Dune\Platform\Types.h" />

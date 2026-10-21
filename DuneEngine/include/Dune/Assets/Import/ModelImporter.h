@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Graphics/ModelData.h"
+#include "Dune/Assets/Model.h"
 
 namespace Dune::ModelImporter
 {
-	[[nodiscard]] bool Import(const char* filePath, Graphics::ModelData& outModel);
+	[[nodiscard]] bool Import(const char* filePath, ModelData& outModel);
 }

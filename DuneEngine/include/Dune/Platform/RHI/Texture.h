@@ -3,7 +3,6 @@
 #include "Dune/Platform/RHI/Resource.h"
 #include "Dune/Platform/RHI/Format.h"
 #include "Dune/Platform/RHI/Barrier.h"
-#include "Dune/Platform/RHI/TextureData.h"
 #include "Dune/Platform/RHI/StagingMemory.h"
 
 namespace Dune::RHI
@@ -51,7 +50,7 @@ namespace Dune::RHI
 		void Destroy();
 
 		[[nodiscard]] dU64 GetUploadSize() const;
-		void Upload(const TextureData& data, CommandList& commandList, const StagingMemory& staging);
+		void Upload(const void* pData, CommandList& commandList, const StagingMemory& staging);
 
 		[[nodiscard]] const dU32* GetDimensions() const { return m_desc.dimensions; }
 		[[nodiscard]] const float* GetClearValue() const { return m_desc.clearValue; }
