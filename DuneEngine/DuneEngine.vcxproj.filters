@@ -7,14 +7,14 @@
     <ClInclude Include="include\Dune\Graphics\Mesh.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\StringUtils.h">
-      <Filter>Dune\Utilities</Filter>
+    <ClInclude Include="include\Dune\Utils.h">
+      <Filter>Dune</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\MeshUtils.h">
-      <Filter>Dune\Utilities</Filter>
+    <ClInclude Include="include\Dune\Graphics\MeshUtils.h">
+      <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\ModelImporter.h">
-      <Filter>Dune\Utilities</Filter>
+    <ClInclude Include="include\Dune\Asset\Import\ModelImporter.h">
+      <Filter>Dune\Asset\Import</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\ModelData.h">
       <Filter>Dune\Graphics</Filter>
@@ -25,26 +25,17 @@
     <ClInclude Include="include\Dune\Graphics\ScratchAllocator.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\HashUtils.h">
-      <Filter>Dune\Utilities</Filter>
-    </ClInclude>
     <ClInclude Include="include\Dune\Core\Types.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Dune</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\Utils.h">
-      <Filter>Dune\Utilities</Filter>
+    <ClInclude Include="src\Dune\Graphics\RHI\DX12\GraphicsDX12.h">
+      <Filter>Dune\Graphics\RHI\DX12</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Platform\GraphicsDX12.h">
-      <Filter>Dune\Graphics\Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\SimpleCameraController.h">
-      <Filter>Dune\Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\DDSImporter.h">
-      <Filter>Dune\Utilities</Filter>
+    <ClInclude Include="include\Dune\Asset\Import\DDSImporter.h">
+      <Filter>Dune\Asset\Import</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RHI\Texture.h">
       <Filter>Dune\Graphics\RHI</Filter>
@@ -52,8 +43,8 @@
     <ClInclude Include="include\Dune\Graphics\RHI\Buffer.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Window.h">
-      <Filter>Dune\Graphics</Filter>
+    <ClInclude Include="include\Dune\Platform\Window.h">
+      <Filter>Dune\Platform</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RHI\DescriptorHeap.h">
       <Filter>Dune\Graphics\RHI</Filter>
@@ -146,17 +137,14 @@
     <ClInclude Include="include\Dune\Core\FileSystem.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Core\Input.h">
-      <Filter>Dune\Core</Filter>
+    <ClInclude Include="include\Dune\Platform\Input.h">
+      <Filter>Dune\Platform</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\JobSystem.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\Logger.h">
       <Filter>Dune\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\SceneLoader.h">
-      <Filter>Dune\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RHI\ImGuiWrapper.h">
       <Filter>Dune\Graphics\RHI</Filter>
@@ -179,8 +167,8 @@
     <ClInclude Include="include\Dune\Resources\Shaders\ShaderInterop.h">
       <Filter>Dune\Graphics\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\Graphics\Platform\WindowWin32.h">
-      <Filter>Dune\Graphics\Platform</Filter>
+    <ClInclude Include="src\Dune\Platform\Win32\WindowWin32.h">
+      <Filter>Dune\Platform\Win32</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Core\FileLoader.h">
       <Filter>Dune\Core</Filter>
@@ -206,14 +194,14 @@
     <ClInclude Include="include\Dune\Graphics\RHI\TextureData.h">
       <Filter>Dune\Graphics\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\Handle.h">
-      <Filter>Dune\Utilities</Filter>
+    <ClInclude Include="include\Dune\Core\Handle.h">
+      <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\ResourcePool.h">
-      <Filter>Dune\Utilities</Filter>
+    <ClInclude Include="include\Dune\Core\ResourcePool.h">
+      <Filter>Dune\Core</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Utilities\HandleAllocator.h">
-      <Filter>Dune\Utilities</Filter>
+    <ClInclude Include="include\Dune\Core\HandleAllocator.h">
+      <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderPass\MaterialUpload.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
@@ -238,14 +226,11 @@
     <ClCompile Include="pch.cpp">
       <Filter>Dune</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Platform\GraphicsDX12.cpp">
-      <Filter>Dune\Graphics\Platform</Filter>
+    <ClCompile Include="src\Dune\Graphics\RHI\DX12\GraphicsDX12.cpp">
+      <Filter>Dune\Graphics\RHI\DX12</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\SimpleCameraController.cpp">
-      <Filter>Dune\Utilities</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\DDSImporter.cpp">
-      <Filter>Dune\Utilities</Filter>
+    <ClCompile Include="src\Dune\Asset\Import\DDSImporter.cpp">
+      <Filter>Dune\Asset\Import</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp">
       <Filter>Dune\Graphics</Filter>
@@ -283,8 +268,8 @@
     <ClCompile Include="src\Dune\Core\FileSystem.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Core\Input.cpp">
-      <Filter>Dune\Core</Filter>
+    <ClCompile Include="src\Dune\Platform\Input.cpp">
+      <Filter>Dune\Platform</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\JobSystem.cpp">
       <Filter>Dune\Core</Filter>
@@ -294,9 +279,6 @@
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RHI\ImGuiWrapper.cpp">
       <Filter>Dune\Graphics\RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\SceneLoader.cpp">
-      <Filter>Dune\Utilities</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RenderPass\DepthPrepass.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>
@@ -310,26 +292,26 @@
     <ClCompile Include="src\Dune\Graphics\RenderPass\Tonemapping.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Platform\WindowWin32.cpp">
-      <Filter>Dune\Graphics\Platform</Filter>
+    <ClCompile Include="src\Dune\Platform\Win32\WindowWin32.cpp">
+      <Filter>Dune\Platform\Win32</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\FileLoader.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\Window.cpp">
-      <Filter>Dune\Graphics</Filter>
+    <ClCompile Include="src\Dune\Platform\Window.cpp">
+      <Filter>Dune\Platform</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RenderPass\LightUpload.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\StringUtils.cpp">
-      <Filter>Dune\Utilities</Filter>
+    <ClCompile Include="src\Dune\Utils.cpp">
+      <Filter>Dune</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\MeshUtils.cpp">
-      <Filter>Dune\Utilities</Filter>
+    <ClCompile Include="src\Dune\Graphics\MeshUtils.cpp">
+      <Filter>Dune\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Utilities\ModelImporter.cpp">
-      <Filter>Dune\Utilities</Filter>
+    <ClCompile Include="src\Dune\Asset\Import\ModelImporter.cpp">
+      <Filter>Dune\Asset\Import</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\ScratchAllocator.cpp">
       <Filter>Dune\Graphics</Filter>
@@ -387,14 +369,8 @@
     <Filter Include="Dune">
       <UniqueIdentifier>{11174586-51f2-40d5-90a1-87c4ccbb601b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\Utilities">
-      <UniqueIdentifier>{bd6dcf96-7182-425d-b008-55e8c5df4a98}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dune\Graphics">
       <UniqueIdentifier>{78921c41-9947-4ab1-b553-aab00a88cdea}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Dune\Graphics\Platform">
-      <UniqueIdentifier>{7de3f997-37c6-412d-829a-ccf2ebc29c48}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Graphics\RHI">
       <UniqueIdentifier>{d903048e-0edd-4606-bc55-d2da2aefdff8}</UniqueIdentifier>
@@ -416,6 +392,18 @@
     </Filter>
     <Filter Include="Dune\Graphics\RenderPass">
       <UniqueIdentifier>{05f7b3e6-873e-48d8-a0e7-7f5b676ab5c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Platform">
+      <UniqueIdentifier>{8f87ccfb-c3d9-4198-83dd-61ff6b6dde3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Platform\Win32">
+      <UniqueIdentifier>{9d858421-0246-4b31-9f5c-6442f6f0cfec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Graphics\RHI\DX12">
+      <UniqueIdentifier>{ea43899c-a77e-4bd6-8382-2dc9917c5077}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Asset\Import">
+      <UniqueIdentifier>{905c5ac7-d26d-4f96-b17e-501c30ddb6a9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

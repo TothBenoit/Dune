@@ -5,15 +5,14 @@
 #include <thread>
 #include <Dune/Graphics/RHI/ImGuiWrapper.h>
 #include <Dune/Resources/Shaders/ShaderInterop.h>
-#include <Dune/Graphics/Window.h>
-#include <Dune/Utilities/SimpleCameraController.h>
+#include <Dune/Platform/Window.h>
+#include "SimpleCameraController.h"
 #include <Dune/Scene/Scene.h>
 #include <Dune/Component/Light.h>
 #include <Dune/Component/Transform.h>
 #include <Dune/Component/Name.h>
 #include <Dune/Component/MeshInstance.h>
 #include <Dune/Component/Camera.h>
-#include <Dune/Utilities/StringUtils.h>
 #include <filesystem>
 #include <imgui/imgui.h>
 #include <ImGuizmo/ImGuizmo.h>
@@ -41,7 +40,7 @@ public:
 		while (m_app.BeginFrame())
 		{
 			m_deltaTime = m_app.GetDeltaTime();
-			const Graphics::Window& window = m_app.GetWindow(m_view);
+			const Window& window = m_app.GetWindow(m_view);
 			if (window.GetHeight() > 0)
 				m_camera.SetAspectRatio((float)window.GetWidth() / window.GetHeight());
 

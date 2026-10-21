@@ -63,8 +63,7 @@ namespace Dune
 				auto it = m_offsets.find(id);
 				if (it == m_offsets.end())
 				{
-					const dU32 align = (dU32)alignof(T);
-					const dU32 offset = ((dU32)m_storage.size() + align - 1) & ~(align - 1);
+					const dU32 offset = MemoryUtils::AlignUp((dU32)m_storage.size(), (dU32)alignof(T));
 					m_storage.resize(offset + sizeof(T));
 					it = m_offsets.emplace(id, offset).first;
 				}

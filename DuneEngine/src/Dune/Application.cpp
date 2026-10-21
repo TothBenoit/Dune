@@ -4,10 +4,10 @@
 #include "Dune/Core/FileSystem.h"
 #include "Dune/Scene/Scene.h"
 #include "Dune/Scene/SceneRender.h"
-#include "Dune/Utilities/SceneLoader.h"
-#include "Dune/Utilities/ModelImporter.h"
-#include "Dune/Utilities/DDSImporter.h"
-#include "Dune/Utilities/MeshUtils.h"
+#include "Dune/Asset/Model.h"
+#include "Dune/Asset/Import/ModelImporter.h"
+#include "Dune/Asset/Import/DDSImporter.h"
+#include "Dune/Graphics/MeshUtils.h"
 #include "Dune/Component/Name.h"
 #include "Dune/Component/MeshInstance.h"
 
@@ -51,10 +51,10 @@ namespace Dune
 	{
 		std::unique_ptr<View> pView = std::make_unique<View>();
 		pView->window.Initialize({ .width = desc.width, .height = desc.height, .title = desc.title });
-		pView->resizeEventHandle = pView->window.RegisterEvent(&pView->renderer, [](void* pData, const Graphics::WindowMessage& message)
+		pView->resizeEventHandle = pView->window.RegisterEvent(&pView->renderer, [](void* pData, const WindowMessage& message)
 			{
 				static_cast<Graphics::Renderer*>(pData)->OnResize(message.resize.width, message.resize.height);
-			}, Graphics::EWindowMessageType::Resize);
+			}, EWindowMessageType::Resize);
 		m_renderContext.InitializeRenderer(pView->renderer, pView->window);
 		if (desc.enableImGui)
 		{
@@ -73,7 +73,7 @@ namespace Dune
 		if (v.hasImGui)
 			v.imgui.Destroy();
 		v.renderer.Destroy();
-		v.window.UnregisterEvent(Graphics::EWindowMessageType::Resize, v.resizeEventHandle);
+		v.window.UnregisterEvent(EWindowMessageType::Resize, v.resizeEventHandle);
 		v.window.Destroy();
 		m_views[view].reset();
 	}
@@ -202,7 +202,20 @@ namespace Dune
 
 	void Application::Spawn(Scene& scene, ModelHandle model)
 	{
-		SceneLoader::Spawn(scene, m_assetCache.GetModel(model));
+		for (const Model::Node& node : m_assetCache.GetModel(model).nodes)
+		{
+			const EntityID entity = scene.registry.create();
+			scene.registry.emplace<Name>(entity).name.assign("Mesh");
+
+			Transform& transform = scene.registry.emplace<Transform>(entity);
+			transform.position = node.position;
+			transform.rotation = DirectX::XMLoadFloat4(&node.rotation);
+			transform.scale = 1.0f;
+
+			MeshInstance& meshInstance = scene.registry.emplace<MeshInstance>(entity);
+			meshInstance.mesh = node.mesh;
+			meshInstance.materials = node.materials;
+		}
 	}
 
 	ModelHandle Application::LoadModel(Scene& scene, const char* pPath)
@@ -323,7 +336,7 @@ namespace Dune
 		return view < (ViewHandle)m_views.size() && m_views[view];
 	}
 
-	Graphics::Window& Application::GetWindow(ViewHandle view)
+	Window& Application::GetWindow(ViewHandle view)
 	{
 		return GetView(view).window;
 	}

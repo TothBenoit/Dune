@@ -8,8 +8,8 @@
 #include "Dune/Graphics/Material.h"
 #include "Dune/Graphics/RHI/TextureData.h"
 #include "Dune/Graphics/ModelData.h"
-#include "Dune/Utilities/ResourcePool.h"
-#include "Dune/Utilities/HandleAllocator.h"
+#include "Dune/Core/ResourcePool.h"
+#include "Dune/Core/HandleAllocator.h"
 
 namespace Dune::Graphics
 {

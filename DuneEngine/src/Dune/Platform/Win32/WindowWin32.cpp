@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Dune/Graphics/Window.h"
+#include "Dune/Platform/Window.h"
 #include "WindowWin32.h"
 
-namespace Dune::Graphics
+namespace Dune
 {
 	static const KeyCode g_win32ToKeyCode[256] =
 	{

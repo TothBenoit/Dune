@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Dune/Graphics/Window.h"
+#include "Dune/Platform/Window.h"
 
-namespace Dune::Graphics
+namespace Dune
 {
 	dU32 Window::RegisterHook(void* pData, WindowHook pHook, dU32 priority)
 	{

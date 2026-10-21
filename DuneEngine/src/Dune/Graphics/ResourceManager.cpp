@@ -6,14 +6,9 @@
 
 namespace Dune::Graphics
 {
-	static dU64 AlignUp(dU64 value, dU64 alignment)
-	{
-		return (value + alignment - 1) & ~(alignment - 1);
-	}
-
 	static StagingMemory SubAllocate(const StagingMemory& staging, dU64& offset, dU64 byteSize, dU64 alignment)
 	{
-		offset = AlignUp(offset, alignment);
+		offset = MemoryUtils::AlignUp(offset, alignment);
 		const StagingMemory subRegion{ .buffer = staging.buffer, .offset = staging.offset + offset, .pCpuAddress = (dU8*)staging.pCpuAddress + offset };
 		offset += byteSize;
 		return subRegion;
@@ -176,7 +171,7 @@ namespace Dune::Graphics
 	{
 		dU64 byteSize = 0;
 		for (MeshHandle mesh : resources.meshes)
-			byteSize = AlignUp(byteSize, Mesh::kUploadAlignment) + GetUploadSize(mesh);
+			byteSize = MemoryUtils::AlignUp(byteSize, Mesh::kUploadAlignment) + GetUploadSize(mesh);
 		return byteSize;
 	}
 

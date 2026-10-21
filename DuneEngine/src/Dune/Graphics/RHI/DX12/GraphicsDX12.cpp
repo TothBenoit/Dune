@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "GraphicsDX12.h"
-#include "Dune/Graphics/Window.h"
+#include "Dune/Platform/Window.h"
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/Buffer.h"
@@ -14,10 +14,8 @@
 #include "Dune/Graphics/RHI/Barrier.h"
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
-#include "Dune/Utilities/Utils.h"
-#include "Dune/Utilities/StringUtils.h"
 #include "Dune/Core/Logger.h"
-#include "WindowWin32.h"
+#include "src/Dune/Platform/Win32/WindowWin32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -1052,7 +1050,7 @@ namespace Dune::Graphics
 		dU32 uniformMask = (dU32)EBufferUsage::Uniform;
 		bool isUniform = (usageBits & uniformMask) != 0;
 		if (isUniform)
-			m_byteSize = Utils::AlignTo(m_byteSize, 256);
+			m_byteSize = MemoryUtils::AlignUp(m_byteSize, 256);
 
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 		dU32 uavBufferMask = (dU32)EBufferUsage::UAV;

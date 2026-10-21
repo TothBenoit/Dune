@@ -7,10 +7,14 @@
 #include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/UploadContext.h"
 
+namespace Dune
+{
+	class Window;
+}
+
 namespace Dune::Graphics
 {
 	class Renderer;
-	class Window;
 
 	class RenderContext
 	{

@@ -13,13 +13,13 @@
 namespace Dune
 {
 	class Scene;
+	class Window;
 	struct Camera;
 
 	namespace Graphics
 	{
 		class Device;
 		class PSOCache;
-		class Window;
 		class Renderer;
 		struct FrameData;
 

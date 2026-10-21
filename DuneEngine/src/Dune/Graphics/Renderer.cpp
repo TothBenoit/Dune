@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/Window.h"
+#include "Dune/Platform/Window.h"
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Graphics/RHI/Device.h"
 #include "Dune/Graphics/RHI/ImGUIWrapper.h"

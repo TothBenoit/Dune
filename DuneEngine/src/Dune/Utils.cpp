@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Dune/Utilities/StringUtils.h"
 #include "Windows.h"
 
 namespace Dune::StringUtils

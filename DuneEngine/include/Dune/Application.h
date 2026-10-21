@@ -2,11 +2,11 @@
 
 #include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/Window.h"
+#include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Graphics/RHI/ImGuiWrapper.h"
 #include "Dune/Asset/AssetCache.h"
-#include "Dune/Utilities/MeshUtils.h"
+#include "Dune/Graphics/MeshUtils.h"
 #include "Dune/Scene/Scene.h"
 #include "Dune/Component/Transform.h"
 
@@ -80,7 +80,7 @@ namespace Dune
 
 		[[nodiscard]] bool IsViewOpen(ViewHandle view) const;
 		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
-		[[nodiscard]] Graphics::Window& GetWindow(ViewHandle view);
+		[[nodiscard]] Window& GetWindow(ViewHandle view);
 		[[nodiscard]] Graphics::Renderer& GetRenderer(ViewHandle view);
 		[[nodiscard]] Graphics::ImGuiWrapper& GetImGui(ViewHandle view);
 		[[nodiscard]] Graphics::RenderContext& GetRenderContext() { return m_renderContext; }
@@ -88,7 +88,7 @@ namespace Dune
 	private:
 		struct View
 		{
-			Graphics::Window window;
+			Window window;
 			Graphics::Renderer renderer;
 			Graphics::ImGuiWrapper imgui;
 			dU32 resizeEventHandle{ 0 };

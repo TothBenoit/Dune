@@ -1,7 +1,6 @@
 #include "pch.h"
-#include "Dune/Utilities/ModelImporter.h"
-#include "Dune/Utilities/MeshUtils.h"
-#include "Dune/Utilities/StringUtils.h"
+#include "Dune/Asset/Import/ModelImporter.h"
+#include "Dune/Graphics/MeshUtils.h"
 #include "Dune/Core/FileSystem.h"
 #include "Dune/Core/Logger.h"
 

@@ -102,6 +102,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DuneTest.cpp" />
+    <ClCompile Include="SimpleCameraController.cpp" />
+    <ClInclude Include="SimpleCameraController.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DuneEngine\DuneEngine.vcxproj">

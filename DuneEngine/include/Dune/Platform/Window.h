@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Dune/Core/Input.h"
+#include "Dune/Platform/Input.h"
 
-namespace Dune::Graphics
+namespace Dune
 {
 	struct WindowMessageResize
 	{

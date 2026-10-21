@@ -6,7 +6,7 @@
 #include "Dune/Graphics/RHI/Shader.h"
 #include "Dune/Graphics/Format.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/Window.h"
+#include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Component/Camera.h"
 #include "Dune/Core/FileSystem.h"

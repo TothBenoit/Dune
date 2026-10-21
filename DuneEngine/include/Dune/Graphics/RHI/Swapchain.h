@@ -2,10 +2,14 @@
 
 #include "Dune/Graphics/RHI/Resource.h"
 
+namespace Dune
+{
+	class Window;
+}
+
 namespace Dune::Graphics
 {
 	class Device;
-	class Window;
 	class CommandQueue;
 
 	struct SwapchainDesc

@@ -2,8 +2,8 @@
 
 #include "Dune/Asset/Model.h"
 #include "Dune/Asset/Image.h"
-#include "Dune/Utilities/HandleAllocator.h"
-#include "Dune/Utilities/ResourcePool.h"
+#include "Dune/Core/HandleAllocator.h"
+#include "Dune/Core/ResourcePool.h"
 
 namespace Dune
 {

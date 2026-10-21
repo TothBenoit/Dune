@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Dune/Utilities/Handle.h"
-#include "Dune/Utilities/HandleAllocator.h"
+#include "Dune/Core/Handle.h"
+#include "Dune/Core/HandleAllocator.h"
 
 namespace Dune
 {

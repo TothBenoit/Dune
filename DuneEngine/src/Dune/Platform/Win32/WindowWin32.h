@@ -4,7 +4,7 @@
 #define NOMINMAX
 #include <Windows.h>
 
-namespace Dune::Graphics
+namespace Dune
 {
 	struct Win32NativeEvent
 	{

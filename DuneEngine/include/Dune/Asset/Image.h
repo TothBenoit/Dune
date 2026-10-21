@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Dune/Utilities/Handle.h"
+#include "Dune/Core/Handle.h"
 #include "Dune/Core/FileSystem.h"
 #include "Dune/Graphics/Handles.h"
 

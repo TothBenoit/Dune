@@ -1,6 +1,5 @@
 #include "pch.h"
-#include "Dune/Utilities/DDSImporter.h"
-#include "Dune/Utilities/StringUtils.h"
+#include "Dune/Asset/Import/DDSImporter.h"
 #include "Dune/Core/File.h"
 #include "Dune/Core/Logger.h"
 

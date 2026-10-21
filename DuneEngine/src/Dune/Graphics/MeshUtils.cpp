@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Dune/Utilities/MeshUtils.h"
+#include "Dune/Graphics/MeshUtils.h"
 #include <cmath>
 
 namespace Dune::MeshUtils

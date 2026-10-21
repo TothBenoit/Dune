@@ -2,9 +2,13 @@
 
 struct ImGuiContext;
 
-namespace Dune::Graphics
+namespace Dune
 {
 	class Window;
+}
+
+namespace Dune::Graphics
+{
 	class Renderer;
 	class CommandList;
 
