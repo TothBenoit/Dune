@@ -58,6 +58,19 @@ namespace Dune::Graphics
 		return resources;
 	}
 
+	TextureHandle ResourceHandles::GetTexture(ImageHandle image) const
+	{
+		auto it = imageTextures.find(image);
+		return it != imageTextures.end() ? it->second : TextureHandle{};
+	}
+
+	const ModelResources& ResourceHandles::GetModelResources(ModelHandle model) const
+	{
+		auto it = modelResources.find(model);
+		Assert(it != modelResources.end());
+		return it->second;
+	}
+
 	void ResourceManager::Initialize(RHI::Device& device, const ResourceHandles& handles)
 	{
 		m_pDevice = &device;

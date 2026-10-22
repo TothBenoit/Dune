@@ -13,6 +13,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\World\Scene.cpp" />
     <ClCompile Include="src\Dune\Graphics\Texture.cpp" />
     <ClCompile Include="src\Dune\Platform\Win32\FiberWin32.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass.cpp" />

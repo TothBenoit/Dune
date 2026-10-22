@@ -36,11 +36,15 @@ namespace Dune::Graphics
 	struct ResourceHandles
 	{
 		[[nodiscard]] ModelResources AllocateModel(const ModelData& model);
+		[[nodiscard]] TextureHandle GetTexture(ImageHandle image) const;
+		[[nodiscard]] const ModelResources& GetModelResources(ModelHandle model) const;
 
-		HandleAllocator<Texture>      textures;
-		HandleAllocator<Material>     materials;
-		HandleAllocator<MaterialSet>  materialSets;
-		HandleAllocator<Mesh>         meshes;
+		HandleAllocator<Texture>              textures;
+		HandleAllocator<Material>             materials;
+		HandleAllocator<MaterialSet>          materialSets;
+		HandleAllocator<Mesh>                 meshes;
+		dHashMap<ImageHandle, TextureHandle>  imageTextures;
+		dHashMap<ModelHandle, ModelResources> modelResources;
 	};
 
 	class ResourceManager

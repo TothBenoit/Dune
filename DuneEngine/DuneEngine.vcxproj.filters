@@ -229,6 +229,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\World\Scene.cpp">
+      <Filter>Dune\World</Filter>
+    </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Texture.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>

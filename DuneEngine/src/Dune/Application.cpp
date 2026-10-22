@@ -8,8 +8,6 @@
 #include "Dune/Assets/Import/ModelImporter.h"
 #include "Dune/Assets/Import/DDSImporter.h"
 #include "Dune/Graphics/MeshUtils.h"
-#include "Dune/World/Component/Name.h"
-#include "Dune/World/Component/MeshInstance.h"
 
 namespace Dune
 {
@@ -129,21 +127,16 @@ namespace Dune
 		{
 			const ImageHandle image = LoadImage(modelImage.source);
 			asset.images.push_back(image);
-			textures.push_back(image.IsValid() ? m_assetCache.GetImage(image).texture : Graphics::TextureHandle{});
+			textures.push_back(m_resourceHandles.GetTexture(image));
 		}
 
 		const Graphics::ModelResources modelResources = CreateModel(modelData, textures);
-		asset.materials = modelResources.materials;
-		asset.meshes = modelResources.meshes;
-		for (dU32 nodeIndex = 0; nodeIndex < (dU32)modelData.nodes.size(); nodeIndex++)
-		{
-			const ModelNode& node = modelData.nodes[nodeIndex];
-			asset.nodes.push_back({ .position = node.position, .rotation = node.rotation, .mesh = modelResources.meshes[node.mesh], .materials = modelResources.nodeMaterialSets[nodeIndex] });
-		}
+		asset.nodes = std::move(modelData.nodes);
 		const ModelHandle model = m_assetCache.AddModel(std::move(asset));
+		m_resourceHandles.modelResources.emplace(model, modelResources);
 
 		const Graphics::ResourceManager& resourceManager = m_renderContext.GetResourceManager();
-		for (Graphics::MaterialHandle material : m_assetCache.GetModel(model).materials)
+		for (Graphics::MaterialHandle material : modelResources.materials)
 		{
 			const Graphics::MaterialKey key = resourceManager.GetMaterial(material).GetKey();
 			for (const std::unique_ptr<View>& pView : m_views)
@@ -161,11 +154,16 @@ namespace Dune
 		if (!model.IsValid() || !m_assetCache.ReleaseModel(model, asset))
 			return;
 
-		for (const Model::Node& node : asset.nodes)
-			DestroyMaterialSet(node.materials);
-		for (Graphics::MaterialHandle material : asset.materials)
+		auto it = m_resourceHandles.modelResources.find(model);
+		Assert(it != m_resourceHandles.modelResources.end());
+		const Graphics::ModelResources modelResources = std::move(it->second);
+		m_resourceHandles.modelResources.erase(it);
+
+		for (Graphics::MaterialSetHandle materialSet : modelResources.nodeMaterialSets)
+			DestroyMaterialSet(materialSet);
+		for (Graphics::MaterialHandle material : modelResources.materials)
 			DestroyMaterial(material);
-		for (Graphics::MeshHandle mesh : asset.meshes)
+		for (Graphics::MeshHandle mesh : modelResources.meshes)
 			DestroyMesh(mesh);
 		for (ImageHandle image : asset.images)
 			UnloadImage(image);
@@ -186,14 +184,21 @@ namespace Dune
 		if (!DDSImporter::Import(FileSystem::GetPath(source).c_str(), data))
 			return {};
 
-		return m_assetCache.AddImage({ .source = source, .texture = CreateTexture(data) });
+		const ImageHandle image = m_assetCache.AddImage({ .source = source, .format = data.format, .width = data.width, .height = data.height, .mipLevels = data.mipLevels });
+		m_resourceHandles.imageTextures.emplace(image, CreateTexture(data));
+		return image;
 	}
 
 	void Application::UnloadImage(ImageHandle image)
 	{
 		Image asset;
-		if (image.IsValid() && m_assetCache.ReleaseImage(image, asset))
-			DestroyTexture(asset.texture);
+		if (!image.IsValid() || !m_assetCache.ReleaseImage(image, asset))
+			return;
+
+		auto it = m_resourceHandles.imageTextures.find(image);
+		Assert(it != m_resourceHandles.imageTextures.end());
+		DestroyTexture(it->second);
+		m_resourceHandles.imageTextures.erase(it);
 	}
 
 	const Image& Application::GetImage(ImageHandle image) const
@@ -203,20 +208,7 @@ namespace Dune
 
 	void Application::Spawn(Scene& scene, ModelHandle model)
 	{
-		for (const Model::Node& node : m_assetCache.GetModel(model).nodes)
-		{
-			const EntityID entity = scene.registry.create();
-			scene.registry.emplace<Name>(entity).name.assign("Mesh");
-
-			Transform& transform = scene.registry.emplace<Transform>(entity);
-			transform.position = node.position;
-			transform.rotation = DirectX::XMLoadFloat4(&node.rotation);
-			transform.scale = 1.0f;
-
-			MeshInstance& meshInstance = scene.registry.emplace<MeshInstance>(entity);
-			meshInstance.mesh = node.mesh;
-			meshInstance.materials = node.materials;
-		}
+		scene.Spawn(m_assetCache.GetModel(model), m_resourceHandles.GetModelResources(model));
 	}
 
 	ModelHandle Application::LoadModel(Scene& scene, const char* pPath)
@@ -232,11 +224,7 @@ namespace Dune
 		static constexpr const char* kPrimitiveNames[]{ "Cube", "Sphere", "Plane" };
 		static_assert(_countof(kPrimitiveNames) == (dU32)EPrimitive::Count);
 
-		const EntityID entity = scene.registry.create();
-		scene.registry.emplace<Name>(entity, kPrimitiveNames[(dU32)primitive]);
-		scene.registry.emplace<Transform>(entity, transform);
-		scene.registry.emplace<MeshInstance>(entity, MeshInstance{ .mesh = m_primitives[(dU32)primitive], .materials = materials.IsValid() ? materials : m_defaultMaterialSet });
-		return entity;
+		return scene.SpawnMesh(kPrimitiveNames[(dU32)primitive], transform, m_primitives[(dU32)primitive], materials.IsValid() ? materials : m_defaultMaterialSet);
 	}
 
 	Graphics::TextureHandle Application::CreateTexture(const Graphics::TextureData& data)
