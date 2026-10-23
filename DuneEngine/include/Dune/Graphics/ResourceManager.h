@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Dune/Platform/RHI/DescriptorHeap.h"
-#include "Dune/Graphics/Handles.h"
+#include "Dune/Core/HandleTypes.h"
 #include "Dune/Platform/RHI/StagingMemory.h"
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/Material.h"

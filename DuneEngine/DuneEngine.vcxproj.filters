@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClInclude Include="include\Dune\Graphics\RenderScene.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\Texture.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
@@ -103,29 +106,29 @@
     <ClInclude Include="include\Dune\Platform\RHI\Format.h">
       <Filter>Dune\Platform\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\World\Scene.h">
-      <Filter>Dune\World</Filter>
+    <ClInclude Include="include\Dune\Game\GameScene.h">
+      <Filter>Dune\Game</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\World\SceneRender.h">
-      <Filter>Dune\World</Filter>
+    <ClInclude Include="include\Dune\Bridges\RenderBridge.h">
+      <Filter>Dune\Bridges</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\World\Component\Light.h">
-      <Filter>Dune\World\Component</Filter>
+    <ClInclude Include="include\Dune\Game\Component\Light.h">
+      <Filter>Dune\Game\Component</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\World\Component\Transform.h">
-      <Filter>Dune\World\Component</Filter>
+    <ClInclude Include="include\Dune\Game\Component\Transform.h">
+      <Filter>Dune\Game\Component</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\World\Component\Name.h">
-      <Filter>Dune\World\Component</Filter>
+    <ClInclude Include="include\Dune\Game\Component\Name.h">
+      <Filter>Dune\Game\Component</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\World\Component\MeshInstance.h">
-      <Filter>Dune\World\Component</Filter>
+    <ClInclude Include="include\Dune\Game\Component\MeshInstance.h">
+      <Filter>Dune\Game\Component</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderPass\Visibility.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\World\Component\Camera.h">
-      <Filter>Dune\World\Component</Filter>
+    <ClInclude Include="include\Dune\Game\Component\Camera.h">
+      <Filter>Dune\Game\Component</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Application.h">
@@ -194,8 +197,8 @@
     <ClInclude Include="include\Dune\Graphics\Material.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\Handles.h">
-      <Filter>Dune\Graphics</Filter>
+    <ClInclude Include="include\Dune\Core\HandleTypes.h">
+      <Filter>Dune\Core</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\MeshData.h">
       <Filter>Dune\Graphics</Filter>
@@ -229,8 +232,11 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Dune\World\Scene.cpp">
-      <Filter>Dune\World</Filter>
+    <ClCompile Include="src\Dune\Graphics\RenderScene.cpp">
+      <Filter>Dune\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Game\GameScene.cpp">
+      <Filter>Dune\Game</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Texture.cpp">
       <Filter>Dune\Graphics</Filter>
@@ -271,14 +277,14 @@
     <ClCompile Include="src\Dune\Assets\AssetCache.cpp">
       <Filter>Dune\Assets</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\World\SceneRender.cpp">
-      <Filter>Dune\World</Filter>
+    <ClCompile Include="src\Dune\Bridges\RenderBridge.cpp">
+      <Filter>Dune\Bridges</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RenderPass\Visibility.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\World\Component\Camera.cpp">
-      <Filter>Dune\World\Component</Filter>
+    <ClCompile Include="src\Dune\Game\Component\Camera.cpp">
+      <Filter>Dune\Game\Component</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Platform\Win32\FileWin32.cpp">
       <Filter>Dune\Platform\Win32</Filter>
@@ -396,13 +402,10 @@
     <Filter Include="Dune\Graphics\Shaders">
       <UniqueIdentifier>{df74b725-f633-452c-9fba-ebcdaa67b2ba}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\World\Component">
-      <UniqueIdentifier>{073b6d32-da85-40e0-b002-7b3aca7f20df}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dune\Assets">
       <UniqueIdentifier>{85302c11-64c9-4a79-b4d3-4394ed7ba272}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\World">
+    <Filter Include="Dune\Bridges">
       <UniqueIdentifier>{7b0fdf36-69b2-489a-9039-ef1cffaee027}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Core">
@@ -422,6 +425,12 @@
     </Filter>
     <Filter Include="Dune\Assets\Import">
       <UniqueIdentifier>{905c5ac7-d26d-4f96-b17e-501c30ddb6a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Game">
+      <UniqueIdentifier>{f3776068-f262-42b9-b18c-9dc4aaeefd32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dune\Game\Component">
+      <UniqueIdentifier>{20e985a1-856d-4f32-91c5-d6bca3751fc8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

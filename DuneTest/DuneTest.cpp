@@ -7,12 +7,12 @@
 #include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Platform/Window.h>
 #include "SimpleCameraController.h"
-#include <Dune/World/Scene.h>
-#include <Dune/World/Component/Light.h>
-#include <Dune/World/Component/Transform.h>
-#include <Dune/World/Component/Name.h>
-#include <Dune/World/Component/MeshInstance.h>
-#include <Dune/World/Component/Camera.h>
+#include <Dune/Game/GameScene.h>
+#include <Dune/Game/Component/Light.h>
+#include <Dune/Game/Component/Transform.h>
+#include <Dune/Game/Component/Name.h>
+#include <Dune/Game/Component/MeshInstance.h>
+#include <Dune/Game/Component/Camera.h>
 #include <filesystem>
 #include <imgui/imgui.h>
 #include <ImGuizmo/ImGuizmo.h>
@@ -22,7 +22,7 @@ using namespace Dune;
 class App
 {
 public:
-	App(Application& application, ViewHandle view, Scene& scene)
+	App(Application& application, ViewHandle view, GameScene& scene)
 		: m_app{ application }
 		, m_view{ view }
 		, m_pScene{ &scene }
@@ -33,9 +33,9 @@ public:
 		m_camera.SetNear(0.1f);
 		m_camera.SetFar(500.0f);
 		const ModelHandle sponza = m_app.LoadModel(*m_pScene, "app://Sponza/Sponza.gltf");
-		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Cube, { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
-		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Sphere, { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }) }));
-		m_app.SpawnPrimitive(*m_pScene, EPrimitive::Plane, { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = RHI::ECullingMode::None }) }));
+		m_pScene->SpawnMesh("Cube", { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.GetPrimitive(EPrimitive::Cube), m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
+		m_pScene->SpawnMesh("Sphere", { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.GetPrimitive(EPrimitive::Sphere), m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }) }));
+		m_pScene->SpawnMesh("Plane", { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, m_app.GetPrimitive(EPrimitive::Plane), m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = RHI::ECullingMode::None }) }));
 
 		while (m_app.BeginFrame())
 		{
@@ -388,7 +388,7 @@ public:
 private:
 	Application& m_app;
 	ViewHandle m_view{ kInvalidViewHandle };
-	Scene* m_pScene;
+	GameScene* m_pScene;
 
 	SimpleCameraController m_camera{};
 
@@ -404,7 +404,7 @@ private:
 	ImGuizmo::OPERATION m_gizmoOperation{ ImGuizmo::ROTATE };
 };
 
-void Test(Application& application, ViewHandle view, Scene& scene)
+void Test(Application& application, ViewHandle view, GameScene& scene)
 {
 	App app{ application, view, scene };
 	app.Run();
@@ -426,7 +426,7 @@ int main(int argc, char** argv)
 		});
 	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true, .imguiLayoutPath = "app://imgui.ini" });
 
-	Scene scene{};
+	GameScene scene{};
 	entt::registry& registry = scene.registry;
 
 	EntityID sun = registry.create();

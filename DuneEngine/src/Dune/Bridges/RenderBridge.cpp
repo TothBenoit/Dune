@@ -1,14 +1,13 @@
 #include "pch.h"
-#include "Dune/World/SceneRender.h"
-#include "Dune/World/Scene.h"
-#include "Dune/World/Component/Light.h"
-#include "Dune/World/Component/Camera.h"
-#include "Dune/World/Component/Transform.h"
-#include "Dune/World/Component/MeshInstance.h"
-#include "Dune/Graphics/FrameData.h"
-#include "Dune/Graphics/ResourceManager.h"
+#include "Dune/Bridges/RenderBridge.h"
+#include "Dune/Game/GameScene.h"
+#include "Dune/Game/Component/Light.h"
+#include "Dune/Game/Component/Camera.h"
+#include "Dune/Game/Component/Transform.h"
+#include "Dune/Game/Component/MeshInstance.h"
+#include "Dune/Graphics/RenderScene.h"
 
-namespace Dune::SceneRender
+namespace Dune::RenderBridge
 {
 	using namespace Graphics;
 
@@ -51,7 +50,7 @@ namespace Dune::SceneRender
 		return light;
 	}
 
-	ViewData ExtractView(const Camera& camera)
+	ViewData MakeView(const Camera& camera)
 	{
 		ViewData view;
 		ComputeViewProjectionMatrix(camera, &view.view, &view.projection, &view.viewProjection);
@@ -59,17 +58,16 @@ namespace Dune::SceneRender
 		return view;
 	}
 
-	void Extract(const Scene& scene, const ResourceManager& resources, FrameData& frameData)
+	void Update(const GameScene& gameScene, RenderScene& renderScene)
 	{
-		frameData.lights.clear();
-		scene.registry.view<const Light>().each([&](const Light& light)
+		renderScene.Reset();
+		gameScene.View<Light>().each([&](const Light& light)
 			{
 				if (light.intensity > 0.0f)
-					frameData.lights.push_back(ExtractLight(light));
+					renderScene.AddLight(ExtractLight(light));
 			});
 
-		frameData.drawItems.clear();
-		scene.registry.view<const Transform, const MeshInstance>().each([&](const Transform& transform, const MeshInstance& meshInstance)
+		gameScene.View<Transform, MeshInstance>().each([&](const Transform& transform, const MeshInstance& meshInstance)
 			{
 				dMatrix4x4 objectToWorld;
 				DirectX::XMStoreFloat4x4(&objectToWorld,
@@ -77,24 +75,7 @@ namespace Dune::SceneRender
 					DirectX::XMMatrixRotationQuaternion(transform.rotation) *
 					DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&transform.position))
 				);
-
-				const Mesh& mesh = resources.GetMesh(meshInstance.mesh);
-				const MaterialSet& materialSet = resources.GetMaterialSet(meshInstance.materials);
-				Assert(materialSet.materials.size() >= mesh.GetMaterialSlotCount());
-				for (const SubMesh& subMesh : mesh.GetSubMeshes())
-				{
-					const MaterialHandle materialHandle = materialSet.materials[subMesh.materialSlot];
-					frameData.drawItems.push_back(
-						{
-							.objectToWorld = objectToWorld,
-							.meshIdx = meshInstance.mesh.GetIndex(),
-							.materialIdx = materialHandle.GetIndex(),
-							.indexOffset = subMesh.indexOffset,
-							.indexCount = subMesh.indexCount,
-							.vertexOffset = subMesh.vertexOffset,
-							.materialKey = resources.GetMaterial(materialHandle).GetKey(),
-						});
-				}
+				renderScene.AddMesh(objectToWorld, meshInstance.mesh, meshInstance.materials);
 			});
 	}
 }

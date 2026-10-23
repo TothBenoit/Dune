@@ -4,15 +4,14 @@
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
+#include "Dune/Graphics/RenderScene.h"
 #include "Dune/Platform/RHI/ImGuiWrapper.h"
 #include "Dune/Assets/AssetCache.h"
 #include "Dune/Graphics/MeshUtils.h"
-#include "Dune/World/Scene.h"
-#include "Dune/World/Component/Transform.h"
 
 namespace Dune
 {
-	class Scene;
+	class GameScene;
 	struct Camera;
 
 	struct FileSystemRoot
@@ -50,32 +49,31 @@ namespace Dune
 		void DestroyView(ViewHandle view);
 
 		[[nodiscard]] bool BeginFrame();
-		void Render(ViewHandle view, const Scene& scene, const Camera& camera);
+		void Render(ViewHandle view, const GameScene& scene, const Camera& camera);
 		void EndFrame();
 
 		[[nodiscard]] ModelHandle LoadModel(const char* pPath);
 		void UnloadModel(ModelHandle model);
-		void Spawn(Scene& scene, ModelHandle model);
-		[[nodiscard]] ModelHandle LoadModel(Scene& scene, const char* pPath);
+		void Spawn(GameScene& scene, ModelHandle model);
+		[[nodiscard]] ModelHandle LoadModel(GameScene& scene, const char* pPath);
 
 		[[nodiscard]] ImageHandle LoadImage(const char* pPath);
 		void UnloadImage(ImageHandle image);
 		[[nodiscard]] const Image& GetImage(ImageHandle image) const;
 
-		[[nodiscard]] Graphics::TextureHandle     CreateTexture(const Graphics::TextureData& data);
-		[[nodiscard]] Graphics::MeshHandle        CreateMesh(const Graphics::MeshData& meshData);
-		[[nodiscard]] Graphics::MaterialHandle    CreateMaterial(const Graphics::MaterialDesc& desc);
-		[[nodiscard]] Graphics::MaterialSetHandle CreateMaterialSet(dSpan<Graphics::MaterialHandle> materials);
+		[[nodiscard]] TextureHandle     CreateTexture(const Graphics::TextureData& data);
+		[[nodiscard]] MeshHandle        CreateMesh(const Graphics::MeshData& meshData);
+		[[nodiscard]] MaterialHandle    CreateMaterial(const Graphics::MaterialDesc& desc);
+		[[nodiscard]] MaterialSetHandle CreateMaterialSet(dSpan<MaterialHandle> materials);
 
-		void DestroyTexture(Graphics::TextureHandle texture);
-		void DestroyMesh(Graphics::MeshHandle mesh);
-		void DestroyMaterial(Graphics::MaterialHandle material);
-		void DestroyMaterialSet(Graphics::MaterialSetHandle materialSet);
+		void DestroyTexture(TextureHandle texture);
+		void DestroyMesh(MeshHandle mesh);
+		void DestroyMaterial(MaterialHandle material);
+		void DestroyMaterialSet(MaterialSetHandle materialSet);
 
-		EntityID SpawnPrimitive(Scene& scene, EPrimitive primitive, const Transform& transform, Graphics::MaterialSetHandle materials = {});
-		[[nodiscard]] Graphics::MeshHandle        GetPrimitive(EPrimitive primitive) const { return m_primitives[(dU32)primitive]; }
-		[[nodiscard]] Graphics::MaterialHandle    GetDefaultMaterial() const { return m_defaultMaterial; }
-		[[nodiscard]] Graphics::MaterialSetHandle GetDefaultMaterialSet() const { return m_defaultMaterialSet; }
+		[[nodiscard]] MeshHandle        GetPrimitive(EPrimitive primitive) const { return m_primitives[(dU32)primitive]; }
+		[[nodiscard]] MaterialHandle    GetDefaultMaterial() const { return m_defaultMaterial; }
+		[[nodiscard]] MaterialSetHandle GetDefaultMaterialSet() const { return m_defaultMaterialSet; }
 
 		[[nodiscard]] bool IsViewOpen(ViewHandle view) const;
 		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
@@ -96,8 +94,8 @@ namespace Dune
 
 		struct SceneFrame
 		{
-			const Scene* pScene{ nullptr };
-			Graphics::FrameData frameData;
+			const GameScene* pScene{ nullptr };
+			Graphics::RenderScene renderScene;
 		};
 
 		template<typename T>
@@ -109,18 +107,18 @@ namespace Dune
 
 		void ReleasePendingResources();
 		[[nodiscard]] ImageHandle LoadImage(FileSystem::SerializationID<EFileType::Image> source);
-		[[nodiscard]] Graphics::TextureHandle CreateTexture(const ImageData& image);
-		[[nodiscard]] Graphics::ModelResources CreateModel(const ModelData& model, dSpan<Graphics::TextureHandle> images);
+		[[nodiscard]] TextureHandle CreateTexture(const ImageData& image);
+		[[nodiscard]] Graphics::ModelResources CreateModel(const ModelData& model, dSpan<TextureHandle> images);
 		[[nodiscard]] View& GetView(ViewHandle view);
-		[[nodiscard]] const Graphics::FrameData& GetFrameData(const Scene& scene);
+		[[nodiscard]] const Graphics::FrameData& GetFrameData(const GameScene& scene);
 
 	private:
 		Graphics::ResourceHandles m_resourceHandles{};
 		Graphics::RenderContext m_renderContext{};
 		AssetCache m_assetCache{};
-		Graphics::MeshHandle m_primitives[(dU32)EPrimitive::Count]{};
-		Graphics::MaterialHandle m_defaultMaterial{};
-		Graphics::MaterialSetHandle m_defaultMaterialSet{};
+		MeshHandle m_primitives[(dU32)EPrimitive::Count]{};
+		MaterialHandle m_defaultMaterial{};
+		MaterialSetHandle m_defaultMaterialSet{};
 		dVector<PendingRelease<Graphics::Texture>>     m_pendingTextures;
 		dVector<PendingRelease<Graphics::Mesh>>        m_pendingMeshes;
 		dVector<PendingRelease<Graphics::MaterialSet>> m_pendingMaterialSets;

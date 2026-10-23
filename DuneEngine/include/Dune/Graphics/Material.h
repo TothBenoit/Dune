@@ -1,7 +1,7 @@
 #pragma once
 #include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Platform/RHI/PipelineState.h>
-#include <Dune/Graphics/Handles.h>
+#include <Dune/Core/HandleTypes.h>
 #include <Dune/Core/RenderTypes.h>
 
 namespace Dune::Graphics
