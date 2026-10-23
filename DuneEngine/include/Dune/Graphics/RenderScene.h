@@ -5,7 +5,12 @@
 
 namespace Dune::Graphics
 {
-	class ResourceManager;
+	struct RenderObject
+	{
+		dMatrix4x4        objectToWorld;
+		MeshHandle        mesh;
+		MaterialSetHandle materials;
+	};
 
 	class RenderScene
 	{
@@ -13,18 +18,12 @@ namespace Dune::Graphics
 		void Reset();
 		void AddMesh(const dMatrix4x4& objectToWorld, MeshHandle mesh, MaterialSetHandle materials);
 		void AddLight(const LightData& light);
-		[[nodiscard]] const FrameData& Build(const ResourceManager& resources, float deltaTime);
-		[[nodiscard]] const FrameData& GetFrameData() const { return m_frameData; }
+
+		[[nodiscard]] const dVector<RenderObject>& GetObjects() const { return m_objects; }
+		[[nodiscard]] const dVector<LightData>& GetLights() const { return m_lights; }
 
 	private:
-		struct MeshObject
-		{
-			dMatrix4x4        objectToWorld;
-			MeshHandle        mesh;
-			MaterialSetHandle materials;
-		};
-
-		dVector<MeshObject> m_meshObjects;
-		FrameData           m_frameData;
+		dVector<RenderObject> m_objects;
+		dVector<LightData>    m_lights;
 	};
 }

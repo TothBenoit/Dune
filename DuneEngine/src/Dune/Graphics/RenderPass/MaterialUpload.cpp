@@ -16,7 +16,7 @@ namespace Dune::Graphics
 
 	void MaterialUpload::Setup(RenderGraphBuilder& builder, RenderPassContext& context, MaterialUploadData* pData)
 	{
-		const dVector<MaterialData>& materials = context.pFrameData->materials;
+		const dVector<MaterialData>& materials = context.pFrameData->pResources->materials;
 		dU32 materialCount = (dU32)materials.size();
 		if (materialCount == 0)
 			return;
@@ -48,7 +48,7 @@ namespace Dune::Graphics
 	{
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
-		const dVector<MaterialData>& materials = context.pFrameData->materials;
+		const dVector<MaterialData>& materials = context.pFrameData->pResources->materials;
 		const dU32 materialsByteSize = (dU32)(materials.size() * sizeof(MaterialData));
 
 		RHI::StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);

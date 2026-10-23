@@ -13,6 +13,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\World\World.cpp" />
+    <ClCompile Include="src\Dune\Graphics\GraphicsSystem.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderScene.cpp" />
     <ClCompile Include="src\Dune\Game\GameScene.cpp" />
     <ClCompile Include="src\Dune\Graphics\Texture.cpp" />
@@ -26,6 +28,8 @@
     <ClCompile Include="src\Dune\Graphics\MeshUtils.cpp" />
     <ClCompile Include="src\Dune\Assets\Import\ModelImporter.cpp" />
     <ClCompile Include="src\Dune\Graphics\ScratchAllocator.cpp" />
+    <ClInclude Include="include\Dune\World\World.h" />
+    <ClInclude Include="include\Dune\Graphics\GraphicsSystem.h" />
     <ClInclude Include="include\Dune\Graphics\RenderScene.h" />
     <ClInclude Include="include\Dune\Graphics\Texture.h" />
     <ClInclude Include="include\Dune\Core\RenderTypes.h" />
@@ -76,7 +80,7 @@
     <ClInclude Include="include\Dune\Resources\Shaders\ShaderInterop.h" />
     <ClInclude Include="include\Dune\Game\Component\Camera.h" />
     <ClInclude Include="include\Dune\Game\GameScene.h" />
-    <ClInclude Include="include\Dune\Bridges\RenderBridge.h" />
+    <ClInclude Include="src\Dune\World\RenderBridge.h" />
     <ClInclude Include="include\Dune\Game\Component\Light.h" />
     <ClInclude Include="include\Dune\Game\Component\Transform.h" />
     <ClInclude Include="include\Dune\Game\Component\Name.h" />
@@ -123,7 +127,7 @@
     <ClCompile Include="src\Dune\Graphics\UploadContext.cpp" />
     <ClCompile Include="src\Dune\Application.cpp" />
     <ClCompile Include="src\Dune\Assets\AssetCache.cpp" />
-    <ClCompile Include="src\Dune\Bridges\RenderBridge.cpp" />
+    <ClCompile Include="src\Dune\World\RenderBridge.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Visibility.cpp" />
     <ClCompile Include="src\Dune\Game\Component\Camera.cpp" />
     <ClCompile Include="src\Dune\Core\JobSystem.cpp" />

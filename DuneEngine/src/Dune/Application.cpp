@@ -3,11 +3,9 @@
 #include "Dune/Core/JobSystem.h"
 #include "Dune/Core/FileSystem.h"
 #include "Dune/Game/GameScene.h"
-#include "Dune/Bridges/RenderBridge.h"
 #include "Dune/Assets/Model.h"
 #include "Dune/Assets/Import/ModelImporter.h"
 #include "Dune/Assets/Import/DDSImporter.h"
-#include "Dune/Graphics/MeshUtils.h"
 #include "Dune/Game/Component/Transform.h"
 
 namespace Dune
@@ -18,12 +16,8 @@ namespace Dune
 		FileSystem::Initialize(desc.engineResourcePath.c_str());
 		for (const FileSystemRoot& root : desc.roots)
 			FileSystem::AddRoot(root.name.c_str(), root.path.c_str());
-		m_renderContext.Initialize(m_resourceHandles);
+		m_graphics.Initialize();
 		m_assetCache.Initialize();
-		for (dU32 primitive = 0; primitive < (dU32)EPrimitive::Count; primitive++)
-			m_primitives[primitive] = CreateMesh(MeshUtils::CreatePrimitive((EPrimitive)primitive));
-		m_defaultMaterial = CreateMaterial({});
-		m_defaultMaterialSet = CreateMaterialSet({ m_defaultMaterial });
 		m_lastFrameTime = std::chrono::steady_clock::now();
 	}
 
@@ -35,13 +29,19 @@ namespace Dune
 				DestroyView(view);
 		}
 		m_views.clear();
-		m_sceneFrames.clear();
 
-		m_pendingTextures.clear();
-		m_pendingMeshes.clear();
-		m_pendingMaterialSets.clear();
+		for (dU32 index = 0; index < m_worldCapacity; index++)
+		{
+			World& world = m_worlds[index];
+			if (world.IsInitialized())
+				DestroyWorld(m_worldHandles.GetHandleAt(index));
+		}
+		m_worlds.Destroy();
+		m_worldHandles.Destroy();
+		m_worldCapacity = 0;
+
 		m_assetCache.Destroy();
-		m_renderContext.Destroy();
+		m_graphics.Destroy();
 		FileSystem::Shutdown();
 		Job::Shutdown();
 	}
@@ -54,7 +54,7 @@ namespace Dune
 			{
 				static_cast<Graphics::Renderer*>(pData)->OnResize(message.resize.width, message.resize.height);
 			}, EWindowMessageType::Resize);
-		m_renderContext.InitializeRenderer(pView->renderer, pView->window);
+		m_graphics.InitializeRenderer(pView->renderer, pView->window);
 		if (desc.enableImGui)
 		{
 			const FilePath layoutPath = desc.imguiLayoutPath.empty() ? FilePath{} : FileSystem::ResolvePath(desc.imguiLayoutPath.c_str());
@@ -77,6 +77,27 @@ namespace Dune
 		m_views[view].reset();
 	}
 
+	WorldHandle Application::CreateWorld(const WorldDesc& desc)
+	{
+		const WorldHandle handle = m_worldHandles.Allocate();
+		const dU32 index = handle.GetIndex();
+		m_worldCapacity = std::max(m_worldCapacity, index + 1);
+		m_worlds.Resolve(index).Initialize(m_graphics, desc);
+		return handle;
+	}
+
+	void Application::DestroyWorld(WorldHandle world)
+	{
+		GetWorld(world).Destroy();
+		m_worldHandles.Free(world);
+	}
+
+	World& Application::GetWorld(WorldHandle world)
+	{
+		Assert(m_worldHandles.IsValid(world));
+		return m_worlds[world.GetIndex()];
+	}
+
 	bool Application::BeginFrame()
 	{
 		for (ViewHandle view = 0; view < (ViewHandle)m_views.size(); view++)
@@ -92,23 +113,23 @@ namespace Dune
 		const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		m_deltaTime = std::chrono::duration<float>(now - m_lastFrameTime).count();
 		m_lastFrameTime = now;
-		m_sceneFrameCount = 0;
 		return !m_views.empty() && m_views[0];
 	}
 
-	void Application::Render(ViewHandle view, const GameScene& scene, const Camera& camera)
+	void Application::Update(WorldHandle world)
 	{
-		m_renderContext.GetUploadContext().Submit();
-		const Graphics::ViewData viewData = RenderBridge::MakeView(camera);
-		GetView(view).renderer.Render(GetFrameData(scene), viewData);
+		GetWorld(world).Update();
+	}
+
+	void Application::Render(ViewHandle view, WorldHandle world, const Camera& camera)
+	{
+		View& v = GetView(view);
+		m_graphics.Render(v.renderer, GetWorld(world).GetRenderScene(), World::MakeView(camera), m_deltaTime, v.frameData);
 	}
 
 	void Application::EndFrame()
 	{
-		m_renderContext.GetUploadContext().Submit();
-		m_renderContext.Signal();
-		ReleasePendingResources();
-		m_sceneFrameCount = 0;
+		m_graphics.EndFrame();
 	}
 
 	ModelHandle Application::LoadModel(const char* pPath)
@@ -128,18 +149,16 @@ namespace Dune
 		{
 			const ImageHandle image = LoadImage(modelImage.source);
 			asset.images.push_back(image);
-			textures.push_back(m_resourceHandles.GetTexture(image));
+			textures.push_back(m_graphics.GetImageTexture(image));
 		}
 
-		const Graphics::ModelResources modelResources = CreateModel(modelData, textures);
-		asset.nodes = std::move(modelData.nodes);
+		asset.nodes = modelData.nodes;
 		const ModelHandle model = m_assetCache.AddModel(std::move(asset));
-		m_resourceHandles.modelResources.emplace(model, modelResources);
+		const Graphics::ModelResources& modelResources = m_graphics.CreateModelResources(model, modelData, textures);
 
-		const Graphics::ResourceManager& resourceManager = m_renderContext.GetResourceManager();
 		for (MaterialHandle material : modelResources.materials)
 		{
-			const Graphics::MaterialKey key = resourceManager.GetMaterial(material).GetKey();
+			const Graphics::MaterialKey key = m_graphics.GetMaterialKey(material);
 			for (const std::unique_ptr<View>& pView : m_views)
 			{
 				if (pView)
@@ -155,17 +174,7 @@ namespace Dune
 		if (!model.IsValid() || !m_assetCache.ReleaseModel(model, asset))
 			return;
 
-		auto it = m_resourceHandles.modelResources.find(model);
-		Assert(it != m_resourceHandles.modelResources.end());
-		const Graphics::ModelResources modelResources = std::move(it->second);
-		m_resourceHandles.modelResources.erase(it);
-
-		for (MaterialSetHandle materialSet : modelResources.nodeMaterialSets)
-			DestroyMaterialSet(materialSet);
-		for (MaterialHandle material : modelResources.materials)
-			DestroyMaterial(material);
-		for (MeshHandle mesh : modelResources.meshes)
-			DestroyMesh(mesh);
+		m_graphics.ReleaseModelResources(model);
 		for (ImageHandle image : asset.images)
 			UnloadImage(image);
 	}
@@ -186,7 +195,7 @@ namespace Dune
 			return {};
 
 		const ImageHandle image = m_assetCache.AddImage({ .source = source, .format = data.format, .width = data.width, .height = data.height, .mipLevels = data.mipLevels });
-		m_resourceHandles.imageTextures.emplace(image, CreateTexture(data));
+		m_graphics.CreateImageTexture(image, data);
 		return image;
 	}
 
@@ -196,10 +205,7 @@ namespace Dune
 		if (!image.IsValid() || !m_assetCache.ReleaseImage(image, asset))
 			return;
 
-		auto it = m_resourceHandles.imageTextures.find(image);
-		Assert(it != m_resourceHandles.imageTextures.end());
-		DestroyTexture(it->second);
-		m_resourceHandles.imageTextures.erase(it);
+		m_graphics.ReleaseImageTexture(image);
 	}
 
 	const Image& Application::GetImage(ImageHandle image) const
@@ -207,10 +213,11 @@ namespace Dune
 		return m_assetCache.GetImage(image);
 	}
 
-	void Application::Spawn(GameScene& scene, ModelHandle model)
+	void Application::Spawn(WorldHandle world, ModelHandle model)
 	{
+		GameScene& scene = GetWorld(world).GetGameScene();
 		const Model& asset = m_assetCache.GetModel(model);
-		const Graphics::ModelResources& resources = m_resourceHandles.GetModelResources(model);
+		const Graphics::ModelResources& resources = m_graphics.GetModelResources(model);
 		for (dU32 nodeIndex = 0; nodeIndex < (dU32)asset.nodes.size(); nodeIndex++)
 		{
 			const ModelNode& node = asset.nodes[nodeIndex];
@@ -224,116 +231,12 @@ namespace Dune
 		}
 	}
 
-	ModelHandle Application::LoadModel(GameScene& scene, const char* pPath)
+	ModelHandle Application::LoadModel(WorldHandle world, const char* pPath)
 	{
 		const ModelHandle model = LoadModel(pPath);
 		if (model.IsValid())
-			Spawn(scene, model);
+			Spawn(world, model);
 		return model;
-	}
-
-	TextureHandle Application::CreateTexture(const Graphics::TextureData& data)
-	{
-		const TextureHandle handle = m_resourceHandles.textures.Allocate();
-		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
-		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateTexture(handle, data);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Texture::kUploadAlignment);
-		resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
-		return handle;
-	}
-
-	TextureHandle Application::CreateTexture(const ImageData& image)
-	{
-		const TextureHandle handle = m_resourceHandles.textures.Allocate();
-		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
-		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateTexture(handle, image);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Texture::kUploadAlignment);
-		resources.Upload(handle, image, uploadContext.GetCommandList(), staging);
-		return handle;
-	}
-
-	MeshHandle Application::CreateMesh(const Graphics::MeshData& meshData)
-	{
-		const MeshHandle handle = m_resourceHandles.meshes.Allocate();
-		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
-		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateMesh(handle, meshData);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Graphics::Mesh::kUploadAlignment);
-		resources.Upload(handle, meshData, uploadContext.GetCommandList(), staging);
-		return handle;
-	}
-
-	MaterialHandle Application::CreateMaterial(const Graphics::MaterialDesc& desc)
-	{
-		const MaterialHandle handle = m_resourceHandles.materials.Allocate();
-		m_renderContext.GetResourceManager().CreateMaterial(handle, desc);
-		return handle;
-	}
-
-	MaterialSetHandle Application::CreateMaterialSet(dSpan<MaterialHandle> materials)
-	{
-		const MaterialSetHandle handle = m_resourceHandles.materialSets.Allocate();
-		m_renderContext.GetResourceManager().CreateMaterialSet(handle, materials);
-		return handle;
-	}
-
-	Graphics::ModelResources Application::CreateModel(const ModelData& model, dSpan<TextureHandle> images)
-	{
-		const Graphics::ModelResources handles = m_resourceHandles.AllocateModel(model);
-		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
-		Graphics::UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateModel(handles, model, images);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handles), Graphics::Mesh::kUploadAlignment);
-		resources.Upload(handles, model, uploadContext.GetCommandList(), staging);
-		return handles;
-	}
-
-	void Application::DestroyTexture(TextureHandle texture)
-	{
-		m_pendingTextures.push_back({ .handle = texture, .fenceValue = m_renderContext.GetNextFenceValue() });
-	}
-
-	void Application::DestroyMesh(MeshHandle mesh)
-	{
-		m_pendingMeshes.push_back({ .handle = mesh, .fenceValue = m_renderContext.GetNextFenceValue() });
-	}
-
-	void Application::DestroyMaterial(MaterialHandle material)
-	{
-		m_renderContext.GetResourceManager().Destroy(material);
-		m_resourceHandles.materials.Free(material);
-	}
-
-	void Application::DestroyMaterialSet(MaterialSetHandle materialSet)
-	{
-		m_pendingMaterialSets.push_back({ .handle = materialSet, .fenceValue = m_renderContext.GetNextFenceValue() });
-	}
-
-	template<typename TPending, typename TRelease>
-	static void ReleaseCompleted(dVector<TPending>& pending, dU64 completedValue, TRelease release)
-	{
-		for (dU32 i = 0; i < (dU32)pending.size();)
-		{
-			if (pending[i].fenceValue <= completedValue)
-			{
-				release(pending[i].handle);
-				pending[i] = pending.back();
-				pending.pop_back();
-			}
-			else
-				i++;
-		}
-	}
-
-	void Application::ReleasePendingResources()
-	{
-		Graphics::ResourceManager& resources = m_renderContext.GetResourceManager();
-		const dU64 completedValue = m_renderContext.GetCompletedFenceValue();
-		ReleaseCompleted(m_pendingTextures, completedValue, [&](TextureHandle texture) { resources.Destroy(texture); m_resourceHandles.textures.Free(texture); });
-		ReleaseCompleted(m_pendingMeshes, completedValue, [&](MeshHandle mesh) { resources.Destroy(mesh); m_resourceHandles.meshes.Free(mesh); });
-		ReleaseCompleted(m_pendingMaterialSets, completedValue, [&](MaterialSetHandle materialSet) { resources.Destroy(materialSet); m_resourceHandles.materialSets.Free(materialSet); });
 	}
 
 	bool Application::IsViewOpen(ViewHandle view) const
@@ -362,21 +265,5 @@ namespace Dune
 	{
 		Assert(IsViewOpen(view));
 		return *m_views[view];
-	}
-
-	const Graphics::FrameData& Application::GetFrameData(const GameScene& scene)
-	{
-		for (dU32 i = 0; i < m_sceneFrameCount; i++)
-		{
-			if (m_sceneFrames[i].pScene == &scene)
-				return m_sceneFrames[i].renderScene.GetFrameData();
-		}
-
-		if (m_sceneFrameCount == m_sceneFrames.size())
-			m_sceneFrames.emplace_back();
-		SceneFrame& sceneFrame = m_sceneFrames[m_sceneFrameCount++];
-		sceneFrame.pScene = &scene;
-		RenderBridge::Update(scene, sceneFrame.renderScene);
-		return sceneFrame.renderScene.Build(m_renderContext.GetResourceManager(), m_deltaTime);
 	}
 }

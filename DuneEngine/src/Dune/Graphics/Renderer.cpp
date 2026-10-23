@@ -412,10 +412,10 @@ namespace Dune::Graphics
 		frame.srvHeap.Reset();
 		frame.samplerHeap.Reset();
 
-		Assert(frame.srvHeap.GetCapacity() >= m_srvHeap.GetCapacity() + frameData.sharedSRVHeapCapacity + kTransientSRVCapacity);
-		dU32 sharedSRVCapacity = frameData.sharedSRVHeapCapacity;
-		device.CopyDescriptors(sharedSRVCapacity, frameData.sharedSRVHeapCPUAddress, frame.srvHeap.GetCPUAddress(), RHI::EDescriptorHeapType::SRV_CBV_UAV);
-		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress() + frameData.sharedSRVHeapCapacity * frame.srvHeap.GetDescriptorSize(), RHI::EDescriptorHeapType::SRV_CBV_UAV);
+		Assert(frame.srvHeap.GetCapacity() >= m_srvHeap.GetCapacity() + frameData.pResources->sharedSRVHeapCapacity + kTransientSRVCapacity);
+		dU32 sharedSRVCapacity = frameData.pResources->sharedSRVHeapCapacity;
+		device.CopyDescriptors(sharedSRVCapacity, frameData.pResources->sharedSRVHeapCPUAddress, frame.srvHeap.GetCPUAddress(), RHI::EDescriptorHeapType::SRV_CBV_UAV);
+		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress() + frameData.pResources->sharedSRVHeapCapacity * frame.srvHeap.GetDescriptorSize(), RHI::EDescriptorHeapType::SRV_CBV_UAV);
 		frame.srvHeap.Allocate(sharedSRVCapacity + m_srvHeap.GetCapacity());
 
 		m_passContext.pFrameData = &frameData;

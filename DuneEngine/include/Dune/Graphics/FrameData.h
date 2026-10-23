@@ -32,14 +32,19 @@ namespace Dune::Graphics
 		dU32 verticesByteStride;
 	};
 
-	struct FrameData
+	struct GPUResourceTable
 	{
-		dVector<LightData> lights;
-		dVector<DrawItem> drawItems;
 		dVector<GPUMeshView> meshes;
 		dVector<MaterialData> materials;
-		dU64 sharedSRVHeapCPUAddress;
-		dU32 sharedSRVHeapCapacity;
+		dU64 sharedSRVHeapCPUAddress{ 0 };
+		dU32 sharedSRVHeapCapacity{ 0 };
+	};
+
+	struct FrameData
+	{
+		const GPUResourceTable* pResources{ nullptr };
+		dSpan<const LightData> lights{ nullptr, 0 };
+		dVector<DrawItem> drawItems;
 		float deltaTime{ 0.0f };
 	};
 }

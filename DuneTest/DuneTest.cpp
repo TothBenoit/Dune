@@ -8,6 +8,7 @@
 #include <Dune/Platform/Window.h>
 #include "SimpleCameraController.h"
 #include <Dune/Game/GameScene.h>
+#include <Dune/World/World.h>
 #include <Dune/Game/Component/Light.h>
 #include <Dune/Game/Component/Transform.h>
 #include <Dune/Game/Component/Name.h>
@@ -22,20 +23,22 @@ using namespace Dune;
 class App
 {
 public:
-	App(Application& application, ViewHandle view, GameScene& scene)
+	App(Application& application, ViewHandle view, WorldHandle world)
 		: m_app{ application }
 		, m_view{ view }
-		, m_pScene{ &scene }
+		, m_world{ world }
+		, m_pScene{ &application.GetWorld(world).GetGameScene() }
 	{}
 
 	void Run()
 	{
 		m_camera.SetNear(0.1f);
 		m_camera.SetFar(500.0f);
-		const ModelHandle sponza = m_app.LoadModel(*m_pScene, "app://Sponza/Sponza.gltf");
-		m_pScene->SpawnMesh("Cube", { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.GetPrimitive(EPrimitive::Cube), m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
-		m_pScene->SpawnMesh("Sphere", { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_app.GetPrimitive(EPrimitive::Sphere), m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }) }));
-		m_pScene->SpawnMesh("Plane", { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, m_app.GetPrimitive(EPrimitive::Plane), m_app.CreateMaterialSet({ m_app.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = RHI::ECullingMode::None }) }));
+		const ModelHandle sponza = m_app.LoadModel(m_world, "app://Sponza/Sponza.gltf");
+		Graphics::GraphicsSystem& graphics = m_app.GetGraphics();
+		m_pScene->SpawnMesh("Cube", { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Cube), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
+		m_pScene->SpawnMesh("Sphere", { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Sphere), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }) }));
+		m_pScene->SpawnMesh("Plane", { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Plane), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = RHI::ECullingMode::None }) }));
 
 		while (m_app.BeginFrame())
 		{
@@ -46,7 +49,8 @@ public:
 
 			DrawGUI();
 			m_camera.Update(m_deltaTime, window.GetInput());
-			m_app.Render(m_view, *m_pScene, m_camera.GetCamera());
+			m_app.Update(m_world);
+			m_app.Render(m_view, m_world, m_camera.GetCamera());
 			m_app.EndFrame();
 		}
 
@@ -388,6 +392,7 @@ public:
 private:
 	Application& m_app;
 	ViewHandle m_view{ kInvalidViewHandle };
+	WorldHandle m_world;
 	GameScene* m_pScene;
 
 	SimpleCameraController m_camera{};
@@ -404,9 +409,9 @@ private:
 	ImGuizmo::OPERATION m_gizmoOperation{ ImGuizmo::ROTATE };
 };
 
-void Test(Application& application, ViewHandle view, GameScene& scene)
+void Test(Application& application, ViewHandle view, WorldHandle world)
 {
-	App app{ application, view, scene };
+	App app{ application, view, world };
 	app.Run();
 }
 
@@ -426,8 +431,8 @@ int main(int argc, char** argv)
 		});
 	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true, .imguiLayoutPath = "app://imgui.ini" });
 
-	GameScene scene{};
-	entt::registry& registry = scene.registry;
+	const WorldHandle world = application.CreateWorld({});
+	entt::registry& registry = application.GetWorld(world).GetGameScene().registry;
 
 	EntityID sun = registry.create();
 	Light& sunLight = registry.emplace<Light>(sun);
@@ -471,7 +476,7 @@ int main(int argc, char** argv)
 	spotLight.type = ELightType::Spot;
 	spotLight.castShadow = true;
 
-	Test(application, view, scene);
+	Test(application, view, world);
 
 	application.Destroy();
 

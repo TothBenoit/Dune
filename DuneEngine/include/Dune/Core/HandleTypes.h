@@ -8,6 +8,7 @@ namespace Dune::Graphics
 	class Texture;
 	struct Material;
 	struct MaterialSet;
+	class RenderScene;
 }
 
 namespace Dune
@@ -16,4 +17,5 @@ namespace Dune
 	using TextureHandle = Handle<Graphics::Texture>;
 	using MaterialHandle = Handle<Graphics::Material>;
 	using MaterialSetHandle = Handle<Graphics::MaterialSet>;
+	using RenderSceneHandle = Handle<Graphics::RenderScene>;
 }

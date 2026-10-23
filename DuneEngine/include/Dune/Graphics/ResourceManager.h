@@ -19,7 +19,7 @@ namespace Dune::RHI
 
 namespace Dune::Graphics
 {
-	struct FrameData;
+	struct GPUResourceTable;
 
 	struct MaterialSet
 	{
@@ -75,7 +75,7 @@ namespace Dune::Graphics
 		void Destroy(MaterialSetHandle handle);
 		void Destroy(MeshHandle handle);
 
-		void FillFrameData(FrameData& frameData) const;
+		void FillResourceTable(GPUResourceTable& table) const;
 
 		[[nodiscard]] const Mesh& GetMesh(MeshHandle handle) const { return m_meshes.Get(handle); }
 		[[nodiscard]] const Material& GetMaterial(MaterialHandle handle) const { return m_materials.Get(handle); }

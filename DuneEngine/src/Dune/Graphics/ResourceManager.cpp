@@ -258,20 +258,20 @@ namespace Dune::Graphics
 		};
 	}
 
-	void ResourceManager::FillFrameData(FrameData& frameData) const
+	void ResourceManager::FillResourceTable(GPUResourceTable& table) const
 	{
-		frameData.meshes.assign(m_meshes.GetCapacity(), GPUMeshView{});
+		table.meshes.assign(m_meshes.GetCapacity(), GPUMeshView{});
 		for (dU32 i = 0; i < m_meshes.GetCapacity(); i++)
 			if (m_meshes.IsAliveAt(i))
-				frameData.meshes[i] = ToMeshView(m_meshes.GetAt(i));
+				table.meshes[i] = ToMeshView(m_meshes.GetAt(i));
 
-		frameData.materials.assign(m_materials.GetCapacity(), MaterialData{});
+		table.materials.assign(m_materials.GetCapacity(), MaterialData{});
 		for (dU32 i = 0; i < m_materials.GetCapacity(); i++)
 			if (m_materials.IsAliveAt(i))
-				frameData.materials[i] = m_materials.GetAt(i).shaderData;
+				table.materials[i] = m_materials.GetAt(i).shaderData;
 
-		frameData.sharedSRVHeapCPUAddress = m_srvHeap.GetCPUAddress();
-		frameData.sharedSRVHeapCapacity = m_srvHeap.GetCapacity();
+		table.sharedSRVHeapCPUAddress = m_srvHeap.GetCPUAddress();
+		table.sharedSRVHeapCapacity = m_srvHeap.GetCapacity();
 	}
 
 	void ResourceManager::Destroy(TextureHandle handle)

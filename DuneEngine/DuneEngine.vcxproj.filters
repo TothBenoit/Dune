@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClInclude Include="include\Dune\World\World.h">
+      <Filter>Dune\World</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\GraphicsSystem.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderScene.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
@@ -109,8 +115,8 @@
     <ClInclude Include="include\Dune\Game\GameScene.h">
       <Filter>Dune\Game</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Bridges\RenderBridge.h">
-      <Filter>Dune\Bridges</Filter>
+    <ClInclude Include="src\Dune\World\RenderBridge.h">
+      <Filter>Dune\World</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Game\Component\Light.h">
       <Filter>Dune\Game\Component</Filter>
@@ -232,6 +238,12 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Dune\World\World.cpp">
+      <Filter>Dune\World</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\GraphicsSystem.cpp">
+      <Filter>Dune\Graphics</Filter>
+    </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RenderScene.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
@@ -277,8 +289,8 @@
     <ClCompile Include="src\Dune\Assets\AssetCache.cpp">
       <Filter>Dune\Assets</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Bridges\RenderBridge.cpp">
-      <Filter>Dune\Bridges</Filter>
+    <ClCompile Include="src\Dune\World\RenderBridge.cpp">
+      <Filter>Dune\World</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RenderPass\Visibility.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>
@@ -405,7 +417,7 @@
     <Filter Include="Dune\Assets">
       <UniqueIdentifier>{85302c11-64c9-4a79-b4d3-4394ed7ba272}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dune\Bridges">
+    <Filter Include="Dune\World">
       <UniqueIdentifier>{7b0fdf36-69b2-489a-9039-ef1cffaee027}</UniqueIdentifier>
     </Filter>
     <Filter Include="Dune\Core">

@@ -28,6 +28,7 @@ namespace Dune::Graphics
 		[[nodiscard]] RHI::CommandQueue& GetCommandQueue() { return m_commandQueue; }
 		[[nodiscard]] PSOCache& GetPSOCache() { return m_psoCache; }
 		[[nodiscard]] ResourceManager& GetResourceManager() { return m_resourceManager; }
+		[[nodiscard]] const ResourceManager& GetResourceManager() const { return m_resourceManager; }
 		[[nodiscard]] UploadContext& GetUploadContext() { return m_uploadContext; }
 
 		void Signal();

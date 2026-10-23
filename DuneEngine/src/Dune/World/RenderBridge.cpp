@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Dune/Bridges/RenderBridge.h"
+#include "RenderBridge.h"
 #include "Dune/Game/GameScene.h"
 #include "Dune/Game/Component/Light.h"
 #include "Dune/Game/Component/Camera.h"

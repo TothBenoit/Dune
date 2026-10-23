@@ -138,7 +138,7 @@ namespace Dune::Graphics
 				instanceData.objectToWorld = drawItem.objectToWorld;
 				commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
 
-				const GPUMeshView& mesh = frameData.meshes[drawItem.meshIdx];
+				const GPUMeshView& mesh = frameData.pResources->meshes[drawItem.meshIdx];
 				commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
 				commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
 				commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
