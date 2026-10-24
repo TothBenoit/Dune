@@ -3,7 +3,6 @@
 #include "Dune/Platform/Window.h"
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Platform/RHI/Device.h"
-#include "Dune/Platform/RHI/ImGUIWrapper.h"
 #include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/PSOCache.h"
 
@@ -56,11 +55,7 @@ namespace Dune::Graphics
 		m_fence.Initialize(device, 0);
 		m_swapchain.Initialize(device, m_pWindow, m_pCommandQueue, { .latency = kFramesInFlight });
 
-		RHI::DescriptorHeapDesc heapDesc { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = 64, .isShaderVisible = true };
-		m_srvImGuiHeap.Initialize(device, heapDesc);
-
-		heapDesc.capacity = kPersistentSRVCapacity;
-		heapDesc.isShaderVisible = false;
+		RHI::DescriptorHeapDesc heapDesc { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = kPersistentSRVCapacity, .isShaderVisible = false };
 		m_srvHeap.Initialize(device, heapDesc);
 
 		heapDesc.capacity = 64;
@@ -92,6 +87,11 @@ namespace Dune::Graphics
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
 		m_passContext.pRenderer = this;
+	}
+
+	void Renderer::InitializeImGui(const char* pLayoutPath)
+	{
+		m_imgui.Initialize({ .pWindow = m_pWindow, .pDevice = m_pDevice, .pCommandQueue = m_pCommandQueue, .framesInFlight = kFramesInFlight, .renderTargetFormat = m_swapchain.GetBackBuffer(0).GetFormat(), .pLayoutPath = pLayoutPath });
 	}
 
 	dVector<RenderPass>::iterator Renderer::FindRenderPass(RenderTypeID typeID)
@@ -130,8 +130,12 @@ namespace Dune::Graphics
 	void Renderer::Destroy()
 	{
 		for (Frame& frame : m_frames)
-		{
 			WaitForFrame(frame);
+		if (HasImGui())
+			m_imgui.Destroy();
+
+		for (Frame& frame : m_frames)
+		{
 			for (RHI::Buffer& buffer : frame.buffersToRelease)
 				buffer.Destroy();
 			frame.buffersToRelease.clear();
@@ -170,7 +174,6 @@ namespace Dune::Graphics
 		m_resources.clear();
 
 		m_srvHeap.Destroy();
-		m_srvImGuiHeap.Destroy();
 		m_rtvHeap.Destroy();
 		m_dsvHeap.Destroy();
 		m_barrier.Destroy();
@@ -464,11 +467,8 @@ namespace Dune::Graphics
 			pass.pExecute(m_passContext, pass.pData);
 		}
 
-		if (m_pImGui)
-		{
-			frame.commandList.SetDescriptorHeaps(m_srvImGuiHeap);
-			m_pImGui->Render(frame.commandList);
-		}
+		if (HasImGui())
+			m_imgui.Render(frame.commandList);
 
 		TransitionResource({ .handle = frame.backBufferHandle, .state = RHI::EResourceState::Present });
 		FlushBarriers(frame.commandList);

@@ -9,11 +9,11 @@
 #include <Dune/Platform/RHI/Swapchain.h>
 #include <Dune/Platform/RHI/Texture.h>
 #include <Dune/Graphics/ScratchAllocator.h>
+#include <Dune/Platform/RHI/ImGuiContext.h>
 
 namespace Dune::RHI
 {
 	class Device;
-	class ImGuiWrapper;
 }
 
 namespace Dune
@@ -53,7 +53,6 @@ namespace Dune
 
 		class Renderer
 		{
-			friend class RHI::ImGuiWrapper;
 		public:
 			static constexpr dU32 kFramesInFlight = 3;
 			static constexpr dU32 kPersistentSRVCapacity = 4096;
@@ -63,6 +62,10 @@ namespace Dune
 
 			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, Window& window);
 			void Destroy();
+
+			void InitializeImGui(const char* pLayoutPath);
+			[[nodiscard]] inline bool HasImGui() const { return m_imgui.IsInitialized(); }
+			[[nodiscard]] inline RHI::ImGuiContext& GetImGui() { Assert(HasImGui()); return m_imgui; }
 
 			void OnResize(dU32 width, dU32 height);
 			void Render(const FrameData& frameData, const ViewData& view);
@@ -180,14 +183,12 @@ namespace Dune
 			RHI::Device* m_pDevice{ nullptr };
 			PSOCache* m_pPSOCache{ nullptr };
 			Window* m_pWindow{ nullptr };
-			RHI::ImGuiWrapper* m_pImGui{ nullptr };
 
 			RHI::Swapchain m_swapchain{};
 			RHI::Texture m_depthBuffer{};
 			RHI::CommandQueue* m_pCommandQueue{ nullptr };
 
 			RHI::BlockDescriptorHeap m_srvHeap{};
-			RHI::BlockDescriptorHeap m_srvImGuiHeap{};
 			RHI::BlockDescriptorHeap m_rtvHeap{};
 			RHI::BlockDescriptorHeap m_dsvHeap{};
 
@@ -204,6 +205,7 @@ namespace Dune
 			dU32 m_frameIndex{ 0 };
 			dU32 m_frameCount{ 0 };
 			RHI::Barrier m_barrier{};
+			RHI::ImGuiContext m_imgui{};
 
 			dVector<ResourceEntry> m_resources;
 			dVector<RenderPass> m_passes;

@@ -4,7 +4,6 @@
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
-#include "Dune/Platform/RHI/ImGuiWrapper.h"
 #include "Dune/Assets/AssetCache.h"
 #include "Dune/World/World.h"
 #include "Dune/Core/ChunkedArray.h"
@@ -71,7 +70,7 @@ namespace Dune
 		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
 		[[nodiscard]] Window& GetWindow(ViewHandle view);
 		[[nodiscard]] Graphics::Renderer& GetRenderer(ViewHandle view);
-		[[nodiscard]] RHI::ImGuiWrapper& GetImGui(ViewHandle view);
+		[[nodiscard]] RHI::ImGuiContext& GetImGui(ViewHandle view);
 		[[nodiscard]] Graphics::GraphicsSystem& GetGraphics() { return m_graphics; }
 
 	private:
@@ -79,10 +78,8 @@ namespace Dune
 		{
 			Window window;
 			Graphics::Renderer renderer;
-			RHI::ImGuiWrapper imgui;
 			Graphics::FrameData frameData;
 			dU32 resizeEventHandle{ 0 };
-			bool hasImGui{ false };
 		};
 
 		[[nodiscard]] ImageHandle LoadImage(FileSystem::SerializationID<EFileType::Image> source);

@@ -167,7 +167,7 @@
     <ClInclude Include="include\Dune\Platform\Logger.h">
       <Filter>Dune\Platform</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Platform\RHI\ImGuiWrapper.h">
+    <ClInclude Include="include\Dune\Platform\RHI\ImGuiContext.h">
       <Filter>Dune\Platform\RHI</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h">
@@ -316,7 +316,7 @@
     <ClCompile Include="src\Dune\Platform\Logger.cpp">
       <Filter>Dune\Platform</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Platform\RHI\ImGuiWrapper.cpp">
+    <ClCompile Include="src\Dune\Platform\RHI\ImGuiContext.cpp">
       <Filter>Dune\Platform\RHI</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RenderPass\DepthPrepass.cpp">

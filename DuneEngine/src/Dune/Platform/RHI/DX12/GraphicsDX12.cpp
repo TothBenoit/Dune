@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "GraphicsDX12.h"
 #include "Dune/Platform/Window.h"
-#include "Dune/Graphics/Renderer.h"
 #include "Dune/Platform/RHI/Device.h"
 #include "Dune/Platform/RHI/Buffer.h"
 #include "Dune/Platform/RHI/Texture.h"
@@ -13,7 +12,7 @@
 #include "Dune/Platform/RHI/Swapchain.h"
 #include "Dune/Platform/RHI/Barrier.h"
 #include "Dune/Platform/RHI/Shader.h"
-#include "Dune/Platform/RHI/ImGuiWrapper.h"
+#include "Dune/Platform/RHI/ImGuiContext.h"
 #include "Dune/Platform/Logger.h"
 #include "src/Dune/Platform/Win32/WindowWin32.h"
 
@@ -1820,39 +1819,38 @@ namespace Dune::RHI
 
 	static bool ImGuiWindowHook(void* pData, void* pNativeEvent)
 	{
-		ImGuiWrapper* pImGuiWrapper = (ImGuiWrapper*)pData;
+		ImGuiContext* pImGuiContext = (ImGuiContext*)pData;
 		const Win32NativeEvent& nativeEvent = *(const Win32NativeEvent*)pNativeEvent;
-		ImGuiWrapper::LockGuard guard = pImGuiWrapper->AcquireContext();
+		ImGuiContext::LockGuard guard = pImGuiContext->AcquireContext();
 		return ImGui_ImplWin32_WndProcHandler(nativeEvent.hwnd, nativeEvent.uMsg, nativeEvent.wParam, nativeEvent.lParam) != 0;
 	}
 
-	void ImGuiWrapper::Initialize(Window& window, Graphics::Renderer& renderer, const char* pLayoutPath, dU32 priority)
+	void ImGuiContext::Initialize(const ImGuiDesc& desc, dU32 priority)
 	{
-		Assert(!renderer.m_pImGui);
 		Assert(!m_pContext);
-		renderer.m_pImGui = this;
-		m_pRenderer = &renderer;
-		m_pWindow = &window;
-		m_hookHandle = window.RegisterHook(this, &ImGuiWindowHook, priority);
+		Assert(desc.pWindow && desc.pDevice && desc.pCommandQueue);
+		m_pWindow = desc.pWindow;
+		m_srvHeap.Initialize(*desc.pDevice, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSRVCapacity, .isShaderVisible = true });
+		m_hookHandle = m_pWindow->RegisterHook(this, &ImGuiWindowHook, priority);
 		Lock();
 		IMGUI_CHECKVERSION();
 		m_pContext = ImGui::CreateContext();
-		m_layoutPath = pLayoutPath ? pLayoutPath : "";
+		m_layoutPath = desc.pLayoutPath ? desc.pLayoutPath : "";
 		ImGui::GetIO().IniFilename = m_layoutPath.empty() ? nullptr : m_layoutPath.c_str();
 		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui::StyleColorsDark();
-		ImGui_ImplWin32_Init(window.GetHandle());
+		ImGui_ImplWin32_Init(m_pWindow->GetHandle());
 
 		ImGui_ImplDX12_InitInfo init_info = {};
-		init_info.Device = ToDevice(renderer.GetDevice()->Get());
-		init_info.CommandQueue = ToCommandQueue(renderer.m_pCommandQueue->Get());
-		init_info.NumFramesInFlight = _countof(renderer.m_frames);
-		init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		init_info.Device = ToDevice(desc.pDevice->Get());
+		init_info.CommandQueue = ToCommandQueue(desc.pCommandQueue->Get());
+		init_info.NumFramesInFlight = desc.framesInFlight;
+		init_info.RTVFormat = (DXGI_FORMAT)desc.renderTargetFormat;
 		init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
-		init_info.SrvDescriptorHeap = ToDescriptorHeap(renderer.m_srvImGuiHeap.Get());
-		init_info.UserData = &renderer.m_srvImGuiHeap;
-		init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) 
-			{ 
+		init_info.SrvDescriptorHeap = ToDescriptorHeap(m_srvHeap.Get());
+		init_info.UserData = &m_srvHeap;
+		init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle)
+			{
 				Descriptor descriptor{ ((BlockDescriptorHeap*)info->UserData)->Allocate() };
 				*out_cpu_handle = { descriptor.cpuAddress };
 				*out_gpu_handle = { descriptor.gpuAddress };
@@ -1866,31 +1864,32 @@ namespace Dune::RHI
 		Unlock();
 	}
 
-	ImGuiWrapper::LockGuard ImGuiWrapper::AcquireContext() 
+	ImGuiContext::LockGuard ImGuiContext::AcquireContext()
 	{
 		Lock();
 		return LockGuard(*this);
 	}
 
-	void ImGuiWrapper::NewFrame(const LockGuard& guard)
+	void ImGuiContext::NewFrame(const LockGuard& guard)
 	{
-		Assert(guard.m_pWrapper == this);
+		Assert(guard.m_pContext == this);
 		Assert(m_pContext);
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 	}
 
-	void ImGuiWrapper::Render(CommandList& commandList)
+	void ImGuiContext::Render(CommandList& commandList)
 	{
 		Assert(m_pContext);
 		Lock();
 		ImGui::Render();
+		commandList.SetDescriptorHeaps(m_srvHeap);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ToCommandList(commandList.Get()));
 		Unlock();
 	}
 
-	void ImGuiWrapper::Destroy()
+	void ImGuiContext::Destroy()
 	{
 		Assert(m_pContext);
 		Lock();
@@ -1899,10 +1898,9 @@ namespace Dune::RHI
 		ImGui::DestroyContext();
 		Unlock();
 		m_pWindow->UnregisterHook(m_hookHandle);
-		m_pRenderer->m_pImGui = nullptr;
+		m_srvHeap.Destroy();
 		m_pContext = nullptr;
 		m_layoutPath.clear();
-		m_pRenderer = nullptr;
 		m_pWindow = nullptr;
 	}
 }

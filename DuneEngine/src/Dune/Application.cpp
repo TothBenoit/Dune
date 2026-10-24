@@ -58,8 +58,7 @@ namespace Dune
 		if (desc.enableImGui)
 		{
 			const FilePath layoutPath = desc.imguiLayoutPath.empty() ? FilePath{} : FileSystem::ResolvePath(desc.imguiLayoutPath.c_str());
-			pView->imgui.Initialize(pView->window, pView->renderer, layoutPath.empty() ? nullptr : layoutPath.c_str());
-			pView->hasImGui = true;
+			pView->renderer.InitializeImGui(layoutPath.empty() ? nullptr : layoutPath.c_str());
 		}
 
 		m_views.push_back(std::move(pView));
@@ -69,8 +68,6 @@ namespace Dune
 	void Application::DestroyView(ViewHandle view)
 	{
 		View& v = GetView(view);
-		if (v.hasImGui)
-			v.imgui.Destroy();
 		v.renderer.Destroy();
 		v.window.UnregisterEvent(EWindowMessageType::Resize, v.resizeEventHandle);
 		v.window.Destroy();
@@ -254,11 +251,9 @@ namespace Dune
 		return GetView(view).renderer;
 	}
 
-	RHI::ImGuiWrapper& Application::GetImGui(ViewHandle view)
+	RHI::ImGuiContext& Application::GetImGui(ViewHandle view)
 	{
-		View& v = GetView(view);
-		Assert(v.hasImGui);
-		return v.imgui;
+		return GetView(view).renderer.GetImGui();
 	}
 
 	Application::View& Application::GetView(ViewHandle view)

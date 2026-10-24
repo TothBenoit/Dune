@@ -67,7 +67,7 @@
     <ClInclude Include="include\Dune\Platform\RHI\Buffer.h" />
     <ClInclude Include="include\Dune\Platform\RHI\DescriptorHeap.h" />
     <ClInclude Include="include\Dune\Platform\RHI\CommandList.h" />
-    <ClInclude Include="include\Dune\Platform\RHI\ImGuiWrapper.h" />
+    <ClInclude Include="include\Dune\Platform\RHI\ImGuiContext.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Outputs.h" />
     <ClInclude Include="include\Dune\Platform\RHI\Resource.h" />
     <ClInclude Include="include\Dune\Platform\RHI\Shader.h" />
@@ -119,7 +119,7 @@
     <ClCompile Include="src\Dune\Graphics\RenderPass\LightUpload.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Shadow.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Tonemapping.cpp" />
-    <ClCompile Include="src\Dune\Platform\RHI\ImGuiWrapper.cpp" />
+    <ClCompile Include="src\Dune\Platform\RHI\ImGuiContext.cpp" />
     <ClCompile Include="src\Dune\Platform\Win32\WindowWin32.cpp" />
     <ClCompile Include="src\Dune\Graphics\Renderer.cpp" />
     <ClCompile Include="src\Dune\Graphics\ResourceManager.cpp" />

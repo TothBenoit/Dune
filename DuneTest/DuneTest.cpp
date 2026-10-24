@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
-#include <Dune/Platform/RHI/ImGuiWrapper.h>
+#include <Dune/Platform/RHI/ImGuiContext.h>
 #include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Platform/Window.h>
 #include "SimpleCameraController.h"
@@ -120,8 +120,8 @@ public:
 
 	void DrawGUI()
 	{
-		RHI::ImGuiWrapper& imgui = m_app.GetImGui(m_view);
-		RHI::ImGuiWrapper::LockGuard guard = imgui.AcquireContext();
+		RHI::ImGuiContext& imgui = m_app.GetImGui(m_view);
+		RHI::ImGuiContext::LockGuard guard = imgui.AcquireContext();
 		imgui.NewFrame(guard);
 		ImGuizmo::BeginFrame();
 
