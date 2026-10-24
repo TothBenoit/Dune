@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <Dune/Platform/RHI/ImGuiContext.h>
+#include <Dune/Graphics/ForwardPipeline.h>
 #include <Dune/Resources/Shaders/ShaderInterop.h>
 #include <Dune/Platform/Window.h>
 #include "SimpleCameraController.h"
@@ -429,7 +430,8 @@ int main(int argc, char** argv)
 			.engineResourcePath = solutionDirectory + "/DuneEngine/include/Dune/Resources/",
 			.roots = { { .name = "app", .path = solutionDirectory + "/Resources/" } },
 		});
-	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true, .imguiLayoutPath = "app://imgui.ini" });
+	const Graphics::RendererDesc rendererDesc = Graphics::ForwardPipeline::MakeDesc();
+	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true, .imguiLayoutPath = "app://imgui.ini", .pRendererDesc = &rendererDesc });
 
 	const WorldHandle world = application.CreateWorld({});
 	entt::registry& registry = application.GetWorld(world).GetGameScene().registry;

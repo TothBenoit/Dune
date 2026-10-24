@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/RendererDesc.h"
 #include "Dune/Platform/Window.h"
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Platform/RHI/Device.h"
@@ -8,7 +9,7 @@
 
 namespace Dune::Graphics
 {
-	void Renderer::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, Window& window)
+	void Renderer::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, Window& window, const RendererDesc& desc)
 	{
 		m_pDevice = &device;
 		m_pCommandQueue = &commandQueue;
@@ -87,6 +88,13 @@ namespace Dune::Graphics
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
 		m_passContext.pRenderer = this;
+
+		m_passes.reserve(desc.passes.size());
+		for (const RenderPassDesc& passDesc : desc.passes)
+		{
+			RenderPass& pass = m_passes.emplace_back(passDesc.pMake(*this));
+			ResolvePipelines(pass);
+		}
 	}
 
 	void Renderer::InitializeImGui(const char* pLayoutPath)
@@ -97,13 +105,6 @@ namespace Dune::Graphics
 	dVector<RenderPass>::iterator Renderer::FindRenderPass(RenderTypeID typeID)
 	{
 		return std::find_if(m_passes.begin(), m_passes.end(), [=](const RenderPass& pass) { return pass.typeID == typeID; });
-	}
-
-	void Renderer::DestroyRenderPass(RenderPass& pass)
-	{
-		for (const Frame& frame : m_frames)
-			WaitForFrame(frame);
-		pass.pShutdown(*this, pass.pData);
 	}
 
 	void Renderer::ResolvePipelines(RenderPass& pass)

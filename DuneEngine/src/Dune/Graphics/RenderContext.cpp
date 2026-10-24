@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/ForwardPipeline.h"
 
 namespace Dune::Graphics
 {
@@ -34,9 +33,8 @@ namespace Dune::Graphics
 		m_commandQueue.Signal(m_fence, ++m_fenceValue);
 	}
 
-	void RenderContext::InitializeRenderer(Renderer& renderer, Window& window)
+	void RenderContext::InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc)
 	{
-		renderer.Initialize(m_device, m_commandQueue, m_psoCache, window);
-		ForwardPipeline::Register(renderer);
+		renderer.Initialize(m_device, m_commandQueue, m_psoCache, window, desc);
 	}
 }

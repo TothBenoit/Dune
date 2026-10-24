@@ -22,7 +22,7 @@ namespace Dune::Graphics
 		void Destroy();
 		void EndFrame();
 
-		void InitializeRenderer(Renderer& renderer, Window& window);
+		void InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc);
 		void Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, float deltaTime, FrameData& frameData);
 
 		[[nodiscard]] TextureHandle     CreateTexture(const TextureData& data);

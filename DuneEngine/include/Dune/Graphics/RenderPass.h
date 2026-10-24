@@ -160,5 +160,25 @@ namespace Dune
 
 			RenderGraphBuilder builder;
 		};
+
+		template<typename T>
+		RenderPass MakeRenderPass(Renderer& renderer)
+		{
+			auto* pPassData = T::Create(renderer);
+			using PassData = decltype(pPassData);
+			RenderPass pass{};
+			pass.pSetup = [](RenderGraphBuilder& builder, RenderPassContext& context, void* pData) { T::Setup(builder, context, static_cast<PassData>(pData)); };
+			pass.pExecute = [](RenderPassContext& context, void* pData) { T::Execute(context, static_cast<PassData>(pData)); };
+			pass.pShutdown = [](Renderer& renderer, void* pData) { T::Destroy(renderer, static_cast<PassData>(pData)); };
+			if constexpr (requires { T::IsPassMaterial(MaterialKey{}); })
+				pass.pIsPassMaterial = &T::IsPassMaterial;
+			if constexpr (requires { T::GetPipelineDesc(MaterialKey{}); })
+				pass.pGetPipelineDesc = &T::GetPipelineDesc;
+			if constexpr (requires { T::GetPipelineDescs(); })
+				pass.pGetPipelineDescs = &T::GetPipelineDescs;
+			pass.pData = pPassData;
+			pass.typeID = GetRenderTypeID<T>();
+			return pass;
+		}
 	}
 }

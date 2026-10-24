@@ -27,6 +27,7 @@ namespace Dune
 		class Renderer;
 		struct FrameData;
 		struct ViewData;
+		struct RendererDesc;
 
 		struct Frame
 		{
@@ -60,7 +61,7 @@ namespace Dune
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
-			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, Window& window);
+			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, Window& window, const RendererDesc& desc);
 			void Destroy();
 
 			void InitializeImGui(const char* pLayoutPath);
@@ -98,43 +99,6 @@ namespace Dune
 			[[nodiscard]] inline ResourceHandle GetHDRTargetHandle() const { return m_hdrTargetHandle; }
 			[[nodiscard]] inline ResourceHandle GetBackBufferHandle() const { return m_frames[m_frameIndex].backBufferHandle; }
 
-			template<typename T>
-			void RegisterRenderPass()
-			{
-				Assert(FindRenderPass(GetRenderTypeID<T>()) == m_passes.end());
-				m_passes.push_back(MakeRenderPass<T>());
-			}
-
-			template<typename T, typename Neighbor>
-			void InsertRenderPass(ERegistrationOrder order)
-			{
-				Assert(FindRenderPass(GetRenderTypeID<T>()) == m_passes.end());
-				auto it = FindRenderPass(GetRenderTypeID<Neighbor>());
-				Assert(it != m_passes.end());
-				if (order == ERegistrationOrder::After)
-					it = std::next(it);
-				m_passes.insert(it, MakeRenderPass<T>());
-			}
-
-			template<typename Old, typename New>
-			void ReplaceRenderPass()
-			{
-				Assert((std::is_same_v<Old, New> || FindRenderPass(GetRenderTypeID<New>()) == m_passes.end()));
-				auto it = FindRenderPass(GetRenderTypeID<Old>());
-				Assert(it != m_passes.end());
-				DestroyRenderPass(*it);
-				*it = MakeRenderPass<New>();
-			}
-
-			template<typename T>
-			void UnregisterRenderPass()
-			{
-				auto it = FindRenderPass(GetRenderTypeID<T>());
-				Assert(it != m_passes.end());
-				DestroyRenderPass(*it);
-				m_passes.erase(it);
-			}
-
 			void ResolvePSOs(MaterialKey key);
 
 			template<typename T>
@@ -148,29 +112,7 @@ namespace Dune
 			PSO* ResolvePSO(RenderPass& pass, MaterialKey key);
 
 		private:
-			template<typename T>
-			RenderPass MakeRenderPass()
-			{
-				auto* pPassData = T::Create(*this);
-				using PassData = decltype(pPassData);
-				RenderPass pass{};
-				pass.pSetup = [](RenderGraphBuilder& builder, RenderPassContext& context, void* pData) { T::Setup(builder, context, static_cast<PassData>(pData)); };
-				pass.pExecute = [](RenderPassContext& context, void* pData) { T::Execute(context, static_cast<PassData>(pData)); };
-				pass.pShutdown = [](Renderer& renderer, void* pData) { T::Destroy(renderer, static_cast<PassData>(pData)); };
-				if constexpr (requires { T::IsPassMaterial(MaterialKey{}); })
-					pass.pIsPassMaterial = &T::IsPassMaterial;
-				if constexpr (requires { T::GetPipelineDesc(MaterialKey{}); })
-					pass.pGetPipelineDesc = &T::GetPipelineDesc;
-				if constexpr (requires { T::GetPipelineDescs(); })
-					pass.pGetPipelineDescs = &T::GetPipelineDescs;
-				pass.pData = pPassData;
-				pass.typeID = GetRenderTypeID<T>();
-				ResolvePipelines(pass);
-				return pass;
-			}
-
 			dVector<RenderPass>::iterator FindRenderPass(RenderTypeID typeID);
-			void DestroyRenderPass(RenderPass& pass);
 			void ResolvePipelines(RenderPass& pass);
 
 			void WaitForFrame(const Frame& frame);

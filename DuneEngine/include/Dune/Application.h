@@ -13,6 +13,11 @@ namespace Dune
 	class GameScene;
 	struct Camera;
 
+	namespace Graphics
+	{
+		struct RendererDesc;
+	}
+
 	struct FileSystemRoot
 	{
 		dString name;
@@ -34,6 +39,7 @@ namespace Dune
 		dU32 height{ 900 };
 		bool enableImGui{ false };
 		dString imguiLayoutPath;
+		const Graphics::RendererDesc* pRendererDesc{ nullptr };
 	};
 
 	using ViewHandle = dU32;
@@ -69,7 +75,6 @@ namespace Dune
 		[[nodiscard]] bool IsViewOpen(ViewHandle view) const;
 		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
 		[[nodiscard]] Window& GetWindow(ViewHandle view);
-		[[nodiscard]] Graphics::Renderer& GetRenderer(ViewHandle view);
 		[[nodiscard]] RHI::ImGuiContext& GetImGui(ViewHandle view);
 		[[nodiscard]] Graphics::GraphicsSystem& GetGraphics() { return m_graphics; }
 

@@ -76,6 +76,7 @@
     <ClInclude Include="include\Dune\Graphics\ResourceManager.h" />
     <ClInclude Include="include\Dune\Graphics\RenderContext.h" />
     <ClInclude Include="include\Dune\Graphics\ForwardPipeline.h" />
+    <ClInclude Include="include\Dune\Graphics\RendererDesc.h" />
     <ClInclude Include="include\Dune\Graphics\Pipeline.h" />
     <ClInclude Include="include\Dune\Graphics\UploadContext.h" />
     <ClInclude Include="include\Dune\Resources\Shaders\ShaderInterop.h" />

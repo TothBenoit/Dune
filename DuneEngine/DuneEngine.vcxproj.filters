@@ -97,6 +97,9 @@
     <ClInclude Include="include\Dune\Graphics\ForwardPipeline.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\RendererDesc.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\Pipeline.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>

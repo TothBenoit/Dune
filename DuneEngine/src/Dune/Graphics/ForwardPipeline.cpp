@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Dune/Graphics/ForwardPipeline.h"
-#include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/RenderPass/Visibility.h"
 #include "Dune/Graphics/RenderPass/ClearDepth.h"
 #include "Dune/Graphics/RenderPass/ClearHDRTarget.h"
@@ -13,16 +12,18 @@
 
 namespace Dune::Graphics::ForwardPipeline
 {
-	void Register(Renderer& renderer)
+	RendererDesc MakeDesc()
 	{
-		renderer.RegisterRenderPass<Visibility>();
-		renderer.RegisterRenderPass<ClearDepth>();
-		renderer.RegisterRenderPass<MaterialUpload>();
-		renderer.RegisterRenderPass<DepthPrepass>();
-		renderer.RegisterRenderPass<Shadow>();
-		renderer.RegisterRenderPass<LightUpload>();
-		renderer.RegisterRenderPass<ClearHDRTarget>();
-		renderer.RegisterRenderPass<Forward>();
-		renderer.RegisterRenderPass<Tonemapping>();
+		RendererDesc desc{};
+		desc.Add<Visibility>();
+		desc.Add<ClearDepth>();
+		desc.Add<MaterialUpload>();
+		desc.Add<DepthPrepass>();
+		desc.Add<Shadow>();
+		desc.Add<LightUpload>();
+		desc.Add<ClearHDRTarget>();
+		desc.Add<Forward>();
+		desc.Add<Tonemapping>();
+		return desc;
 	}
 }

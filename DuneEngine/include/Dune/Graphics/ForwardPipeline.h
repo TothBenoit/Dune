@@ -1,11 +1,8 @@
 #pragma once
 
-namespace Dune::Graphics
-{
-	class Renderer;
+#include "Dune/Graphics/RendererDesc.h"
 
-	namespace ForwardPipeline
-	{
-		void Register(Renderer& renderer);
-	}
+namespace Dune::Graphics::ForwardPipeline
+{
+	[[nodiscard]] RendererDesc MakeDesc();
 }

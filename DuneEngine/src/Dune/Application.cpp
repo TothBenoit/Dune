@@ -2,6 +2,7 @@
 #include "Dune/Application.h"
 #include "Dune/Core/JobSystem.h"
 #include "Dune/Core/FileSystem.h"
+#include "Dune/Graphics/ForwardPipeline.h"
 #include "Dune/Game/GameScene.h"
 #include "Dune/Assets/Model.h"
 #include "Dune/Assets/Import/ModelImporter.h"
@@ -54,7 +55,10 @@ namespace Dune
 			{
 				static_cast<Graphics::Renderer*>(pData)->OnResize(message.resize.width, message.resize.height);
 			}, EWindowMessageType::Resize);
-		m_graphics.InitializeRenderer(pView->renderer, pView->window);
+		if (desc.pRendererDesc)
+			m_graphics.InitializeRenderer(pView->renderer, pView->window, *desc.pRendererDesc);
+		else
+			m_graphics.InitializeRenderer(pView->renderer, pView->window, Graphics::ForwardPipeline::MakeDesc());
 		if (desc.enableImGui)
 		{
 			const FilePath layoutPath = desc.imguiLayoutPath.empty() ? FilePath{} : FileSystem::ResolvePath(desc.imguiLayoutPath.c_str());
@@ -244,11 +248,6 @@ namespace Dune
 	Window& Application::GetWindow(ViewHandle view)
 	{
 		return GetView(view).window;
-	}
-
-	Graphics::Renderer& Application::GetRenderer(ViewHandle view)
-	{
-		return GetView(view).renderer;
 	}
 
 	RHI::ImGuiContext& Application::GetImGui(ViewHandle view)

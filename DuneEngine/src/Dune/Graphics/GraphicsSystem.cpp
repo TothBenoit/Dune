@@ -32,9 +32,9 @@ namespace Dune::Graphics
 		m_isResourceTableValid = false;
 	}
 
-	void GraphicsSystem::InitializeRenderer(Renderer& renderer, Window& window)
+	void GraphicsSystem::InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc)
 	{
-		m_renderContext.InitializeRenderer(renderer, window);
+		m_renderContext.InitializeRenderer(renderer, window, desc);
 	}
 
 	void GraphicsSystem::Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, float deltaTime, FrameData& frameData)

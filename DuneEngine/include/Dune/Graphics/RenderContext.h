@@ -16,6 +16,7 @@ namespace Dune
 namespace Dune::Graphics
 {
 	class Renderer;
+	struct RendererDesc;
 
 	class RenderContext
 	{
@@ -23,7 +24,7 @@ namespace Dune::Graphics
 		void Initialize(const ResourceHandles& handles, dU32 physicalDeviceIndex);
 		void Destroy();
 
-		void InitializeRenderer(Renderer& renderer, Window& window);
+		void InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc);
 
 		[[nodiscard]] RHI::Device& GetDevice() { return m_device; }
 		[[nodiscard]] const RHI::PhysicalDevice& GetPhysicalDevice() const { return m_physicalDevice; }
