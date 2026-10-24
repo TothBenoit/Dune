@@ -23,6 +23,7 @@ namespace Dune
 	struct ApplicationDesc
 	{
 		dU32 workerCount{ 3 };
+		dU32 physicalDeviceIndex{ 0 };
 		dString engineResourcePath;
 		dVector<FileSystemRoot> roots;
 	};

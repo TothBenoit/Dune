@@ -3,6 +3,7 @@
 #include "Dune/Platform/RHI/Resource.h"
 #include "Dune/Platform/RHI/DescriptorHeap.h"
 #include "Dune/Platform/RHI/Format.h"
+#include "Dune/Platform/RHI/PhysicalDevice.h"
 
 namespace Dune::RHI
 {
@@ -76,7 +77,7 @@ namespace Dune::RHI
 	class Device : public Resource
 	{
 	public:
-		void Initialize();
+		void Initialize(const PhysicalDevice& physicalDevice);
 		void Destroy();
 
 		void* GetInternal() { return m_pInternal; }

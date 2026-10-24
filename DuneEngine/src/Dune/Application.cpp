@@ -16,7 +16,7 @@ namespace Dune
 		FileSystem::Initialize(desc.engineResourcePath.c_str());
 		for (const FileSystemRoot& root : desc.roots)
 			FileSystem::AddRoot(root.name.c_str(), root.path.c_str());
-		m_graphics.Initialize();
+		m_graphics.Initialize(desc.physicalDeviceIndex);
 		m_assetCache.Initialize();
 		m_lastFrameTime = std::chrono::steady_clock::now();
 	}

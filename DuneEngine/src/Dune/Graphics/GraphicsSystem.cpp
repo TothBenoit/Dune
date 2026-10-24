@@ -4,9 +4,9 @@
 
 namespace Dune::Graphics
 {
-	void GraphicsSystem::Initialize()
+	void GraphicsSystem::Initialize(dU32 physicalDeviceIndex)
 	{
-		m_renderContext.Initialize(m_handles);
+		m_renderContext.Initialize(m_handles, physicalDeviceIndex);
 		m_renderScenes.Initialize(m_renderSceneHandles);
 		for (dU32 primitive = 0; primitive < (dU32)EPrimitive::Count; primitive++)
 			m_primitives[primitive] = CreateMesh(MeshUtils::CreatePrimitive((EPrimitive)primitive));

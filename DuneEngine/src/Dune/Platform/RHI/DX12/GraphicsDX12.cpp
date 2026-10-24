@@ -190,7 +190,82 @@ namespace Dune::RHI
 	#endif
 	};
 
-	void Device::Initialize()
+	static IDXGIFactory6* CreateEnumerationFactory()
+	{
+		IDXGIFactory6* pFactory{ nullptr };
+		ThrowIfFailed(CreateDXGIFactory2(0, IID_PPV_ARGS(&pFactory)));
+		return pFactory;
+	}
+
+	static IDXGIAdapter1* EnumPhysicalDevice(IDXGIFactory6* pFactory, dU32 index)
+	{
+		IDXGIAdapter1* pAdapter{ nullptr };
+		if (FAILED(pFactory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&pAdapter))))
+			return nullptr;
+		return pAdapter;
+	}
+
+	dU32 PhysicalDevice::GetPhysicalDeviceCount()
+	{
+		IDXGIFactory6* pFactory = CreateEnumerationFactory();
+		dU32 count{ 0 };
+		while (IDXGIAdapter1* pAdapter = EnumPhysicalDevice(pFactory, count))
+		{
+			pAdapter->Release();
+			count++;
+		}
+		pFactory->Release();
+		return count;
+	}
+
+	static PhysicalDeviceDesc ToPhysicalDeviceDesc(IDXGIAdapter1* pAdapter)
+	{
+		DXGI_ADAPTER_DESC1 adapterDesc{};
+		pAdapter->GetDesc1(&adapterDesc);
+		return
+		{
+			.name = StringUtils::ToNarrow(adapterDesc.Description),
+			.vendorID = adapterDesc.VendorId,
+			.deviceID = adapterDesc.DeviceId,
+			.dedicatedVideoMemory = adapterDesc.DedicatedVideoMemory,
+			.sharedSystemMemory = adapterDesc.SharedSystemMemory,
+			.isSoftware = (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0,
+			.isSupported = SUCCEEDED(D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)),
+		};
+	}
+
+	PhysicalDeviceDesc PhysicalDevice::GetPhysicalDeviceDesc(dU32 index)
+	{
+		IDXGIFactory6* pFactory = CreateEnumerationFactory();
+		IDXGIAdapter1* pAdapter = EnumPhysicalDevice(pFactory, index);
+		Assert(pAdapter);
+		const PhysicalDeviceDesc desc = ToPhysicalDeviceDesc(pAdapter);
+		pAdapter->Release();
+		pFactory->Release();
+		return desc;
+	}
+
+	PhysicalDeviceDesc PhysicalDevice::GetDesc() const
+	{
+		return ToPhysicalDeviceDesc((IDXGIAdapter1*)m_pResource);
+	}
+
+	void PhysicalDevice::Initialize(dU32 index)
+	{
+		IDXGIFactory6* pFactory = CreateEnumerationFactory();
+		IDXGIAdapter1* pAdapter = EnumPhysicalDevice(pFactory, index);
+		Assert(pAdapter);
+		pFactory->Release();
+		m_pResource = pAdapter;
+	}
+
+	void PhysicalDevice::Destroy()
+	{
+		((IDXGIAdapter1*)m_pResource)->Release();
+		m_pResource = nullptr;
+	}
+
+	void Device::Initialize(const PhysicalDevice& physicalDevice)
 	{
 		UINT dxgiFactoryFlags{ 0 };
 	#ifdef _DEBUG
@@ -213,29 +288,10 @@ namespace Dune::RHI
 		pDebugInterface->Release();
 	#endif // _DEBUG
 
-		// TODO : Allow the app to choose which GPU to use.
-		IDXGIAdapter1* pAdapter{ nullptr };
-		for (dU32 adapterIndex{ 0 }; DXGI_ERROR_NOT_FOUND != pFactory->EnumAdapters1(adapterIndex, &pAdapter); adapterIndex++)
-		{
-			DXGI_ADAPTER_DESC1 desc{};
-			pAdapter->GetDesc1(&desc);
-
-			if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) 
-			{
-				pAdapter->Release();
-				continue;
-			}
-
-			if (SUCCEEDED(D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)))
-				break;
-
-			pAdapter->Release();
-		}
-
+		IDXGIAdapter1* pAdapter{ (IDXGIAdapter1*)physicalDevice.Get() };
 		ID3D12Device* pDevice;
 		ThrowIfFailed(D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&pDevice)));
 		NameDXObject(pDevice, L"Device");
-		pAdapter->Release();
 		m_pResource = pDevice;
 
 	#ifdef _DEBUG

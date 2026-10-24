@@ -18,7 +18,7 @@ namespace Dune::Graphics
 	class GraphicsSystem
 	{
 	public:
-		void Initialize();
+		void Initialize(dU32 physicalDeviceIndex);
 		void Destroy();
 		void EndFrame();
 

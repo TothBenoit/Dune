@@ -28,6 +28,7 @@
     <ClCompile Include="src\Dune\Graphics\MeshUtils.cpp" />
     <ClCompile Include="src\Dune\Assets\Import\ModelImporter.cpp" />
     <ClCompile Include="src\Dune\Graphics\ScratchAllocator.cpp" />
+    <ClInclude Include="include\Dune\Platform\RHI\PhysicalDevice.h" />
     <ClInclude Include="include\Dune\World\World.h" />
     <ClInclude Include="include\Dune\Graphics\GraphicsSystem.h" />
     <ClInclude Include="include\Dune\Graphics\RenderScene.h" />
