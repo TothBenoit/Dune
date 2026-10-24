@@ -10,7 +10,7 @@ namespace Dune
 
 	struct ModelImage
 	{
-		FileSystem::SerializationID<EFileType::Image> source;
+		PathID<Image> source;
 	};
 
 	struct ModelMaterial
@@ -52,9 +52,9 @@ namespace Dune
 
 	struct Model
 	{
-		FileSystem::SerializationID<EFileType::Model> source;
-		dVector<ImageHandle>                          images;
-		dVector<ModelNode>                            nodes;
+		PathID<Model>        source;
+		dVector<ImageHandle> images;
+		dVector<ModelNode>   nodes;
 	};
 
 	using ModelHandle = Handle<Model>;

@@ -17,11 +17,11 @@ namespace Dune
 
 	struct Image
 	{
-		FileSystem::SerializationID<EFileType::Image> source;
-		RHI::EFormat                                  format{ RHI::EFormat::Unknown };
-		dU32                                          width{ 0 };
-		dU32                                          height{ 0 };
-		dU32                                          mipLevels{ 1 };
+		PathID<Image> source;
+		RHI::EFormat  format{ RHI::EFormat::Unknown };
+		dU32          width{ 0 };
+		dU32          height{ 0 };
+		dU32          mipLevels{ 1 };
 	};
 
 	using ImageHandle = Handle<Image>;

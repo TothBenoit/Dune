@@ -60,7 +60,7 @@ namespace Dune::Graphics
 		const RHI::VertexInput position{ .pName = "POSITION", .index = 0, .format = RHI::EFormat::R32G32B32_FLOAT, .slot = 0, .byteAlignedOffset = 0, .isPerInstance = false };
 		const RHI::VertexInput uv{ .pName = "UV", .index = 0, .format = RHI::EFormat::R32G32_FLOAT, .slot = 0, .byteAlignedOffset = 40, .isPerInstance = false };
 
-		const FileSystem::SerializationID<EFileType::Shader> shaderPath = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/DepthOnly.hlsl");
+		const PathID<RHI::Shader> shaderPath = FileSystem::Resolve<RHI::Shader>("engine://Shaders/DepthOnly.hlsl");
 		const bool isMasked = alphaMode == EAlphaMode::Mask;
 		return PipelineDesc
 		{

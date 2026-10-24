@@ -20,7 +20,7 @@ namespace Dune::Graphics
 
 	struct ShaderEntryDesc
 	{
-		FileSystem::SerializationID<EFileType::Shader> path;
+		PathID<RHI::Shader> path;
 		RHI::EShaderStage stage{ RHI::EShaderStage::Vertex };
 		EShaderVariant variantMask{ EShaderVariant::None };
 	};

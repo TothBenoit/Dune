@@ -2,19 +2,21 @@
 
 namespace Dune
 {
-	enum class EFileType
-	{
-		Image,
-		Model,
-		Shader,
-		Count
-	};
-
 	using FilePath = dString;
+
+	template<typename T>
+	struct PathID
+	{
+		[[nodiscard]] bool IsValid() const { return index != dU32(-1); }
+		[[nodiscard]] bool operator==(const PathID& other) const = default;
+		dU32 index{ dU32(-1) };
+	};
 
 	class FileSystem
 	{
 	public:
+		static constexpr dU32 kMaxPathTables = 16;
+
 		static void Initialize(const char* engineResourcePath);
 		static void Shutdown();
 		[[nodiscard]] static bool IsInitialized();
@@ -22,35 +24,37 @@ namespace Dune
 		static void AddRoot(const char* name, const char* path);
 		[[nodiscard]] static FilePath ResolvePath(const char* path);
 
-		template<EFileType type>
-		struct SerializationID
-		{
-			[[nodiscard]] bool IsValid() const { return index != dU32(-1); }
-			[[nodiscard]] bool operator==(const SerializationID& other) const = default;
-			dU32 index{ dU32(-1) };
-		};
-
-		template<EFileType type>
-		[[nodiscard]] static SerializationID<type> Resolve(const char* path)
+		template<typename T>
+		[[nodiscard]] static PathID<T> Resolve(const char* path)
 		{
 			Assert(IsInitialized());
-			return SerializationID<type>{ ResolveIndex(type, path) };
+			return PathID<T>{ ResolveIndex(GetTableIndex<T>(), path) };
 		}
 
-		template<EFileType type>
-		[[nodiscard]] static const FilePath& GetPath(SerializationID<type> id)
+		template<typename T>
+		[[nodiscard]] static const FilePath& GetPath(PathID<T> id)
 		{
-			return GetIndexPath(type, id.index);
+			return GetIndexPath(GetTableIndex<T>(), id.index);
 		}
+
 	private:
 		FileSystem() = delete;
-		[[nodiscard]] static dU32 ResolveIndex(EFileType type, const char* path);
-		[[nodiscard]] static const FilePath& GetIndexPath(EFileType type, dU32 index);
+
+		template<typename T>
+		[[nodiscard]] static dU32 GetTableIndex()
+		{
+			static const dU32 tableIndex = AllocateTable();
+			return tableIndex;
+		}
+
+		[[nodiscard]] static dU32 AllocateTable();
+		[[nodiscard]] static dU32 ResolveIndex(dU32 tableIndex, const char* path);
+		[[nodiscard]] static const FilePath& GetIndexPath(dU32 tableIndex, dU32 index);
 	};
 }
 
-template<Dune::EFileType type>
-struct std::hash<Dune::FileSystem::SerializationID<type>>
+template<typename T>
+struct std::hash<Dune::PathID<T>>
 {
-	[[nodiscard]] size_t operator()(Dune::FileSystem::SerializationID<type> id) const { return std::hash<Dune::dU32>{}(id.index); }
+	[[nodiscard]] size_t operator()(Dune::PathID<T> id) const { return std::hash<Dune::dU32>{}(id.index); }
 };

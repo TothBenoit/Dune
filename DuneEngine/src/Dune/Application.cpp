@@ -135,7 +135,7 @@ namespace Dune
 
 	ModelHandle Application::LoadModel(const char* pPath)
 	{
-		const FileSystem::SerializationID<EFileType::Model> source = FileSystem::Resolve<EFileType::Model>(pPath);
+		const PathID<Model> source = FileSystem::Resolve<Model>(pPath);
 		const ModelHandle cached = m_assetCache.AcquireModel(source);
 		if (cached.IsValid())
 			return cached;
@@ -182,10 +182,10 @@ namespace Dune
 
 	ImageHandle Application::LoadImage(const char* pPath)
 	{
-		return LoadImage(FileSystem::Resolve<EFileType::Image>(pPath));
+		return LoadImage(FileSystem::Resolve<Image>(pPath));
 	}
 
-	ImageHandle Application::LoadImage(FileSystem::SerializationID<EFileType::Image> source)
+	ImageHandle Application::LoadImage(PathID<Image> source)
 	{
 		const ImageHandle cached = m_assetCache.AcquireImage(source);
 		if (cached.IsValid())

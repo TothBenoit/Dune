@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Dune/Core/FileSystem.h"
+#include "Dune/Core/ChunkedArray.h"
+#include <mutex>
 
 namespace Dune
 {
@@ -7,8 +9,10 @@ namespace Dune
 	{
 		struct ResolveTable
 		{
+			std::mutex mutex;
 			dHashMap<FilePath, dU32> pathToIndex;
-			dVector<FilePath> indexToPath;
+			ChunkedArray<FilePath, 256> indexToPath;
+			dU32 count{ 0 };
 		};
 
 		struct Root
@@ -18,7 +22,8 @@ namespace Dune
 		};
 
 		static bool g_isInitialized{ false };
-		static ResolveTable g_tables[(dU32)EFileType::Count];
+		static ResolveTable g_tables[FileSystem::kMaxPathTables];
+		static std::atomic<dU32> g_tableCount{ 0 };
 		static dVector<Root> g_roots;
 	}
 
@@ -69,23 +74,30 @@ namespace Dune
 		return FilePath{ path };
 	}
 
-	dU32 FileSystem::ResolveIndex(EFileType type, const char* path)
+	dU32 FileSystem::AllocateTable()
+	{
+		const dU32 tableIndex = g_tableCount.fetch_add(1, std::memory_order_relaxed);
+		Assert(tableIndex < kMaxPathTables);
+		return tableIndex;
+	}
+
+	dU32 FileSystem::ResolveIndex(dU32 tableIndex, const char* path)
 	{
 		FilePath filePath = ResolvePath(path);
-		ResolveTable& table = g_tables[(dU32)type];
+		ResolveTable& table = g_tables[tableIndex];
+		std::lock_guard lock(table.mutex);
 		auto it = table.pathToIndex.find(filePath);
 		if (it != table.pathToIndex.end())
 			return it->second;
 
-		dU32 index = (dU32)table.indexToPath.size();
-		table.pathToIndex.emplace(filePath, index);
-		table.indexToPath.emplace_back(filePath);
+		const dU32 index = table.count++;
+		table.indexToPath.Resolve(index) = filePath;
+		table.pathToIndex.emplace(std::move(filePath), index);
 		return index;
 	}
 
-	const FilePath& FileSystem::GetIndexPath(EFileType type, dU32 index)
+	const FilePath& FileSystem::GetIndexPath(dU32 tableIndex, dU32 index)
 	{
-		ResolveTable& table = g_tables[(dU32)type];
-		return table.indexToPath[index];
+		return g_tables[tableIndex].indexToPath[index];
 	}
 }

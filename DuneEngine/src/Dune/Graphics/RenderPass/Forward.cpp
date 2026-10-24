@@ -29,7 +29,7 @@ namespace Dune::Graphics
 			{ .type = RHI::EBindingType::Constant, .byteSize = sizeof(MaterialIndex),  .visibility = RHI::EShaderVisibility::Pixel },
 		};
 
-		const FileSystem::SerializationID<EFileType::Shader> shaderPath = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/Forward.hlsl");
+		const PathID<RHI::Shader> shaderPath = FileSystem::Resolve<RHI::Shader>("engine://Shaders/Forward.hlsl");
 		const EAlphaMode alphaMode = Material::GetAlphaMode(key);
 		return PipelineDesc
 		{

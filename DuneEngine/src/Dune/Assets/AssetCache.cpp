@@ -21,7 +21,7 @@ namespace Dune
 		m_modelHandles.Destroy();
 	}
 
-	ModelHandle AssetCache::AcquireModel(FileSystem::SerializationID<EFileType::Model> source)
+	ModelHandle AssetCache::AcquireModel(PathID<Model> source)
 	{
 		auto it = m_modelLookup.find(source);
 		if (it == m_modelLookup.end())
@@ -57,7 +57,7 @@ namespace Dune
 		return true;
 	}
 
-	ImageHandle AssetCache::AcquireImage(FileSystem::SerializationID<EFileType::Image> source)
+	ImageHandle AssetCache::AcquireImage(PathID<Image> source)
 	{
 		auto it = m_imageLookup.find(source);
 		if (it == m_imageLookup.end())

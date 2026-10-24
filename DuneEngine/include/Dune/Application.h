@@ -87,7 +87,7 @@ namespace Dune
 			dU32 resizeEventHandle{ 0 };
 		};
 
-		[[nodiscard]] ImageHandle LoadImage(FileSystem::SerializationID<EFileType::Image> source);
+		[[nodiscard]] ImageHandle LoadImage(PathID<Image> source);
 		[[nodiscard]] View& GetView(ViewHandle view);
 
 	private:

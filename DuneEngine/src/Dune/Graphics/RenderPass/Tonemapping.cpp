@@ -60,18 +60,18 @@ namespace Dune::Graphics
 		{
 			PipelineDesc
 			{
-				.computeShader = { .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/LuminanceHistogram.hlsl"), .stage = RHI::EShaderStage::Compute },
+				.computeShader = { .path = FileSystem::Resolve<RHI::Shader>("engine://Shaders/LuminanceHistogram.hlsl"), .stage = RHI::EShaderStage::Compute },
 				.rootSignature = { .layout = kHistogramLayout },
 			},
 			PipelineDesc
 			{
-				.computeShader = { .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/LuminanceAverage.hlsl"), .stage = RHI::EShaderStage::Compute },
+				.computeShader = { .path = FileSystem::Resolve<RHI::Shader>("engine://Shaders/LuminanceAverage.hlsl"), .stage = RHI::EShaderStage::Compute },
 				.rootSignature = { .layout = kAverageLayout },
 			},
 			PipelineDesc
 			{
-				.vertexShader = { .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/FullScreenTriangle.hlsl"), .stage = RHI::EShaderStage::Vertex },
-				.pixelShader = { .path = FileSystem::Resolve<EFileType::Shader>("engine://Shaders/Tonemapping.hlsl"), .stage = RHI::EShaderStage::Pixel },
+				.vertexShader = { .path = FileSystem::Resolve<RHI::Shader>("engine://Shaders/FullScreenTriangle.hlsl"), .stage = RHI::EShaderStage::Vertex },
+				.pixelShader = { .path = FileSystem::Resolve<RHI::Shader>("engine://Shaders/Tonemapping.hlsl"), .stage = RHI::EShaderStage::Pixel },
 				.rootSignature = { .layout = kTonemapLayout },
 				.renderTargetCount = 1,
 				.renderTargetsFormat = { RHI::EFormat::R8G8B8A8_UNORM },

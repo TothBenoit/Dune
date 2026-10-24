@@ -58,7 +58,7 @@ namespace Dune::ModelImporter
 				return it->second;
 
 			const dU32 imageIndex = (dU32)context.pModel->images.size();
-			context.pModel->images.push_back({ .source = FileSystem::Resolve<EFileType::Image>(path.c_str()) });
+			context.pModel->images.push_back({ .source = FileSystem::Resolve<Image>(path.c_str()) });
 			context.imageLookup.emplace(path, imageIndex);
 			return imageIndex;
 		}
