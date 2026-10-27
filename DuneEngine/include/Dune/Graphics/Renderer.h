@@ -43,15 +43,6 @@ namespace Dune
 			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
 		};
 
-		struct ResourceEntry
-		{
-			RHI::Resource* pPhysicalResource{ nullptr };
-			dVector<RHI::EResourceState> subresourceStates;
-			RHI::EResourceState resourceState;
-			EResourceType type;
-			bool isExternal : 1;
-		};
-
 		class Renderer
 		{
 		public:
@@ -86,14 +77,7 @@ namespace Dune
 			[[nodiscard]] inline const RHI::Texture& GetDepthBuffer() const { return m_depthBuffer; }
 			[[nodiscard]] inline const RHI::Texture& GetHDRTarget() const { return m_hdrTarget; }
 
-			[[nodiscard]] ResourceHandle CreateTexture(const RHI::TextureDesc& desc);
-			[[nodiscard]] ResourceHandle CreateBuffer(const RHI::BufferDesc& desc);
-			[[nodiscard]] ResourceHandle RegisterTexture(RHI::Texture* pTexture, RHI::EResourceState initialState, dU32 subresourceCount = 1);
-			[[nodiscard]] ResourceHandle RegisterBuffer(RHI::Buffer* pBuffer, RHI::EResourceState initialState);
-			void SetPhysicalResource(ResourceHandle handle, RHI::Resource* pResource, RHI::EResourceState state);
-
-			[[nodiscard]] RHI::Texture& GetTexture(ResourceHandle handle);
-			[[nodiscard]] RHI::Buffer& GetBuffer(ResourceHandle handle);
+			[[nodiscard]] inline RenderGraph& GetRenderGraph() { return m_renderGraph; }
 
 			[[nodiscard]] inline ResourceHandle GetDepthBufferHandle() const { return m_depthBufferHandle; }
 			[[nodiscard]] inline ResourceHandle GetHDRTargetHandle() const { return m_hdrTargetHandle; }
@@ -119,7 +103,6 @@ namespace Dune
 			void WaitForFrame(const Frame& frame);
 			Frame& PrepareFrame();
 
-			void TransitionResource(const ResourceAccess& access);
 			void FlushBarriers(RHI::CommandList& commandList);
 
 		private:
@@ -151,7 +134,7 @@ namespace Dune
 			RHI::Barrier m_barrier{};
 			RHI::ImGuiContext m_imgui{};
 
-			dVector<ResourceEntry> m_resources;
+			RenderGraph m_renderGraph;
 			dVector<RenderPass> m_passes;
 			RenderPassContext m_passContext;
 		};

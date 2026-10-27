@@ -20,6 +20,7 @@
     <ClCompile Include="src\Dune\Graphics\Texture.cpp" />
     <ClCompile Include="src\Dune\Platform\Win32\FiberWin32.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass.cpp" />
+    <ClCompile Include="src\Dune\Graphics\RenderGraph.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearDepth.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearHDRTarget.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\MaterialUpload.cpp" />
@@ -56,6 +57,7 @@
     <ClInclude Include="include\Dune\Graphics\RenderPass\DepthPrepass.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Forward.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass.h" />
+    <ClInclude Include="include\Dune\Graphics\RenderGraph.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\LightUpload.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\MaterialUpload.h" />
     <ClInclude Include="include\Dune\Graphics\RenderPass\Shadow.h" />

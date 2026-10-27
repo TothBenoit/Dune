@@ -35,9 +35,9 @@ namespace Dune::Graphics
 			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->handle == kInvalidResourceHandle)
-				pData->handle = renderer.RegisterBuffer(&pData->buffer, RHI::EResourceState::Undefined);
+				pData->handle = renderer.GetRenderGraph().RegisterBuffer(&pData->buffer, RHI::EResourceState::Undefined);
 			else
-				renderer.SetPhysicalResource(pData->handle, &pData->buffer, RHI::EResourceState::Undefined);
+				renderer.GetRenderGraph().SetPhysicalResource(pData->handle, &pData->buffer, RHI::EResourceState::Undefined);
 		}
 
 		context.blackboard.Add<MaterialOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv) });

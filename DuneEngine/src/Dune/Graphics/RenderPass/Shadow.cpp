@@ -158,18 +158,18 @@ namespace Dune::Graphics
 			if (light.IsPoint())
 			{
 				if (pData->cubeShadowHandles.size() <= cubeShadowIndex)
-					pData->cubeShadowHandles.push_back(renderer.CreateTexture(kCubeShadowMapDesc));
+					pData->cubeShadowHandles.push_back(renderer.GetRenderGraph().CreateTexture(kCubeShadowMapDesc));
 				ResourceHandle handle = pData->cubeShadowHandles[cubeShadowIndex++];
-				RHI::Texture& shadowMap = renderer.GetTexture(handle);
+				RHI::Texture& shadowMap = renderer.GetRenderGraph().GetTexture(handle);
 				device.CreateSRV(srv, shadowMap, { .format = RHI::EFormat::R32_FLOAT, .dimension = RHI::ESRVDimension::TextureCube });
 				pData->activeHandles.push_back(handle);
 			}
 			else
 			{
 				if (pData->shadowHandles.size() <= shadowIndex)
-					pData->shadowHandles.push_back(renderer.CreateTexture(kShadowMapDesc));
+					pData->shadowHandles.push_back(renderer.GetRenderGraph().CreateTexture(kShadowMapDesc));
 				ResourceHandle handle = pData->shadowHandles[shadowIndex++];
-				RHI::Texture& shadowMap = renderer.GetTexture(handle);
+				RHI::Texture& shadowMap = renderer.GetRenderGraph().GetTexture(handle);
 				device.CreateSRV(srv, shadowMap, { .format = RHI::EFormat::R32_FLOAT });
 				pData->activeHandles.push_back(handle);
 			}
@@ -196,9 +196,9 @@ namespace Dune::Graphics
 			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, context.GetGPUDescriptor(frame, pData->matricesSRV).cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (pData->matricesHandle == kInvalidResourceHandle)
-				pData->matricesHandle = renderer.RegisterBuffer(&pData->matricesBuffer, RHI::EResourceState::Undefined);
+				pData->matricesHandle = renderer.GetRenderGraph().RegisterBuffer(&pData->matricesBuffer, RHI::EResourceState::Undefined);
 			else
-				renderer.SetPhysicalResource(pData->matricesHandle, &pData->matricesBuffer, RHI::EResourceState::Undefined);
+				renderer.GetRenderGraph().SetPhysicalResource(pData->matricesHandle, &pData->matricesBuffer, RHI::EResourceState::Undefined);
 		}
 
 		builder.Write(pData->matricesHandle, RHI::EResourceState::CopyDest);
@@ -225,7 +225,7 @@ namespace Dune::Graphics
 				for (dU32 casterIndex = 0; casterIndex < shadowCasters.GetSize(); casterIndex++)
 				{
 					const LightData& light = lights[shadowCasters[casterIndex]];
-					RHI::Texture& shadowMap = renderer.GetTexture(pData->activeHandles[casterIndex]);
+					RHI::Texture& shadowMap = renderer.GetRenderGraph().GetTexture(pData->activeHandles[casterIndex]);
 					const dMatrix4x4& lightMatrix = visibleSet.shadowMatrices[casterIndex];
 
 					RHI::Descriptor dsv = dsvHeap.Allocate();
