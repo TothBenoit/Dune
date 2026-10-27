@@ -34,6 +34,9 @@ namespace Dune::RHI
 	class DescriptorHeap : public Resource
 	{
 	public:
+		void Initialize(Device& device, const DescriptorHeapDesc& desc);
+		void Destroy();
+
 		[[nodiscard]] inline dU32 GetCapacity() const { return m_capacity; }
 		[[nodiscard]] inline dU32 GetIndex(Descriptor descriptor) const { return dU32(descriptor.cpuAddress - m_cpuAddress) / m_descriptorSize; }
 		[[nodiscard]] inline dU64 GetCPUAddress() const { return m_cpuAddress; }
@@ -46,32 +49,5 @@ namespace Dune::RHI
 		dU64 m_gpuAddress{ 0 };
 		dU32 m_descriptorSize{ 0 };
 		dU32 m_capacity{ 0 };
-	};
-
-	// TODO : Move specialized heap outside RHI
-	class ScratchDescriptorHeap : public DescriptorHeap
-	{
-	public:
-		void Initialize(Device& device, const DescriptorHeapDesc& desc);
-		void Destroy();
-
-		Descriptor Allocate(dU32 count);
-		inline void Reset() { m_count = 0; }
-
-	private:
-		dU32 m_count;
-	};
-
-	class BlockDescriptorHeap : public DescriptorHeap
-	{
-	public:
-		void Initialize(Device& device, const DescriptorHeapDesc& desc);
-		void Destroy();
-
-		[[nodiscard]] Descriptor Allocate();
-		void Free(Descriptor handle);
-
-	private:
-		dVector<dU32> m_freeSlots{};
 	};
 }

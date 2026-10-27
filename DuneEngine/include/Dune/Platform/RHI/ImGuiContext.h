@@ -2,6 +2,7 @@
 
 #include "Dune/Platform/RHI/Format.h"
 #include "Dune/Platform/RHI/DescriptorHeap.h"
+#include "Dune/Core/BlockAllocator.h"
 
 struct ImGuiContext;
 
@@ -60,7 +61,8 @@ namespace Dune::RHI
 	private:
 		::ImGuiContext* m_pContext{ nullptr };
 		Window* m_pWindow{ nullptr };
-		BlockDescriptorHeap m_srvHeap{};
+		DescriptorHeap m_srvHeap{};
+		BlockAllocator m_srvAllocator{};
 		dU32 m_hookHandle{ 0 };
 		dString m_layoutPath;
 	};

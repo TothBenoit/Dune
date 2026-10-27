@@ -877,50 +877,7 @@ namespace Dune::RHI
 		return { .cpuAddress = m_cpuAddress + offset, .gpuAddress = m_gpuAddress > 0 ? m_gpuAddress + offset : 0 };
 	}
 
-	void ScratchDescriptorHeap::Initialize(Device& device, const DescriptorHeapDesc& desc)
-	{
-		Assert(!Get());
-		Assert(desc.capacity != 0);
-		m_capacity = desc.capacity;
-
-		ID3D12Device* pDevice{ ToDevice(device.Get()) };
-
-		D3D12_DESCRIPTOR_HEAP_FLAGS flags{};
-		flags = (desc.type == EDescriptorHeapType::RTV || desc.type == EDescriptorHeapType::DSV || !desc.isShaderVisible ) ? D3D12_DESCRIPTOR_HEAP_FLAG_NONE : D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-		D3D12_DESCRIPTOR_HEAP_TYPE heapType = (D3D12_DESCRIPTOR_HEAP_TYPE) desc.type;
-
-		D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
-		descriptorHeapDesc.NumDescriptors = m_capacity;
-		descriptorHeapDesc.Type = heapType;
-		descriptorHeapDesc.Flags = flags;
-		descriptorHeapDesc.NodeMask = 0;
-		ID3D12DescriptorHeap* pHeap{ nullptr };
-		ThrowIfFailed(pDevice->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&pHeap)));
-		NameDXObject(pHeap, L"ScratchDescriptorHeap");
-		m_pResource = pHeap;
-
-		m_cpuAddress = pHeap->GetCPUDescriptorHandleForHeapStart().ptr;
-		m_gpuAddress = (desc.isShaderVisible) ? pHeap->GetGPUDescriptorHandleForHeapStart().ptr : 0;
-		m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(heapType);
-	}
-
-	void ScratchDescriptorHeap::Destroy()
-	{
-		ToDescriptorHeap(Get())->Release();
-		m_capacity = 0;
-	}
-
-	Descriptor ScratchDescriptorHeap::Allocate(dU32 count)
-	{
-		Assert(count > 0);
-		Assert(m_count + count <= m_capacity);
-		dU32 offset = m_count * m_descriptorSize;
-		m_count += count;
-		return { .cpuAddress = m_cpuAddress + offset, .gpuAddress = m_gpuAddress > 0 ? m_gpuAddress + offset : 0 };
-	}
-
-	void BlockDescriptorHeap::Initialize(Device& device, const DescriptorHeapDesc& desc)
+	void DescriptorHeap::Initialize(Device& device, const DescriptorHeapDesc& desc)
 	{
 		Assert(!Get());
 		Assert(desc.capacity != 0);
@@ -940,47 +897,19 @@ namespace Dune::RHI
 		descriptorHeapDesc.NodeMask = 0;
 		ID3D12DescriptorHeap* pHeap{ nullptr };
 		ThrowIfFailed(pDevice->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&pHeap)));
-		NameDXObject(pHeap, L"BlockDescriptorHeap");
+		NameDXObject(pHeap, L"DescriptorHeap");
 		m_pResource = pHeap;
 
 		m_cpuAddress = pHeap->GetCPUDescriptorHandleForHeapStart().ptr;
 		m_gpuAddress = (desc.isShaderVisible) ? pHeap->GetGPUDescriptorHandleForHeapStart().ptr : 0;
 		m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(heapType);
-
-		m_freeSlots.reserve(m_capacity);
-		for (dU32 i = 0; i < m_capacity; i++)
-			m_freeSlots.push_back(i);
 	}
 
-	void BlockDescriptorHeap::Destroy()
+	void DescriptorHeap::Destroy()
 	{
-		Assert(m_freeSlots.size() == m_capacity);
 		ToDescriptorHeap(Get())->Release();
+		m_pResource = nullptr;
 		m_capacity = 0;
-		m_freeSlots.clear();
-	}
-
-	Descriptor BlockDescriptorHeap::Allocate()
-	{
-		Descriptor handle{};
-		dU32 slot;
-
-		Assert(!m_freeSlots.empty());
-		slot = m_freeSlots.back();
-		m_freeSlots.pop_back();
-
-		handle.cpuAddress = m_cpuAddress + m_descriptorSize * (dU64)slot;
-		handle.gpuAddress = (m_gpuAddress > 0 ) ? m_gpuAddress + m_descriptorSize * (dU64)slot : 0;
-
-		return handle;
-	}
-
-	void BlockDescriptorHeap::Free(Descriptor handle)
-	{
-		Assert(handle.IsValid());
-		dU32 slot{ (dU32)((handle.cpuAddress - m_cpuAddress) / m_descriptorSize) };
-		Assert(std::find(m_freeSlots.begin(), m_freeSlots.end(), slot) == m_freeSlots.end());
-		m_freeSlots.push_back(slot);
 	}
 
 	void Swapchain::Initialize(Device& device, Window* pWindow, CommandQueue* pCommandQueue, const SwapchainDesc& desc)
@@ -1834,6 +1763,7 @@ namespace Dune::RHI
 		Assert(desc.pWindow && desc.pDevice && desc.pCommandQueue);
 		m_pWindow = desc.pWindow;
 		m_srvHeap.Initialize(*desc.pDevice, { .type = EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSRVCapacity, .isShaderVisible = true });
+		m_srvAllocator.Initialize(kSRVCapacity);
 		m_hookHandle = m_pWindow->RegisterHook(this, &ImGuiWindowHook, priority);
 		Lock();
 		IMGUI_CHECKVERSION();
@@ -1851,17 +1781,20 @@ namespace Dune::RHI
 		init_info.RTVFormat = (DXGI_FORMAT)desc.renderTargetFormat;
 		init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
 		init_info.SrvDescriptorHeap = ToDescriptorHeap(m_srvHeap.Get());
-		init_info.UserData = &m_srvHeap;
+		init_info.UserData = this;
 		init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle)
 			{
-				Descriptor descriptor{ ((BlockDescriptorHeap*)info->UserData)->Allocate() };
+				ImGuiContext& context = *(ImGuiContext*)info->UserData;
+				const dU32 slot = context.m_srvAllocator.Allocate();
+				Assert(slot != BlockAllocator::kInvalidOffset);
+				Descriptor descriptor{ context.m_srvHeap.GetDescriptorAt(slot) };
 				*out_cpu_handle = { descriptor.cpuAddress };
 				*out_gpu_handle = { descriptor.gpuAddress };
 			};
 		init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)
 			{
-				Descriptor descriptor{ cpu_handle.ptr, gpu_handle.ptr };
-				((BlockDescriptorHeap*)info->UserData)->Free(descriptor);
+				ImGuiContext& context = *(ImGuiContext*)info->UserData;
+				context.m_srvAllocator.Free(context.m_srvHeap.GetIndex({ cpu_handle.ptr, gpu_handle.ptr }));
 			};
 		ImGui_ImplDX12_Init(&init_info);
 		Unlock();
@@ -1901,6 +1834,7 @@ namespace Dune::RHI
 		ImGui::DestroyContext();
 		Unlock();
 		m_pWindow->UnregisterHook(m_hookHandle);
+		m_srvAllocator.Destroy();
 		m_srvHeap.Destroy();
 		m_pContext = nullptr;
 		m_layoutPath.clear();

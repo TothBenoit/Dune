@@ -10,7 +10,7 @@ namespace Dune::Graphics
 	MaterialUploadData* MaterialUpload::Create(Renderer& renderer)
 	{
 		MaterialUploadData* pData = new MaterialUploadData();
-		pData->srv = renderer.GetSRVHeap().Allocate();
+		pData->srv = renderer.GetSRVAllocator().Allocate();
 		return pData;
 	}
 
@@ -58,7 +58,7 @@ namespace Dune::Graphics
 
 	void MaterialUpload::Destroy(Renderer& renderer, MaterialUploadData* pData)
 	{
-		renderer.GetSRVHeap().Free(pData->srv);
+		renderer.GetSRVAllocator().Free(pData->srv);
 		if (pData->buffer.Get())
 			pData->buffer.Destroy();
 		delete pData;

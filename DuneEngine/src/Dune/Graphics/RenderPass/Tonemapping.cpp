@@ -14,7 +14,7 @@ namespace Dune::Graphics
 	TonemappingData* Tonemapping::Create(Renderer& renderer)
 	{
 		RHI::Device& device = *renderer.GetDevice();
-		RHI::BlockDescriptorHeap& srvHeap = renderer.GetSRVHeap();
+		BlockDescriptorAllocator& srvHeap = renderer.GetSRVAllocator();
 
 		TonemappingData* pData = new TonemappingData();
 
@@ -82,7 +82,7 @@ namespace Dune::Graphics
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
 				RHI::CommandList& commandList = frame.commandList;
-				RHI::Descriptor histogramUAV = frame.srvHeap.Allocate(1);
+				RHI::Descriptor histogramUAV = frame.srvAllocator.Allocate(1);
 				RHI::Device& device = *renderer.GetDevice();
 				const dUVec2 resolution = renderer.GetResolution();
 				RHI::Barrier& barrier = renderer.GetBarrier();
@@ -151,7 +151,7 @@ namespace Dune::Graphics
 
 	void Tonemapping::Destroy(Renderer& renderer, TonemappingData* pData)
 	{
-		RHI::BlockDescriptorHeap& srvHeap = renderer.GetSRVHeap();
+		BlockDescriptorAllocator& srvHeap = renderer.GetSRVAllocator();
 		srvHeap.Free(pData->histogramUAV);
 		pData->histogramBuffer.Destroy();
 		pData->luminanceBuffer.Destroy();

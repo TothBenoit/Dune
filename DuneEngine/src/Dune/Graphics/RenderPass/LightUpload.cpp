@@ -12,7 +12,7 @@ namespace Dune::Graphics
 	LightUploadData* LightUpload::Create(Renderer& renderer)
 	{
 		LightUploadData* pData = new LightUploadData();
-		pData->srv = renderer.GetSRVHeap().Allocate();
+		pData->srv = renderer.GetSRVAllocator().Allocate();
 		return pData;
 	}
 
@@ -63,7 +63,7 @@ namespace Dune::Graphics
 
 	void LightUpload::Destroy(Renderer& renderer, LightUploadData* pData)
 	{
-		renderer.GetSRVHeap().Free(pData->srv);
+		renderer.GetSRVAllocator().Free(pData->srv);
 		if (pData->buffer.Get())
 			pData->buffer.Destroy();
 		delete pData;

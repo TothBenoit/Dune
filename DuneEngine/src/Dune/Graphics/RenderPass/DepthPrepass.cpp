@@ -66,7 +66,6 @@ namespace Dune::Graphics
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
 				RHI::CommandList& commandList = frame.commandList;
-				RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
 				RHI::Device& device = *renderer.GetDevice();
 				const dUVec2 resolution = renderer.GetResolution();
 

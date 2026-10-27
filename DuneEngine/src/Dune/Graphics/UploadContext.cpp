@@ -20,7 +20,8 @@ namespace Dune::Graphics
 			batch.stagingBuffer.Initialize(device, { .debugName = L"UploadStaging", .memory = RHI::EBufferMemory::CPU, .byteSize = (dU32)desc.stagingByteSize });
 			void* pCpuAddress{ nullptr };
 			batch.stagingBuffer.Map(0, 0, &pCpuAddress);
-			batch.staging.Initialize(batch.stagingBuffer, pCpuAddress, desc.stagingByteSize);
+			batch.pStagingAddress = (dU8*)pCpuAddress;
+			batch.staging.Initialize(desc.stagingByteSize);
 		}
 	}
 
@@ -62,9 +63,9 @@ namespace Dune::Graphics
 	RHI::StagingMemory UploadContext::AllocateStaging(dU64 byteSize, dU64 alignment)
 	{
 		Batch& batch = PrepareBatch();
-		const RHI::StagingMemory staging = batch.staging.Allocate(byteSize, alignment);
-		if (staging.IsValid())
-			return staging;
+		const dU64 offset = batch.staging.Allocate(byteSize, alignment);
+		if (offset != ScratchAllocator::kInvalidOffset)
+			return { .buffer = batch.stagingBuffer, .offset = offset, .pCpuAddress = batch.pStagingAddress + offset };
 
 		RHI::Buffer& buffer = batch.buffersToRelease.emplace_back();
 		buffer.Initialize(*m_pDevice, { .debugName = L"UploadStagingFallback", .memory = RHI::EBufferMemory::CPU, .byteSize = (dU32)byteSize });

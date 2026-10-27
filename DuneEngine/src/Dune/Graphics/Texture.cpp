@@ -5,7 +5,7 @@
 
 namespace Dune::Graphics
 {
-	void Texture::Initialize(RHI::Device& device, RHI::BlockDescriptorHeap& srvHeap, const TextureDesc& desc)
+	void Texture::Initialize(RHI::Device& device, BlockDescriptorAllocator& srvHeap, const TextureDesc& desc)
 	{
 		m_format = desc.format;
 		m_mipLevels = desc.mipLevels;
@@ -22,7 +22,7 @@ namespace Dune::Graphics
 		m_srgbView = {};
 	}
 
-	void Texture::Destroy(RHI::BlockDescriptorHeap& srvHeap)
+	void Texture::Destroy(BlockDescriptorAllocator& srvHeap)
 	{
 		m_texture.Destroy();
 		if (m_srgbView.IsValid() && m_srgbView.cpuAddress != m_view.cpuAddress)
@@ -43,7 +43,7 @@ namespace Dune::Graphics
 		commandList.Transition(m_texture, RHI::EResourceState::CopyDest, RHI::EResourceState::ShaderResource);
 	}
 
-	RHI::Descriptor Texture::ResolveSRGBView(RHI::Device& device, RHI::BlockDescriptorHeap& srvHeap)
+	RHI::Descriptor Texture::ResolveSRGBView(RHI::Device& device, BlockDescriptorAllocator& srvHeap)
 	{
 		if (m_srgbView.IsValid())
 			return m_srgbView;

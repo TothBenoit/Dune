@@ -8,7 +8,8 @@
 #include <Dune/Platform/RHI/Fence.h>
 #include <Dune/Platform/RHI/Swapchain.h>
 #include <Dune/Platform/RHI/Texture.h>
-#include <Dune/Graphics/ScratchAllocator.h>
+#include <Dune/Core/ScratchAllocator.h>
+#include <Dune/Graphics/DescriptorAllocator.h>
 #include <Dune/Platform/RHI/ImGuiContext.h>
 
 namespace Dune::RHI
@@ -35,9 +36,11 @@ namespace Dune
 			RHI::CommandAllocator commandAllocator;
 			RHI::CommandList commandList;
 			RHI::Descriptor backBufferRTV;
-			RHI::ScratchDescriptorHeap srvHeap;
-			RHI::ScratchDescriptorHeap samplerHeap;
+			RHI::DescriptorHeap srvHeap;
+			ScratchDescriptorAllocator srvAllocator;
+			RHI::DescriptorHeap samplerHeap;
 			RHI::Buffer uploadBuffer;
+			dU8* pUploadAddress{ nullptr };
 			ScratchAllocator staging;
 			dVector<RHI::Buffer> buffersToRelease;
 			RGTexture backBufferHandle;
@@ -68,9 +71,10 @@ namespace Dune
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
 			[[nodiscard]] inline RHI::Barrier& GetBarrier() { return m_barrier; }
-			[[nodiscard]] inline RHI::BlockDescriptorHeap& GetSRVHeap() { return m_srvHeap; }
-			[[nodiscard]] inline RHI::BlockDescriptorHeap& GetRTVHeap() { return m_rtvHeap; }
-			[[nodiscard]] inline RHI::BlockDescriptorHeap& GetDSVHeap() { return m_dsvHeap; }
+			[[nodiscard]] inline RHI::DescriptorHeap& GetSRVHeap() { return m_srvHeap; }
+			[[nodiscard]] inline BlockDescriptorAllocator& GetSRVAllocator() { return m_srvAllocator; }
+			[[nodiscard]] inline BlockDescriptorAllocator& GetRTVAllocator() { return m_rtvAllocator; }
+			[[nodiscard]] inline BlockDescriptorAllocator& GetDSVAllocator() { return m_dsvAllocator; }
 			[[nodiscard]] inline const RHI::Descriptor& GetDepthBufferDSV() const { return m_depthBufferDSV; }
 			[[nodiscard]] inline const RHI::Descriptor& GetHDRTargetRTV() const { return m_hdrTargetRTV; }
 			[[nodiscard]] inline const RHI::Descriptor& GetHDRTargetSRV() const { return m_hdrTargetSRV; }
@@ -115,9 +119,12 @@ namespace Dune
 			RHI::Texture m_depthBuffer{};
 			RHI::CommandQueue* m_pCommandQueue{ nullptr };
 
-			RHI::BlockDescriptorHeap m_srvHeap{};
-			RHI::BlockDescriptorHeap m_rtvHeap{};
-			RHI::BlockDescriptorHeap m_dsvHeap{};
+			RHI::DescriptorHeap m_srvHeap{};
+			RHI::DescriptorHeap m_rtvHeap{};
+			RHI::DescriptorHeap m_dsvHeap{};
+			BlockDescriptorAllocator m_srvAllocator{};
+			BlockDescriptorAllocator m_rtvAllocator{};
+			BlockDescriptorAllocator m_dsvAllocator{};
 
 			RHI::Descriptor m_depthBufferDSV;
 			RGTexture m_depthBufferHandle;

@@ -79,6 +79,7 @@ namespace Dune::Graphics
 		m_materialSets.Initialize(resourceCache.materialSets);
 		m_meshes.Initialize(resourceCache.meshes);
 		m_srvHeap.Initialize(device, { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
+		m_srvAllocator.Initialize(m_srvHeap, 0, kSharedSRVCapacity);
 	}
 
 	void ResourceManager::Destroy()
@@ -90,6 +91,7 @@ namespace Dune::Graphics
 			if (m_meshes.IsAliveAt(i))
 				Destroy(m_meshes.GetHandleAt(i));
 
+		m_srvAllocator.Destroy();
 		m_srvHeap.Destroy();
 		m_pDevice = nullptr;
 	}
@@ -97,14 +99,14 @@ namespace Dune::Graphics
 	void ResourceManager::CreateTexture(TextureHandle handle, const TextureData& data)
 	{
 		Texture texture{};
-		texture.Initialize(*m_pDevice, m_srvHeap, { .format = data.format, .width = data.width, .height = data.height, .mipLevels = data.mipLevels });
+		texture.Initialize(*m_pDevice, m_srvAllocator, { .format = data.format, .width = data.width, .height = data.height, .mipLevels = data.mipLevels });
 		m_textures.Insert(handle, std::move(texture));
 	}
 
 	void ResourceManager::CreateTexture(TextureHandle handle, const ImageData& image)
 	{
 		Texture texture{};
-		texture.Initialize(*m_pDevice, m_srvHeap, { .format = image.format, .width = image.width, .height = image.height, .mipLevels = image.mipLevels });
+		texture.Initialize(*m_pDevice, m_srvAllocator, { .format = image.format, .width = image.width, .height = image.height, .mipLevels = image.mipLevels });
 		m_textures.Insert(handle, std::move(texture));
 	}
 
@@ -119,7 +121,7 @@ namespace Dune::Graphics
 	{
 		if (!handle.IsValid())
 			return dU32(-1);
-		return m_srvHeap.GetIndex(m_textures.Get(handle).ResolveSRGBView(*m_pDevice, m_srvHeap));
+		return m_srvHeap.GetIndex(m_textures.Get(handle).ResolveSRGBView(*m_pDevice, m_srvAllocator));
 	}
 
 	void ResourceManager::CreateMaterial(MaterialHandle handle, const MaterialDesc& desc)
@@ -276,7 +278,7 @@ namespace Dune::Graphics
 
 	void ResourceManager::Destroy(TextureHandle handle)
 	{
-		m_textures.Remove(handle).Destroy(m_srvHeap);
+		m_textures.Remove(handle).Destroy(m_srvAllocator);
 	}
 
 	void ResourceManager::Destroy(MaterialHandle handle)

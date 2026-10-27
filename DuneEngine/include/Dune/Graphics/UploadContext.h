@@ -4,7 +4,7 @@
 #include "Dune/Platform/RHI/CommandList.h"
 #include "Dune/Platform/RHI/Fence.h"
 #include "Dune/Platform/RHI/StagingMemory.h"
-#include "Dune/Graphics/ScratchAllocator.h"
+#include "Dune/Core/ScratchAllocator.h"
 
 namespace Dune::RHI
 {
@@ -35,6 +35,7 @@ namespace Dune::Graphics
 			RHI::CommandAllocator commandAllocator;
 			RHI::CommandList commandList;
 			RHI::Buffer stagingBuffer;
+			dU8* pStagingAddress{ nullptr };
 			ScratchAllocator staging;
 			dVector<RHI::Buffer> buffersToRelease;
 			dU64 fenceValue{ 0 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Dune/Platform/RHI/DescriptorHeap.h"
+#include "Dune/Graphics/DescriptorAllocator.h"
 #include "Dune/Core/HandleTypes.h"
 #include "Dune/Platform/RHI/StagingMemory.h"
 #include "Dune/Graphics/Mesh.h"
@@ -82,7 +82,7 @@ namespace Dune::Graphics
 		[[nodiscard]] const MaterialSet& GetMaterialSet(MaterialSetHandle handle) const { return m_materialSets.Get(handle); }
 		[[nodiscard]] const ResourcePool<Mesh>& GetMeshes() const { return m_meshes; }
 		[[nodiscard]] const ResourcePool<Material>& GetMaterials() const { return m_materials; }
-		[[nodiscard]] const RHI::BlockDescriptorHeap& GetSRVHeap() const { return m_srvHeap; }
+		[[nodiscard]] const RHI::DescriptorHeap& GetSRVHeap() const { return m_srvHeap; }
 
 	private:
 		void CreateMesh(MeshHandle handle, const MeshDesc& desc);
@@ -97,6 +97,7 @@ namespace Dune::Graphics
 		ResourcePool<Material>              m_materials;
 		ResourcePool<MaterialSet>           m_materialSets;
 		ResourcePool<Mesh>                  m_meshes;
-		RHI::BlockDescriptorHeap            m_srvHeap;
+		RHI::DescriptorHeap                 m_srvHeap;
+		BlockDescriptorAllocator            m_srvAllocator;
 	};
 }

@@ -43,7 +43,7 @@
     <ClInclude Include="include\Dune\Platform\RHI\StagingMemory.h">
       <Filter>Dune\Platform\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Graphics\ScratchAllocator.h">
+    <ClInclude Include="include\Dune\Graphics\DescriptorAllocator.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Platform\Types.h">
@@ -230,6 +230,12 @@
     <ClInclude Include="include\Dune\Core\HandleAllocator.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\BlockAllocator.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Dune\Core\ScratchAllocator.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderPass\MaterialUpload.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClInclude>
@@ -357,9 +363,6 @@
     </ClCompile>
     <ClCompile Include="src\Dune\Assets\Import\ModelImporter.cpp">
       <Filter>Dune\Assets\Import</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Dune\Graphics\ScratchAllocator.cpp">
-      <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\RenderPass\ClearDepth.cpp">
       <Filter>Dune\Graphics\RenderPass</Filter>

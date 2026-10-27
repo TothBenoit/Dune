@@ -37,7 +37,7 @@ namespace Dune::Graphics
 	ShadowData* Shadow::Create(Renderer& renderer)
 	{
 		ShadowData* pData = new ShadowData();
-		pData->matricesSRV = renderer.GetSRVHeap().Allocate();
+		pData->matricesSRV = renderer.GetSRVAllocator().Allocate();
 		return pData;
 	}
 
@@ -83,7 +83,6 @@ namespace Dune::Graphics
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
 		RHI::CommandList& commandList = frame.commandList;
-		RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
 		RHI::Device& device = *renderer.GetDevice();
 
 		commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
@@ -145,9 +144,9 @@ namespace Dune::Graphics
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
 		RHI::Device& device = *renderer.GetDevice();
-		RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
+		RHI::DescriptorHeap& srvHeap = frame.srvHeap;
 		dU32 shadowCount = shadowCasters.GetSize();
-		dU32 shadowStartIndex = srvHeap.GetIndex(srvHeap.Allocate(shadowCount));
+		dU32 shadowStartIndex = srvHeap.GetIndex(frame.srvAllocator.Allocate(shadowCount));
 
 		dU32 cubeShadowIndex{ 0 };
 		dU32 shadowIndex{ 0 };
@@ -211,7 +210,7 @@ namespace Dune::Graphics
 				Frame& frame = renderer.GetCurrentFrame();
 				RHI::CommandList& commandList = frame.commandList;
 				RHI::Device& device = *renderer.GetDevice();
-				RHI::BlockDescriptorHeap& dsvHeap = renderer.GetDSVHeap();
+				BlockDescriptorAllocator& dsvHeap = renderer.GetDSVAllocator();
 
 				const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
 				const dSpan<const dU32> shadowCasters = visibleSet.shadowCasters;
@@ -273,7 +272,7 @@ namespace Dune::Graphics
 
 	void Shadow::Destroy(Renderer& renderer, ShadowData* pData)
 	{
-		renderer.GetSRVHeap().Free(pData->matricesSRV);
+		renderer.GetSRVAllocator().Free(pData->matricesSRV);
 		if (pData->matricesBuffer.Get())
 			pData->matricesBuffer.Destroy();
 		delete pData;
