@@ -20,7 +20,6 @@ namespace Dune::Graphics
 	public:
 		static MaterialUploadData* Create(Renderer& renderer);
 		static void                Setup(RenderGraphBuilder& builder, RenderPassContext& context, MaterialUploadData* pData);
-		static void                Execute(RenderPassContext& context, MaterialUploadData* pData);
 		static void                Destroy(Renderer& renderer, MaterialUploadData* pData);
 	private:
 		MaterialUpload() = delete;

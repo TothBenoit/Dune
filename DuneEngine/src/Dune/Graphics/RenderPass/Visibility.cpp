@@ -94,10 +94,6 @@ namespace Dune::Graphics
 			});
 	}
 
-	void Visibility::Execute(RenderPassContext&, VisibilityData*)
-	{
-	}
-
 	void Visibility::Destroy(Renderer&, VisibilityData* pData)
 	{
 		delete pData;

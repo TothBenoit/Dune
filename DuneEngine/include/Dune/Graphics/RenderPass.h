@@ -117,10 +117,13 @@ namespace Dune
 		class RenderGraphBuilder
 		{
 		public:
+			static constexpr dU32 kExecuteCapacity = 64;
+
 			void Reset() 
 			{ 
 				m_reads.clear(); 
 				m_writes.clear(); 
+				m_pExecute = nullptr;
 			}
 
 			void Read(ResourceHandle handle, RHI::EResourceState state, dU32 subresource = RHI::kAllSubresources)
@@ -135,6 +138,20 @@ namespace Dune
 				m_writes.push_back({ .handle = handle, .subresource = subresource, .state = state });
 			}
 
+			template<typename F>
+			void OnExecute(F&& execute)
+			{
+				using Fn = std::decay_t<F>;
+				static_assert(std::is_trivially_copyable_v<Fn>);
+				static_assert(sizeof(Fn) <= kExecuteCapacity && alignof(Fn) <= 16);
+				Assert(!m_pExecute);
+				new (m_execute) Fn(std::forward<F>(execute));
+				m_pExecute = [](const void* pClosure, RenderPassContext& context) { (*static_cast<const Fn*>(pClosure))(context); };
+			}
+
+			[[nodiscard]] bool HasExecute() const { return m_pExecute != nullptr; }
+			void Execute(RenderPassContext& context) const { m_pExecute(m_execute, context); }
+
 			[[nodiscard]] const dVector<ResourceAccess>& GetReads() const { return m_reads; }
 			[[nodiscard]] const dVector<ResourceAccess>& GetWrites() const { return m_writes; }
 			[[nodiscard]] bool IsEmpty() const { return m_reads.empty() && m_writes.empty(); }
@@ -142,12 +159,13 @@ namespace Dune
 		private:
 			dVector<ResourceAccess> m_reads;
 			dVector<ResourceAccess> m_writes;
+			alignas(16) dU8 m_execute[kExecuteCapacity];
+			void (*m_pExecute)(const void*, RenderPassContext&){ nullptr };
 		};
 
 		struct RenderPass
 		{
 			void (*pSetup)(RenderGraphBuilder&, RenderPassContext&, void*);
-			void (*pExecute)(RenderPassContext&, void*);
 			void (*pShutdown)(Renderer&, void*);
 			bool (*pIsPassMaterial)(MaterialKey){ nullptr };
 			PipelineDesc (*pGetPipelineDesc)(MaterialKey){ nullptr };
@@ -168,7 +186,6 @@ namespace Dune
 			using PassData = decltype(pPassData);
 			RenderPass pass{};
 			pass.pSetup = [](RenderGraphBuilder& builder, RenderPassContext& context, void* pData) { T::Setup(builder, context, static_cast<PassData>(pData)); };
-			pass.pExecute = [](RenderPassContext& context, void* pData) { T::Execute(context, static_cast<PassData>(pData)); };
 			pass.pShutdown = [](Renderer& renderer, void* pData) { T::Destroy(renderer, static_cast<PassData>(pData)); };
 			if constexpr (requires { T::IsPassMaterial(MaterialKey{}); })
 				pass.pIsPassMaterial = &T::IsPassMaterial;

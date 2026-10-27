@@ -440,6 +440,7 @@ namespace Dune::Graphics
 			pass.builder.Reset();
 			m_passContext.pPass = &pass;
 			pass.pSetup(pass.builder, m_passContext, pass.pData);
+			Assert(pass.builder.HasExecute() || pass.builder.IsEmpty());
 		}
 
 #ifdef _DEBUG
@@ -455,7 +456,7 @@ namespace Dune::Graphics
 
 		for (RenderPass& pass : m_passes)
 		{
-			if (pass.builder.IsEmpty())
+			if (!pass.builder.HasExecute())
 				continue;
 
 			for (const ResourceAccess& access : pass.builder.GetReads())
@@ -465,7 +466,7 @@ namespace Dune::Graphics
 			FlushBarriers(frame.commandList);
 
 			m_passContext.pPass = &pass;
-			pass.pExecute(m_passContext, pass.pData);
+			pass.builder.Execute(m_passContext);
 		}
 
 		if (HasImGui())

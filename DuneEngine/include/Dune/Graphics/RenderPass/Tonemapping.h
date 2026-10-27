@@ -32,7 +32,6 @@ namespace Dune::Graphics
 		static TonemappingData*      Create(Renderer& renderer);
 		static dVector<PipelineDesc> GetPipelineDescs();
 		static void                  Setup(RenderGraphBuilder& builder, RenderPassContext& context, TonemappingData* pData);
-		static void                  Execute(RenderPassContext& context, TonemappingData* pData);
 		static void                  Destroy(Renderer& renderer, TonemappingData* pData);
 	private:
 		Tonemapping() = delete;

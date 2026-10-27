@@ -29,7 +29,6 @@ namespace Dune::Graphics
 		static bool         IsPassMaterial(MaterialKey key);
 		static PipelineDesc GetPipelineDesc(MaterialKey key);
 		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData);
-		static void         Execute(RenderPassContext& context, ShadowData* pData);
 		static void         Destroy(Renderer& renderer, ShadowData* pData);
 	private:
 		Shadow() = delete;

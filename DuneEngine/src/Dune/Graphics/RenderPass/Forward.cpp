@@ -77,72 +77,72 @@ namespace Dune::Graphics
 		const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
 		if (pLightOutputs)
 			builder.Read(pLightOutputs->buffer, RHI::EResourceState::ShaderResource);
-	}
 
-	void Forward::Execute(RenderPassContext& context, void* pData)
-	{
-		Renderer& renderer = *context.pRenderer;
-		Frame& frame = renderer.GetCurrentFrame();
-		const FrameData& frameData = *context.pFrameData;
-		RHI::CommandList& commandList = frame.commandList;
-		RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
-		RHI::Device& device = *renderer.GetDevice();
-		const dUVec2 resolution = renderer.GetResolution();
-
-		RHI::Viewport viewport{ 0.0, 0.0, (float)resolution.x, (float)resolution.y, 0.0f, 1.0f };
-		RHI::Scissor scissor{ 0, 0, resolution.x, resolution.y };
-		commandList.SetViewports(1, &viewport);
-		commandList.SetScissors(1, &scissor);
-		commandList.SetRenderTarget(&renderer.GetHDRTargetRTV().cpuAddress, 1, &renderer.GetDepthBufferDSV().cpuAddress);
-
-		ForwardGlobals globals;
-		globals.viewProjectionMatrix = context.pView->viewProjection;
-		globals.cameraPosition = context.pView->position;
-		const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
-		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
-		const MaterialOutputs& materialOutputs = context.blackboard.Get<MaterialOutputs>();
-		globals.lightCount = pLightOutputs ? pLightOutputs->count : 0;
-		globals.lightBufferIndex = pLightOutputs ? pLightOutputs->bufferIndex : -1;
-		globals.lightMatricesIndex = pShadowOutputs ? pShadowOutputs->matricesIndex : -1;
-		globals.shadowStartIndex = pShadowOutputs ? pShadowOutputs->shadowStartIndex : -1;
-		globals.materialBufferIndex = materialOutputs.bufferIndex;
-
-		commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
-
-		const RHI::RootSignature* pBoundRootSignature = nullptr;
-		MaterialKey boundKey = MaterialKey(-1);
-		const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
-		for (dSpan<const dU32> draws : { visibleSet.opaqueDraws, visibleSet.blendDraws })
-		{
-			for (dU32 drawIndex : draws)
+		builder.OnExecute([](RenderPassContext& context)
 			{
-				const DrawItem& drawItem = frameData.drawItems[drawIndex];
-				if (boundKey != drawItem.materialKey)
+				Renderer& renderer = *context.pRenderer;
+				Frame& frame = renderer.GetCurrentFrame();
+				const FrameData& frameData = *context.pFrameData;
+				RHI::CommandList& commandList = frame.commandList;
+				RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
+				RHI::Device& device = *renderer.GetDevice();
+				const dUVec2 resolution = renderer.GetResolution();
+
+				RHI::Viewport viewport{ 0.0, 0.0, (float)resolution.x, (float)resolution.y, 0.0f, 1.0f };
+				RHI::Scissor scissor{ 0, 0, resolution.x, resolution.y };
+				commandList.SetViewports(1, &viewport);
+				commandList.SetScissors(1, &scissor);
+				commandList.SetRenderTarget(&renderer.GetHDRTargetRTV().cpuAddress, 1, &renderer.GetDepthBufferDSV().cpuAddress);
+
+				ForwardGlobals globals;
+				globals.viewProjectionMatrix = context.pView->viewProjection;
+				globals.cameraPosition = context.pView->position;
+				const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
+				const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
+				const MaterialOutputs& materialOutputs = context.blackboard.Get<MaterialOutputs>();
+				globals.lightCount = pLightOutputs ? pLightOutputs->count : 0;
+				globals.lightBufferIndex = pLightOutputs ? pLightOutputs->bufferIndex : -1;
+				globals.lightMatricesIndex = pShadowOutputs ? pShadowOutputs->matricesIndex : -1;
+				globals.shadowStartIndex = pShadowOutputs ? pShadowOutputs->shadowStartIndex : -1;
+				globals.materialBufferIndex = materialOutputs.bufferIndex;
+
+				commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
+
+				const RHI::RootSignature* pBoundRootSignature = nullptr;
+				MaterialKey boundKey = MaterialKey(-1);
+				const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
+				for (dSpan<const dU32> draws : { visibleSet.opaqueDraws, visibleSet.blendDraws })
 				{
-					boundKey = drawItem.materialKey;
-					PSO* pPSO = context.GetPSO(boundKey);
-					Assert(pPSO);
-					if (pBoundRootSignature != pPSO->pRootSignature)
+					for (dU32 drawIndex : draws)
 					{
-						pBoundRootSignature = pPSO->pRootSignature;
-						commandList.SetGraphicsRootSignature(*pPSO->pRootSignature);
-						commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
+						const DrawItem& drawItem = frameData.drawItems[drawIndex];
+						if (boundKey != drawItem.materialKey)
+						{
+							boundKey = drawItem.materialKey;
+							PSO* pPSO = context.GetPSO(boundKey);
+							Assert(pPSO);
+							if (pBoundRootSignature != pPSO->pRootSignature)
+							{
+								pBoundRootSignature = pPSO->pRootSignature;
+								commandList.SetGraphicsRootSignature(*pPSO->pRootSignature);
+								commandList.PushGraphicsConstants(0, &globals, sizeof(ForwardGlobals));
+							}
+							commandList.SetPipelineState(pPSO->pipelineState);
+						}
+
+						commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
+
+						InstanceData instanceData;
+						instanceData.objectToWorld = drawItem.objectToWorld;
+						commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
+
+						const GPUMeshView& mesh = frameData.pResources->meshes[drawItem.meshIdx];
+						commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
+						commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
+						commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
 					}
-					commandList.SetPipelineState(pPSO->pipelineState);
 				}
-
-				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
-
-				InstanceData instanceData;
-				instanceData.objectToWorld = drawItem.objectToWorld;
-				commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
-
-				const GPUMeshView& mesh = frameData.pResources->meshes[drawItem.meshIdx];
-				commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
-				commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
-				commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
-			}
-		}
+			});
 	}
 
 	void Forward::Destroy(Renderer&, void*)

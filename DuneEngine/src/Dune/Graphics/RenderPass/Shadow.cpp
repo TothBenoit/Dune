@@ -78,6 +78,56 @@ namespace Dune::Graphics
 		};
 	}
 
+	static void RenderDepth(RenderPassContext& context, ShadowData* pData, const dMatrix4x4& viewProjection)
+	{
+		Renderer& renderer = *context.pRenderer;
+		Frame& frame = renderer.GetCurrentFrame();
+		RHI::CommandList& commandList = frame.commandList;
+		RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
+		RHI::Device& device = *renderer.GetDevice();
+
+		commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
+
+		const FrameData& frameData = *context.pFrameData;
+		DepthGlobals globals
+		{
+			.viewProjectionMatrix = viewProjection,
+			.materialBufferIndex =context.blackboard.Get<MaterialOutputs>().bufferIndex,
+		};
+
+		const RHI::RootSignature* pBoundRootSignature = nullptr;
+		MaterialKey boundKey = MaterialKey(-1);
+		for (dU32 drawIndex : context.blackboard.Get<VisibleSet>().opaqueDraws)
+		{
+			const DrawItem& drawItem = frameData.drawItems[drawIndex];
+			if (boundKey != drawItem.materialKey)
+			{
+				boundKey = drawItem.materialKey;
+				PSO* pPSO = context.GetPSO(boundKey);
+				Assert(pPSO);
+				if (pBoundRootSignature != pPSO->pRootSignature)
+				{
+					pBoundRootSignature = pPSO->pRootSignature;
+					commandList.SetGraphicsRootSignature(*pPSO->pRootSignature);
+					commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
+				}
+				commandList.SetPipelineState(pPSO->pipelineState);
+			}
+
+			if (Material::GetAlphaMode(drawItem.materialKey) == EAlphaMode::Mask)
+				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
+
+			InstanceData instanceData;
+			instanceData.objectToWorld = drawItem.objectToWorld;
+			commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
+
+			const GPUMeshView& mesh = frameData.pResources->meshes[drawItem.meshIdx];
+			commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
+			commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
+			commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
+		}
+	}
+
 	void Shadow::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData)
 	{
 		pData->activeHandles.clear();
@@ -154,121 +204,71 @@ namespace Dune::Graphics
 		builder.Write(pData->matricesHandle, RHI::EResourceState::CopyDest);
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
 		context.blackboard.Add<ShadowOutputs>({ .shadows = { pData->activeHandles }, .matrices = pData->matricesHandle, .shadowStartIndex = shadowStartIndex, .matricesIndex = context.GetBindlessIndex(pData->matricesSRV) });
-	}
 
-	static void RenderDepth(RenderPassContext& context, ShadowData* pData, const dMatrix4x4& viewProjection)
-	{
-		Renderer& renderer = *context.pRenderer;
-		Frame& frame = renderer.GetCurrentFrame();
-		RHI::CommandList& commandList = frame.commandList;
-		RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
-		RHI::Device& device = *renderer.GetDevice();
-
-		commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
-
-		const FrameData& frameData = *context.pFrameData;
-		DepthGlobals globals
-		{
-			.viewProjectionMatrix = viewProjection,
-			.materialBufferIndex =context.blackboard.Get<MaterialOutputs>().bufferIndex,
-		};
-
-		const RHI::RootSignature* pBoundRootSignature = nullptr;
-		MaterialKey boundKey = MaterialKey(-1);
-		for (dU32 drawIndex : context.blackboard.Get<VisibleSet>().opaqueDraws)
-		{
-			const DrawItem& drawItem = frameData.drawItems[drawIndex];
-			if (boundKey != drawItem.materialKey)
+		builder.OnExecute([pData](RenderPassContext& context)
 			{
-				boundKey = drawItem.materialKey;
-				PSO* pPSO = context.GetPSO(boundKey);
-				Assert(pPSO);
-				if (pBoundRootSignature != pPSO->pRootSignature)
+				Renderer& renderer = *context.pRenderer;
+				Frame& frame = renderer.GetCurrentFrame();
+				RHI::CommandList& commandList = frame.commandList;
+				RHI::Device& device = *renderer.GetDevice();
+				RHI::BlockDescriptorHeap& dsvHeap = renderer.GetDSVHeap();
+
+				const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
+				const dSpan<const dU32> shadowCasters = visibleSet.shadowCasters;
+				const dSpan<const LightData> lights = visibleSet.lights;
+
+				RHI::Viewport viewport{ 0.0, 0.0, SHADOW_MAP_RESOLUTION_F, SHADOW_MAP_RESOLUTION_F, 0.0f, 1.0f };
+				RHI::Scissor scissor{ 0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION };
+				commandList.SetViewports(1, &viewport);
+				commandList.SetScissors(1, &scissor);
+
+				for (dU32 casterIndex = 0; casterIndex < shadowCasters.GetSize(); casterIndex++)
 				{
-					pBoundRootSignature = pPSO->pRootSignature;
-					commandList.SetGraphicsRootSignature(*pPSO->pRootSignature);
-					commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
+					const LightData& light = lights[shadowCasters[casterIndex]];
+					RHI::Texture& shadowMap = renderer.GetTexture(pData->activeHandles[casterIndex]);
+					const dMatrix4x4& lightMatrix = visibleSet.shadowMatrices[casterIndex];
+
+					RHI::Descriptor dsv = dsvHeap.Allocate();
+					if (light.IsPoint())
+					{
+						dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), 1.0f, 0.1f, light.range) };
+						dVec eye{ light.position.x, light.position.y, light.position.z };
+						dMatrix viewMatrices[]
+						{
+							DirectX::XMMatrixLookToLH(eye, {  1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
+							DirectX::XMMatrixLookToLH(eye, { -1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
+							DirectX::XMMatrixLookToLH(eye, {  0.0f,  1.0f,  0.0f }, { 0.0f, 0.0f, -1.0f }),
+							DirectX::XMMatrixLookToLH(eye, {  0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f,  1.0f }),
+							DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f,  1.0f }, { 0.0f, 1.0f,  0.0f }),
+							DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f, -1.0f }, { 0.0f, 1.0f,  0.0f }),
+						};
+
+						for (dU32 faceIndex = 0; faceIndex < 6; faceIndex++)
+						{
+							device.CreateDSV(dsv, shadowMap, { .firstArraySlice = faceIndex, .arraySize = 1, .dimension = RHI::EDSVDimension::Texture2DArray });
+							commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
+							commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
+							dMatrix4x4 faceMatrix;
+							DirectX::XMStoreFloat4x4(&faceMatrix, viewMatrices[faceIndex] * DirectX::XMLoadFloat4x4(&lightMatrix));
+							RenderDepth(context, pData, faceMatrix);
+						}
+					}
+					else
+					{
+						device.CreateDSV(dsv, shadowMap, {});
+						commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
+						commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
+						RenderDepth(context, pData, lightMatrix);
+					}
+
+					dsvHeap.Free(dsv);
 				}
-				commandList.SetPipelineState(pPSO->pipelineState);
-			}
 
-			if (Material::GetAlphaMode(drawItem.materialKey) == EAlphaMode::Mask)
-				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
-
-			InstanceData instanceData;
-			instanceData.objectToWorld = drawItem.objectToWorld;
-			commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
-
-			const GPUMeshView& mesh = frameData.pResources->meshes[drawItem.meshIdx];
-			commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
-			commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
-			commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
-		}
-	}
-
-	void Shadow::Execute(RenderPassContext& context, ShadowData* pData)
-	{
-		Renderer& renderer = *context.pRenderer;
-		Frame& frame = renderer.GetCurrentFrame();
-		RHI::CommandList& commandList = frame.commandList;
-		RHI::Device& device = *renderer.GetDevice();
-		RHI::BlockDescriptorHeap& dsvHeap = renderer.GetDSVHeap();
-
-		const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
-		const dSpan<const dU32> shadowCasters = visibleSet.shadowCasters;
-		const dSpan<const LightData> lights = visibleSet.lights;
-
-		RHI::Viewport viewport{ 0.0, 0.0, SHADOW_MAP_RESOLUTION_F, SHADOW_MAP_RESOLUTION_F, 0.0f, 1.0f };
-		RHI::Scissor scissor{ 0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION };
-		commandList.SetViewports(1, &viewport);
-		commandList.SetScissors(1, &scissor);
-
-		for (dU32 casterIndex = 0; casterIndex < shadowCasters.GetSize(); casterIndex++)
-		{
-			const LightData& light = lights[shadowCasters[casterIndex]];
-			RHI::Texture& shadowMap = renderer.GetTexture(pData->activeHandles[casterIndex]);
-			const dMatrix4x4& lightMatrix = visibleSet.shadowMatrices[casterIndex];
-
-			RHI::Descriptor dsv = dsvHeap.Allocate();
-			if (light.IsPoint())
-			{
-				dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), 1.0f, 0.1f, light.range) };
-				dVec eye{ light.position.x, light.position.y, light.position.z };
-				dMatrix viewMatrices[]
-				{
-					DirectX::XMMatrixLookToLH(eye, {  1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
-					DirectX::XMMatrixLookToLH(eye, { -1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
-					DirectX::XMMatrixLookToLH(eye, {  0.0f,  1.0f,  0.0f }, { 0.0f, 0.0f, -1.0f }),
-					DirectX::XMMatrixLookToLH(eye, {  0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f,  1.0f }),
-					DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f,  1.0f }, { 0.0f, 1.0f,  0.0f }),
-					DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f, -1.0f }, { 0.0f, 1.0f,  0.0f }),
-				};
-
-				for (dU32 faceIndex = 0; faceIndex < 6; faceIndex++)
-				{
-					device.CreateDSV(dsv, shadowMap, { .firstArraySlice = faceIndex, .arraySize = 1, .dimension = RHI::EDSVDimension::Texture2DArray });
-					commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
-					commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-					dMatrix4x4 faceMatrix;
-					DirectX::XMStoreFloat4x4(&faceMatrix, viewMatrices[faceIndex] * DirectX::XMLoadFloat4x4(&lightMatrix));
-					RenderDepth(context, pData, faceMatrix);
-				}
-			}
-			else
-			{
-				device.CreateDSV(dsv, shadowMap, {});
-				commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
-				commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-				RenderDepth(context, pData, lightMatrix);
-			}
-
-			dsvHeap.Free(dsv);
-		}
-
-		const dU32 matricesByteSize = shadowCasters.GetSize() * (dU32)sizeof(dMatrix4x4);
-		RHI::StagingMemory staging = renderer.AllocateStaging(matricesByteSize, 16);
-		memcpy(staging.pCpuAddress, visibleSet.shadowMatrices.GetData(), matricesByteSize);
-		commandList.CopyBufferRegion(pData->matricesBuffer, 0, staging.buffer, staging.offset, matricesByteSize);
+				const dU32 matricesByteSize = shadowCasters.GetSize() * (dU32)sizeof(dMatrix4x4);
+				RHI::StagingMemory staging = renderer.AllocateStaging(matricesByteSize, 16);
+				memcpy(staging.pCpuAddress, visibleSet.shadowMatrices.GetData(), matricesByteSize);
+				commandList.CopyBufferRegion(pData->matricesBuffer, 0, staging.buffer, staging.offset, matricesByteSize);
+			});
 	}
 
 	void Shadow::Destroy(Renderer& renderer, ShadowData* pData)

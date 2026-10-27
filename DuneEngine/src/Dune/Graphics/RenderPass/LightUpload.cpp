@@ -47,18 +47,18 @@ namespace Dune::Graphics
 
 		builder.Write(pData->handle, RHI::EResourceState::CopyDest);
 		context.blackboard.Add<LightOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv), .count = lightCount });
-	}
 
-	void LightUpload::Execute(RenderPassContext& context, LightUploadData* pData)
-	{
-		Renderer& renderer = *context.pRenderer;
-		Frame& frame = renderer.GetCurrentFrame();
-		const dSpan<const LightData> lights = context.blackboard.Get<VisibleSet>().lights;
-		const dU32 lightByteSize = lights.GetSize() * (dU32)sizeof(LightData);
+		builder.OnExecute([pData](RenderPassContext& context)
+			{
+				Renderer& renderer = *context.pRenderer;
+				Frame& frame = renderer.GetCurrentFrame();
+				const dSpan<const LightData> lights = context.blackboard.Get<VisibleSet>().lights;
+				const dU32 lightByteSize = lights.GetSize() * (dU32)sizeof(LightData);
 
-		RHI::StagingMemory staging = renderer.AllocateStaging(lightByteSize, 16);
-		memcpy(staging.pCpuAddress, lights.GetData(), lightByteSize);
-		frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, lightByteSize);
+				RHI::StagingMemory staging = renderer.AllocateStaging(lightByteSize, 16);
+				memcpy(staging.pCpuAddress, lights.GetData(), lightByteSize);
+				frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, lightByteSize);
+			});
 	}
 
 	void LightUpload::Destroy(Renderer& renderer, LightUploadData* pData)

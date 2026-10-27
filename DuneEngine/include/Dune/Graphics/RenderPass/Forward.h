@@ -16,7 +16,6 @@ namespace Dune::Graphics
 		static void*        Create(Renderer& renderer);
 		static PipelineDesc GetPipelineDesc(MaterialKey key);
 		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData);
-		static void         Execute(RenderPassContext& context, void* pData);
 		static void         Destroy(Renderer& renderer, void* pData);
 	private:
 		Forward() = delete;

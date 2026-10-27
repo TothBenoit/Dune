@@ -42,18 +42,18 @@ namespace Dune::Graphics
 
 		context.blackboard.Add<MaterialOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv) });
 		builder.Write(pData->handle, RHI::EResourceState::CopyDest);
-	}
 
-	void MaterialUpload::Execute(RenderPassContext& context, MaterialUploadData* pData)
-	{
-		Renderer& renderer = *context.pRenderer;
-		Frame& frame = renderer.GetCurrentFrame();
-		const dVector<MaterialData>& materials = context.pFrameData->pResources->materials;
-		const dU32 materialsByteSize = (dU32)(materials.size() * sizeof(MaterialData));
+		builder.OnExecute([pData](RenderPassContext& context)
+			{
+				Renderer& renderer = *context.pRenderer;
+				Frame& frame = renderer.GetCurrentFrame();
+				const dVector<MaterialData>& materials = context.pFrameData->pResources->materials;
+				const dU32 materialsByteSize = (dU32)(materials.size() * sizeof(MaterialData));
 
-		RHI::StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);
-		memcpy(staging.pCpuAddress, materials.data(), materialsByteSize);
-		frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, materialsByteSize);
+				RHI::StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);
+				memcpy(staging.pCpuAddress, materials.data(), materialsByteSize);
+				frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, materialsByteSize);
+			});
 	}
 
 	void MaterialUpload::Destroy(Renderer& renderer, MaterialUploadData* pData)

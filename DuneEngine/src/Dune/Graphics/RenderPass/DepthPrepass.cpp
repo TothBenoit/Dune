@@ -60,63 +60,63 @@ namespace Dune::Graphics
 
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
 		builder.Write(context.pRenderer->GetDepthBufferHandle(), RHI::EResourceState::DepthStencil);
-	}
 
-	void DepthPrepass::Execute(RenderPassContext& context, void* pData)
-	{
-		Renderer& renderer = *context.pRenderer;
-		Frame& frame = renderer.GetCurrentFrame();
-		RHI::CommandList& commandList = frame.commandList;
-		RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
-		RHI::Device& device = *renderer.GetDevice();
-		const dUVec2 resolution = renderer.GetResolution();
-
-		RHI::Descriptor dsv = renderer.GetDepthBufferDSV();
-		RHI::Viewport viewport{ 0.0, 0.0, (float)resolution.x, (float)resolution.y, 0.0f, 1.0f };
-		RHI::Scissor scissor{ 0, 0, resolution.x, resolution.y };
-		commandList.SetViewports(1, &viewport);
-		commandList.SetScissors(1, &scissor);
-		commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-
-		commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
-
-		const FrameData& frameData = *context.pFrameData;
-		DepthGlobals globals
-		{
-			.materialBufferIndex = context.blackboard.Get<MaterialOutputs>().bufferIndex
-		};
-		globals.viewProjectionMatrix = context.pView->viewProjection;
-
-		const RHI::RootSignature* pBoundRootSignature = nullptr;
-		MaterialKey boundKey = MaterialKey(-1);
-		for (dU32 drawIndex : context.blackboard.Get<VisibleSet>().opaqueDraws)
-		{
-			const DrawItem& drawItem = frameData.drawItems[drawIndex];
-			if (boundKey != drawItem.materialKey)
+		builder.OnExecute([](RenderPassContext& context)
 			{
-				boundKey = drawItem.materialKey;
-				PSO* pPSO = context.GetPSO(boundKey);
-				Assert(pPSO);
-				if (pBoundRootSignature != pPSO->pRootSignature)
+				Renderer& renderer = *context.pRenderer;
+				Frame& frame = renderer.GetCurrentFrame();
+				RHI::CommandList& commandList = frame.commandList;
+				RHI::ScratchDescriptorHeap& srvHeap = frame.srvHeap;
+				RHI::Device& device = *renderer.GetDevice();
+				const dUVec2 resolution = renderer.GetResolution();
+
+				RHI::Descriptor dsv = renderer.GetDepthBufferDSV();
+				RHI::Viewport viewport{ 0.0, 0.0, (float)resolution.x, (float)resolution.y, 0.0f, 1.0f };
+				RHI::Scissor scissor{ 0, 0, resolution.x, resolution.y };
+				commandList.SetViewports(1, &viewport);
+				commandList.SetScissors(1, &scissor);
+				commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
+
+				commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
+
+				const FrameData& frameData = *context.pFrameData;
+				DepthGlobals globals
 				{
-					pBoundRootSignature = pPSO->pRootSignature;
-					commandList.SetGraphicsRootSignature(*pPSO->pRootSignature);
-					commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
+					.materialBufferIndex = context.blackboard.Get<MaterialOutputs>().bufferIndex
+				};
+				globals.viewProjectionMatrix = context.pView->viewProjection;
+
+				const RHI::RootSignature* pBoundRootSignature = nullptr;
+				MaterialKey boundKey = MaterialKey(-1);
+				for (dU32 drawIndex : context.blackboard.Get<VisibleSet>().opaqueDraws)
+				{
+					const DrawItem& drawItem = frameData.drawItems[drawIndex];
+					if (boundKey != drawItem.materialKey)
+					{
+						boundKey = drawItem.materialKey;
+						PSO* pPSO = context.GetPSO(boundKey);
+						Assert(pPSO);
+						if (pBoundRootSignature != pPSO->pRootSignature)
+						{
+							pBoundRootSignature = pPSO->pRootSignature;
+							commandList.SetGraphicsRootSignature(*pPSO->pRootSignature);
+							commandList.PushGraphicsConstants(0, &globals, sizeof(DepthGlobals));
+						}
+						commandList.SetPipelineState(pPSO->pipelineState);
+					}
+
+					if (Material::GetAlphaMode(drawItem.materialKey) == EAlphaMode::Mask)
+						commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
+
+					InstanceData instanceData;
+					instanceData.objectToWorld = drawItem.objectToWorld;
+					commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
+					const GPUMeshView& mesh = frameData.pResources->meshes[drawItem.meshIdx];
+					commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
+					commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
+					commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
 				}
-				commandList.SetPipelineState(pPSO->pipelineState);
-			}
-
-			if (Material::GetAlphaMode(drawItem.materialKey) == EAlphaMode::Mask)
-				commandList.PushGraphicsConstants(2, &drawItem.materialIdx, sizeof(MaterialIndex));
-
-			InstanceData instanceData;
-			instanceData.objectToWorld = drawItem.objectToWorld;
-			commandList.PushGraphicsConstants(1, &instanceData, sizeof(InstanceData));
-			const GPUMeshView& mesh = frameData.pResources->meshes[drawItem.meshIdx];
-			commandList.BindIndexBuffer(mesh.indicesGPUAddress, mesh.indicesByteSize, mesh.indicesAre32Bit);
-			commandList.BindVertexBuffer(mesh.verticesGPUAddress, mesh.verticesByteSize, mesh.verticesByteStride);
-			commandList.DrawIndexedInstanced(drawItem.indexCount, 1, drawItem.indexOffset, drawItem.vertexOffset, 0);
-		}
+			});
 	}
 
 	void DepthPrepass::Destroy(Renderer&, void*)

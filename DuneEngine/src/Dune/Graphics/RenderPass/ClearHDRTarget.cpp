@@ -13,13 +13,13 @@ namespace Dune::Graphics
 	void ClearHDRTarget::Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData)
 	{
 		builder.Write(context.pRenderer->GetHDRTargetHandle(), RHI::EResourceState::RenderTarget);
-	}
 
-	void ClearHDRTarget::Execute(RenderPassContext& context, void* pData)
-	{
-		Renderer& renderer = *context.pRenderer;
-		RHI::CommandList& commandList = renderer.GetCurrentFrame().commandList;
-		commandList.ClearRenderTargetView(renderer.GetHDRTargetRTV(), renderer.GetHDRTarget().GetClearValue());
+		builder.OnExecute([](RenderPassContext& context)
+			{
+				Renderer& renderer = *context.pRenderer;
+				RHI::CommandList& commandList = renderer.GetCurrentFrame().commandList;
+				commandList.ClearRenderTargetView(renderer.GetHDRTargetRTV(), renderer.GetHDRTarget().GetClearValue());
+			});
 	}
 
 	void ClearHDRTarget::Destroy(Renderer& renderer, void* pData)
