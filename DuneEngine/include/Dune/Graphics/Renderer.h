@@ -40,7 +40,7 @@ namespace Dune
 			RHI::Buffer uploadBuffer;
 			ScratchAllocator staging;
 			dVector<RHI::Buffer> buffersToRelease;
-			ResourceHandle backBufferHandle{ kInvalidResourceHandle };
+			RGTexture backBufferHandle;
 		};
 
 		class Renderer
@@ -79,9 +79,9 @@ namespace Dune
 
 			[[nodiscard]] inline RenderGraph& GetRenderGraph() { return m_renderGraph; }
 
-			[[nodiscard]] inline ResourceHandle GetDepthBufferHandle() const { return m_depthBufferHandle; }
-			[[nodiscard]] inline ResourceHandle GetHDRTargetHandle() const { return m_hdrTargetHandle; }
-			[[nodiscard]] inline ResourceHandle GetBackBufferHandle() const { return m_frames[m_frameIndex].backBufferHandle; }
+			[[nodiscard]] inline RGTexture GetDepthBufferHandle() const { return m_depthBufferHandle; }
+			[[nodiscard]] inline RGTexture GetHDRTargetHandle() const { return m_hdrTargetHandle; }
+			[[nodiscard]] inline RGTexture GetBackBufferHandle() const { return m_frames[m_frameIndex].backBufferHandle; }
 			[[nodiscard]] inline dUVec2 GetResolution() const { return m_resolution; }
 
 			void ResolvePSOs(MaterialKey key);
@@ -120,12 +120,12 @@ namespace Dune
 			RHI::BlockDescriptorHeap m_dsvHeap{};
 
 			RHI::Descriptor m_depthBufferDSV;
-			ResourceHandle m_depthBufferHandle{ kInvalidResourceHandle };
+			RGTexture m_depthBufferHandle;
 
 			RHI::Texture m_hdrTarget;
 			RHI::Descriptor m_hdrTargetRTV;
 			RHI::Descriptor m_hdrTargetSRV;
-			ResourceHandle m_hdrTargetHandle{ kInvalidResourceHandle };
+			RGTexture m_hdrTargetHandle;
 
 			RHI::Fence m_fence{};
 			Frame m_frames[kFramesInFlight];

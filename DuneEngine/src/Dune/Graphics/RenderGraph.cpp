@@ -12,160 +12,148 @@ namespace Dune::Graphics
 
 	void RenderGraph::Destroy()
 	{
-		for (ResourceEntry& entry : m_resources)
+		for (TextureEntry& entry : m_textures)
 		{
-			if (entry.pPhysicalResource && !entry.isExternal)
+			if (entry.pTexture && !entry.isExternal)
 			{
-				switch (entry.type)
-				{
-				case EResourceType::Texture:
-					static_cast<RHI::Texture*>(entry.pPhysicalResource)->Destroy();
-					delete entry.pPhysicalResource;
-					break;
-				case EResourceType::Buffer:
-					static_cast<RHI::Buffer*>(entry.pPhysicalResource)->Destroy();
-					delete entry.pPhysicalResource;
-					break;
-				}
+				entry.pTexture->Destroy();
+				delete entry.pTexture;
 			}
 		}
-		m_resources.clear();
+		m_textures.clear();
+
+		for (BufferEntry& entry : m_buffers)
+		{
+			if (entry.pBuffer && !entry.isExternal)
+			{
+				entry.pBuffer->Destroy();
+				delete entry.pBuffer;
+			}
+		}
+		m_buffers.clear();
 	}
 
-	ResourceHandle RenderGraph::CreateTexture(const RHI::TextureDesc& desc)
+	RGTexture RenderGraph::CreateTexture(const RHI::TextureDesc& desc)
 	{
 		RHI::Texture* pTexture = new RHI::Texture();
 		pTexture->Initialize(*m_pDevice, desc);
 
 		const dU32 subresourceCount = desc.dimensions[2] * desc.mipLevels;
-		ResourceHandle handle = RegisterTexture(pTexture, desc.initialState, subresourceCount);
-		m_resources[handle].isExternal = false;
+		RGTexture handle = RegisterTexture(pTexture, desc.initialState, subresourceCount);
+		m_textures[handle.index].isExternal = false;
 		return handle;
 	}
 
-	ResourceHandle RenderGraph::CreateBuffer(const RHI::BufferDesc& desc)
+	RGBuffer RenderGraph::CreateBuffer(const RHI::BufferDesc& desc)
 	{
 		RHI::Buffer* pBuffer = new RHI::Buffer();
 		pBuffer->Initialize(*m_pDevice, desc);
 
-		ResourceHandle handle = RegisterBuffer(pBuffer, desc.initialState);
-		m_resources[handle].isExternal = false;
+		RGBuffer handle = RegisterBuffer(pBuffer, desc.initialState);
+		m_buffers[handle.index].isExternal = false;
 		return handle;
 	}
 
-	ResourceHandle RenderGraph::RegisterTexture(RHI::Texture* pTexture, RHI::EResourceState initialState, dU32 subresourceCount)
+	RGTexture RenderGraph::RegisterTexture(RHI::Texture* pTexture, RHI::EResourceState initialState, dU32 subresourceCount)
 	{
 		Assert(subresourceCount > 0);
-		ResourceHandle handle = (ResourceHandle)m_resources.size();
-		ResourceEntry entry{};
-		entry.pPhysicalResource = pTexture;
+		RGTexture handle{ (dU32)m_textures.size() };
+		TextureEntry& entry = m_textures.emplace_back();
+		entry.pTexture = pTexture;
 		entry.subresourceStates.assign(subresourceCount, initialState);
-		entry.isExternal = true;
-		entry.type = EResourceType::Texture;
-		m_resources.push_back(std::move(entry));
 		return handle;
 	}
 
-	ResourceHandle RenderGraph::RegisterBuffer(RHI::Buffer* pBuffer, RHI::EResourceState initialState)
+	RGBuffer RenderGraph::RegisterBuffer(RHI::Buffer* pBuffer, RHI::EResourceState initialState)
 	{
-		ResourceHandle handle = (ResourceHandle)m_resources.size();
-		ResourceEntry entry{};
-		entry.pPhysicalResource = pBuffer;
-		entry.resourceState = initialState;
-		entry.isExternal = true;
-		entry.type = EResourceType::Buffer;
-		m_resources.push_back(std::move(entry));
+		RGBuffer handle{ (dU32)m_buffers.size() };
+		BufferEntry& entry = m_buffers.emplace_back();
+		entry.pBuffer = pBuffer;
+		entry.state = initialState;
 		return handle;
 	}
 
-	void RenderGraph::SetPhysicalResource(ResourceHandle handle, RHI::Resource* pResource, RHI::EResourceState state)
+	void RenderGraph::SetPhysicalResource(RGTexture handle, RHI::Texture* pTexture, RHI::EResourceState state)
 	{
-		Assert(handle < m_resources.size());
-		ResourceEntry& entry = m_resources[handle];
-		entry.pPhysicalResource = pResource;
-		switch (entry.type)
+		Assert(handle.index < m_textures.size());
+		TextureEntry& entry = m_textures[handle.index];
+		entry.pTexture = pTexture;
+		for (RHI::EResourceState& subresourceState : entry.subresourceStates)
+			subresourceState = state;
+	}
+
+	void RenderGraph::SetPhysicalResource(RGBuffer handle, RHI::Buffer* pBuffer, RHI::EResourceState state)
+	{
+		Assert(handle.index < m_buffers.size());
+		BufferEntry& entry = m_buffers[handle.index];
+		entry.pBuffer = pBuffer;
+		entry.state = state;
+	}
+
+	RHI::Texture& RenderGraph::GetTexture(RGTexture handle)
+	{
+		Assert(handle.index < m_textures.size());
+		return *m_textures[handle.index].pTexture;
+	}
+
+	RHI::Buffer& RenderGraph::GetBuffer(RGBuffer handle)
+	{
+		Assert(handle.index < m_buffers.size());
+		return *m_buffers[handle.index].pBuffer;
+	}
+
+	void RenderGraph::TransitionTexture(const TextureAccess& access, RHI::Barrier& barrier)
+	{
+		TextureEntry& entry = m_textures[access.handle.index];
+		if (access.subresource != RHI::kAllSubresources)
 		{
-		case EResourceType::Texture:
-			for (RHI::EResourceState& subresourceState : entry.subresourceStates)
-				subresourceState = state;
-			break;
-		case EResourceType::Buffer:
-			entry.resourceState = state;
-			break;
+			Assert(access.subresource < entry.subresourceStates.size());
+			RHI::EResourceState& state = entry.subresourceStates[access.subresource];
+			if (state == access.state)
+				return;
+			barrier.PushTransition(*entry.pTexture, state, access.state, access.subresource);
+			state = access.state;
+			return;
 		}
-	}
 
-	RHI::Texture& RenderGraph::GetTexture(ResourceHandle handle)
-	{
-		Assert(handle < m_resources.size());
-		Assert(m_resources[handle].type == EResourceType::Texture);
-		return *static_cast<RHI::Texture*>(m_resources[handle].pPhysicalResource);
-	}
-
-	RHI::Buffer& RenderGraph::GetBuffer(ResourceHandle handle)
-	{
-		Assert(handle < m_resources.size());
-		Assert(m_resources[handle].type == EResourceType::Buffer);
-		return *static_cast<RHI::Buffer*>(m_resources[handle].pPhysicalResource);
-	}
-
-	void RenderGraph::TransitionResource(const ResourceAccess& access, RHI::Barrier& barrier)
-	{
-		ResourceEntry& entry = m_resources[access.handle];
-		switch (entry.type)
+		bool uniform = true;
+		const RHI::EResourceState first = entry.subresourceStates[0];
+		for (RHI::EResourceState state : entry.subresourceStates)
 		{
-		case EResourceType::Texture:
-		{
-			if (access.subresource != RHI::kAllSubresources)
+			if (state != first)
 			{
-				Assert(access.subresource < entry.subresourceStates.size());
-				RHI::EResourceState& state = entry.subresourceStates[access.subresource];
-				if (state == access.state)
-					return;
-				barrier.PushTransition(*entry.pPhysicalResource, state, access.state, access.subresource);
+				uniform = false;
+				break;
+			}
+		}
+
+		if (uniform)
+		{
+			if (first == access.state)
+				return;
+			barrier.PushTransition(*entry.pTexture, first, access.state, RHI::kAllSubresources);
+			for (RHI::EResourceState& state : entry.subresourceStates)
 				state = access.state;
-				return;
-			}
-
-			bool uniform = true;
-			const RHI::EResourceState first = entry.subresourceStates[0];
-			for (RHI::EResourceState state : entry.subresourceStates)
-			{
-				if (state != first)
-				{
-					uniform = false;
-					break;
-				}
-			}
-
-			if (uniform)
-			{
-				if (first == access.state)
-					return;
-				barrier.PushTransition(*entry.pPhysicalResource, first, access.state, RHI::kAllSubresources);
-				for (RHI::EResourceState& state : entry.subresourceStates)
-					state = access.state;
-			}
-			else
-			{
-				for (dU32 i = 0; i < (dU32)entry.subresourceStates.size(); i++)
-				{
-					RHI::EResourceState& state = entry.subresourceStates[i];
-					if (state == access.state)
-						continue;
-					barrier.PushTransition(*entry.pPhysicalResource, state, access.state, i);
-					state = access.state;
-				}
-			}
-			break;
 		}
-		case EResourceType::Buffer:
-			Assert(access.subresource == RHI::kAllSubresources);
-			if (entry.resourceState == access.state)
-				return;
-			barrier.PushTransition(*entry.pPhysicalResource, entry.resourceState, access.state, RHI::kAllSubresources);
-			entry.resourceState = access.state;
-			break;
+		else
+		{
+			for (dU32 i = 0; i < (dU32)entry.subresourceStates.size(); i++)
+			{
+				RHI::EResourceState& state = entry.subresourceStates[i];
+				if (state == access.state)
+					continue;
+				barrier.PushTransition(*entry.pTexture, state, access.state, i);
+				state = access.state;
+			}
 		}
+	}
+
+	void RenderGraph::TransitionBuffer(const BufferAccess& access, RHI::Barrier& barrier)
+	{
+		BufferEntry& entry = m_buffers[access.handle.index];
+		if (entry.state == access.state)
+			return;
+		barrier.PushTransition(*entry.pBuffer, entry.state, access.state, RHI::kAllSubresources);
+		entry.state = access.state;
 	}
 }

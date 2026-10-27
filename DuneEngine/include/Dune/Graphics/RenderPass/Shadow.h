@@ -13,13 +13,13 @@ namespace Dune::Graphics
 	struct ShadowData
 	{
 
-		dVector<ResourceHandle> shadowHandles;
-		dVector<ResourceHandle> cubeShadowHandles;
-		dVector<ResourceHandle> activeHandles;
+		dVector<RGTexture> shadowHandles;
+		dVector<RGTexture> cubeShadowHandles;
+		dVector<RGTexture> activeHandles;
 
 		RHI::Buffer     matricesBuffer;
 		RHI::Descriptor matricesSRV;
-		ResourceHandle  matricesHandle{ kInvalidResourceHandle };
+		RGBuffer        matricesHandle;
 	};
 
 	class Shadow

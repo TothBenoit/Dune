@@ -291,13 +291,18 @@ namespace Dune::Graphics
 		}
 
 #ifdef _DEBUG
-		dVector<bool> writtenResources(m_renderGraph.GetResourceCount(), false);
+		dVector<bool> writtenTextures(m_renderGraph.GetTextureCount(), false);
+		dVector<bool> writtenBuffers(m_renderGraph.GetBufferCount(), false);
 		for (const RenderPass& pass : m_passes)
 		{
-			for (const ResourceAccess& read : pass.builder.GetReads())
-				Assert(writtenResources[read.handle]);
-			for (const ResourceAccess& write : pass.builder.GetWrites())
-				writtenResources[write.handle] = true;
+			for (const TextureAccess& read : pass.builder.GetTextureReads())
+				Assert(writtenTextures[read.handle.index]);
+			for (const BufferAccess& read : pass.builder.GetBufferReads())
+				Assert(writtenBuffers[read.handle.index]);
+			for (const TextureAccess& write : pass.builder.GetTextureWrites())
+				writtenTextures[write.handle.index] = true;
+			for (const BufferAccess& write : pass.builder.GetBufferWrites())
+				writtenBuffers[write.handle.index] = true;
 		}
 #endif
 
@@ -306,10 +311,14 @@ namespace Dune::Graphics
 			if (!pass.builder.HasExecute())
 				continue;
 
-			for (const ResourceAccess& access : pass.builder.GetReads())
-				m_renderGraph.TransitionResource(access, m_barrier);
-			for (const ResourceAccess& access : pass.builder.GetWrites())
-				m_renderGraph.TransitionResource(access, m_barrier);
+			for (const TextureAccess& access : pass.builder.GetTextureReads())
+				m_renderGraph.TransitionTexture(access, m_barrier);
+			for (const BufferAccess& access : pass.builder.GetBufferReads())
+				m_renderGraph.TransitionBuffer(access, m_barrier);
+			for (const TextureAccess& access : pass.builder.GetTextureWrites())
+				m_renderGraph.TransitionTexture(access, m_barrier);
+			for (const BufferAccess& access : pass.builder.GetBufferWrites())
+				m_renderGraph.TransitionBuffer(access, m_barrier);
 			FlushBarriers(frame.commandList);
 
 			m_passContext.pPass = &pass;
@@ -319,7 +328,7 @@ namespace Dune::Graphics
 		if (HasImGui())
 			m_imgui.Render(frame.commandList);
 
-		m_renderGraph.TransitionResource({ .handle = frame.backBufferHandle, .state = RHI::EResourceState::Present }, m_barrier);
+		m_renderGraph.TransitionTexture({ .handle = frame.backBufferHandle, .state = RHI::EResourceState::Present }, m_barrier);
 		FlushBarriers(frame.commandList);
 
 		frame.commandList.Close();

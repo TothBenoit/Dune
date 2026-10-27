@@ -12,7 +12,7 @@ namespace Dune::Graphics
 	{
 		RHI::Buffer     buffer;
 		RHI::Descriptor srv;
-		ResourceHandle  handle{ kInvalidResourceHandle };
+		RGBuffer        handle;
 	};
 
 	class LightUpload

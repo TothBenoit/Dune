@@ -69,7 +69,7 @@ namespace Dune::Graphics
 		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
 		if (pShadowOutputs)
 		{
-			for (ResourceHandle handle : pShadowOutputs->shadows)
+			for (RGTexture handle : pShadowOutputs->shadows)
 				builder.Read(handle, RHI::EResourceState::ShaderResource);
 			builder.Read(pShadowOutputs->matrices, RHI::EResourceState::ShaderResource);
 		}

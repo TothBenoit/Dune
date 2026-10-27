@@ -159,7 +159,7 @@ namespace Dune::Graphics
 			{
 				if (pData->cubeShadowHandles.size() <= cubeShadowIndex)
 					pData->cubeShadowHandles.push_back(renderer.GetRenderGraph().CreateTexture(kCubeShadowMapDesc));
-				ResourceHandle handle = pData->cubeShadowHandles[cubeShadowIndex++];
+				RGTexture handle = pData->cubeShadowHandles[cubeShadowIndex++];
 				RHI::Texture& shadowMap = renderer.GetRenderGraph().GetTexture(handle);
 				device.CreateSRV(srv, shadowMap, { .format = RHI::EFormat::R32_FLOAT, .dimension = RHI::ESRVDimension::TextureCube });
 				pData->activeHandles.push_back(handle);
@@ -168,14 +168,14 @@ namespace Dune::Graphics
 			{
 				if (pData->shadowHandles.size() <= shadowIndex)
 					pData->shadowHandles.push_back(renderer.GetRenderGraph().CreateTexture(kShadowMapDesc));
-				ResourceHandle handle = pData->shadowHandles[shadowIndex++];
+				RGTexture handle = pData->shadowHandles[shadowIndex++];
 				RHI::Texture& shadowMap = renderer.GetRenderGraph().GetTexture(handle);
 				device.CreateSRV(srv, shadowMap, { .format = RHI::EFormat::R32_FLOAT });
 				pData->activeHandles.push_back(handle);
 			}
 		}
 
-		for (ResourceHandle handle : pData->activeHandles)
+		for (RGTexture handle : pData->activeHandles)
 			builder.Write(handle, RHI::EResourceState::DepthStencil);
 
 		const dU32 matrixCount = shadowCount;
@@ -195,7 +195,7 @@ namespace Dune::Graphics
 			device.CreateSRV(pData->matricesSRV, pData->matricesBuffer, { .elementCount = matrixCount, .byteStride = sizeof(dMatrix4x4) });
 			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, context.GetGPUDescriptor(frame, pData->matricesSRV).cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
 
-			if (pData->matricesHandle == kInvalidResourceHandle)
+			if (!pData->matricesHandle.IsValid())
 				pData->matricesHandle = renderer.GetRenderGraph().RegisterBuffer(&pData->matricesBuffer, RHI::EResourceState::Undefined);
 			else
 				renderer.GetRenderGraph().SetPhysicalResource(pData->matricesHandle, &pData->matricesBuffer, RHI::EResourceState::Undefined);

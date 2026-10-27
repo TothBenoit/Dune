@@ -15,21 +15,21 @@ namespace Dune::Graphics
 
 	struct MaterialOutputs
 	{
-		ResourceHandle buffer;
+		RGBuffer buffer;
 		dU32 bufferIndex;
 	};
 
 	struct LightOutputs 
 	{ 
-		ResourceHandle buffer; 
+		RGBuffer buffer; 
 		dU32 bufferIndex; 
 		dU32 count;
 	};
 
 	struct ShadowOutputs 
 	{ 
-		dSpan<const ResourceHandle> shadows; 
-		ResourceHandle matrices; 
+		dSpan<const RGTexture> shadows; 
+		RGBuffer matrices; 
 		dU32 shadowStartIndex;
 		dU32 matricesIndex; 
 	};
