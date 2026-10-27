@@ -72,12 +72,12 @@ namespace Dune
 	using dVec2 =           DirectX::XMFLOAT2;
 	using dVec3 =           DirectX::XMFLOAT3;
 	using dVec4 =           DirectX::XMFLOAT4;
-	using dVec2u =          DirectX::XMUINT2;
-	using dVec3u =          DirectX::XMUINT3;
-	using dVec4u =          DirectX::XMUINT4;
-	using dVec2i =          DirectX::XMINT2;
-	using dVec3i =          DirectX::XMINT3;
-	using dVec4i =          DirectX::XMINT4;
+	using dUVec2 =          DirectX::XMUINT2;
+	using dUVec3 =          DirectX::XMUINT3;
+	using dUVec4 =          DirectX::XMUINT4;
+	using dIVec2 =          DirectX::XMINT2;
+	using dIVec3 =          DirectX::XMINT3;
+	using dIVec4 =          DirectX::XMINT4;
 
 	template<typename T>
 	class dSpan

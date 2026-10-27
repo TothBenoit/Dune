@@ -19,13 +19,13 @@ namespace Dune::Graphics
 	using float3 = dVec3;
 	using float4 = dVec4;
 
-	using uint2 = dVec2u;
-	using uint3 = dVec3u;
-	using uint4 = dVec4u;
+	using uint2 = dUVec2;
+	using uint3 = dUVec3;
+	using uint4 = dUVec4;
 
-	using int2 = dVec2i;
-	using int3 = dVec3i;
-	using int4 = dVec4i;
+	using int2 = dIVec2;
+	using int3 = dIVec3;
+	using int4 = dIVec4;
 }
 
 #else
