@@ -98,6 +98,7 @@ namespace Dune
 			[[nodiscard]] inline ResourceHandle GetDepthBufferHandle() const { return m_depthBufferHandle; }
 			[[nodiscard]] inline ResourceHandle GetHDRTargetHandle() const { return m_hdrTargetHandle; }
 			[[nodiscard]] inline ResourceHandle GetBackBufferHandle() const { return m_frames[m_frameIndex].backBufferHandle; }
+			[[nodiscard]] inline dUVec2 GetResolution() const { return m_resolution; }
 
 			void ResolvePSOs(MaterialKey key);
 
@@ -125,6 +126,7 @@ namespace Dune
 			RHI::Device* m_pDevice{ nullptr };
 			PSOCache* m_pPSOCache{ nullptr };
 			Window* m_pWindow{ nullptr };
+			dUVec2 m_resolution{ 0, 0 };
 
 			RHI::Swapchain m_swapchain{};
 			RHI::Texture m_depthBuffer{};

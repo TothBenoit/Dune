@@ -6,7 +6,6 @@
 #include "Dune/Platform/RHI/Shader.h"
 #include "Dune/Platform/RHI/Format.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Core/FileSystem.h"
 
@@ -86,7 +85,7 @@ namespace Dune::Graphics
 		RHI::CommandList& commandList = frame.commandList;
 		RHI::Descriptor histogramUAV = frame.srvHeap.Allocate(1);
 		RHI::Device& device = *renderer.GetDevice();
-		Window& window = *renderer.GetWindow();
+		const dUVec2 resolution = renderer.GetResolution();
 		RHI::Barrier& barrier = renderer.GetBarrier();
 		PSO& histogramPSO = *context.GetPipeline(Tonemapping::kHistogramPipeline);
 		PSO& averagePSO = *context.GetPipeline(Tonemapping::kAveragePipeline);
@@ -100,8 +99,8 @@ namespace Dune::Graphics
 		float logLuminanceRange = pData->maxLogLuminance - pData->minLogLuminance;
 		LuminanceHistogramParams histogramParams
 		{
-			.width = window.GetWidth(),
-			.height = window.GetHeight(),
+			.width = resolution.x,
+			.height = resolution.y,
 			.minLogLuminance = pData->minLogLuminance,
 			.oneOverLogLuminanceRange = 1.0f / logLuminanceRange,
 		};
@@ -138,8 +137,8 @@ namespace Dune::Graphics
 		commandList.Transition(barrier);
 		barrier.Reset();
 
-		RHI::Viewport viewport{ 0.0, 0.0, (float)window.GetWidth(), (float)window.GetHeight(), 0.0f, 1.0f };
-		RHI::Scissor scissor{ 0, 0, window.GetWidth(), window.GetHeight() };
+		RHI::Viewport viewport{ 0.0, 0.0, (float)resolution.x, (float)resolution.y, 0.0f, 1.0f };
+		RHI::Scissor scissor{ 0, 0, resolution.x, resolution.y };
 		commandList.SetViewports(1, &viewport);
 		commandList.SetScissors(1, &scissor);
 		commandList.SetGraphicsRootSignature(*tonemapPSO.pRootSignature);

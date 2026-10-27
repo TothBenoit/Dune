@@ -16,13 +16,12 @@ namespace Dune::Graphics
 		m_pPSOCache = &psoCache;
 		m_pWindow = &window;
 
-		dU32 width = m_pWindow->GetWidth();
-		dU32 height = m_pWindow->GetHeight();
+		m_resolution = { window.GetWidth(), window.GetHeight() };
 		m_depthBuffer.Initialize(device,
 			{
 				.debugName = L"DepthBuffer",
 				.usage = RHI::ETextureUsage::DepthStencil,
-				.dimensions = { width, height, 1 },
+				.dimensions = { m_resolution.x, m_resolution.y, 1 },
 				.format = RHI::EFormat::D32_FLOAT,
 				.clearValue = {1.f, 1.f, 1.f, 1.f},
 				.initialState = RHI::EResourceState::DepthStencil
@@ -32,7 +31,7 @@ namespace Dune::Graphics
 		{
 			.debugName = L"HDRTarget",
 			.usage{ RHI::ETextureUsage::RenderTarget | RHI::ETextureUsage::ShaderResource },
-			.dimensions = { width, height, 1},
+			.dimensions = { m_resolution.x, m_resolution.y, 1 },
 			.mipLevels{ 1 },
 			.format{ RHI::EFormat::R16G16B16A16_FLOAT },
 			.initialState{ RHI::EResourceState::ShaderResource },
@@ -337,6 +336,7 @@ namespace Dune::Graphics
 			WaitForFrame(f);
 
 		m_swapchain.Resize(width, height);
+		m_resolution = { width, height };
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 		for (dU32 i = 0; i < kFramesInFlight; i++)
 		{
