@@ -33,7 +33,7 @@ namespace Dune::Graphics
 		dVector<MaterialSetHandle> nodeMaterialSets;
 	};
 
-	struct ResourceHandles
+	struct ResourceCache
 	{
 		[[nodiscard]] ModelResources AllocateModel(const ModelData& model);
 		[[nodiscard]] TextureHandle GetTexture(ImageHandle image) const;
@@ -52,7 +52,7 @@ namespace Dune::Graphics
 	public:
 		static constexpr dU32 kSharedSRVCapacity = 512;
 
-		void Initialize(RHI::Device& device, const ResourceHandles& handles);
+		void Initialize(RHI::Device& device, const ResourceCache& resourceCache);
 		void Destroy();
 
 		void CreateTexture(TextureHandle handle, const TextureData& data);

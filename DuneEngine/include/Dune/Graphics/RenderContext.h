@@ -21,7 +21,7 @@ namespace Dune::Graphics
 	class RenderContext
 	{
 	public:
-		void Initialize(const ResourceHandles& handles, dU32 physicalDeviceIndex);
+		void Initialize(const ResourceCache& resourceCache, dU32 physicalDeviceIndex);
 		void Destroy();
 
 		void InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc);

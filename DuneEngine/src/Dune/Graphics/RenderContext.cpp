@@ -4,7 +4,7 @@
 
 namespace Dune::Graphics
 {
-	void RenderContext::Initialize(const ResourceHandles& handles, dU32 physicalDeviceIndex)
+	void RenderContext::Initialize(const ResourceCache& resourceCache, dU32 physicalDeviceIndex)
 	{
 		Assert(physicalDeviceIndex < RHI::PhysicalDevice::GetPhysicalDeviceCount());
 		Assert(RHI::PhysicalDevice::GetPhysicalDeviceDesc(physicalDeviceIndex).isSupported);
@@ -12,7 +12,7 @@ namespace Dune::Graphics
 		m_device.Initialize(m_physicalDevice);
 		m_commandQueue.Initialize(m_device, RHI::ECommandType::Direct);
 		m_psoCache.Initialize(m_device);
-		m_resourceManager.Initialize(m_device, handles);
+		m_resourceManager.Initialize(m_device, resourceCache);
 		m_uploadContext.Initialize(m_device, m_commandQueue, {});
 		m_fence.Initialize(m_device, 0);
 	}

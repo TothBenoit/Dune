@@ -6,7 +6,7 @@ namespace Dune::Graphics
 {
 	void GraphicsSystem::Initialize(dU32 physicalDeviceIndex)
 	{
-		m_renderContext.Initialize(m_handles, physicalDeviceIndex);
+		m_renderContext.Initialize(m_resourceCache, physicalDeviceIndex);
 		m_renderScenes.Initialize(m_renderSceneHandles);
 		for (dU32 primitive = 0; primitive < (dU32)EPrimitive::Count; primitive++)
 			m_primitives[primitive] = CreateMesh(MeshUtils::CreatePrimitive((EPrimitive)primitive));
@@ -50,7 +50,7 @@ namespace Dune::Graphics
 
 	TextureHandle GraphicsSystem::CreateTexture(const TextureData& data)
 	{
-		const TextureHandle handle = m_handles.textures.Allocate();
+		const TextureHandle handle = m_resourceCache.textures.Allocate();
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateTexture(handle, data);
@@ -61,7 +61,7 @@ namespace Dune::Graphics
 
 	TextureHandle GraphicsSystem::CreateTexture(const ImageData& image)
 	{
-		const TextureHandle handle = m_handles.textures.Allocate();
+		const TextureHandle handle = m_resourceCache.textures.Allocate();
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateTexture(handle, image);
@@ -72,7 +72,7 @@ namespace Dune::Graphics
 
 	MeshHandle GraphicsSystem::CreateMesh(const MeshData& meshData)
 	{
-		const MeshHandle handle = m_handles.meshes.Allocate();
+		const MeshHandle handle = m_resourceCache.meshes.Allocate();
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateMesh(handle, meshData);
@@ -83,14 +83,14 @@ namespace Dune::Graphics
 
 	MaterialHandle GraphicsSystem::CreateMaterial(const MaterialDesc& desc)
 	{
-		const MaterialHandle handle = m_handles.materials.Allocate();
+		const MaterialHandle handle = m_resourceCache.materials.Allocate();
 		m_renderContext.GetResourceManager().CreateMaterial(handle, desc);
 		return handle;
 	}
 
 	MaterialSetHandle GraphicsSystem::CreateMaterialSet(dSpan<MaterialHandle> materials)
 	{
-		const MaterialSetHandle handle = m_handles.materialSets.Allocate();
+		const MaterialSetHandle handle = m_resourceCache.materialSets.Allocate();
 		m_renderContext.GetResourceManager().CreateMaterialSet(handle, materials);
 		return handle;
 	}
@@ -108,7 +108,7 @@ namespace Dune::Graphics
 	void GraphicsSystem::DestroyMaterial(MaterialHandle material)
 	{
 		m_renderContext.GetResourceManager().Destroy(material);
-		m_handles.materials.Free(material);
+		m_resourceCache.materials.Free(material);
 	}
 
 	void GraphicsSystem::DestroyMaterialSet(MaterialSetHandle materialSet)
@@ -118,40 +118,40 @@ namespace Dune::Graphics
 
 	void GraphicsSystem::CreateImageTexture(ImageHandle image, const ImageData& data)
 	{
-		Assert(m_handles.imageTextures.find(image) == m_handles.imageTextures.end());
-		m_handles.imageTextures.emplace(image, CreateTexture(data));
+		Assert(m_resourceCache.imageTextures.find(image) == m_resourceCache.imageTextures.end());
+		m_resourceCache.imageTextures.emplace(image, CreateTexture(data));
 	}
 
 	void GraphicsSystem::ReleaseImageTexture(ImageHandle image)
 	{
-		auto it = m_handles.imageTextures.find(image);
-		Assert(it != m_handles.imageTextures.end());
+		auto it = m_resourceCache.imageTextures.find(image);
+		Assert(it != m_resourceCache.imageTextures.end());
 		DestroyTexture(it->second);
-		m_handles.imageTextures.erase(it);
+		m_resourceCache.imageTextures.erase(it);
 	}
 
 	TextureHandle GraphicsSystem::GetImageTexture(ImageHandle image) const
 	{
-		return m_handles.GetTexture(image);
+		return m_resourceCache.GetTexture(image);
 	}
 
 	const ModelResources& GraphicsSystem::CreateModelResources(ModelHandle model, const ModelData& data, dSpan<TextureHandle> textures)
 	{
-		const ModelResources handles = m_handles.AllocateModel(data);
+		const ModelResources handles = m_resourceCache.AllocateModel(data);
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateModel(handles, data, textures);
 		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handles), Mesh::kUploadAlignment);
 		resources.Upload(handles, data, uploadContext.GetCommandList(), staging);
-		return m_handles.modelResources.emplace(model, handles).first->second;
+		return m_resourceCache.modelResources.emplace(model, handles).first->second;
 	}
 
 	void GraphicsSystem::ReleaseModelResources(ModelHandle model)
 	{
-		auto it = m_handles.modelResources.find(model);
-		Assert(it != m_handles.modelResources.end());
+		auto it = m_resourceCache.modelResources.find(model);
+		Assert(it != m_resourceCache.modelResources.end());
 		const ModelResources modelResources = std::move(it->second);
-		m_handles.modelResources.erase(it);
+		m_resourceCache.modelResources.erase(it);
 
 		for (MaterialSetHandle materialSet : modelResources.nodeMaterialSets)
 			DestroyMaterialSet(materialSet);
@@ -163,7 +163,7 @@ namespace Dune::Graphics
 
 	const ModelResources& GraphicsSystem::GetModelResources(ModelHandle model) const
 	{
-		return m_handles.GetModelResources(model);
+		return m_resourceCache.GetModelResources(model);
 	}
 
 	RenderSceneHandle GraphicsSystem::CreateRenderScene()
@@ -245,8 +245,8 @@ namespace Dune::Graphics
 	{
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		const dU64 completedValue = m_renderContext.GetCompletedFenceValue();
-		ReleaseCompleted(m_pendingTextures, completedValue, [&](TextureHandle texture) { resources.Destroy(texture); m_handles.textures.Free(texture); });
-		ReleaseCompleted(m_pendingMeshes, completedValue, [&](MeshHandle mesh) { resources.Destroy(mesh); m_handles.meshes.Free(mesh); });
-		ReleaseCompleted(m_pendingMaterialSets, completedValue, [&](MaterialSetHandle materialSet) { resources.Destroy(materialSet); m_handles.materialSets.Free(materialSet); });
+		ReleaseCompleted(m_pendingTextures, completedValue, [&](TextureHandle texture) { resources.Destroy(texture); m_resourceCache.textures.Free(texture); });
+		ReleaseCompleted(m_pendingMeshes, completedValue, [&](MeshHandle mesh) { resources.Destroy(mesh); m_resourceCache.meshes.Free(mesh); });
+		ReleaseCompleted(m_pendingMaterialSets, completedValue, [&](MaterialSetHandle materialSet) { resources.Destroy(materialSet); m_resourceCache.materialSets.Free(materialSet); });
 	}
 }

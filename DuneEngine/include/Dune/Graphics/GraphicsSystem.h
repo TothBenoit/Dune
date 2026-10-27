@@ -67,7 +67,7 @@ namespace Dune::Graphics
 		void ReleasePendingResources();
 
 	private:
-		ResourceHandles                         m_handles{};
+		ResourceCache                           m_resourceCache{};
 		RenderContext                           m_renderContext{};
 		HandleAllocator<RenderScene>            m_renderSceneHandles;
 		ResourcePool<RenderScene>               m_renderScenes;
