@@ -2,7 +2,7 @@
 
 #include "Dune/Platform/RHI/Texture.h"
 #include "Dune/Graphics/DescriptorAllocator.h"
-#include "Dune/Platform/RHI/StagingMemory.h"
+#include "Dune/Graphics/StagingMemory.h"
 
 namespace Dune::RHI
 {
@@ -29,7 +29,7 @@ namespace Dune::Graphics
 		void Destroy(BlockDescriptorAllocator& srvHeap);
 
 		[[nodiscard]] dU64 GetUploadSize() const;
-		void Upload(const void* pData, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
+		void Upload(const void* pData, RHI::CommandList& commandList, const StagingMemory& staging);
 
 		[[nodiscard]] RHI::Descriptor GetView() const { return m_view; }
 		[[nodiscard]] RHI::Descriptor ResolveSRGBView(RHI::Device& device, BlockDescriptorAllocator& srvHeap);

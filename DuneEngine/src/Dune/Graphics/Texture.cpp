@@ -37,9 +37,11 @@ namespace Dune::Graphics
 		return m_texture.GetUploadSize();
 	}
 
-	void Texture::Upload(const void* pData, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	void Texture::Upload(const void* pData, RHI::CommandList& commandList, const StagingMemory& staging)
 	{
-		m_texture.Upload(pData, commandList, staging);
+		Assert(staging.IsValid());
+		RHI::Buffer stagingBuffer{ staging.buffer };
+		m_texture.Upload(pData, commandList, stagingBuffer, staging.offset);
 		commandList.Transition(m_texture, RHI::EResourceState::CopyDest, RHI::EResourceState::ShaderResource);
 	}
 

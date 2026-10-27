@@ -2,11 +2,11 @@
 
 #include "Dune/Platform/RHI/Buffer.h"
 
-namespace Dune::RHI
+namespace Dune::Graphics
 {
 	struct StagingMemory
 	{
-		Buffer buffer{};
+		RHI::Buffer buffer{};
 		dU64   offset{ 0 };
 		void*  pCpuAddress{ nullptr };
 

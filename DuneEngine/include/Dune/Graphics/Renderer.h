@@ -9,6 +9,7 @@
 #include <Dune/Platform/RHI/Swapchain.h>
 #include <Dune/Platform/RHI/Texture.h>
 #include <Dune/Core/ScratchAllocator.h>
+#include <Dune/Graphics/StagingMemory.h>
 #include <Dune/Graphics/DescriptorAllocator.h>
 #include <Dune/Platform/RHI/ImGuiContext.h>
 
@@ -65,7 +66,7 @@ namespace Dune
 			void OnResize(dU32 width, dU32 height);
 			void Render(const FrameData& frameData, const ViewData& view);
 
-			[[nodiscard]] RHI::StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
+			[[nodiscard]] StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
 
 			[[nodiscard]] inline RHI::Device* GetDevice() { return m_pDevice; }
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }

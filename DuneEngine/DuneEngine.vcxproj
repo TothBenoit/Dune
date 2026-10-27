@@ -105,7 +105,7 @@
     <ClInclude Include="include\Dune\Utils.h" />
     <ClInclude Include="include\Dune\Graphics\MeshUtils.h" />
     <ClInclude Include="include\Dune\Assets\Import\ModelImporter.h" />
-    <ClInclude Include="include\Dune\Platform\RHI\StagingMemory.h" />
+    <ClInclude Include="include\Dune\Graphics\StagingMemory.h" />
     <ClInclude Include="include\Dune\Graphics\DescriptorAllocator.h" />
     <ClInclude Include="include\Dune\Platform\Types.h" />
     <ClInclude Include="include\Dune\Platform\Input.h" />

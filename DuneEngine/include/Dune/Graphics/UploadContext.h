@@ -3,7 +3,7 @@
 #include "Dune/Platform/RHI/Buffer.h"
 #include "Dune/Platform/RHI/CommandList.h"
 #include "Dune/Platform/RHI/Fence.h"
-#include "Dune/Platform/RHI/StagingMemory.h"
+#include "Dune/Graphics/StagingMemory.h"
 #include "Dune/Core/ScratchAllocator.h"
 
 namespace Dune::RHI
@@ -25,7 +25,7 @@ namespace Dune::Graphics
 		void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, const UploadContextDesc& desc);
 		void Destroy();
 
-		[[nodiscard]] RHI::StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
+		[[nodiscard]] StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
 		[[nodiscard]] RHI::CommandList& GetCommandList();
 		void Submit();
 

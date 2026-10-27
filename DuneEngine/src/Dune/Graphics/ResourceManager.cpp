@@ -6,10 +6,10 @@
 
 namespace Dune::Graphics
 {
-	static RHI::StagingMemory SubAllocate(const RHI::StagingMemory& staging, dU64& offset, dU64 byteSize, dU64 alignment)
+	static StagingMemory SubAllocate(const StagingMemory& staging, dU64& offset, dU64 byteSize, dU64 alignment)
 	{
 		offset = MemoryUtils::AlignUp(offset, alignment);
-		const RHI::StagingMemory subRegion{ .buffer = staging.buffer, .offset = staging.offset + offset, .pCpuAddress = (dU8*)staging.pCpuAddress + offset };
+		const StagingMemory subRegion{ .buffer = staging.buffer, .offset = staging.offset + offset, .pCpuAddress = (dU8*)staging.pCpuAddress + offset };
 		offset += byteSize;
 		return subRegion;
 	}
@@ -214,7 +214,7 @@ namespace Dune::Graphics
 		return byteSize;
 	}
 
-	void ResourceManager::Upload(const ModelResources& resources, const ModelData& model, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	void ResourceManager::Upload(const ModelResources& resources, const ModelData& model, RHI::CommandList& commandList, const StagingMemory& staging)
 	{
 		Assert(staging.IsValid() && staging.offset % Mesh::kUploadAlignment == 0);
 		dU64 offset = 0;
@@ -222,22 +222,22 @@ namespace Dune::Graphics
 			Upload(resources.meshes[i], ToMeshDesc(model.meshes[i]), commandList, SubAllocate(staging, offset, GetUploadSize(resources.meshes[i]), Mesh::kUploadAlignment));
 	}
 
-	void ResourceManager::Upload(TextureHandle handle, const TextureData& data, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	void ResourceManager::Upload(TextureHandle handle, const TextureData& data, RHI::CommandList& commandList, const StagingMemory& staging)
 	{
 		m_textures.Get(handle).Upload(data.bytes.data(), commandList, staging);
 	}
 
-	void ResourceManager::Upload(TextureHandle handle, const ImageData& image, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	void ResourceManager::Upload(TextureHandle handle, const ImageData& image, RHI::CommandList& commandList, const StagingMemory& staging)
 	{
 		m_textures.Get(handle).Upload(image.bytes.data(), commandList, staging);
 	}
 
-	void ResourceManager::Upload(MeshHandle handle, const MeshData& meshData, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	void ResourceManager::Upload(MeshHandle handle, const MeshData& meshData, RHI::CommandList& commandList, const StagingMemory& staging)
 	{
 		Upload(handle, ToMeshDesc(meshData), commandList, staging);
 	}
 
-	void ResourceManager::Upload(MeshHandle handle, const MeshDesc& desc, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	void ResourceManager::Upload(MeshHandle handle, const MeshDesc& desc, RHI::CommandList& commandList, const StagingMemory& staging)
 	{
 		Mesh& mesh = m_meshes.Get(handle);
 		mesh.Upload(desc, commandList, staging);

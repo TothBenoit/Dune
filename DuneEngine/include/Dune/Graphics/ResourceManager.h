@@ -2,7 +2,7 @@
 
 #include "Dune/Graphics/DescriptorAllocator.h"
 #include "Dune/Core/HandleTypes.h"
-#include "Dune/Platform/RHI/StagingMemory.h"
+#include "Dune/Graphics/StagingMemory.h"
 #include "Dune/Graphics/Mesh.h"
 #include "Dune/Graphics/Material.h"
 #include "Dune/Graphics/Texture.h"
@@ -65,10 +65,10 @@ namespace Dune::Graphics
 		[[nodiscard]] dU64 GetUploadSize(TextureHandle handle) const;
 		[[nodiscard]] dU64 GetUploadSize(MeshHandle handle) const;
 		[[nodiscard]] dU64 GetUploadSize(const ModelResources& resources) const;
-		void Upload(TextureHandle handle, const TextureData& data, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
-		void Upload(TextureHandle handle, const ImageData& image, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
-		void Upload(MeshHandle handle, const MeshData& meshData, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
-		void Upload(const ModelResources& resources, const ModelData& model, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
+		void Upload(TextureHandle handle, const TextureData& data, RHI::CommandList& commandList, const StagingMemory& staging);
+		void Upload(TextureHandle handle, const ImageData& image, RHI::CommandList& commandList, const StagingMemory& staging);
+		void Upload(MeshHandle handle, const MeshData& meshData, RHI::CommandList& commandList, const StagingMemory& staging);
+		void Upload(const ModelResources& resources, const ModelData& model, RHI::CommandList& commandList, const StagingMemory& staging);
 
 		void Destroy(TextureHandle handle);
 		void Destroy(MaterialHandle handle);
@@ -86,7 +86,7 @@ namespace Dune::Graphics
 
 	private:
 		void CreateMesh(MeshHandle handle, const MeshDesc& desc);
-		void Upload(MeshHandle handle, const MeshDesc& desc, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
+		void Upload(MeshHandle handle, const MeshDesc& desc, RHI::CommandList& commandList, const StagingMemory& staging);
 		[[nodiscard]] dU32 GetViewIndex(TextureHandle handle) const;
 		[[nodiscard]] dU32 ResolveSRGBViewIndex(TextureHandle handle);
 

@@ -41,7 +41,7 @@ namespace Dune::Graphics
 		return (dU64)m_indexBuffer.GetByteSize() + m_vertexBuffer.GetByteSize();
 	}
 
-	void Mesh::Upload(const MeshDesc& desc, RHI::CommandList& commandList, const RHI::StagingMemory& staging)
+	void Mesh::Upload(const MeshDesc& desc, RHI::CommandList& commandList, const StagingMemory& staging)
 	{
 		Assert(staging.IsValid() && desc.indexCount == m_indexCount && desc.vertexCount == m_vertexCount);
 		const dU32 indexByteSize = m_indexBuffer.GetByteSize();

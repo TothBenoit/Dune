@@ -247,7 +247,7 @@ namespace Dune::Graphics
 		return frame;
 	}
 
-	RHI::StagingMemory Renderer::AllocateStaging(dU64 byteSize, dU64 alignment)
+	StagingMemory Renderer::AllocateStaging(dU64 byteSize, dU64 alignment)
 	{
 		Frame& frame = m_frames[m_frameIndex];
 		const dU64 offset = frame.staging.Allocate(byteSize, alignment);

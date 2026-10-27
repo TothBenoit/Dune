@@ -60,7 +60,7 @@ namespace Dune::Graphics
 		return batch;
 	}
 
-	RHI::StagingMemory UploadContext::AllocateStaging(dU64 byteSize, dU64 alignment)
+	StagingMemory UploadContext::AllocateStaging(dU64 byteSize, dU64 alignment)
 	{
 		Batch& batch = PrepareBatch();
 		const dU64 offset = batch.staging.Allocate(byteSize, alignment);

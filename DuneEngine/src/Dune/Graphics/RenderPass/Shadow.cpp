@@ -264,7 +264,7 @@ namespace Dune::Graphics
 				}
 
 				const dU32 matricesByteSize = shadowCasters.GetSize() * (dU32)sizeof(dMatrix4x4);
-				RHI::StagingMemory staging = renderer.AllocateStaging(matricesByteSize, 16);
+				StagingMemory staging = renderer.AllocateStaging(matricesByteSize, 16);
 				memcpy(staging.pCpuAddress, visibleSet.shadowMatrices.GetData(), matricesByteSize);
 				commandList.CopyBufferRegion(pData->matricesBuffer, 0, staging.buffer, staging.offset, matricesByteSize);
 			});

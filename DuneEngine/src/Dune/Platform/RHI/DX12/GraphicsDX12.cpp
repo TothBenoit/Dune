@@ -1151,11 +1151,10 @@ namespace Dune::RHI
 		return GetRequiredIntermediateSize(0, m_desc.mipLevels);
 	}
 
-	void Texture::Upload(const void* pData, CommandList& commandList, const StagingMemory& staging)
+	void Texture::Upload(const void* pData, CommandList& commandList, Buffer& stagingBuffer, dU64 stagingOffset)
 	{
-		Assert(staging.IsValid() && staging.offset % kUploadAlignment == 0);
-		Buffer stagingBuffer{ staging.buffer };
-		commandList.UploadTexture(*this, stagingBuffer, staging.offset, 0, m_desc.mipLevels, (void*)pData);
+		Assert(stagingOffset % kUploadAlignment == 0);
+		commandList.UploadTexture(*this, stagingBuffer, stagingOffset, 0, m_desc.mipLevels, (void*)pData);
 	}
 
 	dU64 Texture::GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource) const

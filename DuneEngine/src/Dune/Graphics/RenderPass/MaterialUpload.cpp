@@ -50,7 +50,7 @@ namespace Dune::Graphics
 				const dVector<MaterialData>& materials = context.pFrameData->pResources->materials;
 				const dU32 materialsByteSize = (dU32)(materials.size() * sizeof(MaterialData));
 
-				RHI::StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);
+				StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);
 				memcpy(staging.pCpuAddress, materials.data(), materialsByteSize);
 				frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, materialsByteSize);
 			});

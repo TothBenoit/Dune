@@ -54,7 +54,7 @@ namespace Dune::Graphics
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateTexture(handle, data);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Texture::kUploadAlignment);
+		const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Texture::kUploadAlignment);
 		resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
 		return handle;
 	}
@@ -65,7 +65,7 @@ namespace Dune::Graphics
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateTexture(handle, image);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Texture::kUploadAlignment);
+		const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Texture::kUploadAlignment);
 		resources.Upload(handle, image, uploadContext.GetCommandList(), staging);
 		return handle;
 	}
@@ -76,7 +76,7 @@ namespace Dune::Graphics
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateMesh(handle, meshData);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Mesh::kUploadAlignment);
+		const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Mesh::kUploadAlignment);
 		resources.Upload(handle, meshData, uploadContext.GetCommandList(), staging);
 		return handle;
 	}
@@ -141,7 +141,7 @@ namespace Dune::Graphics
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		UploadContext& uploadContext = m_renderContext.GetUploadContext();
 		resources.CreateModel(handles, data, textures);
-		const RHI::StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handles), Mesh::kUploadAlignment);
+		const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handles), Mesh::kUploadAlignment);
 		resources.Upload(handles, data, uploadContext.GetCommandList(), staging);
 		return m_resourceCache.modelResources.emplace(model, handles).first->second;
 	}

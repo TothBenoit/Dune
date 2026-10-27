@@ -2,7 +2,7 @@
 
 #include "Dune/Platform/RHI/Buffer.h"
 #include "Dune/Graphics/MeshData.h"
-#include "Dune/Platform/RHI/StagingMemory.h"
+#include "Dune/Graphics/StagingMemory.h"
 
 namespace Dune::RHI
 {
@@ -35,7 +35,7 @@ namespace Dune::Graphics
 		void Destroy();
 
 		[[nodiscard]] dU64 GetUploadSize() const;
-		void Upload(const MeshDesc& desc, RHI::CommandList& commandList, const RHI::StagingMemory& staging);
+		void Upload(const MeshDesc& desc, RHI::CommandList& commandList, const StagingMemory& staging);
 
 		[[nodiscard]] const dVector<SubMesh>& GetSubMeshes() const { return m_subMeshes; }
 		[[nodiscard]] dU32                    GetMaterialSlotCount() const { return m_materialSlotCount; }

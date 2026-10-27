@@ -55,7 +55,7 @@ namespace Dune::Graphics
 				const dSpan<const LightData> lights = context.blackboard.Get<VisibleSet>().lights;
 				const dU32 lightByteSize = lights.GetSize() * (dU32)sizeof(LightData);
 
-				RHI::StagingMemory staging = renderer.AllocateStaging(lightByteSize, 16);
+				StagingMemory staging = renderer.AllocateStaging(lightByteSize, 16);
 				memcpy(staging.pCpuAddress, lights.GetData(), lightByteSize);
 				frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, lightByteSize);
 			});

@@ -40,8 +40,8 @@
     <ClInclude Include="include\Dune\Assets\Import\ModelImporter.h">
       <Filter>Dune\Assets\Import</Filter>
     </ClInclude>
-    <ClInclude Include="include\Dune\Platform\RHI\StagingMemory.h">
-      <Filter>Dune\Platform\RHI</Filter>
+    <ClInclude Include="include\Dune\Graphics\StagingMemory.h">
+      <Filter>Dune\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Graphics\DescriptorAllocator.h">
       <Filter>Dune\Graphics</Filter>
