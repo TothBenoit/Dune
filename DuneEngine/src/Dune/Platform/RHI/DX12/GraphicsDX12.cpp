@@ -1028,6 +1028,7 @@ namespace Dune::RHI
 
 		ThrowIfFailed(pFactory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER));
 		ThrowIfFailed(swapChain.As(&pSwapChain));
+		ThrowIfFailed(pSwapChain->GetDesc1(&swapChainDesc));
 
 		m_pBackBuffers = new Texture[m_latency];
 		for (UINT i = 0; i < m_latency; i++)
@@ -1038,6 +1039,8 @@ namespace Dune::RHI
 			NameDXObjectIndexed(pResource, i, L"BackBuffers");
 			backBuffer.m_pResource = pResource;
 			backBuffer.m_desc.format = EFormat::R8G8B8A8_UNORM;
+			backBuffer.m_desc.dimensions[0] = swapChainDesc.Width;
+			backBuffer.m_desc.dimensions[1] = swapChainDesc.Height;
 			backBuffer.m_desc.dimensions[2] = 1;
 		}
 
