@@ -29,10 +29,13 @@ namespace Dune::Graphics
 			Frame& frame = renderer.GetCurrentFrame();
 			RHI::Device& device = *renderer.GetDevice();
 			if (pData->buffer.Get())
+			{
 				frame.buffersToRelease.push_back(pData->buffer);
+				renderer.ReleaseSRV(pData->srv);
+				pData->srv = renderer.GetSRVAllocator().Allocate();
+			}
 			pData->buffer.Initialize(device, { .debugName{ L"MaterialBuffer" }, .memory{ RHI::EBufferMemory::GPU }, .byteSize{ materialsByteSize } });
 			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = materialCount, .byteStride = sizeof(MaterialData) });
-			device.CopyDescriptors(1, pData->srv.cpuAddress, context.GetGPUDescriptor(frame, pData->srv).cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
 
 			if (!pData->handle.IsValid())
 				pData->handle = renderer.GetRenderGraph().RegisterBuffer(&pData->buffer, RHI::EResourceState::Undefined);

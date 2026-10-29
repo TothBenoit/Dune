@@ -25,14 +25,14 @@ namespace Dune::Graphics
 	public:
 		static constexpr dU64 kUploadAlignment{ RHI::Texture::kUploadAlignment };
 
-		void Initialize(RHI::Device& device, BlockDescriptorAllocator& srvHeap, const TextureDesc& desc);
-		void Destroy(BlockDescriptorAllocator& srvHeap);
+		void Initialize(RHI::Device& device, DescriptorAllocator& srvHeap, const TextureDesc& desc);
+		void Destroy(DescriptorAllocator& srvHeap);
 
 		[[nodiscard]] dU64 GetUploadSize() const;
 		void Upload(const void* pData, RHI::CommandList& commandList, const StagingMemory& staging);
 
 		[[nodiscard]] RHI::Descriptor GetView() const { return m_view; }
-		[[nodiscard]] RHI::Descriptor ResolveSRGBView(RHI::Device& device, BlockDescriptorAllocator& srvHeap);
+		[[nodiscard]] RHI::Descriptor ResolveSRGBView(RHI::Device& device, DescriptorAllocator& srvHeap);
 
 	private:
 		RHI::Texture    m_texture;

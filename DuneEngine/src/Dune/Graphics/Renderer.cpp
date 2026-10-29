@@ -4,16 +4,16 @@
 #include "Dune/Platform/Window.h"
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Platform/RHI/Device.h"
-#include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/PSOCache.h"
 
 namespace Dune::Graphics
 {
-	void Renderer::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, Window& window, const RendererDesc& desc)
+	void Renderer::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, DescriptorAllocator& srvAllocator, Window& window, const RendererDesc& desc)
 	{
 		m_pDevice = &device;
 		m_pCommandQueue = &commandQueue;
 		m_pPSOCache = &psoCache;
+		m_pSRVAllocator = &srvAllocator;
 		m_pWindow = &window;
 		m_renderGraph.Initialize(device);
 
@@ -44,9 +44,6 @@ namespace Dune::Graphics
 			frame.commandAllocator.Initialize(device, RHI::ECommandType::Direct);
 			frame.commandList.Initialize(device, RHI::ECommandType::Direct, frame.commandAllocator);
 			frame.commandList.Close();
-			frame.srvHeap.Initialize(device, { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = ResourceManager::kSharedSRVCapacity + kPersistentSRVCapacity + kTransientSRVCapacity, .isShaderVisible = true });
-			frame.srvAllocator.Initialize(frame.srvHeap, 0, frame.srvHeap.GetCapacity());
-			frame.samplerHeap.Initialize(device, { .type = RHI::EDescriptorHeapType::Sampler, .capacity = 64, .isShaderVisible = true });
 			frame.uploadBuffer.Initialize(device, { .debugName = L"UploadBuffer", .memory = RHI::EBufferMemory::CPU, .byteSize = kUploadBufferByteSize });
 			void* pUploadAddress{ nullptr };
 			frame.uploadBuffer.Map(0, 0, &pUploadAddress);
@@ -58,9 +55,9 @@ namespace Dune::Graphics
 		m_fence.Initialize(device, 0);
 		m_swapchain.Initialize(device, m_pWindow, m_pCommandQueue, { .latency = kFramesInFlight });
 
-		RHI::DescriptorHeapDesc heapDesc { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = kPersistentSRVCapacity, .isShaderVisible = false };
-		m_srvHeap.Initialize(device, heapDesc);
-		m_srvAllocator.Initialize(m_srvHeap, 0, m_srvHeap.GetCapacity());
+		RHI::DescriptorHeapDesc heapDesc { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = kCPUSRVCapacity, .isShaderVisible = false };
+		m_cpuSRVHeap.Initialize(device, heapDesc);
+		m_cpuSRVAllocator.Initialize(m_cpuSRVHeap, 0, m_cpuSRVHeap.GetCapacity());
 
 		heapDesc.capacity = 64;
 		heapDesc.type = RHI::EDescriptorHeapType::RTV;
@@ -81,7 +78,7 @@ namespace Dune::Graphics
 		}
 
 		m_hdrTargetRTV = m_rtvAllocator.Allocate();
-		m_hdrTargetSRV = m_srvAllocator.Allocate();
+		m_hdrTargetSRV = m_pSRVAllocator->Allocate();
 		device.CreateRTV(m_hdrTargetRTV, m_hdrTarget, {});
 		device.CreateSRV(m_hdrTargetSRV, m_hdrTarget);
 		m_hdrTargetHandle = m_renderGraph.RegisterTexture(&m_hdrTarget, RHI::EResourceState::ShaderResource);
@@ -149,23 +146,28 @@ namespace Dune::Graphics
 			frame.uploadBuffer.Destroy();
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
-			frame.srvHeap.Destroy();
-			frame.samplerHeap.Destroy();
 		}
 		m_dsvAllocator.Free(m_depthBufferDSV);
 		m_rtvAllocator.Free(m_hdrTargetRTV);
-		m_srvAllocator.Free(m_hdrTargetSRV);
+		m_pSRVAllocator->Free(m_hdrTargetSRV);
 
 		for (RenderPass& pass : m_passes)
 			pass.pShutdown(*this, pass.pData);
 		m_passes.clear();
 
+		for (Frame& frame : m_frames)
+		{
+			for (RHI::Descriptor srv : frame.srvsToRelease)
+				m_pSRVAllocator->Free(srv);
+			frame.srvsToRelease.clear();
+		}
+
 		m_renderGraph.Destroy();
 
-		m_srvAllocator.Destroy();
+		m_cpuSRVAllocator.Destroy();
 		m_rtvAllocator.Destroy();
 		m_dsvAllocator.Destroy();
-		m_srvHeap.Destroy();
+		m_cpuSRVHeap.Destroy();
 		m_rtvHeap.Destroy();
 		m_dsvHeap.Destroy();
 		m_barrier.Destroy();
@@ -243,6 +245,9 @@ namespace Dune::Graphics
 		for (RHI::Buffer& buffer : frame.buffersToRelease)
 			buffer.Destroy();
 		frame.buffersToRelease.clear();
+		for (RHI::Descriptor srv : frame.srvsToRelease)
+			m_pSRVAllocator->Free(srv);
+		frame.srvsToRelease.clear();
 		frame.staging.Reset();
 		return frame;
 	}
@@ -263,18 +268,10 @@ namespace Dune::Graphics
 
 	void Renderer::Render(const FrameData& frameData, const ViewData& view)
 	{
-		RHI::Device& device = *GetDevice();
 		Frame& frame = PrepareFrame();
 		frame.commandAllocator.Reset();
 		frame.commandList.Reset(frame.commandAllocator);
-		frame.commandList.SetDescriptorHeaps(frame.srvHeap, frame.samplerHeap);
-		frame.srvAllocator.Reset();
-
-		Assert(frame.srvHeap.GetCapacity() >= m_srvHeap.GetCapacity() + frameData.pResources->sharedSRVHeapCapacity + kTransientSRVCapacity);
-		dU32 sharedSRVCapacity = frameData.pResources->sharedSRVHeapCapacity;
-		device.CopyDescriptors(sharedSRVCapacity, frameData.pResources->sharedSRVHeapCPUAddress, frame.srvHeap.GetCPUAddress(), RHI::EDescriptorHeapType::SRV_CBV_UAV);
-		device.CopyDescriptors(m_srvHeap.GetCapacity(), m_srvHeap.GetCPUAddress(), frame.srvHeap.GetCPUAddress() + frameData.pResources->sharedSRVHeapCapacity * frame.srvHeap.GetDescriptorSize(), RHI::EDescriptorHeapType::SRV_CBV_UAV);
-		frame.srvAllocator.Allocate(sharedSRVCapacity + m_srvHeap.GetCapacity());
+		frame.commandList.SetDescriptorHeaps(m_pSRVAllocator->GetHeap());
 
 		m_passContext.pFrameData = &frameData;
 		m_passContext.pView = &view;

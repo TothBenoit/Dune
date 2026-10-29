@@ -34,10 +34,10 @@ namespace Dune::Graphics
 		.initialState = RHI::EResourceState::DepthStencil
 	};
 
-	ShadowData* Shadow::Create(Renderer& renderer)
+	ShadowPassData* Shadow::Create(Renderer& renderer)
 	{
-		ShadowData* pData = new ShadowData();
-		pData->matricesSRV = renderer.GetSRVAllocator().Allocate();
+		ShadowPassData* pData = new ShadowPassData();
+		pData->shadowsSRV = renderer.GetSRVAllocator().Allocate();
 		return pData;
 	}
 
@@ -78,7 +78,7 @@ namespace Dune::Graphics
 		};
 	}
 
-	static void RenderDepth(RenderPassContext& context, ShadowData* pData, const dMatrix4x4& viewProjection)
+	static void RenderDepth(RenderPassContext& context, ShadowPassData* pData, const dMatrix4x4& viewProjection)
 	{
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
@@ -127,9 +127,10 @@ namespace Dune::Graphics
 		}
 	}
 
-	void Shadow::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData)
+	void Shadow::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowPassData* pData)
 	{
 		pData->activeHandles.clear();
+		pData->shadows.clear();
 		const MaterialOutputs* pMaterialOutputs = context.blackboard.TryGet<MaterialOutputs>();
 		if (!pMaterialOutputs)
 			return;
@@ -144,65 +145,74 @@ namespace Dune::Graphics
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
 		RHI::Device& device = *renderer.GetDevice();
-		RHI::DescriptorHeap& srvHeap = frame.srvHeap;
 		dU32 shadowCount = shadowCasters.GetSize();
-		dU32 shadowStartIndex = srvHeap.GetIndex(frame.srvAllocator.Allocate(shadowCount));
 
 		dU32 cubeShadowIndex{ 0 };
 		dU32 shadowIndex{ 0 };
 		for (dU32 casterIndex = 0; casterIndex < shadowCount; casterIndex++)
 		{
 			const LightData& light = pVisibleSet->lights[shadowCasters[casterIndex]];
-			RHI::Descriptor srv = srvHeap.GetDescriptorAt(shadowStartIndex + casterIndex);
+			RHI::Descriptor srv;
 			if (light.IsPoint())
 			{
 				if (pData->cubeShadowHandles.size() <= cubeShadowIndex)
-					pData->cubeShadowHandles.push_back(renderer.GetRenderGraph().CreateTexture(kCubeShadowMapDesc));
-				RGTexture handle = pData->cubeShadowHandles[cubeShadowIndex++];
-				RHI::Texture& shadowMap = renderer.GetRenderGraph().GetTexture(handle);
-				device.CreateSRV(srv, shadowMap, { .format = RHI::EFormat::R32_FLOAT, .dimension = RHI::ESRVDimension::TextureCube });
-				pData->activeHandles.push_back(handle);
+				{
+					const RGTexture handle = renderer.GetRenderGraph().CreateTexture(kCubeShadowMapDesc);
+					const RHI::Descriptor shadowSRV = renderer.GetSRVAllocator().Allocate();
+					device.CreateSRV(shadowSRV, renderer.GetRenderGraph().GetTexture(handle), { .format = RHI::EFormat::R32_FLOAT, .dimension = RHI::ESRVDimension::TextureCube });
+					pData->cubeShadowHandles.push_back(handle);
+					pData->cubeShadowSRVs.push_back(shadowSRV);
+				}
+				pData->activeHandles.push_back(pData->cubeShadowHandles[cubeShadowIndex]);
+				srv = pData->cubeShadowSRVs[cubeShadowIndex++];
 			}
 			else
 			{
 				if (pData->shadowHandles.size() <= shadowIndex)
-					pData->shadowHandles.push_back(renderer.GetRenderGraph().CreateTexture(kShadowMapDesc));
-				RGTexture handle = pData->shadowHandles[shadowIndex++];
-				RHI::Texture& shadowMap = renderer.GetRenderGraph().GetTexture(handle);
-				device.CreateSRV(srv, shadowMap, { .format = RHI::EFormat::R32_FLOAT });
-				pData->activeHandles.push_back(handle);
+				{
+					const RGTexture handle = renderer.GetRenderGraph().CreateTexture(kShadowMapDesc);
+					const RHI::Descriptor shadowSRV = renderer.GetSRVAllocator().Allocate();
+					device.CreateSRV(shadowSRV, renderer.GetRenderGraph().GetTexture(handle), { .format = RHI::EFormat::R32_FLOAT });
+					pData->shadowHandles.push_back(handle);
+					pData->shadowSRVs.push_back(shadowSRV);
+				}
+				pData->activeHandles.push_back(pData->shadowHandles[shadowIndex]);
+				srv = pData->shadowSRVs[shadowIndex++];
 			}
+			pData->shadows.push_back({ .shadowMatrix = pVisibleSet->shadowMatrices[casterIndex], .shadowIndex = context.GetBindlessIndex(srv) });
 		}
 
 		for (RGTexture handle : pData->activeHandles)
 			builder.Write(handle, RHI::EResourceState::DepthStencil);
 
-		const dU32 matrixCount = shadowCount;
-		const dU32 matricesByteSize = matrixCount * (dU32)sizeof(dMatrix4x4);
+		const dU32 shadowsByteSize = shadowCount * (dU32)sizeof(ShadowData);
 
-		if (pData->matricesBuffer.GetByteSize() < matricesByteSize)
+		if (pData->shadowsBuffer.GetByteSize() < shadowsByteSize)
 		{
-			if (pData->matricesBuffer.Get())
-				frame.buffersToRelease.push_back(pData->matricesBuffer);
-			pData->matricesBuffer.Initialize(device,
+			if (pData->shadowsBuffer.Get())
+			{
+				frame.buffersToRelease.push_back(pData->shadowsBuffer);
+				renderer.ReleaseSRV(pData->shadowsSRV);
+				pData->shadowsSRV = renderer.GetSRVAllocator().Allocate();
+			}
+			pData->shadowsBuffer.Initialize(device,
 				{
-					.debugName{ L"ShadowMatricesBuffer" },
+					.debugName{ L"ShadowsBuffer" },
 					.memory{ RHI::EBufferMemory::GPU },
-					.byteSize{ matricesByteSize },
+					.byteSize{ shadowsByteSize },
 					.initialState{ RHI::EResourceState::Undefined }
 				});
-			device.CreateSRV(pData->matricesSRV, pData->matricesBuffer, { .elementCount = matrixCount, .byteStride = sizeof(dMatrix4x4) });
-			device.CopyDescriptors(1, pData->matricesSRV.cpuAddress, context.GetGPUDescriptor(frame, pData->matricesSRV).cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
+			device.CreateSRV(pData->shadowsSRV, pData->shadowsBuffer, { .elementCount = shadowCount, .byteStride = sizeof(ShadowData) });
 
-			if (!pData->matricesHandle.IsValid())
-				pData->matricesHandle = renderer.GetRenderGraph().RegisterBuffer(&pData->matricesBuffer, RHI::EResourceState::Undefined);
+			if (!pData->shadowsHandle.IsValid())
+				pData->shadowsHandle = renderer.GetRenderGraph().RegisterBuffer(&pData->shadowsBuffer, RHI::EResourceState::Undefined);
 			else
-				renderer.GetRenderGraph().SetPhysicalResource(pData->matricesHandle, &pData->matricesBuffer, RHI::EResourceState::Undefined);
+				renderer.GetRenderGraph().SetPhysicalResource(pData->shadowsHandle, &pData->shadowsBuffer, RHI::EResourceState::Undefined);
 		}
 
-		builder.Write(pData->matricesHandle, RHI::EResourceState::CopyDest);
+		builder.Write(pData->shadowsHandle, RHI::EResourceState::CopyDest);
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
-		context.blackboard.Add<ShadowOutputs>({ .shadows = { pData->activeHandles }, .matrices = pData->matricesHandle, .shadowStartIndex = shadowStartIndex, .matricesIndex = context.GetBindlessIndex(pData->matricesSRV) });
+		context.blackboard.Add<ShadowOutputs>({ .shadowMaps = { pData->activeHandles }, .shadows = pData->shadowsHandle, .shadowsIndex = context.GetBindlessIndex(pData->shadowsSRV) });
 
 		builder.OnExecute([pData](RenderPassContext& context)
 			{
@@ -210,7 +220,7 @@ namespace Dune::Graphics
 				Frame& frame = renderer.GetCurrentFrame();
 				RHI::CommandList& commandList = frame.commandList;
 				RHI::Device& device = *renderer.GetDevice();
-				BlockDescriptorAllocator& dsvHeap = renderer.GetDSVAllocator();
+				DescriptorAllocator& dsvHeap = renderer.GetDSVAllocator();
 
 				const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
 				const dSpan<const dU32> shadowCasters = visibleSet.shadowCasters;
@@ -263,18 +273,23 @@ namespace Dune::Graphics
 					dsvHeap.Free(dsv);
 				}
 
-				const dU32 matricesByteSize = shadowCasters.GetSize() * (dU32)sizeof(dMatrix4x4);
-				StagingMemory staging = renderer.AllocateStaging(matricesByteSize, 16);
-				memcpy(staging.pCpuAddress, visibleSet.shadowMatrices.GetData(), matricesByteSize);
-				commandList.CopyBufferRegion(pData->matricesBuffer, 0, staging.buffer, staging.offset, matricesByteSize);
+				const dU32 shadowsByteSize = (dU32)pData->shadows.size() * (dU32)sizeof(ShadowData);
+				StagingMemory staging = renderer.AllocateStaging(shadowsByteSize, 16);
+				memcpy(staging.pCpuAddress, pData->shadows.data(), shadowsByteSize);
+				commandList.CopyBufferRegion(pData->shadowsBuffer, 0, staging.buffer, staging.offset, shadowsByteSize);
 			});
 	}
 
-	void Shadow::Destroy(Renderer& renderer, ShadowData* pData)
+	void Shadow::Destroy(Renderer& renderer, ShadowPassData* pData)
 	{
-		renderer.GetSRVAllocator().Free(pData->matricesSRV);
-		if (pData->matricesBuffer.Get())
-			pData->matricesBuffer.Destroy();
+		DescriptorAllocator& srvAllocator = renderer.GetSRVAllocator();
+		for (RHI::Descriptor srv : pData->shadowSRVs)
+			srvAllocator.Free(srv);
+		for (RHI::Descriptor srv : pData->cubeShadowSRVs)
+			srvAllocator.Free(srv);
+		srvAllocator.Free(pData->shadowsSRV);
+		if (pData->shadowsBuffer.Get())
+			pData->shadowsBuffer.Destroy();
 		delete pData;
 	}
 }

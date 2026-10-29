@@ -10,26 +10,29 @@ namespace Dune::Graphics
 {
 	class Renderer;
 
-	struct ShadowData
+	struct ShadowPassData
 	{
 
 		dVector<RGTexture> shadowHandles;
 		dVector<RGTexture> cubeShadowHandles;
 		dVector<RGTexture> activeHandles;
+		dVector<RHI::Descriptor> shadowSRVs;
+		dVector<RHI::Descriptor> cubeShadowSRVs;
+		dVector<ShadowData> shadows;
 
-		RHI::Buffer     matricesBuffer;
-		RHI::Descriptor matricesSRV;
-		RGBuffer        matricesHandle;
+		RHI::Buffer     shadowsBuffer;
+		RHI::Descriptor shadowsSRV;
+		RGBuffer        shadowsHandle;
 	};
 
 	class Shadow
 	{
 	public:
-		static ShadowData*  Create(Renderer& renderer);
-		static bool         IsPassMaterial(MaterialKey key);
-		static PipelineDesc GetPipelineDesc(MaterialKey key);
-		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowData* pData);
-		static void         Destroy(Renderer& renderer, ShadowData* pData);
+		static ShadowPassData* Create(Renderer& renderer);
+		static bool            IsPassMaterial(MaterialKey key);
+		static PipelineDesc    GetPipelineDesc(MaterialKey key);
+		static void            Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowPassData* pData);
+		static void            Destroy(Renderer& renderer, ShadowPassData* pData);
 	private:
 		Shadow() = delete;
 	};

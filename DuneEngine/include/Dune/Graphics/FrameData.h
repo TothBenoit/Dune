@@ -36,8 +36,6 @@ namespace Dune::Graphics
 	{
 		dVector<GPUMeshView> meshes;
 		dVector<MaterialData> materials;
-		dU64 sharedSRVHeapCPUAddress{ 0 };
-		dU32 sharedSRVHeapCapacity{ 0 };
 	};
 
 	struct FrameData

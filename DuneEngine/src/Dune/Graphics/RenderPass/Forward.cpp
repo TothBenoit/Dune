@@ -69,9 +69,9 @@ namespace Dune::Graphics
 		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
 		if (pShadowOutputs)
 		{
-			for (RGTexture handle : pShadowOutputs->shadows)
+			for (RGTexture handle : pShadowOutputs->shadowMaps)
 				builder.Read(handle, RHI::EResourceState::ShaderResource);
-			builder.Read(pShadowOutputs->matrices, RHI::EResourceState::ShaderResource);
+			builder.Read(pShadowOutputs->shadows, RHI::EResourceState::ShaderResource);
 		}
 
 		const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
@@ -101,8 +101,7 @@ namespace Dune::Graphics
 				const MaterialOutputs& materialOutputs = context.blackboard.Get<MaterialOutputs>();
 				globals.lightCount = pLightOutputs ? pLightOutputs->count : 0;
 				globals.lightBufferIndex = pLightOutputs ? pLightOutputs->bufferIndex : -1;
-				globals.lightMatricesIndex = pShadowOutputs ? pShadowOutputs->matricesIndex : -1;
-				globals.shadowStartIndex = pShadowOutputs ? pShadowOutputs->shadowStartIndex : -1;
+				globals.shadowsIndex = pShadowOutputs ? pShadowOutputs->shadowsIndex : -1;
 				globals.materialBufferIndex = materialOutputs.bufferIndex;
 
 				commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);

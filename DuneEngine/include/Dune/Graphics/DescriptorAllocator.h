@@ -1,12 +1,10 @@
 #pragma once
 
 #include "Dune/Core/BlockAllocator.h"
-#include "Dune/Core/ScratchAllocator.h"
 #include "Dune/Platform/RHI/DescriptorHeap.h"
 
 namespace Dune::Graphics
 {
-	template<typename TAllocator>
 	class DescriptorAllocator
 	{
 	public:
@@ -24,31 +22,24 @@ namespace Dune::Graphics
 			m_pHeap = nullptr;
 		}
 
-		template<typename... Args>
-		RHI::Descriptor Allocate(Args... args)
+		[[nodiscard]] RHI::Descriptor Allocate()
 		{
-			const auto offset = m_allocator.Allocate(args...);
-			Assert(offset != TAllocator::kInvalidOffset);
-			return m_pHeap->GetDescriptorAt(m_firstIndex + (dU32)offset);
+			const dU32 offset = m_allocator.Allocate();
+			Assert(offset != BlockAllocator::kInvalidOffset);
+			return m_pHeap->GetDescriptorAt(m_firstIndex + offset);
 		}
 
-		void Free(RHI::Descriptor descriptor) requires requires(TAllocator allocator) { allocator.Free(0u); }
+		void Free(RHI::Descriptor descriptor)
 		{
 			Assert(descriptor.IsValid());
 			m_allocator.Free(m_pHeap->GetIndex(descriptor) - m_firstIndex);
 		}
 
-		void Reset() requires requires(TAllocator allocator) { allocator.Reset(); }
-		{
-			m_allocator.Reset();
-		}
+		[[nodiscard]] RHI::DescriptorHeap& GetHeap() const { return *m_pHeap; }
 
 	private:
 		RHI::DescriptorHeap* m_pHeap{ nullptr };
 		dU32                 m_firstIndex{ 0 };
-		TAllocator           m_allocator{};
+		BlockAllocator       m_allocator{};
 	};
-
-	using BlockDescriptorAllocator = DescriptorAllocator<BlockAllocator>;
-	using ScratchDescriptorAllocator = DescriptorAllocator<ScratchAllocator>;
 }

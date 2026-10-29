@@ -92,7 +92,7 @@ PS_OUTPUT PSMain(VSToPS input)
 	for (int lightIndex = 0; lightIndex < cGlobals.lightCount; lightIndex++)
 	{
 		LightData light = lights[lightIndex];
-		directLighting += ComputeLight(light, cGlobals.lightMatricesIndex, cGlobals.shadowStartIndex, n, v, input.worldPosition, diffuseColor, f0, roughness);
+		directLighting += ComputeLight(light, cGlobals.shadowsIndex, n, v, input.worldPosition, diffuseColor, f0, roughness);
 	}
 
 	output.color = float4(directLighting, alpha);

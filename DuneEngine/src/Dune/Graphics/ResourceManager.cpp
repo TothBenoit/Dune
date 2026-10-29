@@ -71,15 +71,14 @@ namespace Dune::Graphics
 		return it->second;
 	}
 
-	void ResourceManager::Initialize(RHI::Device& device, const ResourceCache& resourceCache)
+	void ResourceManager::Initialize(RHI::Device& device, const ResourceCache& resourceCache, DescriptorAllocator& srvAllocator)
 	{
 		m_pDevice = &device;
+		m_pSRVAllocator = &srvAllocator;
 		m_textures.Initialize(resourceCache.textures);
 		m_materials.Initialize(resourceCache.materials);
 		m_materialSets.Initialize(resourceCache.materialSets);
 		m_meshes.Initialize(resourceCache.meshes);
-		m_srvHeap.Initialize(device, { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = kSharedSRVCapacity, .isShaderVisible = false });
-		m_srvAllocator.Initialize(m_srvHeap, 0, kSharedSRVCapacity);
 	}
 
 	void ResourceManager::Destroy()
@@ -91,22 +90,21 @@ namespace Dune::Graphics
 			if (m_meshes.IsAliveAt(i))
 				Destroy(m_meshes.GetHandleAt(i));
 
-		m_srvAllocator.Destroy();
-		m_srvHeap.Destroy();
+		m_pSRVAllocator = nullptr;
 		m_pDevice = nullptr;
 	}
 
 	void ResourceManager::CreateTexture(TextureHandle handle, const TextureData& data)
 	{
 		Texture texture{};
-		texture.Initialize(*m_pDevice, m_srvAllocator, { .format = data.format, .width = data.width, .height = data.height, .mipLevels = data.mipLevels });
+		texture.Initialize(*m_pDevice, *m_pSRVAllocator, { .format = data.format, .width = data.width, .height = data.height, .mipLevels = data.mipLevels });
 		m_textures.Insert(handle, std::move(texture));
 	}
 
 	void ResourceManager::CreateTexture(TextureHandle handle, const ImageData& image)
 	{
 		Texture texture{};
-		texture.Initialize(*m_pDevice, m_srvAllocator, { .format = image.format, .width = image.width, .height = image.height, .mipLevels = image.mipLevels });
+		texture.Initialize(*m_pDevice, *m_pSRVAllocator, { .format = image.format, .width = image.width, .height = image.height, .mipLevels = image.mipLevels });
 		m_textures.Insert(handle, std::move(texture));
 	}
 
@@ -114,14 +112,14 @@ namespace Dune::Graphics
 	{
 		if (!handle.IsValid())
 			return dU32(-1);
-		return m_srvHeap.GetIndex(m_textures.Get(handle).GetView());
+		return m_pSRVAllocator->GetHeap().GetIndex(m_textures.Get(handle).GetView());
 	}
 
 	dU32 ResourceManager::ResolveSRGBViewIndex(TextureHandle handle)
 	{
 		if (!handle.IsValid())
 			return dU32(-1);
-		return m_srvHeap.GetIndex(m_textures.Get(handle).ResolveSRGBView(*m_pDevice, m_srvAllocator));
+		return m_pSRVAllocator->GetHeap().GetIndex(m_textures.Get(handle).ResolveSRGBView(*m_pDevice, *m_pSRVAllocator));
 	}
 
 	void ResourceManager::CreateMaterial(MaterialHandle handle, const MaterialDesc& desc)
@@ -271,14 +269,11 @@ namespace Dune::Graphics
 		for (dU32 i = 0; i < m_materials.GetCapacity(); i++)
 			if (m_materials.IsAliveAt(i))
 				table.materials[i] = m_materials.GetAt(i).shaderData;
-
-		table.sharedSRVHeapCPUAddress = m_srvHeap.GetCPUAddress();
-		table.sharedSRVHeapCapacity = m_srvHeap.GetCapacity();
 	}
 
 	void ResourceManager::Destroy(TextureHandle handle)
 	{
-		m_textures.Remove(handle).Destroy(m_srvAllocator);
+		m_textures.Remove(handle).Destroy(*m_pSRVAllocator);
 	}
 
 	void ResourceManager::Destroy(MaterialHandle handle)

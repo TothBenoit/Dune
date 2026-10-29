@@ -21,6 +21,8 @@ namespace Dune::Graphics
 	class RenderContext
 	{
 	public:
+		static constexpr dU32 kSRVCapacity = 65536;
+
 		void Initialize(const ResourceCache& resourceCache, dU32 physicalDeviceIndex);
 		void Destroy();
 
@@ -42,6 +44,8 @@ namespace Dune::Graphics
 		RHI::PhysicalDevice m_physicalDevice{};
 		RHI::Device m_device{};
 		RHI::CommandQueue m_commandQueue{};
+		RHI::DescriptorHeap m_srvHeap{};
+		DescriptorAllocator m_srvAllocator{};
 		PSOCache m_psoCache{};
 		ResourceManager m_resourceManager{};
 		UploadContext m_uploadContext{};

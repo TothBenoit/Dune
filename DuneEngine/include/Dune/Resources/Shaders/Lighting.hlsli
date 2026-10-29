@@ -20,11 +20,13 @@ float3 GetFaceDirection(const float3 v)
 	return localDirection;
 }
 
-float Shadow(LightData light, uint lightMatricesIndex, uint shadowStartIndex, float3 worldPosition, float3 n)
+float Shadow(LightData light, uint shadowsIndex, float3 worldPosition, float3 n)
 {
-	StructuredBuffer<float4x4> lightMatrices = ResourceDescriptorHeap[lightMatricesIndex];
-	float4x4 lightMatrix = lightMatrices[light.shadowIndex];
-	
+	StructuredBuffer<ShadowData> shadows = ResourceDescriptorHeap[shadowsIndex];
+	const ShadowData shadow = shadows[light.shadowIndex];
+	float4x4 lightMatrix = shadow.shadowMatrix;
+	const uint shadowIndex = shadow.shadowIndex;
+
 	if (light.IsPoint())
 	{
 		const float3 lightToWorld = worldPosition - light.position;
@@ -32,14 +34,14 @@ float Shadow(LightData light, uint lightMatricesIndex, uint shadowStartIndex, fl
 		const float3 localDirection = GetFaceDirection(lightToWorld);
 		float4 lightPos = mul(lightMatrix, float4(localDirection, 1.f));
 		lightPos.xyz /= lightPos.w;
-		TextureCube shadowMap = ResourceDescriptorHeap[NonUniformResourceIndex(light.shadowIndex + shadowStartIndex)];
+		TextureCube shadowMap = ResourceDescriptorHeap[NonUniformResourceIndex(shadowIndex)];
 		return shadowMap.SampleCmpLevelZero(sLinearClampComparisonGreater, uv, lightPos.z);
 	}
 
 	float4 lightPos = mul(lightMatrix, float4(worldPosition, 1.f));
 	lightPos.xyz /= lightPos.w;
 	const float2 uv = lightPos.xy * float2(0.5f, -0.5f) + 0.5f;
-	Texture2D shadowMap = ResourceDescriptorHeap[NonUniformResourceIndex(light.shadowIndex + shadowStartIndex)];
+	Texture2D shadowMap = ResourceDescriptorHeap[NonUniformResourceIndex(shadowIndex)];
 	return shadowMap.SampleCmpLevelZero(sLinearClampComparisonGreater, uv, lightPos.z);
 }
 
@@ -50,7 +52,7 @@ float RangeAttenuation(float distanceSq, float range)
 	return distanceAttenuation * window;
 }
 
-float3 ComputeLight(LightData light, uint lightMatricesIndex, uint shadowStartIndex, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
+float3 ComputeLight(LightData light, uint shadowsIndex, float3 n, float3 v, float3 worldPosition, float3 diffuseColor, float3 f0, float roughness)
 {
 	float3 l = -light.direction;
 	float attenuation = 1.f;
@@ -70,9 +72,9 @@ float3 ComputeLight(LightData light, uint lightMatricesIndex, uint shadowStartIn
 		}
 	}
 
-	if (light.HasShadow() && IsValid(shadowStartIndex))
+	if (light.HasShadow() && IsValid(shadowsIndex))
 	{
-		attenuation *= 1.0f - Shadow(light, lightMatricesIndex, shadowStartIndex, worldPosition, n);
+		attenuation *= 1.0f - Shadow(light, shadowsIndex, worldPosition, n);
 	}
 	
 	if ( attenuation <= 0.0f )

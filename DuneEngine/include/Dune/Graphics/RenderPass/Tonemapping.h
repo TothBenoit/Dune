@@ -17,6 +17,7 @@ namespace Dune::Graphics
 		float tau{ 1.0f };
 
 		RHI::Descriptor histogramUAV;
+		RHI::Descriptor histogramCPUUAV;
 		RHI::Buffer histogramBuffer;
 		RHI::Buffer luminanceBuffer;
 	};

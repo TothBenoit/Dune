@@ -28,9 +28,8 @@ namespace Dune::Graphics
 
 	struct ShadowOutputs 
 	{ 
-		dSpan<const RGTexture> shadows; 
-		RGBuffer matrices; 
-		dU32 shadowStartIndex;
-		dU32 matricesIndex; 
+		dSpan<const RGTexture> shadowMaps; 
+		RGBuffer shadows;
+		dU32 shadowsIndex;
 	};
 }

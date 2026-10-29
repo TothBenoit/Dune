@@ -94,8 +94,7 @@ namespace Dune
 
 			[[nodiscard]] PSO* GetPSO(MaterialKey key) const;
 			[[nodiscard]] PSO* GetPipeline(dU32 index) const;
-			[[nodiscard]] dU32 GetBindlessIndex(RHI::Descriptor persistentSRV) const;
-			[[nodiscard]] RHI::Descriptor GetGPUDescriptor(const Frame& frame, RHI::Descriptor persistentSRV) const;
+			[[nodiscard]] dU32 GetBindlessIndex(RHI::Descriptor srv) const;
 		};
 
 		struct RenderPass

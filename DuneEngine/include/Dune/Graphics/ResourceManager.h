@@ -50,9 +50,7 @@ namespace Dune::Graphics
 	class ResourceManager
 	{
 	public:
-		static constexpr dU32 kSharedSRVCapacity = 512;
-
-		void Initialize(RHI::Device& device, const ResourceCache& resourceCache);
+		void Initialize(RHI::Device& device, const ResourceCache& resourceCache, DescriptorAllocator& srvAllocator);
 		void Destroy();
 
 		void CreateTexture(TextureHandle handle, const TextureData& data);
@@ -82,7 +80,6 @@ namespace Dune::Graphics
 		[[nodiscard]] const MaterialSet& GetMaterialSet(MaterialSetHandle handle) const { return m_materialSets.Get(handle); }
 		[[nodiscard]] const ResourcePool<Mesh>& GetMeshes() const { return m_meshes; }
 		[[nodiscard]] const ResourcePool<Material>& GetMaterials() const { return m_materials; }
-		[[nodiscard]] const RHI::DescriptorHeap& GetSRVHeap() const { return m_srvHeap; }
 
 	private:
 		void CreateMesh(MeshHandle handle, const MeshDesc& desc);
@@ -97,7 +94,6 @@ namespace Dune::Graphics
 		ResourcePool<Material>              m_materials;
 		ResourcePool<MaterialSet>           m_materialSets;
 		ResourcePool<Mesh>                  m_meshes;
-		RHI::DescriptorHeap                 m_srvHeap;
-		BlockDescriptorAllocator            m_srvAllocator;
+		DescriptorAllocator*                m_pSRVAllocator{ nullptr };
 	};
 }

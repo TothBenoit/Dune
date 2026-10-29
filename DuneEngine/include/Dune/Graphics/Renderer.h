@@ -37,13 +37,11 @@ namespace Dune
 			RHI::CommandAllocator commandAllocator;
 			RHI::CommandList commandList;
 			RHI::Descriptor backBufferRTV;
-			RHI::DescriptorHeap srvHeap;
-			ScratchDescriptorAllocator srvAllocator;
-			RHI::DescriptorHeap samplerHeap;
 			RHI::Buffer uploadBuffer;
 			dU8* pUploadAddress{ nullptr };
 			ScratchAllocator staging;
 			dVector<RHI::Buffer> buffersToRelease;
+			dVector<RHI::Descriptor> srvsToRelease;
 			RGTexture backBufferHandle;
 		};
 
@@ -51,12 +49,11 @@ namespace Dune
 		{
 		public:
 			static constexpr dU32 kFramesInFlight = 3;
-			static constexpr dU32 kPersistentSRVCapacity = 4096;
-			static constexpr dU32 kTransientSRVCapacity = 512;
+			static constexpr dU32 kCPUSRVCapacity = 16;
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
-			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, Window& window, const RendererDesc& desc);
+			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, DescriptorAllocator& srvAllocator, Window& window, const RendererDesc& desc);
 			void Destroy();
 
 			void InitializeImGui(const char* pLayoutPath);
@@ -72,10 +69,12 @@ namespace Dune
 			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
 			[[nodiscard]] inline RHI::Barrier& GetBarrier() { return m_barrier; }
-			[[nodiscard]] inline RHI::DescriptorHeap& GetSRVHeap() { return m_srvHeap; }
-			[[nodiscard]] inline BlockDescriptorAllocator& GetSRVAllocator() { return m_srvAllocator; }
-			[[nodiscard]] inline BlockDescriptorAllocator& GetRTVAllocator() { return m_rtvAllocator; }
-			[[nodiscard]] inline BlockDescriptorAllocator& GetDSVAllocator() { return m_dsvAllocator; }
+			[[nodiscard]] inline RHI::DescriptorHeap& GetSRVHeap() { return m_pSRVAllocator->GetHeap(); }
+			[[nodiscard]] inline DescriptorAllocator& GetSRVAllocator() { return *m_pSRVAllocator; }
+			[[nodiscard]] inline DescriptorAllocator& GetCPUSRVAllocator() { return m_cpuSRVAllocator; }
+			inline void ReleaseSRV(RHI::Descriptor srv) { m_frames[m_frameIndex].srvsToRelease.push_back(srv); }
+			[[nodiscard]] inline DescriptorAllocator& GetRTVAllocator() { return m_rtvAllocator; }
+			[[nodiscard]] inline DescriptorAllocator& GetDSVAllocator() { return m_dsvAllocator; }
 			[[nodiscard]] inline const RHI::Descriptor& GetDepthBufferDSV() const { return m_depthBufferDSV; }
 			[[nodiscard]] inline const RHI::Descriptor& GetHDRTargetRTV() const { return m_hdrTargetRTV; }
 			[[nodiscard]] inline const RHI::Descriptor& GetHDRTargetSRV() const { return m_hdrTargetSRV; }
@@ -120,12 +119,14 @@ namespace Dune
 			RHI::Texture m_depthBuffer{};
 			RHI::CommandQueue* m_pCommandQueue{ nullptr };
 
-			RHI::DescriptorHeap m_srvHeap{};
+			DescriptorAllocator* m_pSRVAllocator{ nullptr };
+
+			RHI::DescriptorHeap m_cpuSRVHeap{};
 			RHI::DescriptorHeap m_rtvHeap{};
 			RHI::DescriptorHeap m_dsvHeap{};
-			BlockDescriptorAllocator m_srvAllocator{};
-			BlockDescriptorAllocator m_rtvAllocator{};
-			BlockDescriptorAllocator m_dsvAllocator{};
+			DescriptorAllocator m_cpuSRVAllocator{};
+			DescriptorAllocator m_rtvAllocator{};
+			DescriptorAllocator m_dsvAllocator{};
 
 			RHI::Descriptor m_depthBufferDSV;
 			RGTexture m_depthBufferHandle;

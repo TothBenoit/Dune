@@ -65,8 +65,7 @@ struct ForwardGlobals
 	float3     cameraPosition;
 	int        lightCount;
 	uint       lightBufferIndex;
-	uint       lightMatricesIndex;
-	uint       shadowStartIndex;
+	uint       shadowsIndex;
 	uint       materialBufferIndex;
 };
 
@@ -117,6 +116,12 @@ struct LightData
 	bool IsPoint() CONST { return (flags & fIsPoint) != 0; }
 	bool IsSpot() CONST { return (flags & fIsSpot) != 0; }
 	bool HasShadow() CONST { return (flags & fCastShadow) != 0; }
+};
+
+struct ShadowData
+{
+	float4x4   shadowMatrix;
+	uint       shadowIndex;
 };
 
 #ifndef __cplusplus

@@ -14,13 +14,14 @@ namespace Dune::Graphics
 	TonemappingData* Tonemapping::Create(Renderer& renderer)
 	{
 		RHI::Device& device = *renderer.GetDevice();
-		BlockDescriptorAllocator& srvHeap = renderer.GetSRVAllocator();
 
 		TonemappingData* pData = new TonemappingData();
 
 		pData->histogramBuffer.Initialize(device, { .debugName = L"HistogramBuffer", .usage = RHI::EBufferUsage::UAV, .memory = RHI::EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32)});
-		pData->histogramUAV = srvHeap.Allocate();
-		device.CreateUAV(pData->histogramUAV, pData->histogramBuffer, { .format = RHI::EFormat::R32_UINT, .elementCount = 256 });
+		pData->histogramCPUUAV = renderer.GetCPUSRVAllocator().Allocate();
+		device.CreateUAV(pData->histogramCPUUAV, pData->histogramBuffer, { .format = RHI::EFormat::R32_UINT, .elementCount = 256 });
+		pData->histogramUAV = renderer.GetSRVAllocator().Allocate();
+		device.CopyDescriptors(1, pData->histogramCPUUAV.cpuAddress, pData->histogramUAV.cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
 
 		pData->luminanceBuffer.Initialize(device, { .debugName = L"LuminanceBuffer", .usage = RHI::EBufferUsage::UAV, .memory = RHI::EBufferMemory::GPU, .byteSize = sizeof(dU32)});
 
@@ -82,8 +83,6 @@ namespace Dune::Graphics
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
 				RHI::CommandList& commandList = frame.commandList;
-				RHI::Descriptor histogramUAV = frame.srvAllocator.Allocate(1);
-				RHI::Device& device = *renderer.GetDevice();
 				const dUVec2 resolution = renderer.GetResolution();
 				RHI::Barrier& barrier = renderer.GetBarrier();
 				PSO& histogramPSO = *context.GetPipeline(Tonemapping::kHistogramPipeline);
@@ -92,8 +91,7 @@ namespace Dune::Graphics
 
 				commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
 
-				device.CopyDescriptors(1, pData->histogramUAV.cpuAddress, histogramUAV.cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
-				commandList.ClearUAVUInt(histogramUAV.gpuAddress, pData->histogramUAV.cpuAddress, pData->histogramBuffer.Get(), 0);
+				commandList.ClearUAVUInt(pData->histogramUAV.gpuAddress, pData->histogramCPUUAV.cpuAddress, pData->histogramBuffer.Get(), 0);
 
 				float logLuminanceRange = pData->maxLogLuminance - pData->minLogLuminance;
 				LuminanceHistogramParams histogramParams
@@ -107,7 +105,7 @@ namespace Dune::Graphics
 				commandList.SetComputeRootSignature(*histogramPSO.pRootSignature);
 				commandList.SetPipelineState(histogramPSO.pipelineState);
 				commandList.PushComputeConstants(0, &histogramParams, sizeof(histogramParams));
-				RHI::Descriptor hdrTargetSRV = context.GetGPUDescriptor(frame, renderer.GetHDRTargetSRV());
+				RHI::Descriptor hdrTargetSRV = renderer.GetHDRTargetSRV();
 				commandList.BindComputeGroup(1, hdrTargetSRV);
 				commandList.PushComputeUAV(2, pData->histogramBuffer);
 				commandList.Dispatch((histogramParams.width + 16 - 1) / 16, (histogramParams.height + 16 - 1) / 16, 1);
@@ -151,8 +149,8 @@ namespace Dune::Graphics
 
 	void Tonemapping::Destroy(Renderer& renderer, TonemappingData* pData)
 	{
-		BlockDescriptorAllocator& srvHeap = renderer.GetSRVAllocator();
-		srvHeap.Free(pData->histogramUAV);
+		renderer.GetSRVAllocator().Free(pData->histogramUAV);
+		renderer.GetCPUSRVAllocator().Free(pData->histogramCPUUAV);
 		pData->histogramBuffer.Destroy();
 		pData->luminanceBuffer.Destroy();
 		delete pData;
