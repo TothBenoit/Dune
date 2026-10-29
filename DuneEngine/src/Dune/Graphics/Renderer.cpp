@@ -157,8 +157,7 @@ namespace Dune::Graphics
 
 		for (Frame& frame : m_frames)
 		{
-			for (RHI::Descriptor srv : frame.srvsToRelease)
-				m_pSRVAllocator->Free(srv);
+			m_pSRVAllocator->Free(frame.srvsToRelease);
 			frame.srvsToRelease.clear();
 		}
 
@@ -245,8 +244,7 @@ namespace Dune::Graphics
 		for (RHI::Buffer& buffer : frame.buffersToRelease)
 			buffer.Destroy();
 		frame.buffersToRelease.clear();
-		for (RHI::Descriptor srv : frame.srvsToRelease)
-			m_pSRVAllocator->Free(srv);
+		m_pSRVAllocator->Free(frame.srvsToRelease);
 		frame.srvsToRelease.clear();
 		frame.staging.Reset();
 		return frame;

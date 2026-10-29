@@ -2,6 +2,7 @@
 
 #include "Dune/Core/BlockAllocator.h"
 #include "Dune/Platform/RHI/DescriptorHeap.h"
+#include <mutex>
 
 namespace Dune::Graphics
 {
@@ -24,6 +25,7 @@ namespace Dune::Graphics
 
 		[[nodiscard]] RHI::Descriptor Allocate()
 		{
+			std::lock_guard lock(m_mutex);
 			const dU32 offset = m_allocator.Allocate();
 			Assert(offset != BlockAllocator::kInvalidOffset);
 			return m_pHeap->GetDescriptorAt(m_firstIndex + offset);
@@ -32,7 +34,18 @@ namespace Dune::Graphics
 		void Free(RHI::Descriptor descriptor)
 		{
 			Assert(descriptor.IsValid());
+			std::lock_guard lock(m_mutex);
 			m_allocator.Free(m_pHeap->GetIndex(descriptor) - m_firstIndex);
+		}
+
+		void Free(dSpan<const RHI::Descriptor> descriptors)
+		{
+			std::lock_guard lock(m_mutex);
+			for (RHI::Descriptor descriptor : descriptors)
+			{
+				Assert(descriptor.IsValid());
+				m_allocator.Free(m_pHeap->GetIndex(descriptor) - m_firstIndex);
+			}
 		}
 
 		[[nodiscard]] RHI::DescriptorHeap& GetHeap() const { return *m_pHeap; }
@@ -41,5 +54,6 @@ namespace Dune::Graphics
 		RHI::DescriptorHeap* m_pHeap{ nullptr };
 		dU32                 m_firstIndex{ 0 };
 		BlockAllocator       m_allocator{};
+		std::mutex           m_mutex;
 	};
 }
