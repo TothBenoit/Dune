@@ -15,7 +15,6 @@ namespace Dune::Graphics
 		m_pPSOCache = &psoCache;
 		m_pSRVAllocator = &srvAllocator;
 		m_pWindow = &window;
-		m_renderGraph.Initialize(device);
 
 		m_resolution = { window.GetWidth(), window.GetHeight() };
 		m_depthBuffer.Initialize(device,
@@ -68,23 +67,10 @@ namespace Dune::Graphics
 		m_dsvHeap.Initialize(device, heapDesc);
 		m_dsvAllocator.Initialize(m_dsvHeap, 0, m_dsvHeap.GetCapacity());
 
+		m_renderGraph.Initialize(device, *m_pSRVAllocator, m_rtvAllocator, m_dsvAllocator, kFramesInFlight);
 		for (dU32 i = 0; i < kFramesInFlight; i++)
-		{
-			Frame& frame = m_frames[i];
-			frame.backBufferRTV = m_rtvAllocator.Allocate();
-			device.CreateRTV(frame.backBufferRTV, m_swapchain.GetBackBuffer(i), {});
-
-			frame.backBufferHandle = m_renderGraph.RegisterTexture(&m_swapchain.GetBackBuffer(i), RHI::EResourceState::Present);
-		}
-
-		m_hdrTargetRTV = m_rtvAllocator.Allocate();
-		m_hdrTargetSRV = m_pSRVAllocator->Allocate();
-		device.CreateRTV(m_hdrTargetRTV, m_hdrTarget, {});
-		device.CreateSRV(m_hdrTargetSRV, m_hdrTarget);
+			m_frames[i].backBufferHandle = m_renderGraph.RegisterTexture(&m_swapchain.GetBackBuffer(i), RHI::EResourceState::Present);
 		m_hdrTargetHandle = m_renderGraph.RegisterTexture(&m_hdrTarget, RHI::EResourceState::ShaderResource);
-
-		m_depthBufferDSV = m_dsvAllocator.Allocate();
-		device.CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
 		m_depthBufferHandle = m_renderGraph.RegisterTexture(&m_depthBuffer, RHI::EResourceState::DepthStencil);
 
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
@@ -142,14 +128,10 @@ namespace Dune::Graphics
 			for (RHI::Buffer& buffer : frame.buffersToRelease)
 				buffer.Destroy();
 			frame.buffersToRelease.clear();
-			m_rtvAllocator.Free(frame.backBufferRTV);
 			frame.uploadBuffer.Destroy();
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
 		}
-		m_dsvAllocator.Free(m_depthBufferDSV);
-		m_rtvAllocator.Free(m_hdrTargetRTV);
-		m_pSRVAllocator->Free(m_hdrTargetSRV);
 
 		for (RenderPass& pass : m_passes)
 			pass.pShutdown(*this, pass.pData);
@@ -195,10 +177,7 @@ namespace Dune::Graphics
 		m_resolution = { width, height };
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 		for (dU32 i = 0; i < kFramesInFlight; i++)
-		{
-			device.CreateRTV(m_frames[i].backBufferRTV, m_swapchain.GetBackBuffer(i), {});
 			m_renderGraph.SetPhysicalResource(m_frames[i].backBufferHandle, &m_swapchain.GetBackBuffer(i), RHI::EResourceState::Present);
-		}
 
 		RHI::TextureDesc hdrTargetDesc
 		{
@@ -212,8 +191,6 @@ namespace Dune::Graphics
 
 		m_hdrTarget.Destroy();
 		m_hdrTarget.Initialize(device, hdrTargetDesc);
-		device.CreateSRV(m_hdrTargetSRV, m_hdrTarget);
-		device.CreateRTV(m_hdrTargetRTV, m_hdrTarget, {});
 		m_renderGraph.SetPhysicalResource(m_hdrTargetHandle, &m_hdrTarget, RHI::EResourceState::ShaderResource);
 
 		m_depthBuffer.Destroy();
@@ -226,7 +203,6 @@ namespace Dune::Graphics
 				.clearValue = {1.f, 1.f, 1.f, 1.f},
 				.initialState = RHI::EResourceState::DepthStencil
 			});
-		device.CreateDSV(m_depthBufferDSV, m_depthBuffer, {});
 		m_renderGraph.SetPhysicalResource(m_depthBufferHandle, &m_depthBuffer, RHI::EResourceState::DepthStencil);
 	}
 
@@ -246,6 +222,7 @@ namespace Dune::Graphics
 		frame.buffersToRelease.clear();
 		m_pSRVAllocator->Free(frame.srvsToRelease);
 		frame.srvsToRelease.clear();
+		m_renderGraph.BeginFrame(m_frameIndex);
 		frame.staging.Reset();
 		return frame;
 	}
@@ -286,11 +263,12 @@ namespace Dune::Graphics
 
 		for (RenderPass& pass : m_passes)
 		{
-			pass.builder.Reset();
+			pass.builder.Reset(m_renderGraph);
 			m_passContext.pPass = &pass;
 			pass.pSetup(pass.builder, m_passContext, pass.pData);
 			Assert(pass.builder.HasExecute() || pass.builder.IsEmpty());
 		}
+		m_renderGraph.ResolveViews();
 
 #ifdef _DEBUG
 		dVector<bool> writtenTextures(m_renderGraph.GetTextureCount(), false);
@@ -332,6 +310,7 @@ namespace Dune::Graphics
 
 		m_renderGraph.TransitionTexture({ .handle = frame.backBufferHandle, .state = RHI::EResourceState::Present }, m_barrier);
 		FlushBarriers(frame.commandList);
+		m_renderGraph.EndFrame();
 
 		frame.commandList.Close();
 		m_pCommandQueue->ExecuteCommandLists(&frame.commandList, 1);

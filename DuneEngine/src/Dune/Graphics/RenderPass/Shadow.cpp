@@ -254,7 +254,7 @@ namespace Dune::Graphics
 
 						for (dU32 faceIndex = 0; faceIndex < 6; faceIndex++)
 						{
-							device.CreateDSV(dsv, shadowMap, { .firstArraySlice = faceIndex, .arraySize = 1, .dimension = RHI::EDSVDimension::Texture2DArray });
+							device.CreateDSV(dsv, shadowMap, { .firstArraySlice = faceIndex });
 							commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
 							commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 							dMatrix4x4 faceMatrix;

@@ -59,9 +59,9 @@ namespace Dune::Graphics
 			return;
 
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
-		builder.Write(context.pRenderer->GetDepthBufferHandle(), RHI::EResourceState::DepthStencil);
+		const RGTextureDSV depthDSV = builder.WriteDSV(context.pRenderer->GetDepthBufferHandle());
 
-		builder.OnExecute([](RenderPassContext& context)
+		builder.OnExecute([depthDSV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
@@ -69,7 +69,7 @@ namespace Dune::Graphics
 				RHI::Device& device = *renderer.GetDevice();
 				const dUVec2 resolution = renderer.GetResolution();
 
-				RHI::Descriptor dsv = renderer.GetDepthBufferDSV();
+				RHI::Descriptor dsv = context.GetDescriptor(depthDSV);
 				RHI::Viewport viewport{ 0.0, 0.0, (float)resolution.x, (float)resolution.y, 0.0f, 1.0f };
 				RHI::Scissor scissor{ 0, 0, resolution.x, resolution.y };
 				commandList.SetViewports(1, &viewport);

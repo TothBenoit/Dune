@@ -36,7 +36,6 @@ namespace Dune
 			dU32 fenceValue{ 0 };
 			RHI::CommandAllocator commandAllocator;
 			RHI::CommandList commandList;
-			RHI::Descriptor backBufferRTV;
 			RHI::Buffer uploadBuffer;
 			dU8* pUploadAddress{ nullptr };
 			ScratchAllocator staging;
@@ -75,9 +74,6 @@ namespace Dune
 			inline void ReleaseSRV(RHI::Descriptor srv) { m_frames[m_frameIndex].srvsToRelease.push_back(srv); }
 			[[nodiscard]] inline DescriptorAllocator& GetRTVAllocator() { return m_rtvAllocator; }
 			[[nodiscard]] inline DescriptorAllocator& GetDSVAllocator() { return m_dsvAllocator; }
-			[[nodiscard]] inline const RHI::Descriptor& GetDepthBufferDSV() const { return m_depthBufferDSV; }
-			[[nodiscard]] inline const RHI::Descriptor& GetHDRTargetRTV() const { return m_hdrTargetRTV; }
-			[[nodiscard]] inline const RHI::Descriptor& GetHDRTargetSRV() const { return m_hdrTargetSRV; }
 			[[nodiscard]] inline const RHI::Texture& GetDepthBuffer() const { return m_depthBuffer; }
 			[[nodiscard]] inline const RHI::Texture& GetHDRTarget() const { return m_hdrTarget; }
 
@@ -128,12 +124,9 @@ namespace Dune
 			DescriptorAllocator m_rtvAllocator{};
 			DescriptorAllocator m_dsvAllocator{};
 
-			RHI::Descriptor m_depthBufferDSV;
 			RGTexture m_depthBufferHandle;
 
 			RHI::Texture m_hdrTarget;
-			RHI::Descriptor m_hdrTargetRTV;
-			RHI::Descriptor m_hdrTargetSRV;
 			RGTexture m_hdrTargetHandle;
 
 			RHI::Fence m_fence{};

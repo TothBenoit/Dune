@@ -31,6 +31,8 @@ namespace Dune::RHI
 		dU32 arraySize{ (dU32)-1 };
 		EFormat	format{ EFormat::R8G8B8A8_UNORM };
 		ESRVDimension dimension{ ESRVDimension::Texture2D };
+
+		[[nodiscard]] bool operator==(const SRVTextureDesc&) const = default;
 	};
 
 	struct SRVBufferDesc
@@ -39,6 +41,8 @@ namespace Dune::RHI
 		dU64 firstElement{ 0 };
 		dU32 elementCount{ 0 };
 		dU32 byteStride{ 0 };
+
+		[[nodiscard]] bool operator==(const SRVBufferDesc&) const = default;
 	};
 
 	struct UAVBufferDesc
@@ -47,6 +51,8 @@ namespace Dune::RHI
 		dU64 firstElement{ 0 };
 		dU32 elementCount{ 0 };
 		dU32 byteStride{ 0 };
+
+		[[nodiscard]] bool operator==(const UAVBufferDesc&) const = default;
 	};
 
 	struct SamplerDesc
@@ -56,22 +62,14 @@ namespace Dune::RHI
 
 	struct RTVDesc
 	{
-	};
-
-	enum class EDSVDimension
-	{
-		Texture1D,
-		Texture1DArray,
-		Texture2D,
-		Texture2DArray,
+		dU32 mipSlice{ 0 };
+		dU32 firstArraySlice{ 0 };
 	};
 
 	struct DSVDesc
 	{
 		dU32 mipSlice{ 0 };
 		dU32 firstArraySlice{ 0 };
-		dU32 arraySize{ (dU32)-1 };
-		EDSVDimension dimension{ EDSVDimension::Texture2D };
 	};
 
 	class Device : public Resource

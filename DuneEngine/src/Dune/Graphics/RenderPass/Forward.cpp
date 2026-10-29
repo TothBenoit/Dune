@@ -63,8 +63,8 @@ namespace Dune::Graphics
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
 
 		Renderer& renderer = *context.pRenderer;
-		builder.Write(renderer.GetHDRTargetHandle(), RHI::EResourceState::RenderTarget);
-		builder.Write(renderer.GetDepthBufferHandle(), RHI::EResourceState::DepthStencil);
+		const RGTextureRTV hdrRTV = builder.WriteRTV(renderer.GetHDRTargetHandle());
+		const RGTextureDSV depthDSV = builder.WriteDSV(renderer.GetDepthBufferHandle());
 
 		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
 		if (pShadowOutputs)
@@ -78,7 +78,7 @@ namespace Dune::Graphics
 		if (pLightOutputs)
 			builder.Read(pLightOutputs->buffer, RHI::EResourceState::ShaderResource);
 
-		builder.OnExecute([](RenderPassContext& context)
+		builder.OnExecute([hdrRTV, depthDSV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
@@ -91,7 +91,9 @@ namespace Dune::Graphics
 				RHI::Scissor scissor{ 0, 0, resolution.x, resolution.y };
 				commandList.SetViewports(1, &viewport);
 				commandList.SetScissors(1, &scissor);
-				commandList.SetRenderTarget(&renderer.GetHDRTargetRTV().cpuAddress, 1, &renderer.GetDepthBufferDSV().cpuAddress);
+				const RHI::Descriptor rtv = context.GetDescriptor(hdrRTV);
+				const RHI::Descriptor dsv = context.GetDescriptor(depthDSV);
+				commandList.SetRenderTarget(&rtv.cpuAddress, 1, &dsv.cpuAddress);
 
 				ForwardGlobals globals;
 				globals.viewProjectionMatrix = context.pView->viewProjection;

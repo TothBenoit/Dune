@@ -439,7 +439,18 @@ namespace Dune::RHI
 
 		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 		rtvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
-		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		if (texture.GetDimensions()[2] > 1)
+		{
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			rtvDesc.Texture2DArray.MipSlice = desc.mipSlice;
+			rtvDesc.Texture2DArray.FirstArraySlice = desc.firstArraySlice;
+			rtvDesc.Texture2DArray.ArraySize = 1;
+		}
+		else
+		{
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+			rtvDesc.Texture2D.MipSlice = desc.mipSlice;
+		}
 		pDevice->CreateRenderTargetView(ToResource(texture.Get()), &rtvDesc, { descriptor.cpuAddress });
 	}
 
@@ -450,33 +461,18 @@ namespace Dune::RHI
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 		dsvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
 
-		switch (desc.dimension)
+		if (texture.GetDimensions()[2] > 1)
 		{
-		case EDSVDimension::Texture1D:
-			dsvDesc.Texture1D.MipSlice = desc.mipSlice;
-			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
-			break;
-		case EDSVDimension::Texture1DArray:
-			dsvDesc.Texture1DArray.ArraySize = desc.arraySize;
-			dsvDesc.Texture1DArray.FirstArraySlice = desc.firstArraySlice;
-			dsvDesc.Texture1DArray.MipSlice = desc.mipSlice;
-			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
-			break;
-		case EDSVDimension::Texture2D:
-			dsvDesc.Texture2D.MipSlice = desc.mipSlice;
-			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-			break;
-		case EDSVDimension::Texture2DArray:
-			dsvDesc.Texture2DArray.ArraySize = desc.arraySize;
-			dsvDesc.Texture2DArray.FirstArraySlice = desc.firstArraySlice;
-			dsvDesc.Texture2DArray.MipSlice = desc.mipSlice;
 			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-			break;
-		default:
-			Assert(0);
-			break;
+			dsvDesc.Texture2DArray.MipSlice = desc.mipSlice;
+			dsvDesc.Texture2DArray.FirstArraySlice = desc.firstArraySlice;
+			dsvDesc.Texture2DArray.ArraySize = 1;
 		}
-
+		else
+		{
+			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			dsvDesc.Texture2D.MipSlice = desc.mipSlice;
+		}
 		pDevice->CreateDepthStencilView(ToResource(texture.Get()), &dsvDesc, { descriptor.cpuAddress });
 	}
 

@@ -75,10 +75,10 @@ namespace Dune::Graphics
 	void Tonemapping::Setup(RenderGraphBuilder& builder, RenderPassContext& context, TonemappingData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		builder.Read(renderer.GetHDRTargetHandle(), RHI::EResourceState::ShaderResource);
-		builder.Write(renderer.GetBackBufferHandle(), RHI::EResourceState::RenderTarget);
+		const RGTextureSRV hdrSRV = builder.ReadSRV(renderer.GetHDRTargetHandle());
+		const RGTextureRTV backBufferRTV = builder.WriteRTV(renderer.GetBackBufferHandle());
 
-		builder.OnExecute([pData](RenderPassContext& context)
+		builder.OnExecute([pData, hdrSRV, backBufferRTV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
@@ -89,7 +89,8 @@ namespace Dune::Graphics
 				PSO& averagePSO = *context.GetPipeline(Tonemapping::kAveragePipeline);
 				PSO& tonemapPSO = *context.GetPipeline(Tonemapping::kTonemapPipeline);
 
-				commandList.SetRenderTarget(&frame.backBufferRTV.cpuAddress, 1, nullptr);
+				const RHI::Descriptor rtv = context.GetDescriptor(backBufferRTV);
+				commandList.SetRenderTarget(&rtv.cpuAddress, 1, nullptr);
 
 				commandList.ClearUAVUInt(pData->histogramUAV.gpuAddress, pData->histogramCPUUAV.cpuAddress, pData->histogramBuffer.Get(), 0);
 
@@ -105,7 +106,7 @@ namespace Dune::Graphics
 				commandList.SetComputeRootSignature(*histogramPSO.pRootSignature);
 				commandList.SetPipelineState(histogramPSO.pipelineState);
 				commandList.PushComputeConstants(0, &histogramParams, sizeof(histogramParams));
-				RHI::Descriptor hdrTargetSRV = renderer.GetHDRTargetSRV();
+				RHI::Descriptor hdrTargetSRV = context.GetDescriptor(hdrSRV);
 				commandList.BindComputeGroup(1, hdrTargetSRV);
 				commandList.PushComputeUAV(2, pData->histogramBuffer);
 				commandList.Dispatch((histogramParams.width + 16 - 1) / 16, (histogramParams.height + 16 - 1) / 16, 1);

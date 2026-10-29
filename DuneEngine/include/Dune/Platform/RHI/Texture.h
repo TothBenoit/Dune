@@ -56,6 +56,7 @@ namespace Dune::RHI
 		[[nodiscard]] const float* GetClearValue() const { return m_desc.clearValue; }
 		[[nodiscard]] EFormat GetFormat() const { return m_desc.format; }
 		[[nodiscard]] dU32 GetMipLevels() const { return m_desc.mipLevels; }
+		[[nodiscard]] const TextureDesc& GetDesc() const { return m_desc; }
 
 		[[nodiscard]] dU64 GetRequiredIntermediateSize(dU32 firstSubresource, dU32 numSubresource) const;
 	private:

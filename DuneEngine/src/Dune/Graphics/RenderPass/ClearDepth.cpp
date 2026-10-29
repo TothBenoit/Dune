@@ -12,14 +12,14 @@ namespace Dune::Graphics
 
 	void ClearDepth::Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData)
 	{
-		builder.Write(context.pRenderer->GetDepthBufferHandle(), RHI::EResourceState::DepthStencil);
+		const RGTextureDSV depthDSV = builder.WriteDSV(context.pRenderer->GetDepthBufferHandle());
 
-		builder.OnExecute([](RenderPassContext& context)
+		builder.OnExecute([depthDSV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				RHI::CommandList& commandList = renderer.GetCurrentFrame().commandList;
 
-				RHI::Descriptor dsv = renderer.GetDepthBufferDSV();
+				RHI::Descriptor dsv = context.GetDescriptor(depthDSV);
 				commandList.ClearDepthBuffer(dsv, renderer.GetDepthBuffer().GetClearValue()[0], 0);
 			});
 	}

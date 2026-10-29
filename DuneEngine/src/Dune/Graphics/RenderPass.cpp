@@ -19,4 +19,9 @@ namespace Dune::Graphics
 	{
 		return pRenderer->GetSRVHeap().GetIndex(srv);
 	}
+
+	RenderGraph& RenderPassContext::GetRenderGraph() const
+	{
+		return pRenderer->GetRenderGraph();
+	}
 }
