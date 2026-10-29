@@ -43,6 +43,13 @@ namespace Dune::Graphics
 		return mip + slice * texture.GetMipLevels();
 	}
 
+	static void DestroyTextures(dVector<RHI::Texture>& textures)
+	{
+		for (RHI::Texture& texture : textures)
+			texture.Destroy();
+		textures.clear();
+	}
+
 	void RenderGraph::Initialize(RHI::Device& device, DescriptorAllocator& srvAllocator, DescriptorAllocator& rtvAllocator, DescriptorAllocator& dsvAllocator, dU32 framesInFlight)
 	{
 		m_pDevice = &device;
@@ -50,6 +57,7 @@ namespace Dune::Graphics
 		m_pRTVAllocator = &rtvAllocator;
 		m_pDSVAllocator = &dsvAllocator;
 		m_srvReleases.resize(framesInFlight);
+		m_textureReleases.resize(framesInFlight);
 	}
 
 	void RenderGraph::Destroy()
@@ -79,6 +87,9 @@ namespace Dune::Graphics
 		for (dVector<RHI::Descriptor>& releases : m_srvReleases)
 			m_pSRVAllocator->Free(releases);
 		m_srvReleases.clear();
+		for (dVector<RHI::Texture>& releases : m_textureReleases)
+			DestroyTextures(releases);
+		m_textureReleases.clear();
 	}
 
 	void RenderGraph::BeginFrame(dU32 frameIndex)
@@ -87,6 +98,7 @@ namespace Dune::Graphics
 		m_frameIndex = frameIndex;
 		m_pSRVAllocator->Free(m_srvReleases[frameIndex]);
 		m_srvReleases[frameIndex].clear();
+		DestroyTextures(m_textureReleases[frameIndex]);
 	}
 
 	void RenderGraph::ResolveViews()
@@ -235,6 +247,18 @@ namespace Dune::Graphics
 		ReleaseViews(entry);
 		entry.pBuffer = pBuffer;
 		entry.state = state;
+	}
+
+	void RenderGraph::ResizeTexture(RGTexture handle, dU32 width, dU32 height)
+	{
+		TextureEntry& entry = m_textures[handle.index];
+		Assert(!entry.isExternal);
+		RHI::TextureDesc desc = entry.pTexture->GetDesc();
+		desc.dimensions[0] = width;
+		desc.dimensions[1] = height;
+		m_textureReleases[m_frameIndex].push_back(*entry.pTexture);
+		entry.pTexture->Initialize(*m_pDevice, desc);
+		SetPhysicalResource(handle, entry.pTexture, desc.initialState);
 	}
 
 	RHI::Texture& RenderGraph::GetTexture(RGTexture handle)

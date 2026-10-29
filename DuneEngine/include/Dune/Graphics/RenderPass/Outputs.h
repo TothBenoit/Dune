@@ -13,6 +13,12 @@ namespace Dune::Graphics
 		dSpan<const dU32>       blendDraws;
 	};
 
+	struct SceneResourceOutputs
+	{
+		RGTexture hdrTarget;
+		RGTexture depthBuffer;
+	};
+
 	struct MaterialOutputs
 	{
 		RGBuffer buffer;

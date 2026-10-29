@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/ClearHDRTarget.h"
+#include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Platform/RHI/CommandList.h"
 #include "Dune/Graphics/Renderer.h"
 
@@ -12,13 +13,13 @@ namespace Dune::Graphics
 
 	void ClearHDRTarget::Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData)
 	{
-		const RGTextureRTV hdrRTV = builder.WriteRTV(context.pRenderer->GetHDRTargetHandle());
+		const RGTextureRTV hdrRTV = builder.WriteRTV(context.blackboard.Get<SceneResourceOutputs>().hdrTarget);
 
 		builder.OnExecute([hdrRTV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				RHI::CommandList& commandList = renderer.GetCurrentFrame().commandList;
-				commandList.ClearRenderTargetView(context.GetDescriptor(hdrRTV), renderer.GetHDRTarget().GetClearValue());
+				commandList.ClearRenderTargetView(context.GetDescriptor(hdrRTV), context.GetRenderGraph().GetTexture(hdrRTV.texture).GetClearValue());
 			});
 	}
 

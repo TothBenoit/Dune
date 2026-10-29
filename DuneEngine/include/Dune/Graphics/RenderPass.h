@@ -20,6 +20,10 @@ namespace Dune
 		template<typename T>
 		RenderTypeID GetRenderTypeID() { static dU8 id; return &id; }
 
+		inline std::atomic<dU32> g_renderTypeCount{ 0 };
+		template<typename T>
+		dU32 GetRenderTypeIndex() { static const dU32 index = g_renderTypeCount.fetch_add(1, std::memory_order_relaxed); return index; }
+
 		enum class ERegistrationOrder : dU8
 		{
 			Before,
@@ -29,58 +33,62 @@ namespace Dune
 		class RenderBlackboard
 		{
 		public:
+			static constexpr dU32 kInvalidOffset{ (dU32)-1 };
+
 			void Reset()
 			{
 				m_storage.clear();
-				m_offsets.clear();
+				std::fill(m_offsets.begin(), m_offsets.end(), kInvalidOffset);
 #ifdef _DEBUG
-				m_missed.clear();
+				std::fill(m_missed.begin(), m_missed.end(), false);
 #endif
 			}
 
 			template<typename T> void Add(const T& data)
 			{
 				static_assert(std::is_trivially_copyable_v<T>);
-				RenderTypeID id = GetRenderTypeID<T>();
-				Assert(!m_missed.contains(id));
-				auto it = m_offsets.find(id);
-				if (it == m_offsets.end())
+				const dU32 index = GetRenderTypeIndex<T>();
+#ifdef _DEBUG
+				Assert(index >= m_missed.size() || !m_missed[index]);
+#endif
+				if (index >= m_offsets.size())
+					m_offsets.resize(index + 1, kInvalidOffset);
+				if (m_offsets[index] == kInvalidOffset)
 				{
-					const dU32 offset = MemoryUtils::AlignUp((dU32)m_storage.size(), (dU32)alignof(T));
-					m_storage.resize(offset + sizeof(T));
-					it = m_offsets.emplace(id, offset).first;
+					m_offsets[index] = MemoryUtils::AlignUp((dU32)m_storage.size(), (dU32)alignof(T));
+					m_storage.resize(m_offsets[index] + sizeof(T));
 				}
-				memcpy(m_storage.data() + it->second, &data, sizeof(T));
+				memcpy(m_storage.data() + m_offsets[index], &data, sizeof(T));
 			}
 
 			template<typename T> [[nodiscard]] const T* TryGet() const
 			{
-				RenderTypeID id = GetRenderTypeID<T>();
-				auto it = m_offsets.find(id);
-				if (it == m_offsets.end())
+				const dU32 index = GetRenderTypeIndex<T>();
+				if (index >= m_offsets.size() || m_offsets[index] == kInvalidOffset)
 				{
 #ifdef _DEBUG
-					m_missed.insert(id);
+					if (index >= m_missed.size())
+						m_missed.resize(index + 1, false);
+					m_missed[index] = true;
 #endif
 					return nullptr;
 				}
-				return (const T*)(m_storage.data() + it->second);
+				return (const T*)(m_storage.data() + m_offsets[index]);
 			}
 
 			template<typename T> [[nodiscard]] const T& Get() const
 			{
-				RenderTypeID id = GetRenderTypeID<T>();
-				auto it = m_offsets.find(id);
-				Assert(it != m_offsets.end());
+				const dU32 index = GetRenderTypeIndex<T>();
+				Assert(index < m_offsets.size() && m_offsets[index] != kInvalidOffset);
 
-				return *(const T*)(m_storage.data() + it->second);
+				return *(const T*)(m_storage.data() + m_offsets[index]);
 			}
-		
+
 		private:
 			dVector<dU8> m_storage;
-			dHashMap<RenderTypeID, dU32> m_offsets;
+			dVector<dU32> m_offsets;
 #ifdef _DEBUG
-			mutable dHashSet<RenderTypeID> m_missed;
+			mutable dVector<bool> m_missed;
 #endif
 		};
 

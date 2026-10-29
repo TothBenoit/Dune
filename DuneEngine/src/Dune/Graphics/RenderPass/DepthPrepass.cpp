@@ -59,7 +59,7 @@ namespace Dune::Graphics
 			return;
 
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
-		const RGTextureDSV depthDSV = builder.WriteDSV(context.pRenderer->GetDepthBufferHandle());
+		const RGTextureDSV depthDSV = builder.WriteDSV(context.blackboard.Get<SceneResourceOutputs>().depthBuffer);
 
 		builder.OnExecute([depthDSV](RenderPassContext& context)
 			{

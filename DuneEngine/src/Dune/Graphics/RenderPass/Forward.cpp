@@ -63,8 +63,8 @@ namespace Dune::Graphics
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
 
 		Renderer& renderer = *context.pRenderer;
-		const RGTextureRTV hdrRTV = builder.WriteRTV(renderer.GetHDRTargetHandle());
-		const RGTextureDSV depthDSV = builder.WriteDSV(renderer.GetDepthBufferHandle());
+		const RGTextureRTV hdrRTV = builder.WriteRTV(context.blackboard.Get<SceneResourceOutputs>().hdrTarget);
+		const RGTextureDSV depthDSV = builder.WriteDSV(context.blackboard.Get<SceneResourceOutputs>().depthBuffer);
 
 		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
 		if (pShadowOutputs)

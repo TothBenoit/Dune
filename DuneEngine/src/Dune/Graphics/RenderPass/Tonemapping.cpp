@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderPass/Tonemapping.h"
+#include "Dune/Graphics/RenderPass/Outputs.h"
 #include "Dune/Resources/Shaders/ShaderInterop.h"
 #include "Dune/Platform/RHI/CommandList.h"
 #include "Dune/Platform/RHI/Device.h"
@@ -75,7 +76,7 @@ namespace Dune::Graphics
 	void Tonemapping::Setup(RenderGraphBuilder& builder, RenderPassContext& context, TonemappingData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
-		const RGTextureSRV hdrSRV = builder.ReadSRV(renderer.GetHDRTargetHandle());
+		const RGTextureSRV hdrSRV = builder.ReadSRV(context.blackboard.Get<SceneResourceOutputs>().hdrTarget);
 		const RGTextureRTV backBufferRTV = builder.WriteRTV(renderer.GetBackBufferHandle());
 
 		builder.OnExecute([pData, hdrSRV, backBufferRTV](RenderPassContext& context)

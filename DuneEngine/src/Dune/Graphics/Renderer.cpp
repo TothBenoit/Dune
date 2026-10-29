@@ -17,26 +17,6 @@ namespace Dune::Graphics
 		m_pWindow = &window;
 
 		m_resolution = { window.GetWidth(), window.GetHeight() };
-		m_depthBuffer.Initialize(device,
-			{
-				.debugName = L"DepthBuffer",
-				.usage = RHI::ETextureUsage::DepthStencil,
-				.dimensions = { m_resolution.x, m_resolution.y, 1 },
-				.format = RHI::EFormat::D32_FLOAT,
-				.clearValue = {1.f, 1.f, 1.f, 1.f},
-				.initialState = RHI::EResourceState::DepthStencil
-			});
-
-		RHI::TextureDesc hdrTargetDesc
-		{
-			.debugName = L"HDRTarget",
-			.usage{ RHI::ETextureUsage::RenderTarget | RHI::ETextureUsage::ShaderResource },
-			.dimensions = { m_resolution.x, m_resolution.y, 1 },
-			.mipLevels{ 1 },
-			.format{ RHI::EFormat::R16G16B16A16_FLOAT },
-			.initialState{ RHI::EResourceState::ShaderResource },
-		};
-		m_hdrTarget.Initialize(device, hdrTargetDesc);
 
 		for (Frame& frame : m_frames)
 		{
@@ -70,8 +50,6 @@ namespace Dune::Graphics
 		m_renderGraph.Initialize(device, *m_pSRVAllocator, m_rtvAllocator, m_dsvAllocator, kFramesInFlight);
 		for (dU32 i = 0; i < kFramesInFlight; i++)
 			m_frames[i].backBufferHandle = m_renderGraph.RegisterTexture(&m_swapchain.GetBackBuffer(i), RHI::EResourceState::Present);
-		m_hdrTargetHandle = m_renderGraph.RegisterTexture(&m_hdrTarget, RHI::EResourceState::ShaderResource);
-		m_depthBufferHandle = m_renderGraph.RegisterTexture(&m_depthBuffer, RHI::EResourceState::DepthStencil);
 
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 
@@ -152,8 +130,6 @@ namespace Dune::Graphics
 		m_rtvHeap.Destroy();
 		m_dsvHeap.Destroy();
 		m_barrier.Destroy();
-		m_hdrTarget.Destroy();
-		m_depthBuffer.Destroy();
 		m_swapchain.Destroy();
 		m_fence.Destroy();
 	}
@@ -169,7 +145,6 @@ namespace Dune::Graphics
 
 	void Renderer::OnResize(dU32 width, dU32 height)
 	{
-		RHI::Device& device = *GetDevice();
 		for (Frame& f : m_frames)
 			WaitForFrame(f);
 
@@ -178,32 +153,6 @@ namespace Dune::Graphics
 		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
 		for (dU32 i = 0; i < kFramesInFlight; i++)
 			m_renderGraph.SetPhysicalResource(m_frames[i].backBufferHandle, &m_swapchain.GetBackBuffer(i), RHI::EResourceState::Present);
-
-		RHI::TextureDesc hdrTargetDesc
-		{
-			.debugName = L"HDRTarget",
-			.usage{ RHI::ETextureUsage::RenderTarget | RHI::ETextureUsage::ShaderResource },
-			.dimensions = { width, height, 1},
-			.mipLevels{ 1 },
-			.format{ RHI::EFormat::R16G16B16A16_FLOAT },
-			.initialState{ RHI::EResourceState::ShaderResource },
-		};
-
-		m_hdrTarget.Destroy();
-		m_hdrTarget.Initialize(device, hdrTargetDesc);
-		m_renderGraph.SetPhysicalResource(m_hdrTargetHandle, &m_hdrTarget, RHI::EResourceState::ShaderResource);
-
-		m_depthBuffer.Destroy();
-		m_depthBuffer.Initialize(device,
-			{
-				.debugName = L"DepthBuffer",
-				.usage = RHI::ETextureUsage::DepthStencil,
-				.dimensions = { width, height, 1 },
-				.format = RHI::EFormat::D32_FLOAT,
-				.clearValue = {1.f, 1.f, 1.f, 1.f},
-				.initialState = RHI::EResourceState::DepthStencil
-			});
-		m_renderGraph.SetPhysicalResource(m_depthBufferHandle, &m_depthBuffer, RHI::EResourceState::DepthStencil);
 	}
 
 	void Renderer::WaitForFrame(const Frame& frame)

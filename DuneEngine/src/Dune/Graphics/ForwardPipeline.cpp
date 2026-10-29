@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Dune/Graphics/ForwardPipeline.h"
+#include "Dune/Graphics/RenderPass/SceneResources.h"
 #include "Dune/Graphics/RenderPass/Visibility.h"
 #include "Dune/Graphics/RenderPass/ClearDepth.h"
 #include "Dune/Graphics/RenderPass/ClearHDRTarget.h"
@@ -15,6 +16,7 @@ namespace Dune::Graphics::ForwardPipeline
 	RendererDesc MakeDesc()
 	{
 		RendererDesc desc{};
+		desc.Add<SceneResources>();
 		desc.Add<Visibility>();
 		desc.Add<ClearDepth>();
 		desc.Add<MaterialUpload>();

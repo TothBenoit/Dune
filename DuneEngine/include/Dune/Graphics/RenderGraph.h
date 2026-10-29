@@ -2,6 +2,7 @@
 
 #include "Dune/Platform/RHI/Barrier.h"
 #include "Dune/Platform/RHI/Device.h"
+#include "Dune/Platform/RHI/Texture.h"
 
 namespace Dune::RHI
 {
@@ -199,6 +200,7 @@ namespace Dune
 			[[nodiscard]] RGBuffer RegisterBuffer(RHI::Buffer* pBuffer, RHI::EResourceState initialState);
 			void SetPhysicalResource(RGTexture handle, RHI::Texture* pTexture, RHI::EResourceState state);
 			void SetPhysicalResource(RGBuffer handle, RHI::Buffer* pBuffer, RHI::EResourceState state);
+			void ResizeTexture(RGTexture handle, dU32 width, dU32 height);
 
 			[[nodiscard]] RHI::Texture& GetTexture(RGTexture handle);
 			[[nodiscard]] RHI::Buffer& GetBuffer(RGBuffer handle);
@@ -235,6 +237,7 @@ namespace Dune
 			bool m_viewsResolved{ false };
 
 			dVector<dVector<RHI::Descriptor>> m_srvReleases;
+			dVector<dVector<RHI::Texture>> m_textureReleases;
 			dU32 m_frameIndex{ 0 };
 		};
 	}
