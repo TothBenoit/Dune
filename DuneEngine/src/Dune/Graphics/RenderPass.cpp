@@ -7,12 +7,12 @@ namespace Dune::Graphics
 {
 	PSO* RenderPassContext::GetPSO(MaterialKey key) const
 	{
-		return pPass->psos[key];
+		return pRenderer->GetPassPSOs(pPass->typeIndex).materials[key];
 	}
 
 	PSO* RenderPassContext::GetPipeline(dU32 index) const
 	{
-		return pPass->pipelines[index];
+		return pRenderer->GetPassPSOs(pPass->typeIndex).pipelines[index];
 	}
 
 	dU32 RenderPassContext::GetBindlessIndex(RHI::Descriptor srv) const

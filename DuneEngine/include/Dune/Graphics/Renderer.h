@@ -92,6 +92,8 @@ namespace Dune
 
 			PSO* ResolvePSO(RenderPass& pass, MaterialKey key);
 
+			[[nodiscard]] inline const PassPSOs& GetPassPSOs(dU32 typeIndex) const { return m_passPSOs[typeIndex]; }
+
 		private:
 			dVector<RenderPass>::iterator FindRenderPass(RenderTypeID typeID);
 			void ResolvePipelines(RenderPass& pass);
@@ -128,6 +130,7 @@ namespace Dune
 
 			RenderGraph m_renderGraph;
 			dVector<RenderPass> m_passes;
+			dVector<PassPSOs> m_passPSOs;
 			RenderPassContext m_passContext;
 		};
 	}

@@ -59,6 +59,8 @@ namespace Dune::Graphics
 		for (const RenderPassDesc& passDesc : desc.passes)
 		{
 			RenderPass& pass = m_passes.emplace_back(passDesc.pMake(*this));
+			if (pass.typeIndex >= m_passPSOs.size())
+				m_passPSOs.resize(pass.typeIndex + 1);
 			ResolvePipelines(pass);
 		}
 	}
@@ -78,14 +80,15 @@ namespace Dune::Graphics
 		if (!pass.pGetPipelineDescs)
 			return;
 		for (const PipelineDesc& desc : pass.pGetPipelineDescs())
-			pass.pipelines.push_back(m_pPSOCache->Resolve(desc));
+			m_passPSOs[pass.typeIndex].pipelines.push_back(m_pPSOCache->Resolve(desc));
 	}
 
 	PSO* Renderer::ResolvePSO(RenderPass& pass, MaterialKey key)
 	{
-		if (!pass.psos[key] && pass.pGetPipelineDesc && (!pass.pIsPassMaterial || pass.pIsPassMaterial(key)))
-			pass.psos[key] = m_pPSOCache->Resolve(pass.pGetPipelineDesc(key));
-		return pass.psos[key];
+		PSO*& pPSO = m_passPSOs[pass.typeIndex].materials[key];
+		if (!pPSO && pass.pGetPipelineDesc && (!pass.pIsPassMaterial || pass.pIsPassMaterial(key)))
+			pPSO = m_pPSOCache->Resolve(pass.pGetPipelineDesc(key));
+		return pPSO;
 	}
 
 	void Renderer::ResolvePSOs(MaterialKey key)
@@ -114,6 +117,7 @@ namespace Dune::Graphics
 		for (RenderPass& pass : m_passes)
 			pass.pShutdown(*this, pass.pData);
 		m_passes.clear();
+		m_passPSOs.clear();
 
 		for (Frame& frame : m_frames)
 		{

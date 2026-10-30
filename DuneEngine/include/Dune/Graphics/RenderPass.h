@@ -109,6 +109,12 @@ namespace Dune
 			[[nodiscard]] RHI::Descriptor GetDescriptor(View view) const { return GetRenderGraph().GetDescriptor(view); }
 		};
 
+		struct PassPSOs
+		{
+			PSO* materials[Material::kKeyTableSize]{};
+			dVector<PSO*> pipelines;
+		};
+
 		struct RenderPass
 		{
 			void (*pSetup)(RenderGraphBuilder&, RenderPassContext&, void*);
@@ -118,9 +124,7 @@ namespace Dune
 			dVector<PipelineDesc> (*pGetPipelineDescs)(){ nullptr };
 			void* pData{ nullptr };
 			RenderTypeID typeID{ nullptr };
-
-			PSO* psos[Material::kKeyTableSize]{};
-			dVector<PSO*> pipelines;
+			dU32 typeIndex{ 0 };
 
 			RenderGraphBuilder builder;
 		};
@@ -141,6 +145,7 @@ namespace Dune
 				pass.pGetPipelineDescs = &T::GetPipelineDescs;
 			pass.pData = pPassData;
 			pass.typeID = GetRenderTypeID<T>();
+			pass.typeIndex = GetRenderTypeIndex<T>();
 			return pass;
 		}
 	}
