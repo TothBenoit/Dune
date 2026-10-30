@@ -12,7 +12,7 @@ namespace Dune::RHI
 		dU64 cpuAddress{ 0 };
 		dU64 gpuAddress{ 0 };
 
-		[[nodiscard]] bool IsValid() { return cpuAddress != 0; }
+		[[nodiscard]] bool IsValid() const { return cpuAddress != 0; }
 		[[nodiscard]] bool IsShaderVisible() { return gpuAddress != 0; }
 	};
 

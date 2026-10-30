@@ -39,7 +39,6 @@ namespace Dune
 			dU8* pUploadAddress{ nullptr };
 			ScratchAllocator staging;
 			dVector<RHI::Buffer> buffersToRelease;
-			dVector<RHI::Descriptor> srvsToRelease;
 			RGTexture backBufferHandle;
 		};
 
@@ -70,9 +69,6 @@ namespace Dune
 			[[nodiscard]] inline RHI::DescriptorHeap& GetSRVHeap() { return m_pSRVAllocator->GetHeap(); }
 			[[nodiscard]] inline DescriptorAllocator& GetSRVAllocator() { return *m_pSRVAllocator; }
 			[[nodiscard]] inline DescriptorAllocator& GetCPUSRVAllocator() { return m_cpuSRVAllocator; }
-			inline void ReleaseSRV(RHI::Descriptor srv) { m_frames[m_frameIndex].srvsToRelease.push_back(srv); }
-			[[nodiscard]] inline DescriptorAllocator& GetRTVAllocator() { return m_rtvAllocator; }
-			[[nodiscard]] inline DescriptorAllocator& GetDSVAllocator() { return m_dsvAllocator; }
 
 			[[nodiscard]] inline RenderGraph& GetRenderGraph() { return m_renderGraph; }
 

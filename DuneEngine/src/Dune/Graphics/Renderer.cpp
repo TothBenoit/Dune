@@ -117,12 +117,6 @@ namespace Dune::Graphics
 		m_passes.clear();
 		m_passPSOs.clear();
 
-		for (Frame& frame : m_frames)
-		{
-			m_pSRVAllocator->Free(frame.srvsToRelease);
-			frame.srvsToRelease.clear();
-		}
-
 		m_renderGraph.Destroy();
 
 		m_cpuSRVAllocator.Destroy();
@@ -171,8 +165,6 @@ namespace Dune::Graphics
 		for (RHI::Buffer& buffer : frame.buffersToRelease)
 			buffer.Destroy();
 		frame.buffersToRelease.clear();
-		m_pSRVAllocator->Free(frame.srvsToRelease);
-		frame.srvsToRelease.clear();
 		m_renderGraph.BeginFrame(m_frameIndex);
 		frame.staging.Reset();
 		return frame;
