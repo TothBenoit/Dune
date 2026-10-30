@@ -5,8 +5,6 @@
 
 namespace Dune::Graphics
 {
-	class Renderer;
-
 	struct VisibilityData
 	{
 		dVector<LightData>  lights;
@@ -19,9 +17,7 @@ namespace Dune::Graphics
 	class Visibility
 	{
 	public:
-		static VisibilityData* Create(Renderer& renderer);
-		static void            Setup(RenderPassContext& context, VisibilityData* pData);
-		static void            Destroy(Renderer& renderer, VisibilityData* pData);
+		static void Compute(RenderPassContext& context, VisibilityData& data);
 	private:
 		Visibility() = delete;
 	};

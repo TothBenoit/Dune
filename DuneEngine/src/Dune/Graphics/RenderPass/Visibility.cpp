@@ -37,39 +37,34 @@ namespace Dune::Graphics
 		return lightMatrix;
 	}
 
-	VisibilityData* Visibility::Create(Renderer&)
-	{
-		return new VisibilityData();
-	}
-
-	void Visibility::Setup(RenderPassContext& context, VisibilityData* pData)
+	void Visibility::Compute(RenderPassContext& context, VisibilityData& data)
 	{
 		const FrameData& frameData = *context.pFrameData;
 
-		pData->lights.clear();
-		pData->shadowCasters.clear();
-		pData->shadowMatrices.clear();
+		data.lights.clear();
+		data.shadowCasters.clear();
+		data.shadowMatrices.clear();
 		for (LightData light : frameData.lights)
 		{
 			if (light.HasShadow())
 			{
-				light.shadowIndex = (dU32)pData->shadowCasters.size();
-				pData->shadowCasters.push_back((dU32)pData->lights.size());
-				pData->shadowMatrices.push_back(ComputeShadowMatrix(light));
+				light.shadowIndex = (dU32)data.shadowCasters.size();
+				data.shadowCasters.push_back((dU32)data.lights.size());
+				data.shadowMatrices.push_back(ComputeShadowMatrix(light));
 			}
-			pData->lights.push_back(light);
+			data.lights.push_back(light);
 		}
 
 		// TODO: Culling
-		pData->opaqueDraws.clear();
-		pData->blendDraws.clear();
+		data.opaqueDraws.clear();
+		data.blendDraws.clear();
 		for (dU32 drawIndex = 0; drawIndex < (dU32)frameData.drawItems.size(); drawIndex++)
 		{
 			const bool isBlend = Material::GetAlphaMode(frameData.drawItems[drawIndex].materialKey) == EAlphaMode::Blend;
-			(isBlend ? pData->blendDraws : pData->opaqueDraws).push_back(drawIndex);
+			(isBlend ? data.blendDraws : data.opaqueDraws).push_back(drawIndex);
 		}
 
-		std::stable_sort(pData->opaqueDraws.begin(), pData->opaqueDraws.end(),
+		std::stable_sort(data.opaqueDraws.begin(), data.opaqueDraws.end(),
 			[&](dU32 a, dU32 b) { return frameData.drawItems[a].materialKey < frameData.drawItems[b].materialKey; });
 
 		const dVec3& eye = context.pView->position;
@@ -81,21 +76,16 @@ namespace Dune::Graphics
 				const float dz = objectToWorld._43 - eye.z;
 				return dx * dx + dy * dy + dz * dz;
 			};
-		std::stable_sort(pData->blendDraws.begin(), pData->blendDraws.end(),
+		std::stable_sort(data.blendDraws.begin(), data.blendDraws.end(),
 			[&](dU32 a, dU32 b) { return DistanceToCameraSq(a) > DistanceToCameraSq(b); });
 
 		context.blackboard.Add<VisibleSet>(
 			{
-				.lights = pData->lights,
-				.shadowCasters = pData->shadowCasters,
-				.shadowMatrices = pData->shadowMatrices,
-				.opaqueDraws = pData->opaqueDraws,
-				.blendDraws = pData->blendDraws,
+				.lights = data.lights,
+				.shadowCasters = data.shadowCasters,
+				.shadowMatrices = data.shadowMatrices,
+				.opaqueDraws = data.opaqueDraws,
+				.blendDraws = data.blendDraws,
 			});
-	}
-
-	void Visibility::Destroy(Renderer&, VisibilityData* pData)
-	{
-		delete pData;
 	}
 }

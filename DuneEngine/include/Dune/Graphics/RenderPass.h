@@ -15,19 +15,9 @@ namespace Dune
 		struct ViewData;
 		struct PSO;
 
-		using RenderTypeID = const void*;
-		template<typename T>
-		RenderTypeID GetRenderTypeID() { static dU8 id; return &id; }
-
 		inline std::atomic<dU32> g_renderTypeCount{ 0 };
 		template<typename T>
 		dU32 GetRenderTypeIndex() { static const dU32 index = g_renderTypeCount.fetch_add(1, std::memory_order_relaxed); return index; }
-
-		enum class ERegistrationOrder : dU8
-		{
-			Before,
-			After
-		};
 
 		class RenderBlackboard
 		{
@@ -105,6 +95,13 @@ namespace Dune
 			[[nodiscard]] RenderGraph& GetRenderGraph() const;
 			[[nodiscard]] RenderGraphBuilder& AddPass();
 
+			template<typename T>
+			void SetupPass(auto pData)
+			{
+				passTypeIndex = GetRenderTypeIndex<T>();
+				T::Setup(*this, pData);
+			}
+
 			template<typename View>
 			[[nodiscard]] RHI::Descriptor GetDescriptor(View view) const { return GetRenderGraph().GetDescriptor(view); }
 		};
@@ -117,25 +114,20 @@ namespace Dune
 
 		struct RenderPass
 		{
-			void (*pSetup)(RenderPassContext&, void*);
 			void (*pShutdown)(Renderer&, void*);
 			bool (*pIsPassMaterial)(MaterialKey){ nullptr };
 			PipelineDesc (*pGetPipelineDesc)(MaterialKey){ nullptr };
 			dVector<PipelineDesc> (*pGetPipelineDescs)(){ nullptr };
 			void* pData{ nullptr };
-			RenderTypeID typeID{ nullptr };
 			dU32 typeIndex{ 0 };
 
 		};
 
-		template<typename T>
-		RenderPass MakeRenderPass(Renderer& renderer)
+		template<typename T, typename PassData>
+		RenderPass MakeRenderPass(PassData* pPassData)
 		{
-			auto* pPassData = T::Create(renderer);
-			using PassData = decltype(pPassData);
 			RenderPass pass{};
-			pass.pSetup = [](RenderPassContext& context, void* pData) { T::Setup(context, static_cast<PassData>(pData)); };
-			pass.pShutdown = [](Renderer& renderer, void* pData) { T::Destroy(renderer, static_cast<PassData>(pData)); };
+			pass.pShutdown = [](Renderer& renderer, void* pData) { T::Destroy(renderer, static_cast<PassData*>(pData)); };
 			if constexpr (requires { T::IsPassMaterial(MaterialKey{}); })
 				pass.pIsPassMaterial = &T::IsPassMaterial;
 			if constexpr (requires { T::GetPipelineDesc(MaterialKey{}); })
@@ -143,7 +135,6 @@ namespace Dune
 			if constexpr (requires { T::GetPipelineDescs(); })
 				pass.pGetPipelineDescs = &T::GetPipelineDescs;
 			pass.pData = pPassData;
-			pass.typeID = GetRenderTypeID<T>();
 			pass.typeIndex = GetRenderTypeIndex<T>();
 			return pass;
 		}

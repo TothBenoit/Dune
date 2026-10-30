@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Dune/Graphics/RenderPass.h>
+#include <Dune/Graphics/RendererDesc.h>
 #include <Dune/Platform/RHI/Barrier.h>
 #include <Dune/Platform/RHI/Buffer.h>
 #include <Dune/Platform/RHI/CommandList.h>
@@ -29,7 +29,6 @@ namespace Dune
 		class Renderer;
 		struct FrameData;
 		struct ViewData;
-		struct RendererDesc;
 
 		struct Frame
 		{
@@ -80,22 +79,22 @@ namespace Dune
 			[[nodiscard]] inline RGTexture GetBackBufferHandle() const { return m_frames[m_frameIndex].backBufferHandle; }
 			[[nodiscard]] inline dUVec2 GetResolution() const { return m_resolution; }
 
-			void ResolvePSOs(MaterialKey key);
-
 			template<typename T>
-			void ResolvePSOs(MaterialKey key)
+			auto* RegisterPass()
 			{
-				auto it = FindRenderPass(GetRenderTypeID<T>());
-				Assert(it != m_passes.end());
-				ResolvePSO(*it, key);
+				auto* pData = T::Create(*this);
+				AddRenderPass(MakeRenderPass<T>(pData));
+				return pData;
 			}
+
+			void ResolvePSOs(MaterialKey key);
 
 			PSO* ResolvePSO(RenderPass& pass, MaterialKey key);
 
 			[[nodiscard]] inline const PassPSOs& GetPassPSOs(dU32 typeIndex) const { return m_passPSOs[typeIndex]; }
 
 		private:
-			dVector<RenderPass>::iterator FindRenderPass(RenderTypeID typeID);
+			void AddRenderPass(const RenderPass& pass);
 			void ResolvePipelines(RenderPass& pass);
 
 			void WaitForFrame(const Frame& frame);
@@ -129,6 +128,8 @@ namespace Dune
 			RHI::ImGuiContext m_imgui{};
 
 			RenderGraph m_renderGraph;
+			RendererDesc m_desc{};
+			void* m_pPipelineData{ nullptr };
 			dVector<RenderPass> m_passes;
 			dVector<PassPSOs> m_passPSOs;
 			RenderPassContext m_passContext;

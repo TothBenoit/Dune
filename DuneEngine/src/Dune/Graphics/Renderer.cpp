@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/RendererDesc.h"
 #include "Dune/Platform/Window.h"
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Platform/RHI/Device.h"
@@ -55,14 +54,8 @@ namespace Dune::Graphics
 
 		m_passContext.pRenderer = this;
 
-		m_passes.reserve(desc.passes.size());
-		for (const RenderPassDesc& passDesc : desc.passes)
-		{
-			RenderPass& pass = m_passes.emplace_back(passDesc.pMake(*this));
-			if (pass.typeIndex >= m_passPSOs.size())
-				m_passPSOs.resize(pass.typeIndex + 1);
-			ResolvePipelines(pass);
-		}
+		m_desc = desc;
+		m_pPipelineData = m_desc.pCreate(*this);
 	}
 
 	void Renderer::InitializeImGui(const char* pLayoutPath)
@@ -70,17 +63,21 @@ namespace Dune::Graphics
 		m_imgui.Initialize({ .pWindow = m_pWindow, .pDevice = m_pDevice, .pCommandQueue = m_pCommandQueue, .framesInFlight = kFramesInFlight, .renderTargetFormat = m_swapchain.GetBackBuffer(0).GetFormat(), .pLayoutPath = pLayoutPath });
 	}
 
-	dVector<RenderPass>::iterator Renderer::FindRenderPass(RenderTypeID typeID)
+	void Renderer::AddRenderPass(const RenderPass& pass)
 	{
-		return std::find_if(m_passes.begin(), m_passes.end(), [=](const RenderPass& pass) { return pass.typeID == typeID; });
+		m_passes.push_back(pass);
+		if (pass.typeIndex >= m_passPSOs.size())
+			m_passPSOs.resize(pass.typeIndex + 1);
+		ResolvePipelines(m_passes.back());
 	}
 
 	void Renderer::ResolvePipelines(RenderPass& pass)
 	{
-		if (!pass.pGetPipelineDescs)
+		dVector<PSO*>& pipelines = m_passPSOs[pass.typeIndex].pipelines;
+		if (!pass.pGetPipelineDescs || !pipelines.empty())
 			return;
 		for (const PipelineDesc& desc : pass.pGetPipelineDescs())
-			m_passPSOs[pass.typeIndex].pipelines.push_back(m_pPSOCache->Resolve(desc));
+			pipelines.push_back(m_pPSOCache->Resolve(desc));
 	}
 
 	PSO* Renderer::ResolvePSO(RenderPass& pass, MaterialKey key)
@@ -116,6 +113,7 @@ namespace Dune::Graphics
 
 		for (RenderPass& pass : m_passes)
 			pass.pShutdown(*this, pass.pData);
+		m_desc.pDestroy(*this, m_pPipelineData);
 		m_passes.clear();
 		m_passPSOs.clear();
 
@@ -214,11 +212,7 @@ namespace Dune::Graphics
 				ResolvePSOs(key);
 		}
 
-		for (RenderPass& pass : m_passes)
-		{
-			m_passContext.passTypeIndex = pass.typeIndex;
-			pass.pSetup(m_passContext, pass.pData);
-		}
+		m_desc.pSetup(m_passContext, m_pPipelineData);
 		m_renderGraph.ResolveViews();
 
 #ifdef _DEBUG

@@ -5,15 +5,14 @@
 
 namespace Dune::Graphics
 {
-	SceneResourcesData* SceneResources::Create(Renderer& renderer)
+	void SceneResources::Initialize(Renderer& renderer, SceneResourcesData& data)
 	{
 		RenderGraph& renderGraph = renderer.GetRenderGraph();
-		SceneResourcesData* pData = new SceneResourcesData();
-		pData->resolution = renderer.GetResolution();
-		const dU32 width = std::max(1u, pData->resolution.x);
-		const dU32 height = std::max(1u, pData->resolution.y);
+		data.resolution = renderer.GetResolution();
+		const dU32 width = std::max(1u, data.resolution.x);
+		const dU32 height = std::max(1u, data.resolution.y);
 
-		pData->hdrTarget = renderGraph.CreateTexture(
+		data.hdrTarget = renderGraph.CreateTexture(
 			{
 				.debugName = L"HDRTarget",
 				.usage = RHI::ETextureUsage::RenderTarget | RHI::ETextureUsage::ShaderResource,
@@ -24,7 +23,7 @@ namespace Dune::Graphics
 				.initialState = RHI::EResourceState::ShaderResource,
 			});
 
-		pData->depthBuffer = renderGraph.CreateTexture(
+		data.depthBuffer = renderGraph.CreateTexture(
 			{
 				.debugName = L"DepthBuffer",
 				.usage = RHI::ETextureUsage::DepthStencil,
@@ -34,28 +33,21 @@ namespace Dune::Graphics
 				.clearValue = { 1.f, 1.f, 1.f, 1.f },
 				.initialState = RHI::EResourceState::DepthStencil,
 			});
-
-		return pData;
 	}
 
-	void SceneResources::Setup(RenderPassContext& context, SceneResourcesData* pData)
+	void SceneResources::Setup(RenderPassContext& context, SceneResourcesData& data)
 	{
 		const dUVec2 resolution = context.pRenderer->GetResolution();
-		if (resolution.x != pData->resolution.x || resolution.y != pData->resolution.y)
+		if (resolution.x != data.resolution.x || resolution.y != data.resolution.y)
 		{
 			RenderGraph& renderGraph = context.GetRenderGraph();
 			const dU32 width = std::max(1u, resolution.x);
 			const dU32 height = std::max(1u, resolution.y);
-			renderGraph.ResizeTexture(pData->hdrTarget, width, height);
-			renderGraph.ResizeTexture(pData->depthBuffer, width, height);
-			pData->resolution = resolution;
+			renderGraph.ResizeTexture(data.hdrTarget, width, height);
+			renderGraph.ResizeTexture(data.depthBuffer, width, height);
+			data.resolution = resolution;
 		}
 
-		context.blackboard.Add<SceneResourceOutputs>({ .hdrTarget = pData->hdrTarget, .depthBuffer = pData->depthBuffer });
-	}
-
-	void SceneResources::Destroy(Renderer&, SceneResourcesData* pData)
-	{
-		delete pData;
+		context.blackboard.Add<SceneResourceOutputs>({ .hdrTarget = data.hdrTarget, .depthBuffer = data.depthBuffer });
 	}
 }
