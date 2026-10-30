@@ -129,6 +129,27 @@ namespace Dune::Graphics
 		}
 	}
 
+	static dMatrix4x4 GetFaceMatrix(const LightData& light, const dMatrix4x4& lightMatrix, dU32 faceIndex)
+	{
+		if (!light.IsPoint())
+			return lightMatrix;
+
+		dVec eye{ light.position.x, light.position.y, light.position.z };
+		dMatrix viewMatrices[]
+		{
+			DirectX::XMMatrixLookToLH(eye, {  1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
+			DirectX::XMMatrixLookToLH(eye, { -1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
+			DirectX::XMMatrixLookToLH(eye, {  0.0f,  1.0f,  0.0f }, { 0.0f, 0.0f, -1.0f }),
+			DirectX::XMMatrixLookToLH(eye, {  0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f,  1.0f }),
+			DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f,  1.0f }, { 0.0f, 1.0f,  0.0f }),
+			DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f, -1.0f }, { 0.0f, 1.0f,  0.0f }),
+		};
+
+		dMatrix4x4 faceMatrix;
+		DirectX::XMStoreFloat4x4(&faceMatrix, viewMatrices[faceIndex] * DirectX::XMLoadFloat4x4(&lightMatrix));
+		return faceMatrix;
+	}
+
 	void Shadow::Setup(RenderPassContext& context, ShadowPassData* pData)
 	{
 		pData->activeHandles.clear();
@@ -144,8 +165,7 @@ namespace Dune::Graphics
 		if (shadowCasters.IsEmpty())
 			return;
 
-		Renderer& renderer = *context.pRenderer;
-		RHI::Device& device = *renderer.GetDevice();
+		RenderGraph& graph = context.GetRenderGraph();
 		dU32 shadowCount = shadowCasters.GetSize();
 
 		dU32 cubeShadowIndex{ 0 };
@@ -153,125 +173,71 @@ namespace Dune::Graphics
 		for (dU32 casterIndex = 0; casterIndex < shadowCount; casterIndex++)
 		{
 			const LightData& light = pVisibleSet->lights[shadowCasters[casterIndex]];
-			RHI::Descriptor srv;
+			RGTexture handle;
 			if (light.IsPoint())
 			{
 				if (pData->cubeShadowHandles.size() <= cubeShadowIndex)
-				{
-					const RGTexture handle = renderer.GetRenderGraph().CreateTexture(kCubeShadowMapDesc);
-					const RHI::Descriptor shadowSRV = renderer.GetSRVAllocator().Allocate();
-					device.CreateSRV(shadowSRV, renderer.GetRenderGraph().GetTexture(handle), { .format = RHI::EFormat::R32_FLOAT, .dimension = RHI::ETextureDimension::TextureCube });
-					pData->cubeShadowHandles.push_back(handle);
-					pData->cubeShadowSRVs.push_back(shadowSRV);
-				}
-				pData->activeHandles.push_back(pData->cubeShadowHandles[cubeShadowIndex]);
-				srv = pData->cubeShadowSRVs[cubeShadowIndex++];
+					pData->cubeShadowHandles.push_back(graph.CreateTexture(kCubeShadowMapDesc));
+				handle = pData->cubeShadowHandles[cubeShadowIndex++];
 			}
 			else
 			{
 				if (pData->shadowHandles.size() <= shadowIndex)
-				{
-					const RGTexture handle = renderer.GetRenderGraph().CreateTexture(kShadowMapDesc);
-					const RHI::Descriptor shadowSRV = renderer.GetSRVAllocator().Allocate();
-					device.CreateSRV(shadowSRV, renderer.GetRenderGraph().GetTexture(handle), { .format = RHI::EFormat::R32_FLOAT });
-					pData->shadowHandles.push_back(handle);
-					pData->shadowSRVs.push_back(shadowSRV);
-				}
-				pData->activeHandles.push_back(pData->shadowHandles[shadowIndex]);
-				srv = pData->shadowSRVs[shadowIndex++];
+					pData->shadowHandles.push_back(graph.CreateTexture(kShadowMapDesc));
+				handle = pData->shadowHandles[shadowIndex++];
 			}
-			pData->shadows.push_back({ .shadowMatrix = pVisibleSet->shadowMatrices[casterIndex], .shadowIndex = context.GetBindlessIndex(srv) });
-		}
+			pData->activeHandles.push_back(handle);
+			pData->shadows.push_back({ .shadowMatrix = pVisibleSet->shadowMatrices[casterIndex], .shadowIndex = context.GetBindlessIndex(graph.GetDefaultSRV(handle)) });
 
-		RenderGraphBuilder& builder = context.AddPass();
-		for (RGTexture handle : pData->activeHandles)
-			builder.Write(handle, RHI::EResourceState::DepthStencil);
+			const dU32 faceCount = light.IsPoint() ? 6 : 1;
+			for (dU32 faceIndex = 0; faceIndex < faceCount; faceIndex++)
+			{
+				RenderGraphBuilder& builder = context.AddPass();
+				const RGBufferSRV materialsSRV = builder.ReadSRV(pMaterialOutputs->buffer);
+				const RGTextureDSV depthDSV = builder.WriteDSV(handle, 0, faceIndex);
+
+				builder.OnExecute([depthDSV, materialsSRV, casterIndex, faceIndex](RenderPassContext& context)
+					{
+						RHI::CommandList& commandList = context.pRenderer->GetCurrentFrame().commandList;
+						const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
+						const LightData& light = visibleSet.lights[visibleSet.shadowCasters[casterIndex]];
+
+						RHI::Viewport viewport{ 0.0, 0.0, SHADOW_MAP_RESOLUTION_F, SHADOW_MAP_RESOLUTION_F, 0.0f, 1.0f };
+						RHI::Scissor scissor{ 0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION };
+						commandList.SetViewports(1, &viewport);
+						commandList.SetScissors(1, &scissor);
+
+						const RHI::Descriptor dsv = context.GetDescriptor(depthDSV);
+						commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
+						commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
+						RenderDepth(context, materialsSRV, GetFaceMatrix(light, visibleSet.shadowMatrices[casterIndex], faceIndex));
+					});
+			}
+		}
 
 		const dU32 shadowsByteSize = shadowCount * (dU32)sizeof(ShadowData);
 
-		RenderGraph& graph = renderer.GetRenderGraph();
 		if (!pData->shadowsHandle.IsValid())
 			pData->shadowsHandle = graph.CreateBuffer({ .debugName{ L"ShadowsBuffer" }, .memory{ RHI::EBufferMemory::GPU }, .byteSize{ shadowsByteSize }, .byteStride{ sizeof(ShadowData) } });
 		else if (graph.GetBuffer(pData->shadowsHandle).GetByteSize() < shadowsByteSize)
 			graph.ResizeBuffer(pData->shadowsHandle, shadowsByteSize);
 
+		RenderGraphBuilder& builder = context.AddPass();
 		builder.Write(pData->shadowsHandle, RHI::EResourceState::CopyDest);
-		const RGBufferSRV materialsSRV = builder.ReadSRV(pMaterialOutputs->buffer);
 		context.blackboard.Add<ShadowOutputs>({ .shadowMaps = { pData->activeHandles }, .shadows = pData->shadowsHandle });
 
-		builder.OnExecute([pData, materialsSRV](RenderPassContext& context)
+		builder.OnExecute([pData](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
-				Frame& frame = renderer.GetCurrentFrame();
-				RHI::CommandList& commandList = frame.commandList;
-				RHI::Device& device = *renderer.GetDevice();
-				DescriptorAllocator& dsvHeap = renderer.GetDSVAllocator();
-
-				const VisibleSet& visibleSet = context.blackboard.Get<VisibleSet>();
-				const dSpan<const dU32> shadowCasters = visibleSet.shadowCasters;
-				const dSpan<const LightData> lights = visibleSet.lights;
-
-				RHI::Viewport viewport{ 0.0, 0.0, SHADOW_MAP_RESOLUTION_F, SHADOW_MAP_RESOLUTION_F, 0.0f, 1.0f };
-				RHI::Scissor scissor{ 0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION };
-				commandList.SetViewports(1, &viewport);
-				commandList.SetScissors(1, &scissor);
-
-				for (dU32 casterIndex = 0; casterIndex < shadowCasters.GetSize(); casterIndex++)
-				{
-					const LightData& light = lights[shadowCasters[casterIndex]];
-					RHI::Texture& shadowMap = renderer.GetRenderGraph().GetTexture(pData->activeHandles[casterIndex]);
-					const dMatrix4x4& lightMatrix = visibleSet.shadowMatrices[casterIndex];
-
-					RHI::Descriptor dsv = dsvHeap.Allocate();
-					if (light.IsPoint())
-					{
-						dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.f), 1.0f, 0.1f, light.range) };
-						dVec eye{ light.position.x, light.position.y, light.position.z };
-						dMatrix viewMatrices[]
-						{
-							DirectX::XMMatrixLookToLH(eye, {  1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
-							DirectX::XMMatrixLookToLH(eye, { -1.0f,  0.0f,  0.0f }, { 0.0f, 1.0f,  0.0f }),
-							DirectX::XMMatrixLookToLH(eye, {  0.0f,  1.0f,  0.0f }, { 0.0f, 0.0f, -1.0f }),
-							DirectX::XMMatrixLookToLH(eye, {  0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f,  1.0f }),
-							DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f,  1.0f }, { 0.0f, 1.0f,  0.0f }),
-							DirectX::XMMatrixLookToLH(eye, {  0.0f,  0.0f, -1.0f }, { 0.0f, 1.0f,  0.0f }),
-						};
-
-						for (dU32 faceIndex = 0; faceIndex < 6; faceIndex++)
-						{
-							device.CreateDSV(dsv, shadowMap, { .firstArraySlice = faceIndex });
-							commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
-							commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-							dMatrix4x4 faceMatrix;
-							DirectX::XMStoreFloat4x4(&faceMatrix, viewMatrices[faceIndex] * DirectX::XMLoadFloat4x4(&lightMatrix));
-							RenderDepth(context, materialsSRV, faceMatrix);
-						}
-					}
-					else
-					{
-						device.CreateDSV(dsv, shadowMap, {});
-						commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
-						commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-						RenderDepth(context, materialsSRV, lightMatrix);
-					}
-
-					dsvHeap.Free(dsv);
-				}
-
 				const dU32 shadowsByteSize = (dU32)pData->shadows.size() * (dU32)sizeof(ShadowData);
 				StagingMemory staging = renderer.AllocateStaging(shadowsByteSize, 16);
 				memcpy(staging.pCpuAddress, pData->shadows.data(), shadowsByteSize);
-				commandList.CopyBufferRegion(renderer.GetRenderGraph().GetBuffer(pData->shadowsHandle), 0, staging.buffer, staging.offset, shadowsByteSize);
+				renderer.GetCurrentFrame().commandList.CopyBufferRegion(context.GetRenderGraph().GetBuffer(pData->shadowsHandle), 0, staging.buffer, staging.offset, shadowsByteSize);
 			});
 	}
 
-	void Shadow::Destroy(Renderer& renderer, ShadowPassData* pData)
+	void Shadow::Destroy(Renderer&, ShadowPassData* pData)
 	{
-		DescriptorAllocator& srvAllocator = renderer.GetSRVAllocator();
-		for (RHI::Descriptor srv : pData->shadowSRVs)
-			srvAllocator.Free(srv);
-		for (RHI::Descriptor srv : pData->cubeShadowSRVs)
-			srvAllocator.Free(srv);
 		delete pData;
 	}
 }

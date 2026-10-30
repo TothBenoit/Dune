@@ -221,6 +221,7 @@ namespace Dune
 			void TransitionTexture(const TextureAccess& access, RHI::Barrier& barrier);
 			void TransitionBuffer(const BufferAccess& access, RHI::Barrier& barrier);
 
+			[[nodiscard]] RHI::Descriptor GetDefaultSRV(RGTexture handle) const { return m_textures[handle.index].defaultSRV; }
 			[[nodiscard]] RHI::Descriptor GetDescriptor(RGTextureSRV view) const { Assert(m_viewsResolved); return m_textureSRVs[view.index].descriptor; }
 			[[nodiscard]] RHI::Descriptor GetDescriptor(RGTextureRTV view) const { return m_textures[view.texture.index].rtvs[view.subresource]; }
 			[[nodiscard]] RHI::Descriptor GetDescriptor(RGTextureDSV view) const { return m_textures[view.texture.index].dsvs[view.subresource]; }

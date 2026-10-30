@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Dune/Platform/RHI/DescriptorHeap.h"
 #include "Dune/Graphics/RenderPass.h"
 #include "Dune/Graphics/Pipeline.h"
 #include "Dune/Graphics/Material.h"
@@ -14,8 +13,6 @@ namespace Dune::Graphics
 		dVector<RGTexture> shadowHandles;
 		dVector<RGTexture> cubeShadowHandles;
 		dVector<RGTexture> activeHandles;
-		dVector<RHI::Descriptor> shadowSRVs;
-		dVector<RHI::Descriptor> cubeShadowSRVs;
 		dVector<ShadowData> shadows;
 
 		RGBuffer shadowsHandle;
