@@ -22,13 +22,11 @@ namespace Dune::Graphics
 	struct MaterialOutputs
 	{
 		RGBuffer buffer;
-		dU32 bufferIndex;
 	};
 
 	struct LightOutputs 
 	{ 
 		RGBuffer buffer; 
-		dU32 bufferIndex; 
 		dU32 count;
 	};
 
@@ -36,6 +34,5 @@ namespace Dune::Graphics
 	{ 
 		dSpan<const RGTexture> shadowMaps; 
 		RGBuffer shadows;
-		dU32 shadowsIndex;
 	};
 }

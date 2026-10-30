@@ -9,9 +9,7 @@ namespace Dune::Graphics
 {
 	MaterialUploadData* MaterialUpload::Create(Renderer& renderer)
 	{
-		MaterialUploadData* pData = new MaterialUploadData();
-		pData->srv = renderer.GetSRVAllocator().Allocate();
-		return pData;
+		return new MaterialUploadData();
 	}
 
 	void MaterialUpload::Setup(RenderPassContext& context, MaterialUploadData* pData)
@@ -23,31 +21,18 @@ namespace Dune::Graphics
 
 		const dU32 materialsByteSize = materialCount * (dU32)sizeof(MaterialData);
 
-		if (pData->buffer.GetByteSize() < materialsByteSize)
-		{
-			Renderer& renderer = *context.pRenderer;
-			Frame& frame = renderer.GetCurrentFrame();
-			RHI::Device& device = *renderer.GetDevice();
-			if (pData->buffer.Get())
-			{
-				frame.buffersToRelease.push_back(pData->buffer);
-				renderer.ReleaseSRV(pData->srv);
-				pData->srv = renderer.GetSRVAllocator().Allocate();
-			}
-			pData->buffer.Initialize(device, { .debugName{ L"MaterialBuffer" }, .memory{ RHI::EBufferMemory::GPU }, .byteSize{ materialsByteSize } });
-			device.CreateSRV(pData->srv, pData->buffer, { .elementCount = materialCount, .byteStride = sizeof(MaterialData) });
+		RenderGraph& graph = context.GetRenderGraph();
+		if (!pData->handle.IsValid())
+			pData->handle = graph.CreateBuffer({ .debugName{ L"MaterialBuffer" }, .memory{ RHI::EBufferMemory::GPU }, .byteSize{ materialsByteSize }, .byteStride{ sizeof(MaterialData) } });
+		else if (graph.GetBuffer(pData->handle).GetByteSize() < materialsByteSize)
+			graph.ResizeBuffer(pData->handle, materialsByteSize);
 
-			if (!pData->handle.IsValid())
-				pData->handle = renderer.GetRenderGraph().RegisterBuffer(&pData->buffer, RHI::EResourceState::Undefined);
-			else
-				renderer.GetRenderGraph().SetPhysicalResource(pData->handle, &pData->buffer, RHI::EResourceState::Undefined);
-		}
-
-		context.blackboard.Add<MaterialOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv) });
+		const RGBuffer materialBuffer = pData->handle;
+		context.blackboard.Add<MaterialOutputs>({ .buffer = materialBuffer });
 		RenderGraphBuilder& builder = context.AddPass();
-		builder.Write(pData->handle, RHI::EResourceState::CopyDest);
+		builder.Write(materialBuffer, RHI::EResourceState::CopyDest);
 
-		builder.OnExecute([pData](RenderPassContext& context)
+		builder.OnExecute([materialBuffer](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
@@ -56,15 +41,12 @@ namespace Dune::Graphics
 
 				StagingMemory staging = renderer.AllocateStaging(materialsByteSize, 16);
 				memcpy(staging.pCpuAddress, materials.data(), materialsByteSize);
-				frame.commandList.CopyBufferRegion(pData->buffer, 0, staging.buffer, staging.offset, materialsByteSize);
+				frame.commandList.CopyBufferRegion(context.GetRenderGraph().GetBuffer(materialBuffer), 0, staging.buffer, staging.offset, materialsByteSize);
 			});
 	}
 
-	void MaterialUpload::Destroy(Renderer& renderer, MaterialUploadData* pData)
+	void MaterialUpload::Destroy(Renderer&, MaterialUploadData* pData)
 	{
-		renderer.GetSRVAllocator().Free(pData->srv);
-		if (pData->buffer.Get())
-			pData->buffer.Destroy();
 		delete pData;
 	}
 }

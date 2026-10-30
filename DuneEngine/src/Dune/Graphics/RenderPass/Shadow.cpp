@@ -40,9 +40,7 @@ namespace Dune::Graphics
 
 	ShadowPassData* Shadow::Create(Renderer& renderer)
 	{
-		ShadowPassData* pData = new ShadowPassData();
-		pData->shadowsSRV = renderer.GetSRVAllocator().Allocate();
-		return pData;
+		return new ShadowPassData();
 	}
 
 	bool Shadow::IsPassMaterial(MaterialKey key)
@@ -82,7 +80,7 @@ namespace Dune::Graphics
 		};
 	}
 
-	static void RenderDepth(RenderPassContext& context, ShadowPassData* pData, const dMatrix4x4& viewProjection)
+	static void RenderDepth(RenderPassContext& context, RGBufferSRV materialsSRV, const dMatrix4x4& viewProjection)
 	{
 		Renderer& renderer = *context.pRenderer;
 		Frame& frame = renderer.GetCurrentFrame();
@@ -95,7 +93,7 @@ namespace Dune::Graphics
 		DepthGlobals globals
 		{
 			.viewProjectionMatrix = viewProjection,
-			.materialBufferIndex =context.blackboard.Get<MaterialOutputs>().bufferIndex,
+			.materialBufferIndex = context.GetBindlessIndex(context.GetDescriptor(materialsSRV)),
 		};
 
 		const RHI::RootSignature* pBoundRootSignature = nullptr;
@@ -147,7 +145,6 @@ namespace Dune::Graphics
 			return;
 
 		Renderer& renderer = *context.pRenderer;
-		Frame& frame = renderer.GetCurrentFrame();
 		RHI::Device& device = *renderer.GetDevice();
 		dU32 shadowCount = shadowCasters.GetSize();
 
@@ -192,34 +189,17 @@ namespace Dune::Graphics
 
 		const dU32 shadowsByteSize = shadowCount * (dU32)sizeof(ShadowData);
 
-		if (pData->shadowsBuffer.GetByteSize() < shadowsByteSize)
-		{
-			if (pData->shadowsBuffer.Get())
-			{
-				frame.buffersToRelease.push_back(pData->shadowsBuffer);
-				renderer.ReleaseSRV(pData->shadowsSRV);
-				pData->shadowsSRV = renderer.GetSRVAllocator().Allocate();
-			}
-			pData->shadowsBuffer.Initialize(device,
-				{
-					.debugName{ L"ShadowsBuffer" },
-					.memory{ RHI::EBufferMemory::GPU },
-					.byteSize{ shadowsByteSize },
-					.initialState{ RHI::EResourceState::Undefined }
-				});
-			device.CreateSRV(pData->shadowsSRV, pData->shadowsBuffer, { .elementCount = shadowCount, .byteStride = sizeof(ShadowData) });
-
-			if (!pData->shadowsHandle.IsValid())
-				pData->shadowsHandle = renderer.GetRenderGraph().RegisterBuffer(&pData->shadowsBuffer, RHI::EResourceState::Undefined);
-			else
-				renderer.GetRenderGraph().SetPhysicalResource(pData->shadowsHandle, &pData->shadowsBuffer, RHI::EResourceState::Undefined);
-		}
+		RenderGraph& graph = renderer.GetRenderGraph();
+		if (!pData->shadowsHandle.IsValid())
+			pData->shadowsHandle = graph.CreateBuffer({ .debugName{ L"ShadowsBuffer" }, .memory{ RHI::EBufferMemory::GPU }, .byteSize{ shadowsByteSize }, .byteStride{ sizeof(ShadowData) } });
+		else if (graph.GetBuffer(pData->shadowsHandle).GetByteSize() < shadowsByteSize)
+			graph.ResizeBuffer(pData->shadowsHandle, shadowsByteSize);
 
 		builder.Write(pData->shadowsHandle, RHI::EResourceState::CopyDest);
-		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
-		context.blackboard.Add<ShadowOutputs>({ .shadowMaps = { pData->activeHandles }, .shadows = pData->shadowsHandle, .shadowsIndex = context.GetBindlessIndex(pData->shadowsSRV) });
+		const RGBufferSRV materialsSRV = builder.ReadSRV(pMaterialOutputs->buffer);
+		context.blackboard.Add<ShadowOutputs>({ .shadowMaps = { pData->activeHandles }, .shadows = pData->shadowsHandle });
 
-		builder.OnExecute([pData](RenderPassContext& context)
+		builder.OnExecute([pData, materialsSRV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
@@ -264,7 +244,7 @@ namespace Dune::Graphics
 							commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
 							dMatrix4x4 faceMatrix;
 							DirectX::XMStoreFloat4x4(&faceMatrix, viewMatrices[faceIndex] * DirectX::XMLoadFloat4x4(&lightMatrix));
-							RenderDepth(context, pData, faceMatrix);
+							RenderDepth(context, materialsSRV, faceMatrix);
 						}
 					}
 					else
@@ -272,7 +252,7 @@ namespace Dune::Graphics
 						device.CreateDSV(dsv, shadowMap, {});
 						commandList.ClearDepthBuffer(dsv, 1.0f, 0.0f);
 						commandList.SetRenderTarget(nullptr, 0, &dsv.cpuAddress);
-						RenderDepth(context, pData, lightMatrix);
+						RenderDepth(context, materialsSRV, lightMatrix);
 					}
 
 					dsvHeap.Free(dsv);
@@ -281,7 +261,7 @@ namespace Dune::Graphics
 				const dU32 shadowsByteSize = (dU32)pData->shadows.size() * (dU32)sizeof(ShadowData);
 				StagingMemory staging = renderer.AllocateStaging(shadowsByteSize, 16);
 				memcpy(staging.pCpuAddress, pData->shadows.data(), shadowsByteSize);
-				commandList.CopyBufferRegion(pData->shadowsBuffer, 0, staging.buffer, staging.offset, shadowsByteSize);
+				commandList.CopyBufferRegion(renderer.GetRenderGraph().GetBuffer(pData->shadowsHandle), 0, staging.buffer, staging.offset, shadowsByteSize);
 			});
 	}
 
@@ -292,9 +272,6 @@ namespace Dune::Graphics
 			srvAllocator.Free(srv);
 		for (RHI::Descriptor srv : pData->cubeShadowSRVs)
 			srvAllocator.Free(srv);
-		srvAllocator.Free(pData->shadowsSRV);
-		if (pData->shadowsBuffer.Get())
-			pData->shadowsBuffer.Destroy();
 		delete pData;
 	}
 }

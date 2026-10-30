@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Dune/Platform/RHI/Barrier.h"
+#include "Dune/Platform/RHI/Buffer.h"
 #include "Dune/Platform/RHI/Device.h"
 #include "Dune/Platform/RHI/Texture.h"
 #include "Dune/Core/ChunkedArray.h"
@@ -102,6 +103,7 @@ namespace Dune
 			RHI::Buffer* pBuffer{ nullptr };
 			RHI::EResourceState state{ RHI::EResourceState::Undefined };
 			bool isExternal{ true };
+			RHI::Descriptor defaultSRV;
 			dVector<CachedView<RHI::SRVBufferDesc>> srvs;
 			dVector<CachedView<RHI::UAVBufferDesc>> uavs;
 		};
@@ -150,6 +152,7 @@ namespace Dune
 			[[nodiscard]] RGTextureSRV ReadSRV(RGTexture handle, const RHI::SRVTextureDesc& desc);
 			[[nodiscard]] RGTextureRTV WriteRTV(RGTexture handle, dU32 mip = 0, dU32 slice = 0);
 			[[nodiscard]] RGTextureDSV WriteDSV(RGTexture handle, dU32 mip = 0, dU32 slice = 0);
+			[[nodiscard]] RGBufferSRV ReadSRV(RGBuffer handle);
 			[[nodiscard]] RGBufferSRV ReadSRV(RGBuffer handle, const RHI::SRVBufferDesc& desc);
 			[[nodiscard]] RGBufferUAV WriteUAV(RGBuffer handle, const RHI::UAVBufferDesc& desc);
 
@@ -208,6 +211,7 @@ namespace Dune
 			void SetPhysicalResource(RGTexture handle, RHI::Texture* pTexture, RHI::EResourceState state);
 			void SetPhysicalResource(RGBuffer handle, RHI::Buffer* pBuffer, RHI::EResourceState state);
 			void ResizeTexture(RGTexture handle, dU32 width, dU32 height);
+			void ResizeBuffer(RGBuffer handle, dU32 byteSize);
 
 			[[nodiscard]] RHI::Texture& GetTexture(RGTexture handle);
 			[[nodiscard]] RHI::Buffer& GetBuffer(RGBuffer handle);
@@ -227,6 +231,7 @@ namespace Dune
 			friend class RenderGraphBuilder;
 
 			void CreateDefaultViews(TextureEntry& entry);
+			void CreateDefaultViews(BufferEntry& entry);
 			void ReleaseViews(TextureEntry& entry);
 			void ReleaseViews(BufferEntry& entry);
 
@@ -247,6 +252,7 @@ namespace Dune
 
 			dVector<dVector<RHI::Descriptor>> m_srvReleases;
 			dVector<dVector<RHI::Texture>> m_textureReleases;
+			dVector<dVector<RHI::Buffer>> m_bufferReleases;
 			dU32 m_frameIndex{ 0 };
 		};
 	}

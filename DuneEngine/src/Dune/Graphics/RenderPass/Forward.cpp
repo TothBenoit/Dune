@@ -61,25 +61,27 @@ namespace Dune::Graphics
 			return;
 
 		RenderGraphBuilder& builder = context.AddPass();
-		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
+		const RGBufferSRV materialsSRV = builder.ReadSRV(pMaterialOutputs->buffer);
 
 		Renderer& renderer = *context.pRenderer;
 		const RGTextureRTV hdrRTV = builder.WriteRTV(context.blackboard.Get<SceneResourceOutputs>().hdrTarget);
 		const RGTextureDSV depthDSV = builder.WriteDSV(context.blackboard.Get<SceneResourceOutputs>().depthBuffer);
 
+		RGBufferSRV shadowsSRV;
 		const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
 		if (pShadowOutputs)
 		{
 			for (RGTexture handle : pShadowOutputs->shadowMaps)
 				builder.Read(handle, RHI::EResourceState::ShaderResource);
-			builder.Read(pShadowOutputs->shadows, RHI::EResourceState::ShaderResource);
+			shadowsSRV = builder.ReadSRV(pShadowOutputs->shadows);
 		}
 
+		RGBufferSRV lightsSRV;
 		const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
 		if (pLightOutputs)
-			builder.Read(pLightOutputs->buffer, RHI::EResourceState::ShaderResource);
+			lightsSRV = builder.ReadSRV(pLightOutputs->buffer);
 
-		builder.OnExecute([hdrRTV, depthDSV](RenderPassContext& context)
+		builder.OnExecute([hdrRTV, depthDSV, materialsSRV, shadowsSRV, lightsSRV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
@@ -100,12 +102,10 @@ namespace Dune::Graphics
 				globals.viewProjectionMatrix = context.pView->viewProjection;
 				globals.cameraPosition = context.pView->position;
 				const LightOutputs* pLightOutputs = context.blackboard.TryGet<LightOutputs>();
-				const ShadowOutputs* pShadowOutputs = context.blackboard.TryGet<ShadowOutputs>();
-				const MaterialOutputs& materialOutputs = context.blackboard.Get<MaterialOutputs>();
 				globals.lightCount = pLightOutputs ? pLightOutputs->count : 0;
-				globals.lightBufferIndex = pLightOutputs ? pLightOutputs->bufferIndex : -1;
-				globals.shadowsIndex = pShadowOutputs ? pShadowOutputs->shadowsIndex : -1;
-				globals.materialBufferIndex = materialOutputs.bufferIndex;
+				globals.lightBufferIndex = lightsSRV.IsValid() ? context.GetBindlessIndex(context.GetDescriptor(lightsSRV)) : -1;
+				globals.shadowsIndex = shadowsSRV.IsValid() ? context.GetBindlessIndex(context.GetDescriptor(shadowsSRV)) : -1;
+				globals.materialBufferIndex = context.GetBindlessIndex(context.GetDescriptor(materialsSRV));
 
 				commandList.SetPrimitiveTopology(RHI::EPrimitiveTopology::TriangleList);
 

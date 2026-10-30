@@ -43,11 +43,12 @@ namespace Dune::Graphics
 		return mip + slice * texture.GetMipLevels();
 	}
 
-	static void DestroyTextures(dVector<RHI::Texture>& textures)
+	template<typename Resource>
+	static void DestroyResources(dVector<Resource>& resources)
 	{
-		for (RHI::Texture& texture : textures)
-			texture.Destroy();
-		textures.clear();
+		for (Resource& resource : resources)
+			resource.Destroy();
+		resources.clear();
 	}
 
 	void RenderGraph::Initialize(RHI::Device& device, DescriptorAllocator& srvAllocator, DescriptorAllocator& rtvAllocator, DescriptorAllocator& dsvAllocator, dU32 framesInFlight)
@@ -58,6 +59,7 @@ namespace Dune::Graphics
 		m_pDSVAllocator = &dsvAllocator;
 		m_srvReleases.resize(framesInFlight);
 		m_textureReleases.resize(framesInFlight);
+		m_bufferReleases.resize(framesInFlight);
 	}
 
 	void RenderGraph::Destroy()
@@ -90,8 +92,11 @@ namespace Dune::Graphics
 			m_pSRVAllocator->Free(releases);
 		m_srvReleases.clear();
 		for (dVector<RHI::Texture>& releases : m_textureReleases)
-			DestroyTextures(releases);
+			DestroyResources(releases);
 		m_textureReleases.clear();
+		for (dVector<RHI::Buffer>& releases : m_bufferReleases)
+			DestroyResources(releases);
+		m_bufferReleases.clear();
 	}
 
 	void RenderGraph::BeginFrame(dU32 frameIndex)
@@ -100,7 +105,8 @@ namespace Dune::Graphics
 		m_frameIndex = frameIndex;
 		m_pSRVAllocator->Free(m_srvReleases[frameIndex]);
 		m_srvReleases[frameIndex].clear();
-		DestroyTextures(m_textureReleases[frameIndex]);
+		DestroyResources(m_textureReleases[frameIndex]);
+		DestroyResources(m_bufferReleases[frameIndex]);
 	}
 
 	void RenderGraph::ResolveViews()
@@ -116,7 +122,9 @@ namespace Dune::Graphics
 		for (ViewRequest<RGBuffer, RHI::SRVBufferDesc>& request : m_bufferSRVs)
 		{
 			BufferEntry& entry = m_buffers[request.handle.index];
-			request.descriptor = ResolveView(entry.srvs, request.desc, *m_pSRVAllocator, [&](RHI::Descriptor descriptor, const RHI::SRVBufferDesc& desc) { m_pDevice->CreateSRV(descriptor, *entry.pBuffer, desc); });
+			request.descriptor = request.isDefault ? entry.defaultSRV
+				: ResolveView(entry.srvs, request.desc, *m_pSRVAllocator, [&](RHI::Descriptor descriptor, const RHI::SRVBufferDesc& desc) { m_pDevice->CreateSRV(descriptor, *entry.pBuffer, desc); });
+			Assert(request.descriptor.IsValid());
 		}
 		for (ViewRequest<RGBuffer, RHI::UAVBufferDesc>& request : m_bufferUAVs)
 		{
@@ -173,6 +181,16 @@ namespace Dune::Graphics
 		}
 	}
 
+	void RenderGraph::CreateDefaultViews(BufferEntry& entry)
+	{
+		const RHI::BufferDesc& desc = entry.pBuffer->GetDesc();
+		if (desc.byteStride == 0)
+			return;
+
+		entry.defaultSRV = m_pSRVAllocator->Allocate();
+		m_pDevice->CreateSRV(entry.defaultSRV, *entry.pBuffer, { .elementCount = desc.byteSize / desc.byteStride, .byteStride = desc.byteStride });
+	}
+
 	void RenderGraph::ReleaseViews(TextureEntry& entry)
 	{
 		dVector<RHI::Descriptor>& releases = m_srvReleases[m_frameIndex];
@@ -191,10 +209,13 @@ namespace Dune::Graphics
 	void RenderGraph::ReleaseViews(BufferEntry& entry)
 	{
 		dVector<RHI::Descriptor>& releases = m_srvReleases[m_frameIndex];
+		if (entry.defaultSRV.IsValid())
+			releases.push_back(entry.defaultSRV);
 		for (const CachedView<RHI::SRVBufferDesc>& view : entry.srvs)
 			releases.push_back(view.descriptor);
 		for (const CachedView<RHI::UAVBufferDesc>& view : entry.uavs)
 			releases.push_back(view.descriptor);
+		entry.defaultSRV = {};
 		entry.srvs.clear();
 		entry.uavs.clear();
 	}
@@ -237,6 +258,7 @@ namespace Dune::Graphics
 		BufferEntry& entry = m_buffers.emplace_back();
 		entry.pBuffer = pBuffer;
 		entry.state = initialState;
+		CreateDefaultViews(entry);
 		return handle;
 	}
 
@@ -258,6 +280,7 @@ namespace Dune::Graphics
 		ReleaseViews(entry);
 		entry.pBuffer = pBuffer;
 		entry.state = state;
+		CreateDefaultViews(entry);
 	}
 
 	void RenderGraph::ResizeTexture(RGTexture handle, dU32 width, dU32 height)
@@ -270,6 +293,17 @@ namespace Dune::Graphics
 		m_textureReleases[m_frameIndex].push_back(*entry.pTexture);
 		entry.pTexture->Initialize(*m_pDevice, desc);
 		SetPhysicalResource(handle, entry.pTexture, desc.initialState);
+	}
+
+	void RenderGraph::ResizeBuffer(RGBuffer handle, dU32 byteSize)
+	{
+		BufferEntry& entry = m_buffers[handle.index];
+		Assert(!entry.isExternal);
+		RHI::BufferDesc desc = entry.pBuffer->GetDesc();
+		desc.byteSize = byteSize;
+		m_bufferReleases[m_frameIndex].push_back(*entry.pBuffer);
+		entry.pBuffer->Initialize(*m_pDevice, desc);
+		SetPhysicalResource(handle, entry.pBuffer, desc.initialState);
 	}
 
 	RHI::Texture& RenderGraph::GetTexture(RGTexture handle)
@@ -383,6 +417,12 @@ namespace Dune::Graphics
 		const dU32 subresource = GetSubresource(m_pGraph->GetTexture(handle), mip, slice);
 		Write(handle, RHI::EResourceState::DepthStencil, subresource);
 		return { .texture = handle, .subresource = subresource };
+	}
+
+	RGBufferSRV RenderGraphBuilder::ReadSRV(RGBuffer handle)
+	{
+		Read(handle, RHI::EResourceState::ShaderResource);
+		return AddRequest(m_pGraph->m_bufferSRVs, handle, RHI::SRVBufferDesc{}, true);
 	}
 
 	RGBufferSRV RenderGraphBuilder::ReadSRV(RGBuffer handle, const RHI::SRVBufferDesc& desc)

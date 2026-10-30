@@ -59,10 +59,10 @@ namespace Dune::Graphics
 			return;
 
 		RenderGraphBuilder& builder = context.AddPass();
-		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
+		const RGBufferSRV materialsSRV = builder.ReadSRV(pMaterialOutputs->buffer);
 		const RGTextureDSV depthDSV = builder.WriteDSV(context.blackboard.Get<SceneResourceOutputs>().depthBuffer);
 
-		builder.OnExecute([depthDSV](RenderPassContext& context)
+		builder.OnExecute([depthDSV, materialsSRV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				Frame& frame = renderer.GetCurrentFrame();
@@ -82,7 +82,7 @@ namespace Dune::Graphics
 				const FrameData& frameData = *context.pFrameData;
 				DepthGlobals globals
 				{
-					.materialBufferIndex = context.blackboard.Get<MaterialOutputs>().bufferIndex
+					.materialBufferIndex = context.GetBindlessIndex(context.GetDescriptor(materialsSRV))
 				};
 				globals.viewProjectionMatrix = context.pView->viewProjection;
 

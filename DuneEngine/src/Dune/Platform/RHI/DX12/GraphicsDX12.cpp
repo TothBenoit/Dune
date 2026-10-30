@@ -1004,7 +1004,7 @@ namespace Dune::RHI
 
 	void Buffer::Initialize(Device& device, const BufferDesc& desc)
 	{
-		m_byteSize = desc.byteSize;
+		m_desc = desc;
 
 		D3D12_HEAP_PROPERTIES heapProps{};
 		D3D12_RESOURCE_STATES resourceState{ ToResourceState(desc.initialState) };
@@ -1013,7 +1013,7 @@ namespace Dune::RHI
 		dU32 uniformMask = (dU32)EBufferUsage::Uniform;
 		bool isUniform = (usageBits & uniformMask) != 0;
 		if (isUniform)
-			m_byteSize = MemoryUtils::AlignUp(m_byteSize, 256);
+			m_desc.byteSize = MemoryUtils::AlignUp(m_desc.byteSize, 256);
 
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 		dU32 uavBufferMask = (dU32)EBufferUsage::UAV;
@@ -1021,7 +1021,7 @@ namespace Dune::RHI
 		if (isUAV)
 			flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(m_byteSize, flags) };
+		D3D12_RESOURCE_DESC resourceDesc{ CD3DX12_RESOURCE_DESC::Buffer(m_desc.byteSize, flags) };
 
 		if (desc.memory == EBufferMemory::CPU)
 			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
@@ -1052,14 +1052,14 @@ namespace Dune::RHI
 
 	void Buffer::Map(dU32 byteOffset, dU32 byteSize, void** pCpuAddress)
 	{
-		Assert(byteSize <= m_byteSize);
+		Assert(byteSize <= m_desc.byteSize);
 		D3D12_RANGE readRange{ byteOffset, byteOffset + byteSize };
 		ThrowIfFailed(ToResource(Get())->Map(0, &readRange, pCpuAddress));
 	}
 
 	void Buffer::Unmap(dU32 byteOffset, dU32 byteSize)
 	{
-		Assert(byteSize <= m_byteSize);
+		Assert(byteSize <= m_desc.byteSize);
 		D3D12_RANGE readRange{ byteOffset, byteOffset + byteSize };
 		ToResource(Get())->Unmap(0, &readRange);
 	}

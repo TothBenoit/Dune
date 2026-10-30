@@ -27,6 +27,7 @@ namespace Dune::RHI
 		EBufferUsage    usage{ EBufferUsage::Default };
 		EBufferMemory   memory{ EBufferMemory::CPU };
 		dU32            byteSize{ 0 };
+		dU32            byteStride{ 0 };
 		EResourceState  initialState{ EResourceState::Undefined };
 	};
 
@@ -36,13 +37,14 @@ namespace Dune::RHI
 		void Initialize(Device& device, const BufferDesc& desc);
 		void Destroy();
 
-		[[nodiscard]] inline dU32 GetByteSize() const { return m_byteSize; }
+		[[nodiscard]] inline dU32 GetByteSize() const { return m_desc.byteSize; }
+		[[nodiscard]] inline const BufferDesc& GetDesc() const { return m_desc; }
 		[[nodiscard]] dU64 GetGPUAddress() const;
 
 		void Map(dU32 byteOffset, dU32 byteSize, void** pCpuAdress);
 		void Unmap(dU32 byteOffset, dU32 byteSize);
 
 	private:
-		dU32            m_byteSize;
+		BufferDesc      m_desc;
 	};
 }

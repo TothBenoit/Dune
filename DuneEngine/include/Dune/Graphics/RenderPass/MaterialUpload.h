@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Dune/Platform/RHI/DescriptorHeap.h"
-#include "Dune/Platform/RHI/Buffer.h"
 #include "Dune/Graphics/RenderPass.h"
 
 namespace Dune::Graphics
@@ -10,8 +8,6 @@ namespace Dune::Graphics
 
 	struct MaterialUploadData
 	{
-		RHI::Buffer     buffer;
-		RHI::Descriptor srv;
 		RGBuffer handle;
 	};
 
