@@ -2,7 +2,6 @@
 
 #include "Dune/Graphics/RenderPass.h"
 #include "Dune/Graphics/Pipeline.h"
-#include "Dune/Platform/RHI/Buffer.h"
 
 namespace Dune::Graphics
 {
@@ -15,8 +14,8 @@ namespace Dune::Graphics
 		float maxLogLuminance{ 24.0f };
 		float tau{ 1.0f };
 
-		RHI::Buffer histogramBuffer;
-		RHI::Buffer luminanceBuffer;
+		RGBuffer histogramBuffer;
+		RGBuffer luminanceBuffer;
 	};
 
 	class Tonemapping
