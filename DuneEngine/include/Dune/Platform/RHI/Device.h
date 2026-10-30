@@ -4,23 +4,12 @@
 #include "Dune/Platform/RHI/DescriptorHeap.h"
 #include "Dune/Platform/RHI/Format.h"
 #include "Dune/Platform/RHI/PhysicalDevice.h"
+#include "Dune/Platform/RHI/Texture.h"
 
 namespace Dune::RHI
 {
 	class Texture;
 	class Buffer;
-
-	enum class ESRVDimension
-	{
-		Buffer,
-		Texture1D,
-		Texture1DArray,
-		Texture2D,
-		Texture2DArray,
-		Texture3D,
-		TextureCube,
-		TextureCubeArray
-	};
 
 	struct SRVTextureDesc
 	{
@@ -30,7 +19,7 @@ namespace Dune::RHI
 		dU32 firstArraySlice{ 0 };
 		dU32 arraySize{ (dU32)-1 };
 		EFormat	format{ EFormat::R8G8B8A8_UNORM };
-		ESRVDimension dimension{ ESRVDimension::Texture2D };
+		ETextureDimension dimension{ ETextureDimension::Texture2D };
 
 		[[nodiscard]] bool operator==(const SRVTextureDesc&) const = default;
 	};

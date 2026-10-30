@@ -39,7 +39,7 @@ namespace Dune::Graphics
 
 	static dU32 GetSubresource(const RHI::Texture& texture, dU32 mip, dU32 slice)
 	{
-		Assert(mip < texture.GetMipLevels() && slice < texture.GetDimensions()[2]);
+		Assert(mip < texture.GetMipLevels() && slice < texture.GetDesc().layer);
 		return mip + slice * texture.GetMipLevels();
 	}
 
@@ -136,11 +136,12 @@ namespace Dune::Graphics
 	{
 		RHI::Texture& texture = *entry.pTexture;
 		const RHI::TextureDesc& desc = texture.GetDesc();
-		const dU32 arraySize = desc.dimensions[2];
+		const dU32 arraySize = desc.layer;
 		if ((desc.usage & RHI::ETextureUsage::ShaderResource) != RHI::ETextureUsage::Invalid)
 		{
 			entry.defaultSRV = m_pSRVAllocator->Allocate();
-			m_pDevice->CreateSRV(entry.defaultSRV, texture, { .mipLevels = desc.mipLevels, .arraySize = arraySize, .format = ToSRVFormat(desc.format), .dimension = arraySize > 1 ? RHI::ESRVDimension::Texture2DArray : RHI::ESRVDimension::Texture2D });
+			const dU32 viewArraySize = desc.dimension == RHI::ETextureDimension::TextureCubeArray ? arraySize / 6 : arraySize;
+			m_pDevice->CreateSRV(entry.defaultSRV, texture, { .mipLevels = desc.mipLevels, .arraySize = viewArraySize, .format = ToSRVFormat(desc.format), .dimension = desc.dimension });
 		}
 		const bool isRenderTarget = (desc.usage & RHI::ETextureUsage::RenderTarget) != RHI::ETextureUsage::Invalid;
 		const bool isDepthStencil = (desc.usage & RHI::ETextureUsage::DepthStencil) != RHI::ETextureUsage::Invalid;
@@ -193,7 +194,7 @@ namespace Dune::Graphics
 		RHI::Texture* pTexture = new RHI::Texture();
 		pTexture->Initialize(*m_pDevice, desc);
 
-		const dU32 subresourceCount = desc.dimensions[2] * desc.mipLevels;
+		const dU32 subresourceCount = desc.layer * desc.mipLevels;
 		RGTexture handle = RegisterTexture(pTexture, desc.initialState, subresourceCount);
 		m_textures[handle.index].isExternal = false;
 		return handle;
@@ -254,8 +255,8 @@ namespace Dune::Graphics
 		TextureEntry& entry = m_textures[handle.index];
 		Assert(!entry.isExternal);
 		RHI::TextureDesc desc = entry.pTexture->GetDesc();
-		desc.dimensions[0] = width;
-		desc.dimensions[1] = height;
+		desc.width = width;
+		desc.height = height;
 		m_textureReleases[m_frameIndex].push_back(*entry.pTexture);
 		entry.pTexture->Initialize(*m_pDevice, desc);
 		SetPhysicalResource(handle, entry.pTexture, desc.initialState);
@@ -333,7 +334,7 @@ namespace Dune::Graphics
 		Assert(handle.IsValid());
 		const RHI::Texture& texture = m_pGraph->GetTexture(handle);
 		const dU32 mipLevels = texture.GetMipLevels();
-		const dU32 arraySize = texture.GetDimensions()[2];
+		const dU32 arraySize = texture.GetDesc().layer;
 		Assert(firstMip < mipLevels && firstSlice < arraySize);
 		mipCount = std::min(mipCount, mipLevels - firstMip);
 		sliceCount = std::min(sliceCount, arraySize - firstSlice);

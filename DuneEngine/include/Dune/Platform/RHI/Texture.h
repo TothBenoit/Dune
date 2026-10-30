@@ -29,12 +29,27 @@ namespace Dune::RHI
 		return ETextureUsage(dU32(a) & dU32(b));
 	}
 
+	enum class ETextureDimension
+	{
+		Texture2D,
+		Texture2DArray,
+		TextureCube,
+		TextureCubeArray
+	};
+
 	struct TextureDesc
 	{
 		const wchar_t* debugName{ L"Texture" };
 
 		ETextureUsage usage{ ETextureUsage::RenderTarget };
-		dU32 dimensions[3]{ 1, 1, 1 };
+		ETextureDimension dimension{ ETextureDimension::Texture2D };
+		dU32 width{ 1 };
+		dU32 height{ 1 };
+		union
+		{
+			dU32 layer{ 1 };
+			dU32 slice;
+		};
 		dU32 mipLevels{ 1 };
 		EFormat	format{ EFormat::R8G8B8A8_UNORM };
 		float clearValue[4]{ 0.f, 0.f, 0.f, 0.f };
@@ -52,7 +67,6 @@ namespace Dune::RHI
 		[[nodiscard]] dU64 GetUploadSize() const;
 		void Upload(const void* pData, CommandList& commandList, Buffer& stagingBuffer, dU64 stagingOffset);
 
-		[[nodiscard]] const dU32* GetDimensions() const { return m_desc.dimensions; }
 		[[nodiscard]] const float* GetClearValue() const { return m_desc.clearValue; }
 		[[nodiscard]] EFormat GetFormat() const { return m_desc.format; }
 		[[nodiscard]] dU32 GetMipLevels() const { return m_desc.mipLevels; }

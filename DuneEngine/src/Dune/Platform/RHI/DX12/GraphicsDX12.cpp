@@ -330,28 +330,14 @@ namespace Dune::RHI
 
 		switch (desc.dimension)
 		{
-		case ESRVDimension::Texture1D:
-			srvDesc.Texture1D.MipLevels = desc.mipLevels;
-			srvDesc.Texture1D.MostDetailedMip = desc.mipStart;
-			srvDesc.Texture1D.ResourceMinLODClamp = desc.mipBias;
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-			break;
-		case ESRVDimension::Texture1DArray:
-			srvDesc.Texture1DArray.ArraySize = desc.arraySize;
-			srvDesc.Texture1DArray.FirstArraySlice = desc.firstArraySlice;
-			srvDesc.Texture1DArray.MipLevels = desc.mipLevels;
-			srvDesc.Texture1DArray.MostDetailedMip = desc.mipStart;
-			srvDesc.Texture1DArray.ResourceMinLODClamp = desc.mipBias;
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-			break;
-		case ESRVDimension::Texture2D:
+		case ETextureDimension::Texture2D:
 			srvDesc.Texture2D.MipLevels = desc.mipLevels;
 			srvDesc.Texture2D.MostDetailedMip = desc.mipStart;
 			srvDesc.Texture2D.ResourceMinLODClamp = desc.mipBias;
 			srvDesc.Texture2D.PlaneSlice = 0;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 			break;
-		case ESRVDimension::Texture2DArray:
+		case ETextureDimension::Texture2DArray:
 			srvDesc.Texture2DArray.ArraySize = desc.arraySize;
 			srvDesc.Texture2DArray.FirstArraySlice = desc.firstArraySlice;
 			srvDesc.Texture2DArray.MipLevels = desc.mipLevels;
@@ -359,19 +345,13 @@ namespace Dune::RHI
 			srvDesc.Texture2DArray.ResourceMinLODClamp = desc.mipBias;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
 			break;
-		case ESRVDimension::Texture3D:
-			srvDesc.Texture3D.MipLevels = desc.mipLevels;
-			srvDesc.Texture3D.MostDetailedMip = desc.mipStart;
-			srvDesc.Texture3D.ResourceMinLODClamp = desc.mipBias;
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-			break;
-		case ESRVDimension::TextureCube:
+		case ETextureDimension::TextureCube:
 			srvDesc.TextureCube.MostDetailedMip = desc.mipStart;
 			srvDesc.TextureCube.MipLevels = desc.mipLevels;
 			srvDesc.TextureCube.ResourceMinLODClamp = desc.mipBias;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 			break;
-		case ESRVDimension::TextureCubeArray:
+		case ETextureDimension::TextureCubeArray:
 			srvDesc.TextureCubeArray.First2DArrayFace = desc.firstArraySlice;
 			srvDesc.TextureCubeArray.MipLevels = desc.mipLevels;
 			srvDesc.TextureCubeArray.MostDetailedMip = desc.mipStart;
@@ -439,7 +419,7 @@ namespace Dune::RHI
 
 		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 		rtvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
-		if (texture.GetDimensions()[2] > 1)
+		if (texture.GetDesc().dimension != ETextureDimension::Texture2D)
 		{
 			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 			rtvDesc.Texture2DArray.MipSlice = desc.mipSlice;
@@ -461,7 +441,7 @@ namespace Dune::RHI
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 		dsvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
 
-		if (texture.GetDimensions()[2] > 1)
+		if (texture.GetDesc().dimension != ETextureDimension::Texture2D)
 		{
 			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 			dsvDesc.Texture2DArray.MipSlice = desc.mipSlice;
@@ -964,9 +944,9 @@ namespace Dune::RHI
 			NameDXObjectIndexed(pResource, i, L"BackBuffers");
 			backBuffer.m_pResource = pResource;
 			backBuffer.m_desc.format = EFormat::R8G8B8A8_UNORM;
-			backBuffer.m_desc.dimensions[0] = swapChainDesc.Width;
-			backBuffer.m_desc.dimensions[1] = swapChainDesc.Height;
-			backBuffer.m_desc.dimensions[2] = 1;
+			backBuffer.m_desc.width = swapChainDesc.Width;
+			backBuffer.m_desc.height = swapChainDesc.Height;
+			backBuffer.m_desc.layer = 1;
 		}
 
 		m_pResource = pSwapChain.Detach();
@@ -1001,8 +981,8 @@ namespace Dune::RHI
 			ThrowIfFailed(pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pResource)));
 			NameDXObjectIndexed(pResource, i, L"BackBuffers");
 			backBuffer.m_pResource = pResource;
-			backBuffer.m_desc.dimensions[0] = width;
-			backBuffer.m_desc.dimensions[1] = height;
+			backBuffer.m_desc.width = width;
+			backBuffer.m_desc.height = height;
 		}
 	}
 
@@ -1086,6 +1066,10 @@ namespace Dune::RHI
 
 	void Texture::Initialize(Device& device, const TextureDesc& desc)
 	{
+		Assert(desc.dimension != ETextureDimension::Texture2D || desc.layer == 1);
+		Assert(desc.dimension != ETextureDimension::TextureCube || desc.layer == 6);
+		Assert(desc.dimension != ETextureDimension::TextureCubeArray || desc.layer % 6 == 0);
+
 		m_desc = desc;
 		
 		ID3D12Device* pDevice{ ToDevice(device.Get()) };
@@ -1113,9 +1097,9 @@ namespace Dune::RHI
 		CD3DX12_RESOURCE_DESC textureResourceDesc(
 			D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 			0,
-			m_desc.dimensions[0],
-			m_desc.dimensions[1],
-			m_desc.dimensions[2],
+			m_desc.width,
+			m_desc.height,
+			m_desc.layer,
 			m_desc.mipLevels,
 			format,
 			1,

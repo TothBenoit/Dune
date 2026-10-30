@@ -12,7 +12,8 @@ namespace Dune::Graphics
 		m_texture.Initialize(device,
 			{
 				.usage = RHI::ETextureUsage::ShaderResource,
-				.dimensions = { desc.width, desc.height, 1 },
+				.width = desc.width,
+				.height = desc.height,
 				.mipLevels = desc.mipLevels,
 				.format = RHI::ToTypeless(desc.format),
 			});

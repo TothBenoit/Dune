@@ -16,7 +16,8 @@ namespace Dune::Graphics
 	{
 		.debugName = L"ShadowMap",
 		.usage = RHI::ETextureUsage::DepthStencil | RHI::ETextureUsage::ShaderResource,
-		.dimensions = {SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 1},
+		.width = SHADOW_MAP_RESOLUTION,
+		.height = SHADOW_MAP_RESOLUTION,
 		.mipLevels = 1,
 		.format = RHI::EFormat::D32_FLOAT,
 		.clearValue = {1.f, 1.f, 1.f, 1.f},
@@ -27,7 +28,10 @@ namespace Dune::Graphics
 	{
 		.debugName = L"CubeShadowMap",
 		.usage = RHI::ETextureUsage::DepthStencil | RHI::ETextureUsage::ShaderResource,
-		.dimensions = {SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6},
+		.dimension = RHI::ETextureDimension::TextureCube,
+		.width = SHADOW_MAP_RESOLUTION,
+		.height = SHADOW_MAP_RESOLUTION,
+		.layer = 6,
 		.mipLevels = 1,
 		.format = RHI::EFormat::D32_FLOAT,
 		.clearValue = {1.f, 1.f, 1.f, 1.f},
@@ -159,7 +163,7 @@ namespace Dune::Graphics
 				{
 					const RGTexture handle = renderer.GetRenderGraph().CreateTexture(kCubeShadowMapDesc);
 					const RHI::Descriptor shadowSRV = renderer.GetSRVAllocator().Allocate();
-					device.CreateSRV(shadowSRV, renderer.GetRenderGraph().GetTexture(handle), { .format = RHI::EFormat::R32_FLOAT, .dimension = RHI::ESRVDimension::TextureCube });
+					device.CreateSRV(shadowSRV, renderer.GetRenderGraph().GetTexture(handle), { .format = RHI::EFormat::R32_FLOAT, .dimension = RHI::ETextureDimension::TextureCube });
 					pData->cubeShadowHandles.push_back(handle);
 					pData->cubeShadowSRVs.push_back(shadowSRV);
 				}

@@ -17,7 +17,8 @@ namespace Dune::Graphics
 			{
 				.debugName = L"HDRTarget",
 				.usage = RHI::ETextureUsage::RenderTarget | RHI::ETextureUsage::ShaderResource,
-				.dimensions = { width, height, 1 },
+				.width = width,
+				.height = height,
 				.mipLevels = 1,
 				.format = RHI::EFormat::R16G16B16A16_FLOAT,
 				.initialState = RHI::EResourceState::ShaderResource,
@@ -27,7 +28,8 @@ namespace Dune::Graphics
 			{
 				.debugName = L"DepthBuffer",
 				.usage = RHI::ETextureUsage::DepthStencil,
-				.dimensions = { width, height, 1 },
+				.width = width,
+				.height = height,
 				.format = RHI::EFormat::D32_FLOAT,
 				.clearValue = { 1.f, 1.f, 1.f, 1.f },
 				.initialState = RHI::EResourceState::DepthStencil,
