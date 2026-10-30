@@ -19,11 +19,6 @@ namespace Dune::Graphics
 		TonemappingData* pData = new TonemappingData();
 
 		pData->histogramBuffer.Initialize(device, { .debugName = L"HistogramBuffer", .usage = RHI::EBufferUsage::UAV, .memory = RHI::EBufferMemory::GPU, .byteSize = 256 * sizeof(dU32)});
-		pData->histogramCPUUAV = renderer.GetCPUSRVAllocator().Allocate();
-		device.CreateUAV(pData->histogramCPUUAV, pData->histogramBuffer, { .format = RHI::EFormat::R32_UINT, .elementCount = 256 });
-		pData->histogramUAV = renderer.GetSRVAllocator().Allocate();
-		device.CopyDescriptors(1, pData->histogramCPUUAV.cpuAddress, pData->histogramUAV.cpuAddress, RHI::EDescriptorHeapType::SRV_CBV_UAV);
-
 		pData->luminanceBuffer.Initialize(device, { .debugName = L"LuminanceBuffer", .usage = RHI::EBufferUsage::UAV, .memory = RHI::EBufferMemory::GPU, .byteSize = sizeof(dU32)});
 
 		return pData;
@@ -94,7 +89,13 @@ namespace Dune::Graphics
 				const RHI::Descriptor rtv = context.GetDescriptor(backBufferRTV);
 				commandList.SetRenderTarget(&rtv.cpuAddress, 1, nullptr);
 
-				commandList.ClearUAVUInt(pData->histogramUAV.gpuAddress, pData->histogramCPUUAV.cpuAddress, pData->histogramBuffer.Get(), 0);
+				const dU32 histogramByteSize = pData->histogramBuffer.GetByteSize();
+				StagingMemory staging = renderer.AllocateStaging(histogramByteSize, 16);
+				memset(staging.pCpuAddress, 0, histogramByteSize);
+				commandList.CopyBufferRegion(pData->histogramBuffer, 0, staging.buffer, staging.offset, histogramByteSize);
+				barrier.PushTransition(pData->histogramBuffer, RHI::EResourceState::CopyDest, RHI::EResourceState::UAV);
+				commandList.Transition(barrier);
+				barrier.Reset();
 
 				float logLuminanceRange = pData->maxLogLuminance - pData->minLogLuminance;
 				LuminanceHistogramParams histogramParams
@@ -150,10 +151,8 @@ namespace Dune::Graphics
 			});
 	}
 
-	void Tonemapping::Destroy(Renderer& renderer, TonemappingData* pData)
+	void Tonemapping::Destroy(Renderer&, TonemappingData* pData)
 	{
-		renderer.GetSRVAllocator().Free(pData->histogramUAV);
-		renderer.GetCPUSRVAllocator().Free(pData->histogramCPUUAV);
 		pData->histogramBuffer.Destroy();
 		pData->luminanceBuffer.Destroy();
 		delete pData;

@@ -82,7 +82,6 @@ namespace Dune::RHI
 		void SetRenderTarget(const dU64* rtvs, dU32 rtvCount, const dU64* dsv);
 		void ClearRenderTargetView(const Descriptor& rtv, const float clearColor[4]);
 		void ClearDepthBuffer(const Descriptor& dsv, float depth, float stencil);
-		void ClearUAVUInt(dU64 gpuAddress, dU64 cpuAddress, void* pResource, dU32 value);
 		void PushGraphicsConstants(dU32 slot, const void* pData, dU32 byteSize);
 		void PushComputeConstants(dU32 slot, const void* pData, dU32 byteSize);
 		void PushGraphicsBuffer(dU32 slot, Buffer& buffer);

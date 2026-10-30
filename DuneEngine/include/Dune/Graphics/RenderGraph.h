@@ -52,9 +52,15 @@ namespace Dune
 			dU32 subresource{ 0 };
 		};
 
+		struct RGTextureDSV
+		{
+			RGTexture texture;
+			dU32 subresource{ 0 };
+			RHI::EDSVAccess access{ RHI::EDSVAccess::Write };
+		};
+
 		using RGTextureSRV = ResourceView<RHI::SRVTextureDesc>;
 		using RGTextureRTV = SubresourceView<RHI::RTVDesc>;
-		using RGTextureDSV = SubresourceView<RHI::DSVDesc>;
 		using RGBufferSRV = ResourceView<RHI::SRVBufferDesc>;
 		using RGBufferUAV = ResourceView<RHI::UAVBufferDesc>;
 
@@ -96,6 +102,7 @@ namespace Dune
 			dVector<CachedView<RHI::SRVTextureDesc>> srvs;
 			dVector<RHI::Descriptor> rtvs;
 			dVector<RHI::Descriptor> dsvs;
+			dU32 dsvAccessCount{ 0 };
 		};
 
 		struct BufferEntry
@@ -152,6 +159,7 @@ namespace Dune
 			[[nodiscard]] RGTextureSRV ReadSRV(RGTexture handle, const RHI::SRVTextureDesc& desc);
 			[[nodiscard]] RGTextureRTV WriteRTV(RGTexture handle, dU32 mip = 0, dU32 slice = 0);
 			[[nodiscard]] RGTextureDSV WriteDSV(RGTexture handle, dU32 mip = 0, dU32 slice = 0);
+			[[nodiscard]] RGTextureDSV ReadDSV(RGTexture handle, dU32 mip = 0, dU32 slice = 0);
 			[[nodiscard]] RGBufferSRV ReadSRV(RGBuffer handle);
 			[[nodiscard]] RGBufferSRV ReadSRV(RGBuffer handle, const RHI::SRVBufferDesc& desc);
 			[[nodiscard]] RGBufferUAV WriteUAV(RGBuffer handle, const RHI::UAVBufferDesc& desc);
@@ -224,7 +232,11 @@ namespace Dune
 			[[nodiscard]] RHI::Descriptor GetDefaultSRV(RGTexture handle) const { return m_textures[handle.index].defaultSRV; }
 			[[nodiscard]] RHI::Descriptor GetDescriptor(RGTextureSRV view) const { Assert(m_viewsResolved); return m_textureSRVs[view.index].descriptor; }
 			[[nodiscard]] RHI::Descriptor GetDescriptor(RGTextureRTV view) const { return m_textures[view.texture.index].rtvs[view.subresource]; }
-			[[nodiscard]] RHI::Descriptor GetDescriptor(RGTextureDSV view) const { return m_textures[view.texture.index].dsvs[view.subresource]; }
+			[[nodiscard]] RHI::Descriptor GetDescriptor(RGTextureDSV view) const
+			{
+				const TextureEntry& entry = m_textures[view.texture.index];
+				return entry.dsvs[view.subresource * entry.dsvAccessCount + (dU32)view.access];
+			}
 			[[nodiscard]] RHI::Descriptor GetDescriptor(RGBufferSRV view) const { Assert(m_viewsResolved); return m_bufferSRVs[view.index].descriptor; }
 			[[nodiscard]] RHI::Descriptor GetDescriptor(RGBufferUAV view) const { Assert(m_viewsResolved); return m_bufferUAVs[view.index].descriptor; }
 

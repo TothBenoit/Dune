@@ -46,7 +46,6 @@ namespace Dune
 		{
 		public:
 			static constexpr dU32 kFramesInFlight = 3;
-			static constexpr dU32 kCPUSRVCapacity = 16;
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
@@ -68,7 +67,6 @@ namespace Dune
 			[[nodiscard]] inline RHI::Barrier& GetBarrier() { return m_barrier; }
 			[[nodiscard]] inline RHI::DescriptorHeap& GetSRVHeap() { return m_pSRVAllocator->GetHeap(); }
 			[[nodiscard]] inline DescriptorAllocator& GetSRVAllocator() { return *m_pSRVAllocator; }
-			[[nodiscard]] inline DescriptorAllocator& GetCPUSRVAllocator() { return m_cpuSRVAllocator; }
 
 			[[nodiscard]] inline RenderGraph& GetRenderGraph() { return m_renderGraph; }
 
@@ -109,10 +107,8 @@ namespace Dune
 
 			DescriptorAllocator* m_pSRVAllocator{ nullptr };
 
-			RHI::DescriptorHeap m_cpuSRVHeap{};
 			RHI::DescriptorHeap m_rtvHeap{};
 			RHI::DescriptorHeap m_dsvHeap{};
-			DescriptorAllocator m_cpuSRVAllocator{};
 			DescriptorAllocator m_rtvAllocator{};
 			DescriptorAllocator m_dsvAllocator{};
 

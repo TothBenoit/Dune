@@ -124,6 +124,11 @@ namespace Dune::RHI
 		V408 = 132,
 	};
 
+	[[nodiscard]] constexpr bool HasStencil(EFormat format)
+	{
+		return format == EFormat::D24_UNORM_S8_UINT || format == EFormat::D32_Float_S8X24_UINT;
+	}
+
 	[[nodiscard]] constexpr EFormat ToSRGB(EFormat format)
 	{
 		switch (format)

@@ -33,12 +33,7 @@ namespace Dune::Graphics
 		m_fence.Initialize(device, 0);
 		m_swapchain.Initialize(device, m_pWindow, m_pCommandQueue, { .latency = kFramesInFlight });
 
-		RHI::DescriptorHeapDesc heapDesc { .type = RHI::EDescriptorHeapType::SRV_CBV_UAV, .capacity = kCPUSRVCapacity, .isShaderVisible = false };
-		m_cpuSRVHeap.Initialize(device, heapDesc);
-		m_cpuSRVAllocator.Initialize(m_cpuSRVHeap, 0, m_cpuSRVHeap.GetCapacity());
-
-		heapDesc.capacity = 64;
-		heapDesc.type = RHI::EDescriptorHeapType::RTV;
+		RHI::DescriptorHeapDesc heapDesc { .type = RHI::EDescriptorHeapType::RTV, .capacity = 64, .isShaderVisible = false };
 		m_rtvHeap.Initialize(device, heapDesc);
 		m_rtvAllocator.Initialize(m_rtvHeap, 0, m_rtvHeap.GetCapacity());
 
@@ -119,10 +114,8 @@ namespace Dune::Graphics
 
 		m_renderGraph.Destroy();
 
-		m_cpuSRVAllocator.Destroy();
 		m_rtvAllocator.Destroy();
 		m_dsvAllocator.Destroy();
-		m_cpuSRVHeap.Destroy();
 		m_rtvHeap.Destroy();
 		m_dsvHeap.Destroy();
 		m_barrier.Destroy();

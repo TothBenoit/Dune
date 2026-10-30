@@ -55,10 +55,19 @@ namespace Dune::RHI
 		dU32 firstArraySlice{ 0 };
 	};
 
+	enum class EDSVAccess : dU8
+	{
+		Write = 0,
+		ReadDepth = 1 << 0,
+		ReadStencil = 1 << 1,
+		ReadDepthStencil = ReadDepth | ReadStencil,
+	};
+
 	struct DSVDesc
 	{
 		dU32 mipSlice{ 0 };
 		dU32 firstArraySlice{ 0 };
+		EDSVAccess access{ EDSVAccess::Write };
 	};
 
 	class Device : public Resource

@@ -163,6 +163,7 @@ namespace Dune::Graphics
 		}
 		const bool isRenderTarget = (desc.usage & RHI::ETextureUsage::RenderTarget) != RHI::ETextureUsage::Invalid;
 		const bool isDepthStencil = (desc.usage & RHI::ETextureUsage::DepthStencil) != RHI::ETextureUsage::Invalid;
+		entry.dsvAccessCount = RHI::HasStencil(desc.format) ? 4 : 2;
 		for (dU32 slice = 0; slice < arraySize; slice++)
 		{
 			for (dU32 mip = 0; mip < desc.mipLevels; mip++)
@@ -174,8 +175,11 @@ namespace Dune::Graphics
 				}
 				if (isDepthStencil)
 				{
-					const RHI::Descriptor dsv = entry.dsvs.emplace_back(m_pDSVAllocator->Allocate());
-					m_pDevice->CreateDSV(dsv, texture, { .mipSlice = mip, .firstArraySlice = slice });
+					for (dU32 access = 0; access < entry.dsvAccessCount; access++)
+					{
+						const RHI::Descriptor dsv = entry.dsvs.emplace_back(m_pDSVAllocator->Allocate());
+						m_pDevice->CreateDSV(dsv, texture, { .mipSlice = mip, .firstArraySlice = slice, .access = (RHI::EDSVAccess)access });
+					}
 				}
 			}
 		}
@@ -222,6 +226,7 @@ namespace Dune::Graphics
 
 	RGTexture RenderGraph::CreateTexture(const RHI::TextureDesc& desc)
 	{
+		Assert(!RHI::HasStencil(desc.format));
 		RHI::Texture* pTexture = new RHI::Texture();
 		pTexture->Initialize(*m_pDevice, desc);
 
@@ -417,6 +422,13 @@ namespace Dune::Graphics
 		const dU32 subresource = GetSubresource(m_pGraph->GetTexture(handle), mip, slice);
 		Write(handle, RHI::EResourceState::DepthStencil, subresource);
 		return { .texture = handle, .subresource = subresource };
+	}
+
+	RGTextureDSV RenderGraphBuilder::ReadDSV(RGTexture handle, dU32 mip, dU32 slice)
+	{
+		const dU32 subresource = GetSubresource(m_pGraph->GetTexture(handle), mip, slice);
+		Read(handle, RHI::EResourceState::DepthStencilRead, subresource);
+		return { .texture = handle, .subresource = subresource, .access = RHI::EDSVAccess::ReadDepth };
 	}
 
 	RGBufferSRV RenderGraphBuilder::ReadSRV(RGBuffer handle)

@@ -440,6 +440,10 @@ namespace Dune::RHI
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 		dsvDesc.Format = (DXGI_FORMAT)texture.GetFormat();
+		if (((dU8)desc.access & (dU8)EDSVAccess::ReadDepth) != 0)
+			dsvDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_DEPTH;
+		if (((dU8)desc.access & (dU8)EDSVAccess::ReadStencil) != 0)
+			dsvDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_STENCIL;
 
 		if (texture.GetDesc().dimension != ETextureDimension::Texture2D)
 		{
@@ -650,13 +654,6 @@ namespace Dune::RHI
 	{
 		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
 		pCommandList->ClearDepthStencilView({ dsv.cpuAddress }, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, (dU8)stencil, 0, nullptr);
-	}
-
-	void CommandList::ClearUAVUInt(dU64 gpuAddress, dU64 cpuAddress, void* pResource, dU32 value)
-	{
-		ID3D12GraphicsCommandList* pCommandList{ ToCommandList(Get()) };
-		dU32 values[4] = { value, value, value, value };
-		pCommandList->ClearUnorderedAccessViewUint((D3D12_GPU_DESCRIPTOR_HANDLE)gpuAddress, (D3D12_CPU_DESCRIPTOR_HANDLE)cpuAddress, (ID3D12Resource*)pResource, values, 0, nullptr);
 	}
 
 	void CommandList::PushGraphicsConstants(dU32 slot, const void* pData, dU32 byteSize)
