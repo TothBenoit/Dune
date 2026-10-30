@@ -11,9 +11,9 @@ namespace Dune::Graphics
 	class ClearDepth
 	{
 	public:
-		static void*            Create(Renderer& renderer);
-		static void             Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData);
-		static void             Destroy(Renderer& renderer, void* pData);
+		static void* Create(Renderer& renderer);
+		static void  Setup(RenderPassContext& context, void* pData);
+		static void  Destroy(Renderer& renderer, void* pData);
 	private:
 		ClearDepth() = delete;
 	};

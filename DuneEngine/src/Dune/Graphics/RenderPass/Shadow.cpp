@@ -131,7 +131,7 @@ namespace Dune::Graphics
 		}
 	}
 
-	void Shadow::Setup(RenderGraphBuilder& builder, RenderPassContext& context, ShadowPassData* pData)
+	void Shadow::Setup(RenderPassContext& context, ShadowPassData* pData)
 	{
 		pData->activeHandles.clear();
 		pData->shadows.clear();
@@ -186,6 +186,7 @@ namespace Dune::Graphics
 			pData->shadows.push_back({ .shadowMatrix = pVisibleSet->shadowMatrices[casterIndex], .shadowIndex = context.GetBindlessIndex(srv) });
 		}
 
+		RenderGraphBuilder& builder = context.AddPass();
 		for (RGTexture handle : pData->activeHandles)
 			builder.Write(handle, RHI::EResourceState::DepthStencil);
 

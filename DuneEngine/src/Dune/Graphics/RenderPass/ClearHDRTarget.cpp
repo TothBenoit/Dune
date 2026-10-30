@@ -11,8 +11,9 @@ namespace Dune::Graphics
 		return nullptr;
 	}
 
-	void ClearHDRTarget::Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData)
+	void ClearHDRTarget::Setup(RenderPassContext& context, void* pData)
 	{
+		RenderGraphBuilder& builder = context.AddPass();
 		const RGTextureRTV hdrRTV = builder.WriteRTV(context.blackboard.Get<SceneResourceOutputs>().hdrTarget);
 
 		builder.OnExecute([hdrRTV](RenderPassContext& context)

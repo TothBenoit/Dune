@@ -9,7 +9,6 @@ namespace Dune
 	namespace Graphics
 	{
 		class Renderer;
-		struct RenderPass;
 		struct PipelineDesc;
 		struct Frame;
 		struct FrameData;
@@ -97,13 +96,14 @@ namespace Dune
 			const FrameData* pFrameData;
 			const ViewData* pView;
 			Renderer* pRenderer;
-			RenderPass* pPass;
+			dU32 passTypeIndex{ 0 };
 			RenderBlackboard blackboard;
 
 			[[nodiscard]] PSO* GetPSO(MaterialKey key) const;
 			[[nodiscard]] PSO* GetPipeline(dU32 index) const;
 			[[nodiscard]] dU32 GetBindlessIndex(RHI::Descriptor srv) const;
 			[[nodiscard]] RenderGraph& GetRenderGraph() const;
+			[[nodiscard]] RenderGraphBuilder& AddPass();
 
 			template<typename View>
 			[[nodiscard]] RHI::Descriptor GetDescriptor(View view) const { return GetRenderGraph().GetDescriptor(view); }
@@ -117,7 +117,7 @@ namespace Dune
 
 		struct RenderPass
 		{
-			void (*pSetup)(RenderGraphBuilder&, RenderPassContext&, void*);
+			void (*pSetup)(RenderPassContext&, void*);
 			void (*pShutdown)(Renderer&, void*);
 			bool (*pIsPassMaterial)(MaterialKey){ nullptr };
 			PipelineDesc (*pGetPipelineDesc)(MaterialKey){ nullptr };
@@ -126,7 +126,6 @@ namespace Dune
 			RenderTypeID typeID{ nullptr };
 			dU32 typeIndex{ 0 };
 
-			RenderGraphBuilder builder;
 		};
 
 		template<typename T>
@@ -135,7 +134,7 @@ namespace Dune
 			auto* pPassData = T::Create(renderer);
 			using PassData = decltype(pPassData);
 			RenderPass pass{};
-			pass.pSetup = [](RenderGraphBuilder& builder, RenderPassContext& context, void* pData) { T::Setup(builder, context, static_cast<PassData>(pData)); };
+			pass.pSetup = [](RenderPassContext& context, void* pData) { T::Setup(context, static_cast<PassData>(pData)); };
 			pass.pShutdown = [](Renderer& renderer, void* pData) { T::Destroy(renderer, static_cast<PassData>(pData)); };
 			if constexpr (requires { T::IsPassMaterial(MaterialKey{}); })
 				pass.pIsPassMaterial = &T::IsPassMaterial;

@@ -51,13 +51,14 @@ namespace Dune::Graphics
 		};
 	}
 
-	void DepthPrepass::Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData)
+	void DepthPrepass::Setup(RenderPassContext& context, void* pData)
 	{
 		const MaterialOutputs* pMaterialOutputs = context.blackboard.TryGet<MaterialOutputs>();
 		const VisibleSet* pVisibleSet = context.blackboard.TryGet<VisibleSet>();
 		if (!pMaterialOutputs || !pVisibleSet)
 			return;
 
+		RenderGraphBuilder& builder = context.AddPass();
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
 		const RGTextureDSV depthDSV = builder.WriteDSV(context.blackboard.Get<SceneResourceOutputs>().depthBuffer);
 

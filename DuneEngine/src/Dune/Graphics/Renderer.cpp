@@ -216,46 +216,44 @@ namespace Dune::Graphics
 
 		for (RenderPass& pass : m_passes)
 		{
-			pass.builder.Reset(m_renderGraph);
-			m_passContext.pPass = &pass;
-			pass.pSetup(pass.builder, m_passContext, pass.pData);
-			Assert(pass.builder.HasExecute() || pass.builder.IsEmpty());
+			m_passContext.passTypeIndex = pass.typeIndex;
+			pass.pSetup(m_passContext, pass.pData);
 		}
 		m_renderGraph.ResolveViews();
 
 #ifdef _DEBUG
 		dVector<bool> writtenTextures(m_renderGraph.GetTextureCount(), false);
 		dVector<bool> writtenBuffers(m_renderGraph.GetBufferCount(), false);
-		for (const RenderPass& pass : m_passes)
+		for (dU32 passIndex = 0; passIndex < m_renderGraph.GetPassCount(); passIndex++)
 		{
-			for (const TextureAccess& read : pass.builder.GetTextureReads())
+			const RenderGraphBuilder& builder = m_renderGraph.GetPass(passIndex);
+			Assert(builder.HasExecute());
+			for (const TextureAccess& read : builder.GetTextureReads())
 				Assert(writtenTextures[read.handle.index]);
-			for (const BufferAccess& read : pass.builder.GetBufferReads())
+			for (const BufferAccess& read : builder.GetBufferReads())
 				Assert(writtenBuffers[read.handle.index]);
-			for (const TextureAccess& write : pass.builder.GetTextureWrites())
+			for (const TextureAccess& write : builder.GetTextureWrites())
 				writtenTextures[write.handle.index] = true;
-			for (const BufferAccess& write : pass.builder.GetBufferWrites())
+			for (const BufferAccess& write : builder.GetBufferWrites())
 				writtenBuffers[write.handle.index] = true;
 		}
 #endif
 
-		for (RenderPass& pass : m_passes)
+		for (dU32 passIndex = 0; passIndex < m_renderGraph.GetPassCount(); passIndex++)
 		{
-			if (!pass.builder.HasExecute())
-				continue;
-
-			for (const TextureAccess& access : pass.builder.GetTextureReads())
+			const RenderGraphBuilder& builder = m_renderGraph.GetPass(passIndex);
+			for (const TextureAccess& access : builder.GetTextureReads())
 				m_renderGraph.TransitionTexture(access, m_barrier);
-			for (const BufferAccess& access : pass.builder.GetBufferReads())
+			for (const BufferAccess& access : builder.GetBufferReads())
 				m_renderGraph.TransitionBuffer(access, m_barrier);
-			for (const TextureAccess& access : pass.builder.GetTextureWrites())
+			for (const TextureAccess& access : builder.GetTextureWrites())
 				m_renderGraph.TransitionTexture(access, m_barrier);
-			for (const BufferAccess& access : pass.builder.GetBufferWrites())
+			for (const BufferAccess& access : builder.GetBufferWrites())
 				m_renderGraph.TransitionBuffer(access, m_barrier);
 			FlushBarriers(frame.commandList);
 
-			m_passContext.pPass = &pass;
-			pass.builder.Execute(m_passContext);
+			m_passContext.passTypeIndex = builder.GetTypeIndex();
+			builder.Execute(m_passContext);
 		}
 
 		if (HasImGui())

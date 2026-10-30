@@ -11,8 +11,9 @@ namespace Dune::Graphics
 		return nullptr;
 	}
 
-	void ClearDepth::Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData)
+	void ClearDepth::Setup(RenderPassContext& context, void* pData)
 	{
+		RenderGraphBuilder& builder = context.AddPass();
 		const RGTextureDSV depthDSV = builder.WriteDSV(context.blackboard.Get<SceneResourceOutputs>().depthBuffer);
 
 		builder.OnExecute([depthDSV](RenderPassContext& context)

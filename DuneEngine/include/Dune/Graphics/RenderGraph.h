@@ -3,6 +3,7 @@
 #include "Dune/Platform/RHI/Barrier.h"
 #include "Dune/Platform/RHI/Device.h"
 #include "Dune/Platform/RHI/Texture.h"
+#include "Dune/Core/ChunkedArray.h"
 
 namespace Dune::RHI
 {
@@ -110,13 +111,14 @@ namespace Dune
 		public:
 			static constexpr dU32 kExecuteCapacity = 64;
 
-			void Reset(RenderGraph& graph)
+			void Reset(RenderGraph& graph, dU32 typeIndex)
 			{
 				m_textureReads.clear();
 				m_textureWrites.clear();
 				m_bufferReads.clear();
 				m_bufferWrites.clear();
 				m_pGraph = &graph;
+				m_typeIndex = typeIndex;
 				m_pExecute = nullptr;
 			}
 
@@ -163,13 +165,13 @@ namespace Dune
 			}
 
 			[[nodiscard]] bool HasExecute() const { return m_pExecute != nullptr; }
+			[[nodiscard]] dU32 GetTypeIndex() const { return m_typeIndex; }
 			void Execute(RenderPassContext& context) const { m_pExecute(m_execute, context); }
 
 			[[nodiscard]] const dVector<TextureAccess>& GetTextureReads() const { return m_textureReads; }
 			[[nodiscard]] const dVector<TextureAccess>& GetTextureWrites() const { return m_textureWrites; }
 			[[nodiscard]] const dVector<BufferAccess>& GetBufferReads() const { return m_bufferReads; }
 			[[nodiscard]] const dVector<BufferAccess>& GetBufferWrites() const { return m_bufferWrites; }
-			[[nodiscard]] bool IsEmpty() const { return m_textureReads.empty() && m_textureWrites.empty() && m_bufferReads.empty() && m_bufferWrites.empty(); }
 
 		private:
 			void PushTextureAccesses(dVector<TextureAccess>& accesses, RGTexture handle, dU32 firstMip, dU32 mipCount, dU32 firstSlice, dU32 sliceCount, RHI::EResourceState state);
@@ -180,6 +182,7 @@ namespace Dune
 			dVector<BufferAccess> m_bufferReads;
 			dVector<BufferAccess> m_bufferWrites;
 			RenderGraph* m_pGraph{ nullptr };
+			dU32 m_typeIndex{ 0 };
 			alignas(16) dU8 m_execute[kExecuteCapacity];
 			void (*m_pExecute)(const void*, RenderPassContext&){ nullptr };
 		};
@@ -193,6 +196,10 @@ namespace Dune
 			void BeginFrame(dU32 frameIndex);
 			void ResolveViews();
 			void EndFrame();
+
+			[[nodiscard]] RenderGraphBuilder& AddPass(dU32 typeIndex);
+			[[nodiscard]] inline dU32 GetPassCount() const { return m_passCount; }
+			[[nodiscard]] inline RenderGraphBuilder& GetPass(dU32 index) { Assert(index < m_passCount); return m_passes[index]; }
 
 			[[nodiscard]] RGTexture CreateTexture(const RHI::TextureDesc& desc);
 			[[nodiscard]] RGBuffer CreateBuffer(const RHI::BufferDesc& desc);
@@ -230,6 +237,8 @@ namespace Dune
 			DescriptorAllocator* m_pDSVAllocator{ nullptr };
 			dVector<TextureEntry> m_textures;
 			dVector<BufferEntry> m_buffers;
+			ChunkedArray<RenderGraphBuilder, 64> m_passes;
+			dU32 m_passCount{ 0 };
 
 			dVector<ViewRequest<RGTexture, RHI::SRVTextureDesc>> m_textureSRVs;
 			dVector<ViewRequest<RGBuffer, RHI::SRVBufferDesc>> m_bufferSRVs;

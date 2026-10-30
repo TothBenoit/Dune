@@ -16,7 +16,7 @@ namespace Dune::Graphics
 		return pData;
 	}
 
-	void LightUpload::Setup(RenderGraphBuilder& builder, RenderPassContext& context, LightUploadData* pData)
+	void LightUpload::Setup(RenderPassContext& context, LightUploadData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
 		const VisibleSet* pVisibleSet = context.blackboard.TryGet<VisibleSet>();
@@ -48,6 +48,7 @@ namespace Dune::Graphics
 				renderer.GetRenderGraph().SetPhysicalResource(pData->handle, &pData->buffer, RHI::EResourceState::Undefined);
 		}
 
+		RenderGraphBuilder& builder = context.AddPass();
 		builder.Write(pData->handle, RHI::EResourceState::CopyDest);
 		context.blackboard.Add<LightOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv), .count = lightCount });
 

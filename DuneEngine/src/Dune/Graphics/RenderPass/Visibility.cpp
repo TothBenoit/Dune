@@ -42,7 +42,7 @@ namespace Dune::Graphics
 		return new VisibilityData();
 	}
 
-	void Visibility::Setup(RenderGraphBuilder&, RenderPassContext& context, VisibilityData* pData)
+	void Visibility::Setup(RenderPassContext& context, VisibilityData* pData)
 	{
 		const FrameData& frameData = *context.pFrameData;
 

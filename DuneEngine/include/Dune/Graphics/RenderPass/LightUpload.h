@@ -19,7 +19,7 @@ namespace Dune::Graphics
 	{
 	public:
 		static LightUploadData* Create(Renderer& renderer);
-		static void             Setup(RenderGraphBuilder& builder, RenderPassContext& context, LightUploadData* pData);
+		static void             Setup(RenderPassContext& context, LightUploadData* pData);
 		static void             Destroy(Renderer& renderer, LightUploadData* pData);
 	private:
 		LightUpload() = delete;

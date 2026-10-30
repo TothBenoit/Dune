@@ -38,7 +38,7 @@ namespace Dune::Graphics
 		return pData;
 	}
 
-	void SceneResources::Setup(RenderGraphBuilder&, RenderPassContext& context, SceneResourcesData* pData)
+	void SceneResources::Setup(RenderPassContext& context, SceneResourcesData* pData)
 	{
 		const dUVec2 resolution = context.pRenderer->GetResolution();
 		if (resolution.x != pData->resolution.x || resolution.y != pData->resolution.y)

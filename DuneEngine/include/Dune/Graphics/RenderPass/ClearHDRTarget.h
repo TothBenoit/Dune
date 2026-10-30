@@ -12,8 +12,8 @@ namespace Dune::Graphics
 	{
 	public:
 		static void* Create(Renderer& renderer);
-		static void             Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData);
-		static void             Destroy(Renderer& renderer, void* pData);
+		static void  Setup(RenderPassContext& context, void* pData);
+		static void  Destroy(Renderer& renderer, void* pData);
 	private:
 		ClearHDRTarget() = delete;
 	};

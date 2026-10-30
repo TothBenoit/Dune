@@ -73,9 +73,10 @@ namespace Dune::Graphics
 		};
 	}
 
-	void Tonemapping::Setup(RenderGraphBuilder& builder, RenderPassContext& context, TonemappingData* pData)
+	void Tonemapping::Setup(RenderPassContext& context, TonemappingData* pData)
 	{
 		Renderer& renderer = *context.pRenderer;
+		RenderGraphBuilder& builder = context.AddPass();
 		const RGTextureSRV hdrSRV = builder.ReadSRV(context.blackboard.Get<SceneResourceOutputs>().hdrTarget);
 		const RGTextureRTV backBufferRTV = builder.WriteRTV(renderer.GetBackBufferHandle());
 

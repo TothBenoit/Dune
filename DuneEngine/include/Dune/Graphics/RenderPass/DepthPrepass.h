@@ -14,7 +14,7 @@ namespace Dune::Graphics
 		static void*        Create(Renderer& renderer);
 		static bool         IsPassMaterial(MaterialKey key);
 		static PipelineDesc GetPipelineDesc(MaterialKey key);
-		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData);
+		static void         Setup(RenderPassContext& context, void* pData);
 		static void         Destroy(Renderer& renderer, void* pData);
 	private:
 		DepthPrepass() = delete;

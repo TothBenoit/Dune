@@ -53,13 +53,14 @@ namespace Dune::Graphics
 		};
 	}
 
-	void Forward::Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData)
+	void Forward::Setup(RenderPassContext& context, void* pData)
 	{
 		const MaterialOutputs* pMaterialOutputs = context.blackboard.TryGet<MaterialOutputs>();
 		const VisibleSet* pVisibleSet = context.blackboard.TryGet<VisibleSet>();
 		if (!pMaterialOutputs || !pVisibleSet)
 			return;
 
+		RenderGraphBuilder& builder = context.AddPass();
 		builder.Read(pMaterialOutputs->buffer, RHI::EResourceState::ShaderResource);
 
 		Renderer& renderer = *context.pRenderer;

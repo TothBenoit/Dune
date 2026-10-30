@@ -7,7 +7,6 @@
 namespace Dune::Graphics
 {
 	class Renderer;
-	class RenderGraphBuilder;
 	struct RenderPassContext;
 
 	class Forward
@@ -15,7 +14,7 @@ namespace Dune::Graphics
 	public:
 		static void*        Create(Renderer& renderer);
 		static PipelineDesc GetPipelineDesc(MaterialKey key);
-		static void         Setup(RenderGraphBuilder& builder, RenderPassContext& context, void* pData);
+		static void         Setup(RenderPassContext& context, void* pData);
 		static void         Destroy(Renderer& renderer, void* pData);
 	private:
 		Forward() = delete;

@@ -62,6 +62,8 @@ namespace Dune::Graphics
 
 	void RenderGraph::Destroy()
 	{
+		m_passes.Destroy();
+		m_passCount = 0;
 		for (TextureEntry& entry : m_textures)
 		{
 			ReleaseViews(entry);
@@ -124,11 +126,19 @@ namespace Dune::Graphics
 		m_viewsResolved = true;
 	}
 
+	RenderGraphBuilder& RenderGraph::AddPass(dU32 typeIndex)
+	{
+		RenderGraphBuilder& builder = m_passes.Resolve(m_passCount++);
+		builder.Reset(*this, typeIndex);
+		return builder;
+	}
+
 	void RenderGraph::EndFrame()
 	{
 		m_textureSRVs.clear();
 		m_bufferSRVs.clear();
 		m_bufferUAVs.clear();
+		m_passCount = 0;
 		m_viewsResolved = false;
 	}
 

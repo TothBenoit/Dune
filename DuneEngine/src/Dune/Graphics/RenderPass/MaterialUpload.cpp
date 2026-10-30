@@ -14,7 +14,7 @@ namespace Dune::Graphics
 		return pData;
 	}
 
-	void MaterialUpload::Setup(RenderGraphBuilder& builder, RenderPassContext& context, MaterialUploadData* pData)
+	void MaterialUpload::Setup(RenderPassContext& context, MaterialUploadData* pData)
 	{
 		const dVector<MaterialData>& materials = context.pFrameData->pResources->materials;
 		dU32 materialCount = (dU32)materials.size();
@@ -44,6 +44,7 @@ namespace Dune::Graphics
 		}
 
 		context.blackboard.Add<MaterialOutputs>({ .buffer = pData->handle, .bufferIndex = context.GetBindlessIndex(pData->srv) });
+		RenderGraphBuilder& builder = context.AddPass();
 		builder.Write(pData->handle, RHI::EResourceState::CopyDest);
 
 		builder.OnExecute([pData](RenderPassContext& context)

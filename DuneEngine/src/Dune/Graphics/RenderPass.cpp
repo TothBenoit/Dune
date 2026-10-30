@@ -7,17 +7,22 @@ namespace Dune::Graphics
 {
 	PSO* RenderPassContext::GetPSO(MaterialKey key) const
 	{
-		return pRenderer->GetPassPSOs(pPass->typeIndex).materials[key];
+		return pRenderer->GetPassPSOs(passTypeIndex).materials[key];
 	}
 
 	PSO* RenderPassContext::GetPipeline(dU32 index) const
 	{
-		return pRenderer->GetPassPSOs(pPass->typeIndex).pipelines[index];
+		return pRenderer->GetPassPSOs(passTypeIndex).pipelines[index];
 	}
 
 	dU32 RenderPassContext::GetBindlessIndex(RHI::Descriptor srv) const
 	{
 		return pRenderer->GetSRVHeap().GetIndex(srv);
+	}
+
+	RenderGraphBuilder& RenderPassContext::AddPass()
+	{
+		return GetRenderGraph().AddPass(passTypeIndex);
 	}
 
 	RenderGraph& RenderPassContext::GetRenderGraph() const

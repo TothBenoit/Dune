@@ -18,7 +18,7 @@ namespace Dune::Graphics
 	{
 	public:
 		static SceneResourcesData* Create(Renderer& renderer);
-		static void                Setup(RenderGraphBuilder& builder, RenderPassContext& context, SceneResourcesData* pData);
+		static void                Setup(RenderPassContext& context, SceneResourcesData* pData);
 		static void                Destroy(Renderer& renderer, SceneResourcesData* pData);
 	private:
 		SceneResources() = delete;
