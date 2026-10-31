@@ -44,7 +44,7 @@ namespace Dune::Graphics
 		void ReleaseModelResources(ModelHandle model);
 		[[nodiscard]] const ModelResources& GetModelResources(ModelHandle model) const;
 
-		[[nodiscard]] RenderSceneHandle CreateRenderScene();
+		[[nodiscard]] RenderSceneHandle CreateRenderScene(dU64 frameNumber);
 		void DestroyRenderScene(RenderSceneHandle scene);
 		[[nodiscard]] RenderScene& GetRenderScene(RenderSceneHandle scene);
 

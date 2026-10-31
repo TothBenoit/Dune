@@ -42,6 +42,14 @@ namespace Dune
 		m_registry.clear();
 	}
 
+	bool GameScene::HasChanges() const
+	{
+		for (const dVector<EntityID>& changes : m_changes)
+			if (!changes.empty())
+				return true;
+		return !m_destroyedEntities.empty();
+	}
+
 	void GameScene::ClearChanges()
 	{
 		for (dVector<EntityID>& changes : m_changes)

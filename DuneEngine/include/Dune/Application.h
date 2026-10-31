@@ -53,6 +53,19 @@ namespace Dune
 
 	using ViewHandle = Handle<View>;
 
+	struct RenderRequest
+	{
+		ViewHandle view;
+		WorldHandle world;
+		Graphics::ViewData viewData;
+	};
+
+	struct GameFrame
+	{
+		FrameContext context;
+		dVector<RenderRequest> requests;
+	};
+
 	class Application
 	{
 	public:
@@ -89,6 +102,7 @@ namespace Dune
 	private:
 		[[nodiscard]] ImageHandle LoadImage(PathID<Image> source);
 		[[nodiscard]] View& GetView(ViewHandle view);
+		void RenderFrame(dU64 frameNumber);
 
 	private:
 		Graphics::GraphicsSystem m_graphics{};
@@ -101,5 +115,6 @@ namespace Dune
 		dVector<WorldHandle> m_activeWorlds;
 		std::chrono::steady_clock::time_point m_lastFrameTime{};
 		FrameContext m_frameContext{};
+		GameFrame m_frames[kFrameRingSize];
 	};
 }

@@ -39,6 +39,7 @@ namespace Dune::Graphics
 	{
 		m_renderContext.GetUploadContext().Submit();
 		RenderScene& renderScene = GetRenderScene(scene);
+		renderScene.ApplyChangelogs(frameContext.frameNumber);
 		const ResourceManager& resources = m_renderContext.GetResourceManager();
 		frameData.pResources = &resources.GetResourceTable();
 		frameData.lights = dSpan<const LightData>(renderScene.GetLightsData());
@@ -164,10 +165,10 @@ namespace Dune::Graphics
 		return m_resourceCache.GetModelResources(model);
 	}
 
-	RenderSceneHandle GraphicsSystem::CreateRenderScene()
+	RenderSceneHandle GraphicsSystem::CreateRenderScene(dU64 frameNumber)
 	{
 		const RenderSceneHandle handle = m_renderSceneHandles.Allocate();
-		m_renderScenes.Resolve(handle.GetIndex()).Initialize();
+		m_renderScenes.Resolve(handle.GetIndex()).Initialize(frameNumber);
 		return handle;
 	}
 

@@ -6,6 +6,7 @@
 namespace Dune
 {
 	struct Camera;
+	struct FrameContext;
 
 	namespace Graphics
 	{
@@ -16,17 +17,17 @@ namespace Dune
 	class RenderBridge
 	{
 	public:
-		void Update(const GameScene& gameScene, Graphics::RenderScene& renderScene);
+		void Update(const FrameContext& frameContext, const GameScene& gameScene, Graphics::RenderScene& renderScene);
 		void Reset();
+#ifdef _DEBUG
+		void Validate(const GameScene& gameScene, const Graphics::RenderScene& renderScene) const;
+#endif
 
 		[[nodiscard]] static Graphics::ViewData MakeView(const Camera& camera);
 
 	private:
 		void SyncObject(const GameScene& gameScene, Graphics::RenderScene& renderScene, EntityID entity);
 		void SyncLight(const GameScene& gameScene, Graphics::RenderScene& renderScene, EntityID entity);
-#ifdef _DEBUG
-		void Validate(const GameScene& gameScene, const Graphics::RenderScene& renderScene) const;
-#endif
 
 	private:
 		dHashMap<EntityID, RenderObjectHandle> m_objects;

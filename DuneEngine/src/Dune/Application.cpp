@@ -85,7 +85,7 @@ namespace Dune
 	WorldHandle Application::CreateWorld(const WorldDesc& desc)
 	{
 		const WorldHandle handle = m_worldHandles.Allocate();
-		m_worlds.Resolve(handle.GetIndex()).Initialize(m_graphics, desc);
+		m_worlds.Resolve(handle.GetIndex()).Initialize(m_graphics, desc, m_frameContext.frameNumber);
 		m_activeWorlds.push_back(handle);
 		return handle;
 	}
@@ -116,22 +116,43 @@ namespace Dune
 		m_frameContext.frameNumber++;
 		m_frameContext.deltaTime = std::chrono::duration<float>(now - m_lastFrameTime).count();
 		m_lastFrameTime = now;
+
+		GameFrame& frame = m_frames[m_frameContext.frameNumber % kFrameRingSize];
+		frame.context = m_frameContext;
+		frame.requests.clear();
 		return !m_activeViews.empty();
 	}
 
 	void Application::Update(WorldHandle world)
 	{
-		GetWorld(world).Update();
+		GetWorld(world).Update(m_frameContext);
 	}
 
 	void Application::Render(ViewHandle view, WorldHandle world, const Camera& camera)
 	{
-		View& v = GetView(view);
-		m_graphics.Render(v.renderer, GetWorld(world).GetRenderScene(), World::MakeView(camera), m_frameContext, v.frameData);
+		Assert(IsViewActive(view) && m_worldHandles.IsValid(world));
+		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, world, World::MakeView(camera) });
+	}
+
+	void Application::RenderFrame(dU64 frameNumber)
+	{
+		const GameFrame& frame = m_frames[frameNumber % kFrameRingSize];
+		for (const RenderRequest& request : frame.requests)
+		{
+			if (!IsViewActive(request.view) || !m_worldHandles.IsValid(request.world))
+				continue;
+			View& view = GetView(request.view);
+			m_graphics.Render(view.renderer, GetWorld(request.world).GetRenderScene(), request.viewData, frame.context, view.frameData);
+		}
 	}
 
 	void Application::EndFrame()
 	{
+		RenderFrame(m_frameContext.frameNumber);
+#ifdef _DEBUG
+		for (WorldHandle world : m_activeWorlds)
+			GetWorld(world).ValidateRenderScene(m_frameContext.frameNumber);
+#endif
 		m_graphics.EndFrame();
 	}
 

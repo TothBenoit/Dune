@@ -135,6 +135,7 @@ namespace Dune
 		}
 
 		[[nodiscard]] dSpan<const EntityID> GetDestroyedEntities() const { return m_destroyedEntities; }
+		[[nodiscard]] bool HasChanges() const;
 		void ClearChanges();
 
 	private:

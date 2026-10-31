@@ -7,6 +7,7 @@
 namespace Dune
 {
 	struct Camera;
+	struct FrameContext;
 
 	namespace Graphics
 	{
@@ -22,9 +23,12 @@ namespace Dune
 	class World
 	{
 	public:
-		void Initialize(Graphics::GraphicsSystem& graphics, const WorldDesc& desc);
+		void Initialize(Graphics::GraphicsSystem& graphics, const WorldDesc& desc, dU64 frameNumber);
 		void Destroy();
-		void Update();
+		void Update(const FrameContext& frameContext);
+#ifdef _DEBUG
+		void ValidateRenderScene(dU64 frameNumber) const;
+#endif
 
 		[[nodiscard]] GameScene& GetGameScene() { return m_gameScene; }
 		[[nodiscard]] const GameScene& GetGameScene() const { return m_gameScene; }

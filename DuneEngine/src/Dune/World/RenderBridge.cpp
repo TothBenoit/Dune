@@ -70,8 +70,9 @@ namespace Dune
 		return view;
 	}
 
-	void RenderBridge::Update(const GameScene& gameScene, RenderScene& renderScene)
+	void RenderBridge::Update(const FrameContext& frameContext, const GameScene& gameScene, RenderScene& renderScene)
 	{
+		renderScene.BeginChangelog(frameContext.frameNumber);
 		for (const EntityID entity : gameScene.GetChanges<Transform>())
 			SyncObject(gameScene, renderScene, entity);
 		for (const EntityID entity : gameScene.GetChanges<MeshInstance>())
@@ -83,9 +84,6 @@ namespace Dune
 			SyncObject(gameScene, renderScene, entity);
 			SyncLight(gameScene, renderScene, entity);
 		}
-#ifdef _DEBUG
-		Validate(gameScene, renderScene);
-#endif
 	}
 
 	void RenderBridge::Reset()
