@@ -179,13 +179,14 @@ namespace Dune::Graphics
 		return { .buffer = buffer, .offset = 0, .pCpuAddress = pCpuAddress };
 	}
 
-	void Renderer::Render(const FrameData& frameData, const ViewData& view)
+	void Renderer::Render(const FrameContext& frameContext, const FrameData& frameData, const ViewData& view)
 	{
 		Frame& frame = PrepareFrame();
 		frame.commandAllocator.Reset();
 		frame.commandList.Reset(frame.commandAllocator);
 		frame.commandList.SetDescriptorHeaps(m_pSRVAllocator->GetHeap());
 
+		m_passContext.pFrameContext = &frameContext;
 		m_passContext.pFrameData = &frameData;
 		m_passContext.pView = &view;
 		m_passContext.blackboard.Reset();

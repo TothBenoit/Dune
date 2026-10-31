@@ -7,6 +7,7 @@
 #include "Dune/Assets/AssetCache.h"
 #include "Dune/World/World.h"
 #include "Dune/Core/ChunkedArray.h"
+#include "Dune/Core/FrameContext.h"
 
 namespace Dune
 {
@@ -80,7 +81,7 @@ namespace Dune
 		[[nodiscard]] const Image& GetImage(ImageHandle image) const;
 
 		[[nodiscard]] bool IsViewActive(ViewHandle view) const;
-		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
+		[[nodiscard]] float GetDeltaTime() const { return m_frameContext.deltaTime; }
 		[[nodiscard]] Window& GetWindow(ViewHandle view);
 		[[nodiscard]] RHI::ImGuiContext& GetImGui(ViewHandle view);
 		[[nodiscard]] Graphics::GraphicsSystem& GetGraphics() { return m_graphics; }
@@ -99,6 +100,6 @@ namespace Dune
 		ChunkedArray<World> m_worlds;
 		dVector<WorldHandle> m_activeWorlds;
 		std::chrono::steady_clock::time_point m_lastFrameTime{};
-		float m_deltaTime{ 0.0f };
+		FrameContext m_frameContext{};
 	};
 }

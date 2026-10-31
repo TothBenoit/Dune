@@ -113,7 +113,8 @@ namespace Dune
 		}
 
 		const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-		m_deltaTime = std::chrono::duration<float>(now - m_lastFrameTime).count();
+		m_frameContext.frameNumber++;
+		m_frameContext.deltaTime = std::chrono::duration<float>(now - m_lastFrameTime).count();
 		m_lastFrameTime = now;
 		return !m_activeViews.empty();
 	}
@@ -126,7 +127,7 @@ namespace Dune
 	void Application::Render(ViewHandle view, WorldHandle world, const Camera& camera)
 	{
 		View& v = GetView(view);
-		m_graphics.Render(v.renderer, GetWorld(world).GetRenderScene(), World::MakeView(camera), m_deltaTime, v.frameData);
+		m_graphics.Render(v.renderer, GetWorld(world).GetRenderScene(), World::MakeView(camera), m_frameContext, v.frameData);
 	}
 
 	void Application::EndFrame()

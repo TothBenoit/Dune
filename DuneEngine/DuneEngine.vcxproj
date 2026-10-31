@@ -37,6 +37,7 @@
     <ClInclude Include="include\Dune\Core\RenderTypes.h" />
     <ClInclude Include="include\Dune\Platform\Fiber.h" />
     <ClInclude Include="include\Dune\Core\ChunkedArray.h" />
+    <ClInclude Include="include\Dune\Core\FrameContext.h" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Application.h" />
     <ClInclude Include="include\Dune\Assets\AssetCache.h" />

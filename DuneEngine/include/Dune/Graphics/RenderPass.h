@@ -6,6 +6,8 @@
 
 namespace Dune
 {
+	struct FrameContext;
+
 	namespace Graphics
 	{
 		class Renderer;
@@ -83,6 +85,7 @@ namespace Dune
 
 		struct RenderPassContext
 		{
+			const FrameContext* pFrameContext;
 			const FrameData* pFrameData;
 			const ViewData* pView;
 			Renderer* pRenderer;

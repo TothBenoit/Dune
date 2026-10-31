@@ -9,6 +9,7 @@
 #include "Dune/Graphics/Renderer.h"
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Core/FileSystem.h"
+#include "Dune/Core/FrameContext.h"
 
 namespace Dune::Graphics
 {
@@ -129,7 +130,7 @@ namespace Dune::Graphics
 					.pixelCount = resolution.x * resolution.y,
 					.minLogLuminance = pData->minLogLuminance,
 					.logLuminanceRange = pData->maxLogLuminance - pData->minLogLuminance,
-					.timeDelta = context.pFrameData->deltaTime,
+					.timeDelta = context.pFrameContext->deltaTime,
 					.tau = pData->tau
 				};
 

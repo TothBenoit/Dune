@@ -22,6 +22,7 @@ namespace Dune
 {
 	class Scene;
 	class Window;
+	struct FrameContext;
 
 	namespace Graphics
 	{
@@ -57,7 +58,7 @@ namespace Dune
 			[[nodiscard]] inline RHI::ImGuiContext& GetImGui() { Assert(HasImGui()); return m_imgui; }
 
 			void OnResize(dU32 width, dU32 height);
-			void Render(const FrameData& frameData, const ViewData& view);
+			void Render(const FrameContext& frameContext, const FrameData& frameData, const ViewData& view);
 
 			[[nodiscard]] StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
 

@@ -25,6 +25,9 @@
     <ClInclude Include="include\Dune\Core\ChunkedArray.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\FrameContext.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Platform\Assert.h">
       <Filter>Dune\Platform</Filter>
     </ClInclude>

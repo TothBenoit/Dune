@@ -35,7 +35,7 @@ namespace Dune::Graphics
 		m_renderContext.InitializeRenderer(renderer, window, desc);
 	}
 
-	void GraphicsSystem::Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, float deltaTime, FrameData& frameData)
+	void GraphicsSystem::Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, const FrameContext& frameContext, FrameData& frameData)
 	{
 		m_renderContext.GetUploadContext().Submit();
 		RenderScene& renderScene = GetRenderScene(scene);
@@ -43,8 +43,7 @@ namespace Dune::Graphics
 		frameData.pResources = &resources.GetResourceTable();
 		frameData.lights = dSpan<const LightData>(renderScene.GetLightsData());
 		frameData.drawItems = dSpan<const DrawItem>(renderScene.GetDrawItems(resources));
-		frameData.deltaTime = deltaTime;
-		renderer.Render(frameData, view);
+		renderer.Render(frameContext, frameData, view);
 	}
 
 	TextureHandle GraphicsSystem::CreateTexture(const TextureData& data)

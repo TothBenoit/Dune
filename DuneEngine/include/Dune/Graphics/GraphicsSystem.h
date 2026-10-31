@@ -9,6 +9,7 @@
 namespace Dune
 {
 	class Window;
+	struct FrameContext;
 }
 
 namespace Dune::Graphics
@@ -23,7 +24,7 @@ namespace Dune::Graphics
 		void EndFrame();
 
 		void InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc);
-		void Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, float deltaTime, FrameData& frameData);
+		void Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, const FrameContext& frameContext, FrameData& frameData);
 
 		[[nodiscard]] TextureHandle     CreateTexture(const TextureData& data);
 		[[nodiscard]] MeshHandle        CreateMesh(const MeshData& meshData);
