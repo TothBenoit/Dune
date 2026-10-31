@@ -33,7 +33,7 @@ namespace Dune::Graphics
 		[[nodiscard]] const RenderObject& GetObject(RenderObjectHandle handle) const { return m_objects.Get(handle); }
 		[[nodiscard]] const LightData& GetLight(RenderLightHandle handle) const { return m_lights.Get(handle); }
 
-		[[nodiscard]] const dVector<DrawItem>& GetDrawItems(const ResourceManager& resources, dU32 resourcesVersion);
+		[[nodiscard]] const dVector<DrawItem>& GetDrawItems(const ResourceManager& resources);
 		[[nodiscard]] const dVector<LightData>& GetLightsData();
 
 	private:

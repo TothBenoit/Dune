@@ -62,7 +62,6 @@ namespace Dune::Graphics
 		};
 
 		[[nodiscard]] TextureHandle CreateTexture(const ImageData& image);
-		[[nodiscard]] const GPUResourceTable& GetResourceTable();
 		void ReleasePendingResources();
 
 	private:
@@ -70,9 +69,6 @@ namespace Dune::Graphics
 		RenderContext                           m_renderContext{};
 		HandleAllocator<RenderScene>            m_renderSceneHandles;
 		ChunkedArray<RenderScene, 1>            m_renderScenes;
-		GPUResourceTable                        m_resourceTable{};
-		bool                                    m_resourceTableDirty{ true };
-		dU32                                    m_drawResourcesVersion{ 0 };
 		MeshHandle                              m_primitives[(dU32)EPrimitive::Count]{};
 		MaterialHandle                          m_defaultMaterial{};
 		MaterialSetHandle                       m_defaultMaterialSet{};

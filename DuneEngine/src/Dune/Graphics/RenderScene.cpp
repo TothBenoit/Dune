@@ -65,9 +65,9 @@ namespace Dune::Graphics
 		m_lightsDirty = true;
 	}
 
-	const dVector<DrawItem>& RenderScene::GetDrawItems(const ResourceManager& resources, dU32 resourcesVersion)
+	const dVector<DrawItem>& RenderScene::GetDrawItems(const ResourceManager& resources)
 	{
-		if (m_objectsDirty || m_drawItemsResourcesVersion != resourcesVersion)
+		if (m_objectsDirty || m_drawItemsResourcesVersion != resources.GetVersion())
 		{
 			m_drawItems.clear();
 			for (dU32 index = 0; index < m_objects.GetCapacity(); index++)
@@ -94,7 +94,7 @@ namespace Dune::Graphics
 						});
 				}
 			}
-			m_drawItemsResourcesVersion = resourcesVersion;
+			m_drawItemsResourcesVersion = resources.GetVersion();
 			m_objectsDirty = false;
 		}
 		return m_drawItems;

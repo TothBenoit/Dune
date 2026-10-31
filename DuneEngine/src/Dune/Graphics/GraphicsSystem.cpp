@@ -28,7 +28,6 @@ namespace Dune::Graphics
 		m_renderContext.GetUploadContext().Submit();
 		m_renderContext.Signal();
 		ReleasePendingResources();
-		m_resourceTableDirty = true;
 	}
 
 	void GraphicsSystem::InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc)
@@ -40,9 +39,10 @@ namespace Dune::Graphics
 	{
 		m_renderContext.GetUploadContext().Submit();
 		RenderScene& renderScene = GetRenderScene(scene);
-		frameData.pResources = &GetResourceTable();
+		const ResourceManager& resources = m_renderContext.GetResourceManager();
+		frameData.pResources = &resources.GetResourceTable();
 		frameData.lights = dSpan<const LightData>(renderScene.GetLightsData());
-		frameData.drawItems = dSpan<const DrawItem>(renderScene.GetDrawItems(m_renderContext.GetResourceManager(), m_drawResourcesVersion));
+		frameData.drawItems = dSpan<const DrawItem>(renderScene.GetDrawItems(resources));
 		frameData.deltaTime = deltaTime;
 		renderer.Render(frameData, view);
 	}
@@ -108,7 +108,6 @@ namespace Dune::Graphics
 	{
 		m_renderContext.GetResourceManager().Destroy(material);
 		m_resourceCache.materials.Free(material);
-		m_drawResourcesVersion++;
 	}
 
 	void GraphicsSystem::DestroyMaterialSet(MaterialSetHandle materialSet)
@@ -190,16 +189,6 @@ namespace Dune::Graphics
 		return m_renderContext.GetResourceManager().GetMaterial(material).GetKey();
 	}
 
-	const GPUResourceTable& GraphicsSystem::GetResourceTable()
-	{
-		if (m_resourceTableDirty)
-		{
-			m_renderContext.GetResourceManager().FillResourceTable(m_resourceTable);
-			m_resourceTableDirty = false;
-		}
-		return m_resourceTable;
-	}
-
 	template<typename TPending, typename TRelease>
 	static void ReleaseCompleted(dVector<TPending>& pending, dU64 completedValue, TRelease release)
 	{
@@ -221,7 +210,7 @@ namespace Dune::Graphics
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		const dU64 completedValue = m_renderContext.GetCompletedFenceValue();
 		ReleaseCompleted(m_pendingTextures, completedValue, [&](TextureHandle texture) { resources.Destroy(texture); m_resourceCache.textures.Free(texture); });
-		ReleaseCompleted(m_pendingMeshes, completedValue, [&](MeshHandle mesh) { resources.Destroy(mesh); m_resourceCache.meshes.Free(mesh); m_drawResourcesVersion++; });
-		ReleaseCompleted(m_pendingMaterialSets, completedValue, [&](MaterialSetHandle materialSet) { resources.Destroy(materialSet); m_resourceCache.materialSets.Free(materialSet); m_drawResourcesVersion++; });
+		ReleaseCompleted(m_pendingMeshes, completedValue, [&](MeshHandle mesh) { resources.Destroy(mesh); m_resourceCache.meshes.Free(mesh); });
+		ReleaseCompleted(m_pendingMaterialSets, completedValue, [&](MaterialSetHandle materialSet) { resources.Destroy(materialSet); m_resourceCache.materialSets.Free(materialSet); });
 	}
 }

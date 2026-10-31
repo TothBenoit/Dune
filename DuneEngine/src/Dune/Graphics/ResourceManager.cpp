@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Dune/Graphics/ResourceManager.h"
-#include "Dune/Graphics/FrameData.h"
 #include "Dune/Platform/RHI/Device.h"
 #include "Dune/Platform/RHI/CommandList.h"
 
@@ -44,6 +43,29 @@ namespace Dune::Graphics
 			.subMeshCount = (dU32)meshData.subMeshes.size(),
 			.materialSlotCount = meshData.materialSlotCount
 		};
+	}
+
+	static GPUMeshView ToMeshView(const Mesh& mesh)
+	{
+		const RHI::Buffer& indexBuffer = mesh.GetIndexBuffer();
+		const RHI::Buffer& vertexBuffer = mesh.GetVertexBuffer();
+		return
+		{
+			.indicesGPUAddress = indexBuffer.GetGPUAddress(),
+			.indicesByteSize = indexBuffer.GetByteSize(),
+			.indicesAre32Bit = mesh.IsIndex32bits(),
+			.verticesGPUAddress = vertexBuffer.GetGPUAddress(),
+			.verticesByteSize = vertexBuffer.GetByteSize(),
+			.verticesByteStride = mesh.GetVertexByteStride(),
+		};
+	}
+
+	template<typename T>
+	static void SetTableEntry(dVector<T>& entries, dU32 index, const T& entry)
+	{
+		if (index >= (dU32)entries.size())
+			entries.resize(index + 1);
+		entries[index] = entry;
 	}
 
 	ModelResources ResourceCache::AllocateModel(const ModelData& model)
@@ -90,6 +112,9 @@ namespace Dune::Graphics
 			if (m_meshes.IsAliveAt(i))
 				Destroy(m_meshes.GetHandleAt(i));
 
+		m_resourceTable.meshes.clear();
+		m_resourceTable.materials.clear();
+		m_version = 0;
 		m_pSRVAllocator = nullptr;
 		m_pDevice = nullptr;
 	}
@@ -139,6 +164,8 @@ namespace Dune::Graphics
 			.alphaMode = desc.alphaMode,
 			.faceCulling = desc.faceCulling,
 		});
+		SetTableEntry(m_resourceTable.materials, handle.GetIndex(), m_materials.Get(handle).shaderData);
+		m_version++;
 	}
 
 	void ResourceManager::CreateMaterialSet(MaterialSetHandle handle, dSpan<MaterialHandle> materials)
@@ -146,6 +173,7 @@ namespace Dune::Graphics
 		for (MaterialHandle material : materials)
 			Assert(m_materials.IsValid(material));
 		m_materialSets.Insert(handle, { .materials = dVector<MaterialHandle>(materials.begin(), materials.end()) });
+		m_version++;
 	}
 
 	void ResourceManager::CreateMesh(MeshHandle handle, const MeshData& meshData)
@@ -157,7 +185,9 @@ namespace Dune::Graphics
 	{
 		Mesh mesh{};
 		mesh.Initialize(*m_pDevice, desc);
+		SetTableEntry(m_resourceTable.meshes, handle.GetIndex(), ToMeshView(mesh));
 		m_meshes.Insert(handle, std::move(mesh));
+		m_version++;
 	}
 
 	void ResourceManager::CreateModel(const ModelResources& handles, const ModelData& model, dSpan<TextureHandle> images)
@@ -243,34 +273,6 @@ namespace Dune::Graphics
 		commandList.Transition(mesh.GetVertexBuffer(), RHI::EResourceState::CopyDest, RHI::EResourceState::VertexBuffer);
 	}
 
-	static GPUMeshView ToMeshView(const Mesh& mesh)
-	{
-		const RHI::Buffer& indexBuffer = mesh.GetIndexBuffer();
-		const RHI::Buffer& vertexBuffer = mesh.GetVertexBuffer();
-		return
-		{
-			.indicesGPUAddress = indexBuffer.GetGPUAddress(),
-			.indicesByteSize = indexBuffer.GetByteSize(),
-			.indicesAre32Bit = mesh.IsIndex32bits(),
-			.verticesGPUAddress = vertexBuffer.GetGPUAddress(),
-			.verticesByteSize = vertexBuffer.GetByteSize(),
-			.verticesByteStride = mesh.GetVertexByteStride(),
-		};
-	}
-
-	void ResourceManager::FillResourceTable(GPUResourceTable& table) const
-	{
-		table.meshes.assign(m_meshes.GetCapacity(), GPUMeshView{});
-		for (dU32 i = 0; i < m_meshes.GetCapacity(); i++)
-			if (m_meshes.IsAliveAt(i))
-				table.meshes[i] = ToMeshView(m_meshes.GetAt(i));
-
-		table.materials.assign(m_materials.GetCapacity(), MaterialData{});
-		for (dU32 i = 0; i < m_materials.GetCapacity(); i++)
-			if (m_materials.IsAliveAt(i))
-				table.materials[i] = m_materials.GetAt(i).shaderData;
-	}
-
 	void ResourceManager::Destroy(TextureHandle handle)
 	{
 		m_textures.Remove(handle).Destroy(*m_pSRVAllocator);
@@ -279,15 +281,20 @@ namespace Dune::Graphics
 	void ResourceManager::Destroy(MaterialHandle handle)
 	{
 		m_materials.Remove(handle);
+		m_resourceTable.materials[handle.GetIndex()] = {};
+		m_version++;
 	}
 
 	void ResourceManager::Destroy(MaterialSetHandle handle)
 	{
 		m_materialSets.Remove(handle);
+		m_version++;
 	}
 
 	void ResourceManager::Destroy(MeshHandle handle)
 	{
 		m_meshes.Remove(handle).Destroy();
+		m_resourceTable.meshes[handle.GetIndex()] = {};
+		m_version++;
 	}
 }

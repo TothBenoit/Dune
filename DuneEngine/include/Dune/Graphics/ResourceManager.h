@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Dune/Graphics/DescriptorAllocator.h"
+#include "Dune/Graphics/FrameData.h"
 #include "Dune/Core/HandleTypes.h"
 #include "Dune/Graphics/StagingMemory.h"
 #include "Dune/Graphics/Mesh.h"
@@ -19,8 +20,6 @@ namespace Dune::RHI
 
 namespace Dune::Graphics
 {
-	struct GPUResourceTable;
-
 	struct MaterialSet
 	{
 		dVector<MaterialHandle> materials;
@@ -73,13 +72,12 @@ namespace Dune::Graphics
 		void Destroy(MaterialSetHandle handle);
 		void Destroy(MeshHandle handle);
 
-		void FillResourceTable(GPUResourceTable& table) const;
+		[[nodiscard]] const GPUResourceTable& GetResourceTable() const { return m_resourceTable; }
+		[[nodiscard]] dU32 GetVersion() const { return m_version; }
 
 		[[nodiscard]] const Mesh& GetMesh(MeshHandle handle) const { return m_meshes.Get(handle); }
 		[[nodiscard]] const Material& GetMaterial(MaterialHandle handle) const { return m_materials.Get(handle); }
 		[[nodiscard]] const MaterialSet& GetMaterialSet(MaterialSetHandle handle) const { return m_materialSets.Get(handle); }
-		[[nodiscard]] const ResourcePool<Mesh>& GetMeshes() const { return m_meshes; }
-		[[nodiscard]] const ResourcePool<Material>& GetMaterials() const { return m_materials; }
 
 	private:
 		void CreateMesh(MeshHandle handle, const MeshDesc& desc);
@@ -94,6 +92,8 @@ namespace Dune::Graphics
 		ResourcePool<Material>              m_materials;
 		ResourcePool<MaterialSet>           m_materialSets;
 		ResourcePool<Mesh>                  m_meshes;
+		GPUResourceTable                    m_resourceTable;
+		dU32                                m_version{ 0 };
 		DescriptorAllocator*                m_pSRVAllocator{ nullptr };
 	};
 }
