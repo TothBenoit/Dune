@@ -9,6 +9,8 @@ namespace Dune::Graphics
 	struct Material;
 	struct MaterialSet;
 	class RenderScene;
+	struct RenderObject;
+	struct RenderLight;
 }
 
 namespace Dune
@@ -18,4 +20,6 @@ namespace Dune
 	using MaterialHandle = Handle<Graphics::Material>;
 	using MaterialSetHandle = Handle<Graphics::MaterialSet>;
 	using RenderSceneHandle = Handle<Graphics::RenderScene>;
+	using RenderObjectHandle = Handle<Graphics::RenderObject>;
+	using RenderLightHandle = Handle<Graphics::RenderLight>;
 }

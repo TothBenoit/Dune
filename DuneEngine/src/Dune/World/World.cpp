@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Dune/World/World.h"
 #include "Dune/Graphics/GraphicsSystem.h"
-#include "RenderBridge.h"
 
 namespace Dune
 {
@@ -19,6 +18,7 @@ namespace Dune
 		if (m_renderScene.IsValid())
 			m_pGraphics->DestroyRenderScene(m_renderScene);
 		m_renderScene = {};
+		m_renderBridge.Reset();
 		m_gameScene.DestroyAllEntities();
 		m_gameScene.ClearChanges();
 		m_pGraphics = nullptr;
@@ -27,7 +27,7 @@ namespace Dune
 	void World::Update()
 	{
 		if (m_renderScene.IsValid())
-			RenderBridge::Update(m_gameScene, m_pGraphics->GetRenderScene(m_renderScene));
+			m_renderBridge.Update(m_gameScene, m_pGraphics->GetRenderScene(m_renderScene));
 		m_gameScene.ClearChanges();
 	}
 

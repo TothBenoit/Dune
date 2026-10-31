@@ -42,7 +42,7 @@ namespace Dune::Graphics
 	{
 		const GPUResourceTable* pResources{ nullptr };
 		dSpan<const LightData> lights{ nullptr, 0 };
-		dVector<DrawItem> drawItems;
+		dSpan<const DrawItem> drawItems{ nullptr, 0 };
 		float deltaTime{ 0.0f };
 	};
 }

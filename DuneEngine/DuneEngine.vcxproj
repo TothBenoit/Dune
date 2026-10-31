@@ -87,7 +87,7 @@
     <ClInclude Include="include\Dune\Resources\Shaders\ShaderInterop.h" />
     <ClInclude Include="include\Dune\Game\Component\Camera.h" />
     <ClInclude Include="include\Dune\Game\GameScene.h" />
-    <ClInclude Include="src\Dune\World\RenderBridge.h" />
+    <ClInclude Include="include\Dune\World\RenderBridge.h" />
     <ClInclude Include="include\Dune\Game\Component\Light.h" />
     <ClInclude Include="include\Dune\Game\Component\Transform.h" />
     <ClInclude Include="include\Dune\Game\Component\Name.h" />

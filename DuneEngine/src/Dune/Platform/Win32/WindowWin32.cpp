@@ -293,7 +293,7 @@ namespace Dune
 		wc.hInstance = 0;
 		wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-		wc.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));
+		wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
 		wc.lpszMenuName = NULL;
 		wc.lpszClassName = L"DuneWindow";
 		wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
@@ -319,6 +319,20 @@ namespace Dune
 
 	void Window::Destroy()
 	{
+		if (!m_isClosing)
+		{
+			SetWindowLongPtr((HWND)m_pHandle, GWLP_USERDATA, 0);
+			DestroyWindow((HWND)m_pHandle);
+		}
+		m_pHandle = nullptr;
+		m_isClosing = false;
+		m_input = {};
+		m_title.clear();
+		m_hooks.clear();
+		for (dVector<EventEntry>& events : m_events)
+			events.clear();
+		m_nextHookHandle = 0;
+		m_nextEventHandle = 0;
 	}
 
 	bool Window::Update()

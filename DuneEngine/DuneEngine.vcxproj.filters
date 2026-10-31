@@ -121,7 +121,7 @@
     <ClInclude Include="include\Dune\Game\GameScene.h">
       <Filter>Dune\Game</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dune\World\RenderBridge.h">
+    <ClInclude Include="include\Dune\World\RenderBridge.h">
       <Filter>Dune\World</Filter>
     </ClInclude>
     <ClInclude Include="include\Dune\Game\Component\Light.h">

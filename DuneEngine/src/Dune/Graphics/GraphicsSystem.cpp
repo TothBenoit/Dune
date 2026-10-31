@@ -7,7 +7,6 @@ namespace Dune::Graphics
 	void GraphicsSystem::Initialize(dU32 physicalDeviceIndex)
 	{
 		m_renderContext.Initialize(m_resourceCache, physicalDeviceIndex);
-		m_renderScenes.Initialize(m_renderSceneHandles);
 		for (dU32 primitive = 0; primitive < (dU32)EPrimitive::Count; primitive++)
 			m_primitives[primitive] = CreateMesh(MeshUtils::CreatePrimitive((EPrimitive)primitive));
 		m_defaultMaterial = CreateMaterial({});
@@ -29,7 +28,7 @@ namespace Dune::Graphics
 		m_renderContext.GetUploadContext().Submit();
 		m_renderContext.Signal();
 		ReleasePendingResources();
-		m_isResourceTableValid = false;
+		m_resourceTableDirty = true;
 	}
 
 	void GraphicsSystem::InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc)
@@ -40,10 +39,10 @@ namespace Dune::Graphics
 	void GraphicsSystem::Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, float deltaTime, FrameData& frameData)
 	{
 		m_renderContext.GetUploadContext().Submit();
-		const RenderScene& renderScene = m_renderScenes.Get(scene);
+		RenderScene& renderScene = GetRenderScene(scene);
 		frameData.pResources = &GetResourceTable();
-		frameData.lights = dSpan<const LightData>(renderScene.GetLights());
-		BuildDrawItems(renderScene, frameData.drawItems);
+		frameData.lights = dSpan<const LightData>(renderScene.GetLightsData());
+		frameData.drawItems = dSpan<const DrawItem>(renderScene.GetDrawItems(m_renderContext.GetResourceManager(), m_drawResourcesVersion));
 		frameData.deltaTime = deltaTime;
 		renderer.Render(frameData, view);
 	}
@@ -109,6 +108,7 @@ namespace Dune::Graphics
 	{
 		m_renderContext.GetResourceManager().Destroy(material);
 		m_resourceCache.materials.Free(material);
+		m_drawResourcesVersion++;
 	}
 
 	void GraphicsSystem::DestroyMaterialSet(MaterialSetHandle materialSet)
@@ -169,19 +169,20 @@ namespace Dune::Graphics
 	RenderSceneHandle GraphicsSystem::CreateRenderScene()
 	{
 		const RenderSceneHandle handle = m_renderSceneHandles.Allocate();
-		m_renderScenes.Insert(handle, RenderScene{});
+		m_renderScenes.Resolve(handle.GetIndex()).Initialize();
 		return handle;
 	}
 
 	void GraphicsSystem::DestroyRenderScene(RenderSceneHandle scene)
 	{
-		m_renderScenes.Remove(scene);
+		GetRenderScene(scene).Destroy();
 		m_renderSceneHandles.Free(scene);
 	}
 
 	RenderScene& GraphicsSystem::GetRenderScene(RenderSceneHandle scene)
 	{
-		return m_renderScenes.Get(scene);
+		Assert(m_renderSceneHandles.IsValid(scene));
+		return m_renderScenes[scene.GetIndex()];
 	}
 
 	MaterialKey GraphicsSystem::GetMaterialKey(MaterialHandle material) const
@@ -191,38 +192,12 @@ namespace Dune::Graphics
 
 	const GPUResourceTable& GraphicsSystem::GetResourceTable()
 	{
-		if (!m_isResourceTableValid)
+		if (m_resourceTableDirty)
 		{
 			m_renderContext.GetResourceManager().FillResourceTable(m_resourceTable);
-			m_isResourceTableValid = true;
+			m_resourceTableDirty = false;
 		}
 		return m_resourceTable;
-	}
-
-	void GraphicsSystem::BuildDrawItems(const RenderScene& scene, dVector<DrawItem>& outDrawItems) const
-	{
-		const ResourceManager& resources = m_renderContext.GetResourceManager();
-		outDrawItems.clear();
-		for (const RenderObject& object : scene.GetObjects())
-		{
-			const Mesh& mesh = resources.GetMesh(object.mesh);
-			const MaterialSet& materialSet = resources.GetMaterialSet(object.materials);
-			Assert(materialSet.materials.size() >= mesh.GetMaterialSlotCount());
-			for (const SubMesh& subMesh : mesh.GetSubMeshes())
-			{
-				const MaterialHandle materialHandle = materialSet.materials[subMesh.materialSlot];
-				outDrawItems.push_back(
-					{
-						.objectToWorld = object.objectToWorld,
-						.meshIdx = object.mesh.GetIndex(),
-						.materialIdx = materialHandle.GetIndex(),
-						.indexOffset = subMesh.indexOffset,
-						.indexCount = subMesh.indexCount,
-						.vertexOffset = subMesh.vertexOffset,
-						.materialKey = resources.GetMaterial(materialHandle).GetKey(),
-					});
-			}
-		}
 	}
 
 	template<typename TPending, typename TRelease>
@@ -246,7 +221,7 @@ namespace Dune::Graphics
 		ResourceManager& resources = m_renderContext.GetResourceManager();
 		const dU64 completedValue = m_renderContext.GetCompletedFenceValue();
 		ReleaseCompleted(m_pendingTextures, completedValue, [&](TextureHandle texture) { resources.Destroy(texture); m_resourceCache.textures.Free(texture); });
-		ReleaseCompleted(m_pendingMeshes, completedValue, [&](MeshHandle mesh) { resources.Destroy(mesh); m_resourceCache.meshes.Free(mesh); });
-		ReleaseCompleted(m_pendingMaterialSets, completedValue, [&](MaterialSetHandle materialSet) { resources.Destroy(materialSet); m_resourceCache.materialSets.Free(materialSet); });
+		ReleaseCompleted(m_pendingMeshes, completedValue, [&](MeshHandle mesh) { resources.Destroy(mesh); m_resourceCache.meshes.Free(mesh); m_drawResourcesVersion++; });
+		ReleaseCompleted(m_pendingMaterialSets, completedValue, [&](MaterialSetHandle materialSet) { resources.Destroy(materialSet); m_resourceCache.materialSets.Free(materialSet); m_drawResourcesVersion++; });
 	}
 }

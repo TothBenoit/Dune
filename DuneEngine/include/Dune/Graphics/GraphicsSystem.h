@@ -4,7 +4,7 @@
 #include "Dune/Graphics/RenderScene.h"
 #include "Dune/Graphics/MeshUtils.h"
 #include "Dune/Core/HandleAllocator.h"
-#include "Dune/Core/ResourcePool.h"
+#include "Dune/Core/ChunkedArray.h"
 
 namespace Dune
 {
@@ -63,16 +63,16 @@ namespace Dune::Graphics
 
 		[[nodiscard]] TextureHandle CreateTexture(const ImageData& image);
 		[[nodiscard]] const GPUResourceTable& GetResourceTable();
-		void BuildDrawItems(const RenderScene& scene, dVector<DrawItem>& outDrawItems) const;
 		void ReleasePendingResources();
 
 	private:
 		ResourceCache                           m_resourceCache{};
 		RenderContext                           m_renderContext{};
 		HandleAllocator<RenderScene>            m_renderSceneHandles;
-		ResourcePool<RenderScene>               m_renderScenes;
+		ChunkedArray<RenderScene, 1>            m_renderScenes;
 		GPUResourceTable                        m_resourceTable{};
-		bool                                    m_isResourceTableValid{ false };
+		bool                                    m_resourceTableDirty{ true };
+		dU32                                    m_drawResourcesVersion{ 0 };
 		MeshHandle                              m_primitives[(dU32)EPrimitive::Count]{};
 		MaterialHandle                          m_defaultMaterial{};
 		MaterialSetHandle                       m_defaultMaterialSet{};

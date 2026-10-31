@@ -399,7 +399,7 @@ public:
 
 private:
 	Application& m_app;
-	ViewHandle m_view{ kInvalidViewHandle };
+	ViewHandle m_view;
 	WorldHandle m_world;
 	GameScene* m_pScene;
 

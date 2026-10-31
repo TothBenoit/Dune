@@ -42,8 +42,15 @@ namespace Dune
 		const Graphics::RendererDesc* pRendererDesc{ nullptr };
 	};
 
-	using ViewHandle = dU32;
-	inline constexpr ViewHandle kInvalidViewHandle{ dU32(-1) };
+	struct View
+	{
+		Window window;
+		Graphics::Renderer renderer;
+		Graphics::FrameData frameData;
+		dU32 resizeEventHandle{ 0 };
+	};
+
+	using ViewHandle = Handle<View>;
 
 	class Application
 	{
@@ -72,31 +79,25 @@ namespace Dune
 		void UnloadImage(ImageHandle image);
 		[[nodiscard]] const Image& GetImage(ImageHandle image) const;
 
-		[[nodiscard]] bool IsViewOpen(ViewHandle view) const;
+		[[nodiscard]] bool IsViewActive(ViewHandle view) const;
 		[[nodiscard]] float GetDeltaTime() const { return m_deltaTime; }
 		[[nodiscard]] Window& GetWindow(ViewHandle view);
 		[[nodiscard]] RHI::ImGuiContext& GetImGui(ViewHandle view);
 		[[nodiscard]] Graphics::GraphicsSystem& GetGraphics() { return m_graphics; }
 
 	private:
-		struct View
-		{
-			Window window;
-			Graphics::Renderer renderer;
-			Graphics::FrameData frameData;
-			dU32 resizeEventHandle{ 0 };
-		};
-
 		[[nodiscard]] ImageHandle LoadImage(PathID<Image> source);
 		[[nodiscard]] View& GetView(ViewHandle view);
 
 	private:
 		Graphics::GraphicsSystem m_graphics{};
 		AssetCache m_assetCache{};
-		dVector<std::unique_ptr<View>> m_views;
+		HandleAllocator<View> m_viewHandles;
+		ChunkedArray<View, 1> m_views;
+		dVector<ViewHandle> m_activeViews;
 		HandleAllocator<World> m_worldHandles;
 		ChunkedArray<World> m_worlds;
-		dU32 m_worldCapacity{ 0 };
+		dVector<WorldHandle> m_activeWorlds;
 		std::chrono::steady_clock::time_point m_lastFrameTime{};
 		float m_deltaTime{ 0.0f };
 	};

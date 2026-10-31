@@ -58,7 +58,7 @@ namespace Dune::Graphics
 		// TODO: Culling
 		data.opaqueDraws.clear();
 		data.blendDraws.clear();
-		for (dU32 drawIndex = 0; drawIndex < (dU32)frameData.drawItems.size(); drawIndex++)
+		for (dU32 drawIndex = 0; drawIndex < frameData.drawItems.GetSize(); drawIndex++)
 		{
 			const bool isBlend = Material::GetAlphaMode(frameData.drawItems[drawIndex].materialKey) == EAlphaMode::Blend;
 			(isBlend ? data.blendDraws : data.opaqueDraws).push_back(drawIndex);

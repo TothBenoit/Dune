@@ -104,7 +104,9 @@ namespace Dune::Graphics
 			frame.uploadBuffer.Destroy();
 			frame.commandList.Destroy();
 			frame.commandAllocator.Destroy();
+			frame.fenceValue = 0;
 		}
+		m_frameCount = 0;
 
 		for (RenderPass& pass : m_passes)
 			pass.pShutdown(*this, pass.pData);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Dune/Game/GameScene.h"
+#include "Dune/World/RenderBridge.h"
 #include "Dune/Core/HandleTypes.h"
 
 namespace Dune
@@ -36,6 +37,7 @@ namespace Dune
 		Graphics::GraphicsSystem* m_pGraphics{ nullptr };
 		GameScene                 m_gameScene;
 		RenderSceneHandle         m_renderScene;
+		RenderBridge              m_renderBridge;
 	};
 
 	using WorldHandle = Handle<World>;
