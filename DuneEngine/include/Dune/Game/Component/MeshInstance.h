@@ -6,6 +6,8 @@ namespace Dune
 {
 	struct MeshInstance
 	{
+		static constexpr bool kTrackChanges = true;
+
 		MeshHandle        mesh;
 		MaterialSetHandle materials;
 	};

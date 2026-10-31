@@ -55,7 +55,7 @@ public:
 			m_app.EndFrame();
 		}
 
-		m_pScene->registry.clear();
+		m_pScene->DestroyAllEntities();
 		m_app.UnloadModel(sponza);
 	}
 
@@ -173,8 +173,7 @@ public:
 			ImGui::EndMainMenuBar();
 		}
 
-		const entt::registry& kRegistry = m_pScene->registry;
-		entt::registry& registry = m_pScene->registry;
+		GameScene& scene = *m_pScene;
 		if (m_showScene)
 		{
 			if (ImGui::Begin("Scene", &m_showScene))
@@ -190,53 +189,50 @@ public:
 				{
 					if (ImGui::Button("Point light"))
 					{
-						EntityID id = registry.create();
-						Name& name = registry.emplace<Name>(id);
-						name.name.assign("PointLight");
-						Light& light = registry.emplace<Light>(id);
+						EntityID id = scene.CreateEntity("PointLight");
+						Light light{};
 						light.position = { 0.0f, 0.0f, 0.0f };
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.intensity = 7.7f;
 						light.range = 1.f;
 						light.type = ELightType::Point;
 						light.castShadow = true;
+						scene.Add(id, light);
 						ImGui::CloseCurrentPopup();
 					}
 
 					if (ImGui::Button("Directional light"))
 					{
-						EntityID id = registry.create();
-						Name& name = registry.emplace<Name>(id);
-						name.name.assign("DirectionalLight");
-						Light& light = registry.emplace<Light>(id);
+						EntityID id = scene.CreateEntity("DirectionalLight");
+						Light light{};
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.intensity = 6.0f;
 						light.direction = { 0.0f, 0.0f, -90.0f };
 						light.type = ELightType::Directional;
 						light.castShadow = true;
+						scene.Add(id, light);
 						ImGui::CloseCurrentPopup();
 					}
 
 					if (ImGui::Button("Spot light"))
 					{
-						EntityID id = registry.create();
-						Name& name = registry.emplace<Name>(id);
-						name.name.assign("SpotLight");
-						Light& light = registry.emplace<Light>(id);
+						EntityID id = scene.CreateEntity("SpotLight");
+						Light light{};
 						light.position = { 0.0f, 0.0f, 0.0f };
 						light.intensity = 400.0f;
 						light.color = { 1.0f, 1.0f, 1.0f };
 						light.range = 5.f;
 						light.direction = { 0.0f, 0.0f, 75.0f };
-						light.angle = DirectX::XMConvertToRadians(45.0f);
+						light.halfAngle = DirectX::XMConvertToRadians(45.0f);
 						light.penumbra = 1.e-7f;
 						light.type = ELightType::Spot;
 						light.castShadow = true;
+						scene.Add(id, light);
 						ImGui::CloseCurrentPopup();
 					}
 					ImGui::EndPopup();
 				}
-				kRegistry.view<const Name>().each([&](EntityID entity, const Name& name)
+				scene.View<Name>().each([&](EntityID entity, const Name& name)
 					{
 						bool isSelected = m_selectedEntity == entity;
 						ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ((isSelected) ? ImGuiTreeNodeFlags_Selected : 0);
@@ -253,135 +249,146 @@ public:
 		{
 			ImGui::Begin("Inspector", &m_showInspector);
 
-			if (const Name* pName = kRegistry.try_get<Name>(m_selectedEntity) )
+			if (const Name* pName = scene.TryGet<Name>(m_selectedEntity) )
 			{
 				ImGui::Text("%s", pName->name.c_str());
 				ImGui::Separator();
 
-				if (Transform* pTransform = registry.try_get<Transform>(m_selectedEntity))
-				{
-					if (ImGui::TreeNodeEx("Transform :", ImGuiTreeNodeFlags_DefaultOpen))
+				scene.TryModify<Transform>(m_selectedEntity, [&](Transform& transform)
 					{
-						ImGui::DragFloat3("Position", &pTransform->position.x, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f m");
-						ImGui::DragFloat4("Rotation", pTransform->rotation.m128_f32, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
-						ImGui::DragFloat("Scale", &pTransform->scale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
-
-						dMatrix4x4 worldTransform = ComputeTransformMatrix(pTransform->position, pTransform->rotation, pTransform->scale);
-						if (DrawGizmo(worldTransform))
+						bool changed = false;
+						if (ImGui::TreeNodeEx("Transform :", ImGuiTreeNodeFlags_DefaultOpen))
 						{
-							dVec position, scale;
-							DirectX::XMMatrixDecompose(&scale, &pTransform->rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
-							DirectX::XMStoreFloat3(&pTransform->position, position);
-							dVec3 scale3{};
-							DirectX::XMStoreFloat3(&scale3, scale);
-							if (pTransform->scale != scale3.x)
-								pTransform->scale = scale3.x;
-							else if (pTransform->scale != scale3.y)
-								pTransform->scale = scale3.y;
-							else if (pTransform->scale != scale3.z)
-								pTransform->scale = scale3.z;
-						}
+							changed |= ImGui::DragFloat3("Position", &transform.position.x, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f m");
+							changed |= ImGui::DragFloat4("Rotation", transform.rotation.m128_f32, 0.25f, -FLT_MAX, +FLT_MAX, "%.2f");
+							changed |= ImGui::DragFloat("Scale", &transform.scale, 0.05f, -FLT_MAX, +FLT_MAX, "%.2f");
 
-						ImGui::TreePop();
-					}
-				}
-
-				if (Light* pLight = registry.try_get<Light>(m_selectedEntity))
-				{
-					switch (pLight->type)
-					{
-					case ELightType::Point:
-						if (ImGui::TreeNodeEx("PointLight :", ImGuiTreeNodeFlags_DefaultOpen))
-						{
-							ImGui::DragFloat3("Position", &pLight->position.x, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f m");
-							ImGui::ColorPicker3("Color", &pLight->color.x);
-							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.0f lm");
-							ImGui::DragFloat("Radius", &pLight->range, 0.01f, 1e-7f, +FLT_MAX, "%.2f m");
-							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
-
-							dVec quatIdentity = DirectX::XMQuaternionIdentity();
-							dMatrix4x4 worldTransform = ComputeTransformMatrix(pLight->position, quatIdentity, pLight->range);
+							dMatrix4x4 worldTransform = ComputeTransformMatrix(transform.position, transform.rotation, transform.scale);
 							if (DrawGizmo(worldTransform))
 							{
-								dVec position, scale, rotation;
-								DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
-								DirectX::XMStoreFloat3(&pLight->position, position);
+								changed = true;
+								dVec position, scale;
+								DirectX::XMMatrixDecompose(&scale, &transform.rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
+								DirectX::XMStoreFloat3(&transform.position, position);
 								dVec3 scale3{};
 								DirectX::XMStoreFloat3(&scale3, scale);
-								if (pLight->range != scale3.x)
-									pLight->range = scale3.x;
-								else if (pLight->range != scale3.y)
-									pLight->range = scale3.y;
-								else if (pLight->range != scale3.z)
-									pLight->range = scale3.z;
+								if (transform.scale != scale3.x)
+									transform.scale = scale3.x;
+								else if (transform.scale != scale3.y)
+									transform.scale = scale3.y;
+								else if (transform.scale != scale3.z)
+									transform.scale = scale3.z;
 							}
 
 							ImGui::TreePop();
 						}
-						break;
-					case ELightType::Directional:
-						if (ImGui::TreeNodeEx("DirectionalLight :", ImGuiTreeNodeFlags_DefaultOpen))
+						return changed;
+					});
+
+				scene.TryModify<Light>(m_selectedEntity, [&](Light& light)
+					{
+						bool changed = false;
+						switch (light.type)
 						{
-							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
-							ImGui::ColorPicker3("Color", &pLight->color.x);
-							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f lux");
-							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
-
-							dVec quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pLight->direction.x), DirectX::XMConvertToRadians(pLight->direction.y), DirectX::XMConvertToRadians(pLight->direction.z));
-							dMatrix4x4 worldTransform = ComputeTransformMatrix(pLight->position, quat, 1.0f);
-							if (DrawGizmo(worldTransform))
+						case ELightType::Point:
+							if (ImGui::TreeNodeEx("PointLight :", ImGuiTreeNodeFlags_DefaultOpen))
 							{
-								dVec position, scale, rotation;
-								DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
-								dVec3 eulerAngles = ToEulerAngles(rotation);
-								pLight->direction.x = DirectX::XMConvertToDegrees(eulerAngles.x);
-								pLight->direction.y = DirectX::XMConvertToDegrees(eulerAngles.y);
-								pLight->direction.z = DirectX::XMConvertToDegrees(eulerAngles.z);
+								changed |= ImGui::DragFloat3("Position", &light.position.x, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f m");
+								changed |= ImGui::ColorPicker3("Color", &light.color.x);
+								changed |= ImGui::DragFloat("Intensity", &light.intensity, 0.05f, 0.0f, +FLT_MAX, "%.0f lm");
+								changed |= ImGui::DragFloat("Radius", &light.range, 0.01f, 1e-7f, +FLT_MAX, "%.2f m");
+								changed |= ImGui::Checkbox("Cast shadow", &light.castShadow);
+
+								dVec quatIdentity = DirectX::XMQuaternionIdentity();
+								dMatrix4x4 worldTransform = ComputeTransformMatrix(light.position, quatIdentity, light.range);
+								if (DrawGizmo(worldTransform))
+								{
+									changed = true;
+									dVec position, scale, rotation;
+									DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
+									DirectX::XMStoreFloat3(&light.position, position);
+									dVec3 scale3{};
+									DirectX::XMStoreFloat3(&scale3, scale);
+									if (light.range != scale3.x)
+										light.range = scale3.x;
+									else if (light.range != scale3.y)
+										light.range = scale3.y;
+									else if (light.range != scale3.z)
+										light.range = scale3.z;
+								}
+
+								ImGui::TreePop();
 							}
-
-							ImGui::TreePop();
-						}
-						break;
-					case ELightType::Spot:
-						if (ImGui::TreeNodeEx("SpotLight :", ImGuiTreeNodeFlags_DefaultOpen))
-						{
-							ImGui::DragFloat3("Position", &pLight->position.x, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f m");
-							ImGui::DragFloat3("Rotation", &pLight->direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
-							ImGui::ColorPicker3("Color", &pLight->color.x);
-							ImGui::DragFloat("Intensity", &pLight->intensity, 0.05f, 0.0f, +FLT_MAX, "%.0f lm");
-							ImGui::DragFloat("Range", &pLight->range, 0.01f, 1e-7f, +FLT_MAX, "%.2f m");
-							float angle = DirectX::XMConvertToDegrees(pLight->angle);
-							ImGui::DragFloat("Angle", &angle, 0.5f, 0, 180.f, "%.2f");
-							pLight->angle = DirectX::XMConvertToRadians(angle);
-							ImGui::DragFloat("Penumbra", &pLight->penumbra, 0.001f, 1e-7f, 1.0f, "%.2f");
-							ImGui::Checkbox("Cast shadow", &pLight->castShadow);
-
-							dVec quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pLight->direction.x), DirectX::XMConvertToRadians(pLight->direction.y), DirectX::XMConvertToRadians(pLight->direction.z));
-							dMatrix4x4 worldTransform = ComputeTransformMatrix(pLight->position, quat, pLight->range);
-							if (DrawGizmo(worldTransform))
+							break;
+						case ELightType::Directional:
+							if (ImGui::TreeNodeEx("DirectionalLight :", ImGuiTreeNodeFlags_DefaultOpen))
 							{
-								dVec position, scale, rotation;
-								DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
-								DirectX::XMStoreFloat3(&pLight->position, position);
-								dVec3 scale3{};
-								DirectX::XMStoreFloat3(&scale3, scale);
-								if (pLight->range != scale3.x )
-									pLight->range = scale3.x;
-								else if (pLight->range != scale3.y)
-									pLight->range = scale3.y;
-								else if (pLight->range != scale3.z)
-									pLight->range = scale3.z;
-								dVec3 eulerAngles = ToEulerAngles(rotation);
-								pLight->direction.x = DirectX::XMConvertToDegrees(eulerAngles.x);
-								pLight->direction.y = DirectX::XMConvertToDegrees(eulerAngles.y);
-								pLight->direction.z = DirectX::XMConvertToDegrees(eulerAngles.z);
-							}
+								changed |= ImGui::DragFloat3("Rotation", &light.direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+								changed |= ImGui::ColorPicker3("Color", &light.color.x);
+								changed |= ImGui::DragFloat("Intensity", &light.intensity, 0.05f, 0.0f, +FLT_MAX, "%.2f lux");
+								changed |= ImGui::Checkbox("Cast shadow", &light.castShadow);
 
-							ImGui::TreePop();
+								dVec quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(light.direction.x), DirectX::XMConvertToRadians(light.direction.y), DirectX::XMConvertToRadians(light.direction.z));
+								dMatrix4x4 worldTransform = ComputeTransformMatrix(light.position, quat, 1.0f);
+								if (DrawGizmo(worldTransform))
+								{
+									changed = true;
+									dVec position, scale, rotation;
+									DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
+									dVec3 eulerAngles = ToEulerAngles(rotation);
+									light.direction.x = DirectX::XMConvertToDegrees(eulerAngles.x);
+									light.direction.y = DirectX::XMConvertToDegrees(eulerAngles.y);
+									light.direction.z = DirectX::XMConvertToDegrees(eulerAngles.z);
+								}
+
+								ImGui::TreePop();
+							}
+							break;
+						case ELightType::Spot:
+							if (ImGui::TreeNodeEx("SpotLight :", ImGuiTreeNodeFlags_DefaultOpen))
+							{
+								changed |= ImGui::DragFloat3("Position", &light.position.x, 0.01f, -FLT_MAX, +FLT_MAX, "%.2f m");
+								changed |= ImGui::DragFloat3("Rotation", &light.direction.x, 0.5f, -FLT_MAX, +FLT_MAX, "%.2f");
+								changed |= ImGui::ColorPicker3("Color", &light.color.x);
+								changed |= ImGui::DragFloat("Intensity", &light.intensity, 0.05f, 0.0f, +FLT_MAX, "%.0f lm");
+								changed |= ImGui::DragFloat("Range", &light.range, 0.01f, 1e-7f, +FLT_MAX, "%.2f m");
+								float angle = DirectX::XMConvertToDegrees(light.halfAngle * 2.0f);
+								if (ImGui::DragFloat("Angle", &angle, 0.5f, 0, 180.f, "%.2f"))
+								{
+									light.halfAngle = DirectX::XMConvertToRadians(angle) * 0.5f;
+									changed = true;
+								}
+								changed |= ImGui::DragFloat("Penumbra", &light.penumbra, 0.001f, 1e-7f, 1.0f, "%.2f");
+								changed |= ImGui::Checkbox("Cast shadow", &light.castShadow);
+
+								dVec quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(light.direction.x), DirectX::XMConvertToRadians(light.direction.y), DirectX::XMConvertToRadians(light.direction.z));
+								dMatrix4x4 worldTransform = ComputeTransformMatrix(light.position, quat, light.range);
+								if (DrawGizmo(worldTransform))
+								{
+									changed = true;
+									dVec position, scale, rotation;
+									DirectX::XMMatrixDecompose(&scale, &rotation, &position, DirectX::XMLoadFloat4x4(&worldTransform));
+									DirectX::XMStoreFloat3(&light.position, position);
+									dVec3 scale3{};
+									DirectX::XMStoreFloat3(&scale3, scale);
+									if (light.range != scale3.x )
+										light.range = scale3.x;
+									else if (light.range != scale3.y)
+										light.range = scale3.y;
+									else if (light.range != scale3.z)
+										light.range = scale3.z;
+									dVec3 eulerAngles = ToEulerAngles(rotation);
+									light.direction.x = DirectX::XMConvertToDegrees(eulerAngles.x);
+									light.direction.y = DirectX::XMConvertToDegrees(eulerAngles.y);
+									light.direction.z = DirectX::XMConvertToDegrees(eulerAngles.z);
+								}
+
+								ImGui::TreePop();
+							}
+							break;
 						}
-						break;
-					}
-				}
+						return changed;
+					});
 			}
 			ImGui::End();
 		}
@@ -421,7 +428,7 @@ int main(int argc, char** argv)
 #ifdef _DEBUG
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
-	
+
 	const dString solutionDirectory(SOLUTION_DIR);
 	Application application{};
 	application.Initialize(
@@ -434,49 +441,49 @@ int main(int argc, char** argv)
 	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true, .imguiLayoutPath = "app://imgui.ini", .pRendererDesc = &rendererDesc });
 
 	const WorldHandle world = application.CreateWorld({});
-	entt::registry& registry = application.GetWorld(world).GetGameScene().registry;
+	GameScene& scene = application.GetWorld(world).GetGameScene();
 
-	EntityID sun = registry.create();
-	Light& sunLight = registry.emplace<Light>(sun);
-	registry.emplace<Name>(sun, "Sun");
+	EntityID sun = scene.CreateEntity("Sun");
+	Light sunLight{};
 	sunLight.color = { 1.0f, 1.0f, 0.984f };
 	sunLight.direction = { -15.0f, 0.0f, -85.f };
 	sunLight.intensity = 6.f;
 	sunLight.type = ELightType::Directional;
 	sunLight.castShadow = true;
+	scene.Add(sun, sunLight);
 
-	EntityID ambient = registry.create();
-	registry.emplace<Name>(ambient, "Ambient");
-	Light& ambientLight = registry.emplace<Light>(ambient);
+	EntityID ambient = scene.CreateEntity("Ambient");
+	Light ambientLight{};
 	ambientLight.color = { 0.937f, 0.977f, 1.0f };
 	ambientLight.position = { 0.0f, 5.2f, 0.0f };
 	ambientLight.intensity = 64.f;
 	ambientLight.range = 1600.0f;
 	ambientLight.type = ELightType::Point;
 	ambientLight.castShadow = false;
+	scene.Add(ambient, ambientLight);
 
-	EntityID candle = registry.create();
-	registry.emplace<Name>(candle, "Candle");
-	Light& candleLight = registry.emplace<Light>(candle);
+	EntityID candle = scene.CreateEntity("Candle");
+	Light candleLight{};
 	candleLight.color = { 1.0f, 0.576f, 0.16f };
 	candleLight.position = { -10.28f, 1.36f, 0.28f };
 	candleLight.intensity = 7.7f;
 	candleLight.range = 4.f;
 	candleLight.type = ELightType::Point;
 	candleLight.castShadow = true;
+	scene.Add(candle, candleLight);
 
-	EntityID spot = registry.create();
-	registry.emplace<Name>(spot, "Spot");
-	Light& spotLight = registry.emplace<Light>(spot);
+	EntityID spot = scene.CreateEntity("Spot");
+	Light spotLight{};
 	spotLight.position = { 8.0f, 2.8f, 0.2f };
 	spotLight.intensity = 400.0f;
 	spotLight.color = { 1.0f, 1.0f, 1.0f };
 	spotLight.range = 6.f;
 	spotLight.direction = { 0.0f, 0.0f, -45.0f};
-	spotLight.angle = DirectX::XMConvertToRadians(45.0f);
+	spotLight.halfAngle = DirectX::XMConvertToRadians(45.0f);
 	spotLight.penumbra = 0.5f;
 	spotLight.type = ELightType::Spot;
 	spotLight.castShadow = true;
+	scene.Add(spot, spotLight);
 
 	Test(application, view, world);
 

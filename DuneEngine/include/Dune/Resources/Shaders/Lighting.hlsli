@@ -67,8 +67,8 @@ float3 ComputeLight(LightData light, uint shadowsIndex, float3 n, float3 v, floa
 		
 		if (light.IsSpot())
 		{
-			const float cosAngle = dot(light.direction, -l);
-			attenuation *= Square(saturate((cosAngle - light.angle) * light.penumbra));
+			const float cosTheta = dot(light.direction, -l);
+			attenuation *= Square(saturate((cosTheta - light.cosAngle) * light.penumbra));
 		}
 	}
 

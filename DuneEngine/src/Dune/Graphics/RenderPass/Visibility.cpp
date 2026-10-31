@@ -22,7 +22,7 @@ namespace Dune::Graphics
 			{
 				dVec eye{ light.position.x, light.position.y, light.position.z };
 				dMatrix viewMatrix{ DirectX::XMMatrixLookToLH(eye, to, up) };
-				dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(light.angle * 2.0f, 1.0f, 0.1f, light.range) };
+				dMatrix projectionMatrix{ DirectX::XMMatrixPerspectiveFovLH(2.0f * acos(light.cosAngle), 1.0f, 0.1f, light.range) };
 				DirectX::XMStoreFloat4x4(&lightMatrix, viewMatrix * projectionMatrix);
 			}
 			else

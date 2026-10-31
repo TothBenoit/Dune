@@ -35,13 +35,14 @@ namespace Dune::RenderBridge
 			light.range = sceneLight.range;
 			light.position = sceneLight.position;
 			DirectX::XMStoreFloat3(&light.direction, DirectX::XMVector3Normalize(DirectX::XMVector3Rotate({ 1.0f, 0.0f, 0.0f }, DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(sceneLight.direction.x), DirectX::XMConvertToRadians(sceneLight.direction.y), DirectX::XMConvertToRadians(sceneLight.direction.z)))));
-			light.angle = DirectX::XMScalarCos(sceneLight.angle);
+			const float halfAngle = std::clamp(sceneLight.halfAngle, DirectX::XMConvertToRadians(1.0f), DirectX::XMConvertToRadians(89.0f));
+			light.cosAngle = DirectX::XMScalarCos(halfAngle);
 			{
-				float lightSolidAngle = 2.0f * DirectX::XM_PI * (1.0f - light.angle);
+				float lightSolidAngle = 2.0f * DirectX::XM_PI * (1.0f - light.cosAngle);
 				float candelaIntensity = sceneLight.intensity / lightSolidAngle;
 				light.intensity = candelaIntensity;
 			}
-			light.penumbra = 1.0f / (DirectX::XMScalarCos(sceneLight.angle * (1.0f - sceneLight.penumbra)) - light.angle);
+			light.penumbra = 1.0f / (DirectX::XMScalarCos(halfAngle * (1.0f - sceneLight.penumbra)) - light.cosAngle);
 			light.flags |= fIsSpot;
 			break;
 		}

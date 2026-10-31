@@ -107,7 +107,7 @@ struct LightData
 	float3     position;
 	float      range;
 	float3     direction;
-	float      angle;
+	float      cosAngle;
 	float      penumbra;
 
 	uint       flags;
