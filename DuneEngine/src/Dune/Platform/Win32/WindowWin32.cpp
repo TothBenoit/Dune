@@ -273,6 +273,8 @@ namespace Dune
 			if (pWindow->InvokeHooks(&nativeEvent))
 				return true;
 			pWindow->WindowNativeHook(&nativeEvent);
+			if (uMsg == WM_CLOSE)
+				return 0;
 		}
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
@@ -319,11 +321,8 @@ namespace Dune
 
 	void Window::Destroy()
 	{
-		if (!m_isClosing)
-		{
-			SetWindowLongPtr((HWND)m_pHandle, GWLP_USERDATA, 0);
-			DestroyWindow((HWND)m_pHandle);
-		}
+		SetWindowLongPtr((HWND)m_pHandle, GWLP_USERDATA, 0);
+		DestroyWindow((HWND)m_pHandle);
 		m_pHandle = nullptr;
 		m_isClosing = false;
 		m_input = {};
@@ -355,7 +354,7 @@ namespace Dune
 		const Win32NativeEvent& nativeEvent = *(const Win32NativeEvent*)pNativeEvent;
 		switch (nativeEvent.uMsg)
 		{
-		case WM_DESTROY:
+		case WM_CLOSE:
 			m_isClosing = true;
 			OnEvent(EWindowMessageType::Close, {});
 			break;
