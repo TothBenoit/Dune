@@ -54,10 +54,6 @@ namespace Dune
 		const ViewHandle handle = m_viewHandles.Allocate();
 		View& view = m_views.Resolve(handle.GetIndex());
 		view.window.Initialize({ .width = desc.width, .height = desc.height, .title = desc.title });
-		view.resizeEventHandle = view.window.RegisterEvent(&view.renderer, [](void* pData, const WindowMessage& message)
-			{
-				static_cast<Graphics::Renderer*>(pData)->OnResize(message.resize.width, message.resize.height);
-			}, EWindowMessageType::Resize);
 		if (desc.pRendererDesc)
 			m_graphics.InitializeRenderer(view.renderer, view.window, *desc.pRendererDesc);
 		else
@@ -76,7 +72,6 @@ namespace Dune
 	{
 		View& v = GetView(view);
 		v.renderer.Destroy();
-		v.window.UnregisterEvent(EWindowMessageType::Resize, v.resizeEventHandle);
 		v.window.Destroy();
 		RemoveHandle(m_activeViews, view);
 		m_viewHandles.Free(view);
@@ -131,7 +126,8 @@ namespace Dune
 	void Application::Render(ViewHandle view, WorldHandle world, const Camera& camera)
 	{
 		Assert(IsViewActive(view) && m_worldHandles.IsValid(world));
-		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, world, World::MakeView(camera) });
+		const Window& window = GetView(view).window;
+		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, world, World::MakeView(camera), window.GetWidth(), window.GetHeight() });
 	}
 
 	void Application::RenderFrame(dU64 frameNumber)
@@ -142,6 +138,9 @@ namespace Dune
 			if (!IsViewActive(request.view) || !m_worldHandles.IsValid(request.world))
 				continue;
 			View& view = GetView(request.view);
+			const dUVec2 resolution = view.renderer.GetResolution();
+			if (resolution.x != request.width || resolution.y != request.height)
+				view.renderer.OnResize(request.width, request.height);
 			m_graphics.Render(view.renderer, GetWorld(request.world).GetRenderScene(), request.viewData, frame.context, view.frameData);
 		}
 	}

@@ -48,7 +48,6 @@ namespace Dune
 		Window window;
 		Graphics::Renderer renderer;
 		Graphics::FrameData frameData;
-		dU32 resizeEventHandle{ 0 };
 	};
 
 	using ViewHandle = Handle<View>;
@@ -58,6 +57,8 @@ namespace Dune
 		ViewHandle view;
 		WorldHandle world;
 		Graphics::ViewData viewData;
+		dU32 width{ 0 };
+		dU32 height{ 0 };
 	};
 
 	struct GameFrame
