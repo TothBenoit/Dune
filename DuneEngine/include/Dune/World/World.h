@@ -43,6 +43,4 @@ namespace Dune
 		RenderSceneHandle         m_renderScene;
 		RenderBridge              m_renderBridge;
 	};
-
-	using WorldHandle = Handle<World>;
 }

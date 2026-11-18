@@ -55,7 +55,7 @@ namespace Dune
 	struct RenderRequest
 	{
 		ViewHandle view;
-		WorldHandle world;
+		World* pWorld{ nullptr };
 		Graphics::ViewData viewData;
 		dU32 width{ 0 };
 		dU32 height{ 0 };
@@ -76,19 +76,18 @@ namespace Dune
 		[[nodiscard]] ViewHandle CreateView(const ViewDesc& desc);
 		void DestroyView(ViewHandle view);
 
-		[[nodiscard]] WorldHandle CreateWorld(const WorldDesc& desc);
-		void DestroyWorld(WorldHandle world);
-		[[nodiscard]] World& GetWorld(WorldHandle world);
+		[[nodiscard]] World* CreateWorld(const WorldDesc& desc);
+		void DestroyWorld(World* pWorld);
 
 		[[nodiscard]] bool BeginFrame();
-		void Update(WorldHandle world);
-		void Render(ViewHandle view, WorldHandle world, const Camera& camera);
+		void Update(World& world);
+		void Render(ViewHandle view, World& world, const Camera& camera);
 		void EndFrame();
 
 		[[nodiscard]] ModelHandle LoadModel(const char* pPath);
 		void UnloadModel(ModelHandle model);
-		void Spawn(WorldHandle world, ModelHandle model);
-		[[nodiscard]] ModelHandle LoadModel(WorldHandle world, const char* pPath);
+		void Spawn(World& world, ModelHandle model);
+		[[nodiscard]] ModelHandle LoadModel(World& world, const char* pPath);
 
 		[[nodiscard]] ImageHandle LoadImage(const char* pPath);
 		void UnloadImage(ImageHandle image);
@@ -111,9 +110,7 @@ namespace Dune
 		HandleAllocator<View> m_viewHandles;
 		ChunkedArray<View, 1> m_views;
 		dVector<ViewHandle> m_activeViews;
-		HandleAllocator<World> m_worldHandles;
-		ChunkedArray<World> m_worlds;
-		dVector<WorldHandle> m_activeWorlds;
+		dVector<World*> m_worlds;
 		std::chrono::steady_clock::time_point m_lastFrameTime{};
 		FrameContext m_frameContext{};
 		GameFrame m_frames[kFrameRingSize];

@@ -38,10 +38,8 @@ namespace Dune
 		m_views.Destroy();
 		m_viewHandles.Destroy();
 
-		while (!m_activeWorlds.empty())
-			DestroyWorld(m_activeWorlds.back());
-		m_worlds.Destroy();
-		m_worldHandles.Destroy();
+		while (!m_worlds.empty())
+			DestroyWorld(m_worlds.back());
 
 		m_assetCache.Destroy();
 		m_graphics.Destroy();
@@ -77,25 +75,21 @@ namespace Dune
 		m_viewHandles.Free(view);
 	}
 
-	WorldHandle Application::CreateWorld(const WorldDesc& desc)
+	World* Application::CreateWorld(const WorldDesc& desc)
 	{
-		const WorldHandle handle = m_worldHandles.Allocate();
-		m_worlds.Resolve(handle.GetIndex()).Initialize(m_graphics, desc, m_frameContext.frameNumber);
-		m_activeWorlds.push_back(handle);
-		return handle;
+		World* pWorld = new World();
+		pWorld->Initialize(m_graphics, desc, m_frameContext.frameNumber);
+		m_worlds.push_back(pWorld);
+		return pWorld;
 	}
 
-	void Application::DestroyWorld(WorldHandle world)
+	void Application::DestroyWorld(World* pWorld)
 	{
-		GetWorld(world).Destroy();
-		RemoveHandle(m_activeWorlds, world);
-		m_worldHandles.Free(world);
-	}
-
-	World& Application::GetWorld(WorldHandle world)
-	{
-		Assert(m_worldHandles.IsValid(world));
-		return m_worlds[world.GetIndex()];
+		const dVector<RenderRequest>& requests = m_frames[m_frameContext.frameNumber % kFrameRingSize].requests;
+		Assert(std::none_of(requests.begin(), requests.end(), [pWorld](const RenderRequest& request) { return request.pWorld == pWorld; }));
+		pWorld->Destroy();
+		std::erase(m_worlds, pWorld);
+		delete pWorld;
 	}
 
 	bool Application::BeginFrame()
@@ -118,16 +112,16 @@ namespace Dune
 		return !m_activeViews.empty();
 	}
 
-	void Application::Update(WorldHandle world)
+	void Application::Update(World& world)
 	{
-		GetWorld(world).Update(m_frameContext);
+		world.Update(m_frameContext);
 	}
 
-	void Application::Render(ViewHandle view, WorldHandle world, const Camera& camera)
+	void Application::Render(ViewHandle view, World& world, const Camera& camera)
 	{
-		Assert(IsViewActive(view) && m_worldHandles.IsValid(world));
+		Assert(IsViewActive(view));
 		const Window& window = GetView(view).window;
-		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, world, World::MakeView(camera), window.GetWidth(), window.GetHeight() });
+		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, &world, World::MakeView(camera), window.GetWidth(), window.GetHeight() });
 	}
 
 	void Application::RenderFrame(dU64 frameNumber)
@@ -135,13 +129,13 @@ namespace Dune
 		const GameFrame& frame = m_frames[frameNumber % kFrameRingSize];
 		for (const RenderRequest& request : frame.requests)
 		{
-			if (!IsViewActive(request.view) || !m_worldHandles.IsValid(request.world))
+			if (!IsViewActive(request.view))
 				continue;
 			View& view = GetView(request.view);
 			const dUVec2 resolution = view.renderer.GetResolution();
 			if (resolution.x != request.width || resolution.y != request.height)
 				view.renderer.OnResize(request.width, request.height);
-			m_graphics.Render(view.renderer, GetWorld(request.world).GetRenderScene(), request.viewData, frame.context, view.frameData);
+			m_graphics.Render(view.renderer, request.pWorld->GetRenderScene(), request.viewData, frame.context, view.frameData);
 		}
 	}
 
@@ -149,8 +143,8 @@ namespace Dune
 	{
 		RenderFrame(m_frameContext.frameNumber);
 #ifdef _DEBUG
-		for (WorldHandle world : m_activeWorlds)
-			GetWorld(world).ValidateRenderScene(m_frameContext.frameNumber);
+		for (World* pWorld : m_worlds)
+			pWorld->ValidateRenderScene(m_frameContext.frameNumber);
 #endif
 		m_graphics.EndFrame();
 	}
@@ -233,9 +227,9 @@ namespace Dune
 		return m_assetCache.GetImage(image);
 	}
 
-	void Application::Spawn(WorldHandle world, ModelHandle model)
+	void Application::Spawn(World& world, ModelHandle model)
 	{
-		GameScene& scene = GetWorld(world).GetGameScene();
+		GameScene& scene = world.GetGameScene();
 		const Model& asset = m_assetCache.GetModel(model);
 		const Graphics::ModelResources& resources = m_graphics.GetModelResources(model);
 		for (dU32 nodeIndex = 0; nodeIndex < (dU32)asset.nodes.size(); nodeIndex++)
@@ -251,7 +245,7 @@ namespace Dune
 		}
 	}
 
-	ModelHandle Application::LoadModel(WorldHandle world, const char* pPath)
+	ModelHandle Application::LoadModel(World& world, const char* pPath)
 	{
 		const ModelHandle model = LoadModel(pPath);
 		if (model.IsValid())

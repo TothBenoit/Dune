@@ -24,11 +24,11 @@ using namespace Dune;
 class App
 {
 public:
-	App(Application& application, ViewHandle view, WorldHandle world)
+	App(Application& application, ViewHandle view, World& world)
 		: m_app{ application }
 		, m_view{ view }
 		, m_world{ world }
-		, m_pScene{ &application.GetWorld(world).GetGameScene() }
+		, m_pScene{ &world.GetGameScene() }
 	{}
 
 	void Run()
@@ -400,7 +400,7 @@ public:
 private:
 	Application& m_app;
 	ViewHandle m_view;
-	WorldHandle m_world;
+	World& m_world;
 	GameScene* m_pScene;
 
 	SimpleCameraController m_camera{};
@@ -417,7 +417,7 @@ private:
 	ImGuizmo::OPERATION m_gizmoOperation{ ImGuizmo::ROTATE };
 };
 
-void Test(Application& application, ViewHandle view, WorldHandle world)
+void Test(Application& application, ViewHandle view, World& world)
 {
 	App app{ application, view, world };
 	app.Run();
@@ -440,8 +440,8 @@ int main(int argc, char** argv)
 	const Graphics::RendererDesc rendererDesc = Graphics::ForwardPipeline::MakeDesc();
 	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true, .imguiLayoutPath = "app://imgui.ini", .pRendererDesc = &rendererDesc });
 
-	const WorldHandle world = application.CreateWorld({});
-	GameScene& scene = application.GetWorld(world).GetGameScene();
+	World& world = *application.CreateWorld({});
+	GameScene& scene = world.GetGameScene();
 
 	EntityID sun = scene.CreateEntity("Sun");
 	Light sunLight{};
