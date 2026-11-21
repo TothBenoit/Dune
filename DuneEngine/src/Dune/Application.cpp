@@ -11,13 +11,15 @@
 
 namespace Dune
 {
-	template<typename T>
-	static void RemoveHandle(dVector<Handle<T>>& handles, Handle<T> handle)
+	static dUVec2 GetViewSize(const WorldView& view)
 	{
-		const auto it = std::find(handles.begin(), handles.end(), handle);
-		Assert(it != handles.end());
-		*it = handles.back();
-		handles.pop_back();
+		const dU32 windowWidth = view.pWindow->GetWidth();
+		const dU32 windowHeight = view.pWindow->GetHeight();
+		return
+		{
+			view.width ? view.width : (windowWidth > view.x ? windowWidth - view.x : 0),
+			view.height ? view.height : (windowHeight > view.y ? windowHeight - view.y : 0),
+		};
 	}
 
 	void Application::Initialize(const ApplicationDesc& desc)
@@ -33,10 +35,10 @@ namespace Dune
 
 	void Application::Destroy()
 	{
-		while (!m_activeViews.empty())
-			DestroyView(m_activeViews.back());
-		m_views.Destroy();
-		m_viewHandles.Destroy();
+		while (!m_worldViews.empty())
+			DestroyWorldView(m_worldViews.back());
+		while (!m_windows.empty())
+			DestroyWindow(&m_windows.back()->window);
 
 		while (!m_worlds.empty())
 			DestroyWorld(m_worlds.back());
@@ -47,30 +49,41 @@ namespace Dune
 		Job::Shutdown();
 	}
 
-	ViewHandle Application::CreateView(const ViewDesc& desc)
+	Window* Application::CreateWindow(const WindowDesc& desc, const Graphics::WindowSurfaceDesc& surfaceDesc)
 	{
-		const ViewHandle handle = m_viewHandles.Allocate();
-		View& view = m_views.Resolve(handle.GetIndex());
-		view.window.Initialize({ .width = desc.width, .height = desc.height, .title = desc.title });
-		const FilePath layoutPath = desc.imguiLayoutPath.empty() ? FilePath{} : FileSystem::ResolvePath(desc.imguiLayoutPath.c_str());
-		m_graphics.InitializeWindowSurface(view.surface, view.window, { .enableImGui = desc.enableImGui, .pImGuiLayoutPath = layoutPath.empty() ? nullptr : layoutPath.c_str() });
-		if (desc.pRendererDesc)
-			m_graphics.InitializeRenderer(view.renderer, *desc.pRendererDesc);
-		else
-			m_graphics.InitializeRenderer(view.renderer, Graphics::ForwardPipeline::MakeDesc());
-
-		m_activeViews.push_back(handle);
-		return handle;
+		WindowEntry* pEntry = new WindowEntry();
+		pEntry->window.Initialize(desc);
+		const FilePath layoutPath = surfaceDesc.pImGuiLayoutPath ? FileSystem::ResolvePath(surfaceDesc.pImGuiLayoutPath) : FilePath{};
+		m_graphics.InitializeWindowSurface(pEntry->surface, pEntry->window, { .enableImGui = surfaceDesc.enableImGui, .pImGuiLayoutPath = layoutPath.empty() ? nullptr : layoutPath.c_str() });
+		m_windows.push_back(pEntry);
+		return &pEntry->window;
 	}
 
-	void Application::DestroyView(ViewHandle view)
+	void Application::DestroyWindow(Window* pWindow)
 	{
-		View& v = GetView(view);
-		v.renderer.Destroy();
-		v.surface.Destroy();
-		v.window.Destroy();
-		RemoveHandle(m_activeViews, view);
-		m_viewHandles.Free(view);
+		for (const WorldView* pView : m_worldViews)
+			Assert(pView->pWindow != pWindow);
+		WindowEntry* pEntry = &GetWindowEntry(*pWindow);
+		pEntry->surface.Destroy();
+		pEntry->window.Destroy();
+		SwapRemove(m_windows, pEntry);
+		delete pEntry;
+	}
+
+	WorldView* Application::CreateWorldView(const WorldViewDesc& desc)
+	{
+		Assert(desc.pWorld && desc.pWindow);
+		WorldView* pView = new WorldView{ .pWorld = desc.pWorld, .camera = desc.camera, .pWindow = desc.pWindow, .x = desc.x, .y = desc.y, .width = desc.width, .height = desc.height };
+		m_graphics.InitializeRenderer(pView->renderer, desc.pRendererDesc ? *desc.pRendererDesc : Graphics::ForwardPipeline::MakeDesc());
+		m_worldViews.push_back(pView);
+		return pView;
+	}
+
+	void Application::DestroyWorldView(WorldView* pView)
+	{
+		pView->renderer.Destroy();
+		SwapRemove(m_worldViews, pView);
+		delete pView;
 	}
 
 	World* Application::CreateWorld(const WorldDesc& desc)
@@ -83,31 +96,22 @@ namespace Dune
 
 	void Application::DestroyWorld(World* pWorld)
 	{
-		const dVector<RenderRequest>& requests = m_frames[m_frameContext.frameNumber % kFrameRingSize].requests;
-		Assert(std::none_of(requests.begin(), requests.end(), [pWorld](const RenderRequest& request) { return request.pWorld == pWorld; }));
+		for (const WorldView* pView : m_worldViews)
+			Assert(pView->pWorld != pWorld);
 		pWorld->Destroy();
-		std::erase(m_worlds, pWorld);
+		SwapRemove(m_worlds, pWorld);
 		delete pWorld;
 	}
 
-	bool Application::BeginFrame()
+	void Application::BeginFrame()
 	{
-		for (dU32 index = (dU32)m_activeViews.size(); index-- > 0;)
-		{
-			const ViewHandle view = m_activeViews[index];
-			if (!GetView(view).window.Update())
-				DestroyView(view);
-		}
+		for (WindowEntry* pEntry : m_windows)
+			pEntry->window.Update();
 
 		const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		m_frameContext.frameNumber++;
 		m_frameContext.deltaTime = std::chrono::duration<float>(now - m_lastFrameTime).count();
 		m_lastFrameTime = now;
-
-		GameFrame& frame = m_frames[m_frameContext.frameNumber % kFrameRingSize];
-		frame.context = m_frameContext;
-		frame.requests.clear();
-		return !m_activeViews.empty();
 	}
 
 	void Application::Update(World& world)
@@ -115,30 +119,26 @@ namespace Dune
 		world.Update(m_frameContext);
 	}
 
-	void Application::Render(ViewHandle view, World& world, EntityID camera)
+	void Application::RenderFrame()
 	{
-		Assert(IsViewActive(view));
-		const Window& window = GetView(view).window;
-		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, &world, world.MakeView(camera, { window.GetWidth(), window.GetHeight() }) });
-	}
+		for (WorldView* pView : m_worldViews)
+			m_graphics.Render(pView->renderer, pView->pWorld->GetRenderScene(), pView->pWorld->MakeView(pView->camera, GetViewSize(*pView)), m_frameContext, pView->frameData);
 
-	void Application::RenderFrame(dU64 frameNumber)
-	{
-		const GameFrame& frame = m_frames[frameNumber % kFrameRingSize];
-		for (const RenderRequest& request : frame.requests)
+		for (WindowEntry* pEntry : m_windows)
 		{
-			if (!IsViewActive(request.view))
-				continue;
-			View& view = GetView(request.view);
-			m_graphics.Render(view.renderer, request.pWorld->GetRenderScene(), request.viewData, frame.context, view.frameData);
-			const Graphics::SurfaceBlit blit{ .pTexture = &view.renderer.GetOutputTexture() };
-			view.surface.Present({ &blit, 1 });
+			m_blits.clear();
+			for (WorldView* pView : m_worldViews)
+			{
+				if (pView->pWindow == &pEntry->window)
+					m_blits.push_back({ .pTexture = &pView->renderer.GetOutputTexture(), .x = pView->x, .y = pView->y });
+			}
+			pEntry->surface.Present(m_blits);
 		}
 	}
 
 	void Application::EndFrame()
 	{
-		RenderFrame(m_frameContext.frameNumber);
+		RenderFrame();
 #ifdef _DEBUG
 		for (World* pWorld : m_worlds)
 			pWorld->ValidateRenderScene(m_frameContext.frameNumber);
@@ -173,8 +173,8 @@ namespace Dune
 		for (MaterialHandle material : modelResources.materials)
 		{
 			const Graphics::MaterialKey key = m_graphics.GetMaterialKey(material);
-			for (ViewHandle view : m_activeViews)
-				GetView(view).renderer.ResolvePSOs(key);
+			for (WorldView* pView : m_worldViews)
+				pView->renderer.ResolvePSOs(key);
 		}
 		return model;
 	}
@@ -250,24 +250,19 @@ namespace Dune
 		return model;
 	}
 
-	bool Application::IsViewActive(ViewHandle view) const
+	RHI::ImGuiContext& Application::GetImGui(const Window& window)
 	{
-		return m_viewHandles.IsValid(view);
+		return GetWindowEntry(window).surface.GetImGui();
 	}
 
-	Window& Application::GetWindow(ViewHandle view)
+	Application::WindowEntry& Application::GetWindowEntry(const Window& window)
 	{
-		return GetView(view).window;
-	}
-
-	RHI::ImGuiContext& Application::GetImGui(ViewHandle view)
-	{
-		return GetView(view).surface.GetImGui();
-	}
-
-	View& Application::GetView(ViewHandle view)
-	{
-		Assert(IsViewActive(view));
-		return m_views[view.GetIndex()];
+		for (WindowEntry* pEntry : m_windows)
+		{
+			if (&pEntry->window == &window)
+				return *pEntry;
+		}
+		Assert(false);
+		return *m_windows.front();
 	}
 }

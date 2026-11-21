@@ -24,9 +24,9 @@ using namespace Dune;
 class App
 {
 public:
-	App(Application& application, ViewHandle view, World& world)
+	App(Application& application, Window& window, World& world)
 		: m_app{ application }
-		, m_view{ view }
+		, m_window{ window }
 		, m_world{ world }
 		, m_pScene{ &world.GetGameScene() }
 	{}
@@ -35,27 +35,38 @@ public:
 	{
 		m_cameraEntity = m_pScene->CreateEntity("Camera", m_camera.GetTransform());
 		m_pScene->Add(m_cameraEntity, Camera{ .near = 0.1f, .far = 500.0f });
+		WorldView* pView = m_app.CreateWorldView({ .pWorld = &m_world, .camera = m_cameraEntity, .pWindow = &m_window });
+		const dU32 closeEvent = m_window.RegisterEvent(this, &App::OnClose, EWindowMessageType::Close);
 		const ModelHandle sponza = m_app.LoadModel(m_world, "app://Sponza/Sponza.gltf");
 		Graphics::GraphicsSystem& graphics = m_app.GetGraphics();
 		m_pScene->SpawnMesh("Cube", { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Cube), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
 		m_pScene->SpawnMesh("Sphere", { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Sphere), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }) }));
 		m_pScene->SpawnMesh("Plane", { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Plane), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = RHI::ECullingMode::None }) }));
 
-		while (m_app.BeginFrame())
+		while (true)
 		{
+			m_app.BeginFrame();
+			if (!m_isRunning)
+				break;
 			m_deltaTime = m_app.GetDeltaTime();
-			const Window& window = m_app.GetWindow(m_view);
 
 			DrawGUI();
-			m_camera.Update(m_deltaTime, window.GetInput());
+			m_camera.Update(m_deltaTime, m_window.GetInput());
 			m_pScene->Set(m_cameraEntity, m_camera.GetTransform());
 			m_app.Update(m_world);
-			m_app.Render(m_view, m_world, m_cameraEntity);
 			m_app.EndFrame();
 		}
 
+		m_window.UnregisterEvent(EWindowMessageType::Close, closeEvent);
+		m_app.DestroyWorldView(pView);
+
 		m_pScene->DestroyAllEntities();
 		m_app.UnloadModel(sponza);
+	}
+
+	static void OnClose(void* pData, const WindowMessage&)
+	{
+		((App*)pData)->m_isRunning = false;
 	}
 
 	dMatrix4x4 ComputeTransformMatrix(dVec3& position, dQuat& rotation, float scale)
@@ -109,7 +120,7 @@ public:
 		if (ImGui::IsKeyPressed(ImGuiKey_R))
 			m_gizmoOperation = ImGuizmo::SCALEU;
 
-		const Window& window = m_app.GetWindow(m_view);
+		const Window& window = m_window;
 		dMatrix4x4 view{};
 		ComputeViewMatrix(m_pScene->Get<Transform>(m_cameraEntity), &view);
 		dMatrix4x4 proj{};
@@ -120,7 +131,7 @@ public:
 
 	void DrawGUI()
 	{
-		RHI::ImGuiContext& imgui = m_app.GetImGui(m_view);
+		RHI::ImGuiContext& imgui = m_app.GetImGui(m_window);
 		RHI::ImGuiContext::LockGuard guard = imgui.AcquireContext();
 		imgui.NewFrame(guard);
 		ImGuizmo::BeginFrame();
@@ -398,12 +409,13 @@ public:
 
 private:
 	Application& m_app;
-	ViewHandle m_view;
+	Window& m_window;
 	World& m_world;
 	GameScene* m_pScene;
 
 	SimpleCameraController m_camera{};
 	EntityID m_cameraEntity{};
+	bool m_isRunning{ true };
 
 	float m_deltaTime{ 0.0f };
 	float m_framerate{ 0.0f };
@@ -417,9 +429,9 @@ private:
 	ImGuizmo::OPERATION m_gizmoOperation{ ImGuizmo::ROTATE };
 };
 
-void Test(Application& application, ViewHandle view, World& world)
+void Test(Application& application, Window& window, World& world)
 {
-	App app{ application, view, world };
+	App app{ application, window, world };
 	app.Run();
 }
 
@@ -437,8 +449,7 @@ int main(int argc, char** argv)
 			.engineResourcePath = solutionDirectory + "/DuneEngine/include/Dune/Resources/",
 			.roots = { { .name = "app", .path = solutionDirectory + "/Resources/" } },
 		});
-	const Graphics::RendererDesc rendererDesc = Graphics::ForwardPipeline::MakeDesc();
-	const ViewHandle view = application.CreateView({ .title = L"Dune", .enableImGui = true, .imguiLayoutPath = "app://imgui.ini", .pRendererDesc = &rendererDesc });
+	Window& window = *application.CreateWindow({ .title = L"Dune" }, { .enableImGui = true, .pImGuiLayoutPath = "app://imgui.ini" });
 
 	World& world = *application.CreateWorld({});
 	GameScene& scene = world.GetGameScene();
@@ -485,7 +496,7 @@ int main(int argc, char** argv)
 	spotLight.castShadow = true;
 	scene.Add(spot, spotLight);
 
-	Test(application, view, world);
+	Test(application, window, world);
 
 	application.Destroy();
 

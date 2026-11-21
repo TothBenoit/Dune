@@ -7,7 +7,6 @@
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Assets/AssetCache.h"
 #include "Dune/World/World.h"
-#include "Dune/Core/ChunkedArray.h"
 #include "Dune/Core/FrameContext.h"
 
 namespace Dune
@@ -33,37 +32,29 @@ namespace Dune
 		dVector<FileSystemRoot> roots;
 	};
 
-	struct ViewDesc
+	struct WorldViewDesc
 	{
-		dWString title{ L"Dune" };
-		dU32 width{ 1600 };
-		dU32 height{ 900 };
-		bool enableImGui{ false };
-		dString imguiLayoutPath;
+		World* pWorld{ nullptr };
+		EntityID camera{};
+		Window* pWindow{ nullptr };
+		dU32 x{ 0 };
+		dU32 y{ 0 };
+		dU32 width{ 0 };
+		dU32 height{ 0 };
 		const Graphics::RendererDesc* pRendererDesc{ nullptr };
 	};
 
-	struct View
+	struct WorldView
 	{
-		Window window;
-		Graphics::WindowSurface surface;
+		World* pWorld{ nullptr };
+		EntityID camera{};
+		Window* pWindow{ nullptr };
+		dU32 x{ 0 };
+		dU32 y{ 0 };
+		dU32 width{ 0 };
+		dU32 height{ 0 };
 		Graphics::Renderer renderer;
 		Graphics::FrameData frameData;
-	};
-
-	using ViewHandle = Handle<View>;
-
-	struct RenderRequest
-	{
-		ViewHandle view;
-		World* pWorld{ nullptr };
-		Graphics::ViewData viewData;
-	};
-
-	struct GameFrame
-	{
-		FrameContext context;
-		dVector<RenderRequest> requests;
 	};
 
 	class Application
@@ -72,15 +63,17 @@ namespace Dune
 		void Initialize(const ApplicationDesc& desc);
 		void Destroy();
 
-		[[nodiscard]] ViewHandle CreateView(const ViewDesc& desc);
-		void DestroyView(ViewHandle view);
+		[[nodiscard]] Window* CreateWindow(const WindowDesc& desc, const Graphics::WindowSurfaceDesc& surfaceDesc = {});
+		void DestroyWindow(Window* pWindow);
+
+		[[nodiscard]] WorldView* CreateWorldView(const WorldViewDesc& desc);
+		void DestroyWorldView(WorldView* pView);
 
 		[[nodiscard]] World* CreateWorld(const WorldDesc& desc);
 		void DestroyWorld(World* pWorld);
 
-		[[nodiscard]] bool BeginFrame();
+		void BeginFrame();
 		void Update(World& world);
-		void Render(ViewHandle view, World& world, EntityID camera);
 		void EndFrame();
 
 		[[nodiscard]] ModelHandle LoadModel(const char* pPath);
@@ -92,26 +85,29 @@ namespace Dune
 		void UnloadImage(ImageHandle image);
 		[[nodiscard]] const Image& GetImage(ImageHandle image) const;
 
-		[[nodiscard]] bool IsViewActive(ViewHandle view) const;
 		[[nodiscard]] float GetDeltaTime() const { return m_frameContext.deltaTime; }
-		[[nodiscard]] Window& GetWindow(ViewHandle view);
-		[[nodiscard]] RHI::ImGuiContext& GetImGui(ViewHandle view);
+		[[nodiscard]] RHI::ImGuiContext& GetImGui(const Window& window);
 		[[nodiscard]] Graphics::GraphicsSystem& GetGraphics() { return m_graphics; }
 
 	private:
 		[[nodiscard]] ImageHandle LoadImage(PathID<Image> source);
-		[[nodiscard]] View& GetView(ViewHandle view);
-		void RenderFrame(dU64 frameNumber);
+		struct WindowEntry
+		{
+			Window window;
+			Graphics::WindowSurface surface;
+		};
+
+		[[nodiscard]] WindowEntry& GetWindowEntry(const Window& window);
+		void RenderFrame();
 
 	private:
 		Graphics::GraphicsSystem m_graphics{};
 		AssetCache m_assetCache{};
-		HandleAllocator<View> m_viewHandles;
-		ChunkedArray<View, 1> m_views;
-		dVector<ViewHandle> m_activeViews;
+		dVector<WindowEntry*> m_windows;
+		dVector<WorldView*> m_worldViews;
 		dVector<World*> m_worlds;
+		dVector<Graphics::SurfaceBlit> m_blits;
 		std::chrono::steady_clock::time_point m_lastFrameTime{};
 		FrameContext m_frameContext{};
-		GameFrame m_frames[kFrameRingSize];
 	};
 }

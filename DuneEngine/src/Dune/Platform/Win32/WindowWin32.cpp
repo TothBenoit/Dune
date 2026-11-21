@@ -324,7 +324,6 @@ namespace Dune
 		SetWindowLongPtr((HWND)m_pHandle, GWLP_USERDATA, 0);
 		DestroyWindow((HWND)m_pHandle);
 		m_pHandle = nullptr;
-		m_isClosing = false;
 		m_input = {};
 		m_title.clear();
 		m_hooks.clear();
@@ -334,7 +333,7 @@ namespace Dune
 		m_nextEventHandle = 0;
 	}
 
-	bool Window::Update()
+	void Window::Update()
 	{
 		MSG msg{};
 		m_input.Update();
@@ -342,11 +341,7 @@ namespace Dune
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-
-			if (m_isClosing)
-				break;
 		}
-		return !m_isClosing;
 	}
 
 	void Window::WindowNativeHook(void* pNativeEvent)
@@ -355,7 +350,6 @@ namespace Dune
 		switch (nativeEvent.uMsg)
 		{
 		case WM_CLOSE:
-			m_isClosing = true;
 			OnEvent(EWindowMessageType::Close, {});
 			break;
 		case WM_SIZE:

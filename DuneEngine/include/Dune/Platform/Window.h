@@ -43,7 +43,7 @@ namespace Dune
 		void Initialize(const WindowDesc& desc);
 		void Destroy();
 
-		[[nodiscard]] bool Update();
+		void Update();
 
 		[[nodiscard]] void* GetHandle() { return m_pHandle; }
 		[[nodiscard]] dU32  GetWidth() const { return m_width; }
@@ -83,7 +83,6 @@ namespace Dune
 		dU32 m_height;
 
 		void* m_pHandle{ nullptr };
-		bool m_isClosing{ false };
 		dWString m_title;
 
 		dVector<HookEntry> m_hooks{};

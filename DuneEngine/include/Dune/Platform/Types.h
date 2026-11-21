@@ -39,6 +39,27 @@ namespace Dune
 	using dVector =         std::vector<T>;
 
 	template<typename T>
+	void SwapRemoveAt(dVector<T>& items, dU32 index)
+	{
+		items[index] = std::move(items.back());
+		items.pop_back();
+	}
+
+	template<typename T>
+	void SwapRemove(dVector<T>& items, const T& item)
+	{
+		for (dU32 index = 0; index < (dU32)items.size(); index++)
+		{
+			if (items[index] == item)
+			{
+				SwapRemoveAt(items, index);
+				return;
+			}
+		}
+		Assert(false);
+	}
+
+	template<typename T>
 	using dList =           std::list<T>;
 
 	template<typename T>
