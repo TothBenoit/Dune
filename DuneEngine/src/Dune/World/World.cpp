@@ -44,8 +44,8 @@ namespace Dune
 	}
 #endif
 
-	Graphics::ViewData World::MakeView(EntityID camera, float aspectRatio) const
+	Graphics::ViewData World::MakeView(EntityID camera, dUVec2 resolution) const
 	{
-		return RenderBridge::MakeView(m_gameScene.Get<Transform>(camera), m_gameScene.Get<Camera>(camera), aspectRatio);
+		return RenderBridge::MakeView(m_gameScene.Get<Transform>(camera), m_gameScene.Get<Camera>(camera), resolution);
 	}
 }

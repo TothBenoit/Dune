@@ -6,12 +6,10 @@
 #include <Dune/Platform/RHI/CommandList.h>
 #include <Dune/Platform/RHI/DescriptorHeap.h>
 #include <Dune/Platform/RHI/Fence.h>
-#include <Dune/Platform/RHI/Swapchain.h>
 #include <Dune/Platform/RHI/Texture.h>
 #include <Dune/Core/ScratchAllocator.h>
 #include <Dune/Graphics/StagingMemory.h>
 #include <Dune/Graphics/DescriptorAllocator.h>
-#include <Dune/Platform/RHI/ImGuiContext.h>
 
 namespace Dune::RHI
 {
@@ -21,7 +19,6 @@ namespace Dune::RHI
 namespace Dune
 {
 	class Scene;
-	class Window;
 	struct FrameContext;
 
 	namespace Graphics
@@ -40,7 +37,6 @@ namespace Dune
 			dU8* pUploadAddress{ nullptr };
 			ScratchAllocator staging;
 			dVector<RHI::Buffer> buffersToRelease;
-			RGTexture backBufferHandle;
 		};
 
 		class Renderer
@@ -50,20 +46,14 @@ namespace Dune
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
-			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, DescriptorAllocator& srvAllocator, Window& window, const RendererDesc& desc);
+			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, DescriptorAllocator& srvAllocator, const RendererDesc& desc);
 			void Destroy();
 
-			void InitializeImGui(const char* pLayoutPath);
-			[[nodiscard]] inline bool HasImGui() const { return m_imgui.IsInitialized(); }
-			[[nodiscard]] inline RHI::ImGuiContext& GetImGui() { Assert(HasImGui()); return m_imgui; }
-
-			void OnResize(dU32 width, dU32 height);
 			void Render(const FrameContext& frameContext, const FrameData& frameData, const ViewData& view);
 
 			[[nodiscard]] StagingMemory AllocateStaging(dU64 byteSize, dU64 alignment);
 
 			[[nodiscard]] inline RHI::Device* GetDevice() { return m_pDevice; }
-			[[nodiscard]] inline Window* GetWindow() { return m_pWindow; }
 			[[nodiscard]] inline Frame& GetCurrentFrame() { return m_frames[m_frameIndex]; }
 			[[nodiscard]] inline RHI::Barrier& GetBarrier() { return m_barrier; }
 			[[nodiscard]] inline RHI::DescriptorHeap& GetSRVHeap() { return m_pSRVAllocator->GetHeap(); }
@@ -71,7 +61,8 @@ namespace Dune
 
 			[[nodiscard]] inline RenderGraph& GetRenderGraph() { return m_renderGraph; }
 
-			[[nodiscard]] inline RGTexture GetBackBufferHandle() const { return m_frames[m_frameIndex].backBufferHandle; }
+			[[nodiscard]] inline RGTexture GetOutputHandle() const { return m_outputHandle; }
+			[[nodiscard]] inline RHI::Texture& GetOutputTexture() { return m_renderGraph.GetTexture(m_outputHandle); }
 			[[nodiscard]] inline dUVec2 GetResolution() const { return m_resolution; }
 
 			template<typename T>
@@ -100,11 +91,10 @@ namespace Dune
 		private:
 			RHI::Device* m_pDevice{ nullptr };
 			PSOCache* m_pPSOCache{ nullptr };
-			Window* m_pWindow{ nullptr };
 			dUVec2 m_resolution{ 0, 0 };
 
-			RHI::Swapchain m_swapchain{};
 			RHI::CommandQueue* m_pCommandQueue{ nullptr };
+			RGTexture m_outputHandle{};
 
 			DescriptorAllocator* m_pSRVAllocator{ nullptr };
 
@@ -118,7 +108,6 @@ namespace Dune
 			dU32 m_frameIndex{ 0 };
 			dU32 m_frameCount{ 0 };
 			RHI::Barrier m_barrier{};
-			RHI::ImGuiContext m_imgui{};
 
 			RenderGraph m_renderGraph;
 			RendererDesc m_desc{};

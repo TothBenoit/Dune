@@ -2,6 +2,7 @@
 
 #include "Dune/Graphics/GraphicsSystem.h"
 #include "Dune/Graphics/Renderer.h"
+#include "Dune/Graphics/WindowSurface.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Graphics/FrameData.h"
 #include "Dune/Assets/AssetCache.h"
@@ -45,6 +46,7 @@ namespace Dune
 	struct View
 	{
 		Window window;
+		Graphics::WindowSurface surface;
 		Graphics::Renderer renderer;
 		Graphics::FrameData frameData;
 	};
@@ -56,8 +58,6 @@ namespace Dune
 		ViewHandle view;
 		World* pWorld{ nullptr };
 		Graphics::ViewData viewData;
-		dU32 width{ 0 };
-		dU32 height{ 0 };
 	};
 
 	struct GameFrame

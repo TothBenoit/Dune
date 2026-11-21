@@ -209,6 +209,9 @@
     <ClInclude Include="include\Dune\Graphics\RenderGraph.h">
       <Filter>Dune\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Graphics\WindowSurface.h">
+      <Filter>Dune\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Graphics\RenderPass\ClearDepth.h">
       <Filter>Dune\Graphics\RenderPass</Filter>
     </ClInclude>
@@ -278,6 +281,9 @@
       <Filter>Dune\Platform\Win32</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp">
+      <Filter>Dune\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Graphics\WindowSurface.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">

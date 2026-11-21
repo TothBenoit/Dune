@@ -62,13 +62,14 @@ namespace Dune
 		return object;
 	}
 
-	ViewData RenderBridge::MakeView(const Transform& transform, const Camera& camera, float aspectRatio)
+	ViewData RenderBridge::MakeView(const Transform& transform, const Camera& camera, dUVec2 resolution)
 	{
 		ViewData view;
 		ComputeViewMatrix(transform, &view.view);
-		ComputeProjectionMatrix(camera, aspectRatio, &view.projection);
+		ComputeProjectionMatrix(camera, resolution.y > 0 ? (float)resolution.x / resolution.y : 1.0f, &view.projection);
 		DirectX::XMStoreFloat4x4(&view.viewProjection, DirectX::XMLoadFloat4x4(&view.view) * DirectX::XMLoadFloat4x4(&view.projection));
 		view.position = transform.position;
+		view.resolution = resolution;
 		return view;
 	}
 

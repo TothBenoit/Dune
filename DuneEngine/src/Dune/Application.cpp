@@ -52,15 +52,12 @@ namespace Dune
 		const ViewHandle handle = m_viewHandles.Allocate();
 		View& view = m_views.Resolve(handle.GetIndex());
 		view.window.Initialize({ .width = desc.width, .height = desc.height, .title = desc.title });
+		const FilePath layoutPath = desc.imguiLayoutPath.empty() ? FilePath{} : FileSystem::ResolvePath(desc.imguiLayoutPath.c_str());
+		m_graphics.InitializeWindowSurface(view.surface, view.window, { .enableImGui = desc.enableImGui, .pImGuiLayoutPath = layoutPath.empty() ? nullptr : layoutPath.c_str() });
 		if (desc.pRendererDesc)
-			m_graphics.InitializeRenderer(view.renderer, view.window, *desc.pRendererDesc);
+			m_graphics.InitializeRenderer(view.renderer, *desc.pRendererDesc);
 		else
-			m_graphics.InitializeRenderer(view.renderer, view.window, Graphics::ForwardPipeline::MakeDesc());
-		if (desc.enableImGui)
-		{
-			const FilePath layoutPath = desc.imguiLayoutPath.empty() ? FilePath{} : FileSystem::ResolvePath(desc.imguiLayoutPath.c_str());
-			view.renderer.InitializeImGui(layoutPath.empty() ? nullptr : layoutPath.c_str());
-		}
+			m_graphics.InitializeRenderer(view.renderer, Graphics::ForwardPipeline::MakeDesc());
 
 		m_activeViews.push_back(handle);
 		return handle;
@@ -70,6 +67,7 @@ namespace Dune
 	{
 		View& v = GetView(view);
 		v.renderer.Destroy();
+		v.surface.Destroy();
 		v.window.Destroy();
 		RemoveHandle(m_activeViews, view);
 		m_viewHandles.Free(view);
@@ -121,8 +119,7 @@ namespace Dune
 	{
 		Assert(IsViewActive(view));
 		const Window& window = GetView(view).window;
-		const float aspectRatio = window.GetHeight() > 0 ? (float)window.GetWidth() / window.GetHeight() : 1.0f;
-		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, &world, world.MakeView(camera, aspectRatio), window.GetWidth(), window.GetHeight() });
+		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, &world, world.MakeView(camera, { window.GetWidth(), window.GetHeight() }) });
 	}
 
 	void Application::RenderFrame(dU64 frameNumber)
@@ -133,10 +130,9 @@ namespace Dune
 			if (!IsViewActive(request.view))
 				continue;
 			View& view = GetView(request.view);
-			const dUVec2 resolution = view.renderer.GetResolution();
-			if (resolution.x != request.width || resolution.y != request.height)
-				view.renderer.OnResize(request.width, request.height);
 			m_graphics.Render(view.renderer, request.pWorld->GetRenderScene(), request.viewData, frame.context, view.frameData);
+			const Graphics::SurfaceBlit blit{ .pTexture = &view.renderer.GetOutputTexture() };
+			view.surface.Present({ &blit, 1 });
 		}
 	}
 
@@ -266,7 +262,7 @@ namespace Dune
 
 	RHI::ImGuiContext& Application::GetImGui(ViewHandle view)
 	{
-		return GetView(view).renderer.GetImGui();
+		return GetView(view).surface.GetImGui();
 	}
 
 	View& Application::GetView(ViewHandle view)

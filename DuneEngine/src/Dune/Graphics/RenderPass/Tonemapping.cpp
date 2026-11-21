@@ -145,15 +145,15 @@ namespace Dune::Graphics
 		RenderGraphBuilder& tonemapBuilder = context.AddPass();
 		const RGTextureSRV tonemapHdrSRV = tonemapBuilder.ReadSRV(hdrTarget);
 		tonemapBuilder.Read(luminanceBuffer, RHI::EResourceState::ShaderResource);
-		const RGTextureRTV backBufferRTV = tonemapBuilder.WriteRTV(renderer.GetBackBufferHandle());
-		tonemapBuilder.OnExecute([tonemapHdrSRV, luminanceBuffer, backBufferRTV](RenderPassContext& context)
+		const RGTextureRTV outputRTV = tonemapBuilder.WriteRTV(renderer.GetOutputHandle());
+		tonemapBuilder.OnExecute([tonemapHdrSRV, luminanceBuffer, outputRTV](RenderPassContext& context)
 			{
 				Renderer& renderer = *context.pRenderer;
 				RHI::CommandList& commandList = renderer.GetCurrentFrame().commandList;
 				const dUVec2 resolution = renderer.GetResolution();
 				PSO& tonemapPSO = *context.GetPipeline(Tonemapping::kTonemapPipeline);
 
-				const RHI::Descriptor rtv = context.GetDescriptor(backBufferRTV);
+				const RHI::Descriptor rtv = context.GetDescriptor(outputRTV);
 				commandList.SetRenderTarget(&rtv.cpuAddress, 1, nullptr);
 
 				RHI::Viewport viewport{ 0.0, 0.0, (float)resolution.x, (float)resolution.y, 0.0f, 1.0f };

@@ -9,6 +9,7 @@ namespace Dune::Graphics
 		dMatrix4x4 projection;
 		dMatrix4x4 viewProjection;
 		dVec3 position;
+		dUVec2 resolution{ 0, 0 };
 	};
 
 	struct DrawItem

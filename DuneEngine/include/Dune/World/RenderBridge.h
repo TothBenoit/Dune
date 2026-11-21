@@ -24,7 +24,7 @@ namespace Dune
 		void Validate(const GameScene& gameScene, const Graphics::RenderScene& renderScene) const;
 #endif
 
-		[[nodiscard]] static Graphics::ViewData MakeView(const Transform& transform, const Camera& camera, float aspectRatio);
+		[[nodiscard]] static Graphics::ViewData MakeView(const Transform& transform, const Camera& camera, dUVec2 resolution);
 
 	private:
 		void SyncObject(const GameScene& gameScene, Graphics::RenderScene& renderScene, EntityID entity);

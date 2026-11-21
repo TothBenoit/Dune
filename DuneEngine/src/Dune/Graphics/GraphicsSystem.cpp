@@ -30,9 +30,14 @@ namespace Dune::Graphics
 		ReleasePendingResources();
 	}
 
-	void GraphicsSystem::InitializeRenderer(Renderer& renderer, Window& window, const RendererDesc& desc)
+	void GraphicsSystem::InitializeRenderer(Renderer& renderer, const RendererDesc& desc)
 	{
-		m_renderContext.InitializeRenderer(renderer, window, desc);
+		m_renderContext.InitializeRenderer(renderer, desc);
+	}
+
+	void GraphicsSystem::InitializeWindowSurface(WindowSurface& surface, Window& window, const WindowSurfaceDesc& desc)
+	{
+		m_renderContext.InitializeWindowSurface(surface, window, desc);
 	}
 
 	void GraphicsSystem::Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, const FrameContext& frameContext, FrameData& frameData)

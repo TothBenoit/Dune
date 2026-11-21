@@ -34,7 +34,7 @@ namespace Dune
 		[[nodiscard]] RenderSceneHandle GetRenderScene() const { return m_renderScene; }
 		[[nodiscard]] bool IsInitialized() const { return m_pGraphics != nullptr; }
 
-		[[nodiscard]] Graphics::ViewData MakeView(EntityID camera, float aspectRatio) const;
+		[[nodiscard]] Graphics::ViewData MakeView(EntityID camera, dUVec2 resolution) const;
 
 	private:
 		Graphics::GraphicsSystem* m_pGraphics{ nullptr };

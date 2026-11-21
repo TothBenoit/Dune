@@ -1,21 +1,17 @@
 #include "pch.h"
 #include "Dune/Graphics/Renderer.h"
-#include "Dune/Platform/Window.h"
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Platform/RHI/Device.h"
 #include "Dune/Graphics/PSOCache.h"
 
 namespace Dune::Graphics
 {
-	void Renderer::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, DescriptorAllocator& srvAllocator, Window& window, const RendererDesc& desc)
+	void Renderer::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, DescriptorAllocator& srvAllocator, const RendererDesc& desc)
 	{
 		m_pDevice = &device;
 		m_pCommandQueue = &commandQueue;
 		m_pPSOCache = &psoCache;
 		m_pSRVAllocator = &srvAllocator;
-		m_pWindow = &window;
-
-		m_resolution = { window.GetWidth(), window.GetHeight() };
 
 		for (Frame& frame : m_frames)
 		{
@@ -31,7 +27,6 @@ namespace Dune::Graphics
 
 		m_barrier.Initialize(kBarrierCapacity);
 		m_fence.Initialize(device, 0);
-		m_swapchain.Initialize(device, m_pWindow, m_pCommandQueue, { .latency = kFramesInFlight });
 
 		RHI::DescriptorHeapDesc heapDesc { .type = RHI::EDescriptorHeapType::RTV, .capacity = 64, .isShaderVisible = false };
 		m_rtvHeap.Initialize(device, heapDesc);
@@ -42,20 +37,20 @@ namespace Dune::Graphics
 		m_dsvAllocator.Initialize(m_dsvHeap, 0, m_dsvHeap.GetCapacity());
 
 		m_renderGraph.Initialize(device, *m_pSRVAllocator, m_rtvAllocator, m_dsvAllocator, kFramesInFlight);
-		for (dU32 i = 0; i < kFramesInFlight; i++)
-			m_frames[i].backBufferHandle = m_renderGraph.RegisterTexture(&m_swapchain.GetBackBuffer(i), RHI::EResourceState::Present);
-
-		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
+		m_outputHandle = m_renderGraph.CreateTexture(
+			{
+				.debugName = L"OutputTarget",
+				.usage = RHI::ETextureUsage::RenderTarget | RHI::ETextureUsage::ShaderResource,
+				.width = std::max(1u, m_resolution.x),
+				.height = std::max(1u, m_resolution.y),
+				.format = RHI::EFormat::R8G8B8A8_UNORM,
+				.initialState = RHI::EResourceState::RenderTarget,
+			});
 
 		m_passContext.pRenderer = this;
 
 		m_desc = desc;
 		m_pPipelineData = m_desc.pCreate(*this);
-	}
-
-	void Renderer::InitializeImGui(const char* pLayoutPath)
-	{
-		m_imgui.Initialize({ .pWindow = m_pWindow, .pDevice = m_pDevice, .pCommandQueue = m_pCommandQueue, .framesInFlight = kFramesInFlight, .renderTargetFormat = m_swapchain.GetBackBuffer(0).GetFormat(), .pLayoutPath = pLayoutPath });
 	}
 
 	void Renderer::AddRenderPass(const RenderPass& pass)
@@ -93,8 +88,6 @@ namespace Dune::Graphics
 	{
 		for (Frame& frame : m_frames)
 			WaitForFrame(frame);
-		if (HasImGui())
-			m_imgui.Destroy();
 
 		for (Frame& frame : m_frames)
 		{
@@ -121,7 +114,6 @@ namespace Dune::Graphics
 		m_rtvHeap.Destroy();
 		m_dsvHeap.Destroy();
 		m_barrier.Destroy();
-		m_swapchain.Destroy();
 		m_fence.Destroy();
 	}
 
@@ -132,18 +124,6 @@ namespace Dune::Graphics
 			commandList.Transition(m_barrier);
 			m_barrier.Reset();
 		}
-	}
-
-	void Renderer::OnResize(dU32 width, dU32 height)
-	{
-		for (Frame& f : m_frames)
-			WaitForFrame(f);
-
-		m_swapchain.Resize(width, height);
-		m_resolution = { width, height };
-		m_frameIndex = m_swapchain.GetCurrentBackBufferIndex();
-		for (dU32 i = 0; i < kFramesInFlight; i++)
-			m_renderGraph.SetPhysicalResource(m_frames[i].backBufferHandle, &m_swapchain.GetBackBuffer(i), RHI::EResourceState::Present);
 	}
 
 	void Renderer::WaitForFrame(const Frame& frame)
@@ -190,6 +170,12 @@ namespace Dune::Graphics
 		m_passContext.pFrameData = &frameData;
 		m_passContext.pView = &view;
 		m_passContext.blackboard.Reset();
+
+		if (view.resolution.x != m_resolution.x || view.resolution.y != m_resolution.y)
+		{
+			m_resolution = view.resolution;
+			m_renderGraph.ResizeTexture(m_outputHandle, std::max(1u, m_resolution.x), std::max(1u, m_resolution.y));
+		}
 
 		bool usedKeys[Material::kKeyTableSize]{};
 		for (const DrawItem& drawItem : frameData.drawItems)
@@ -238,16 +224,12 @@ namespace Dune::Graphics
 			builder.Execute(m_passContext);
 		}
 
-		if (HasImGui())
-			m_imgui.Render(frame.commandList);
-
-		m_renderGraph.TransitionTexture({ .handle = frame.backBufferHandle, .state = RHI::EResourceState::Present }, m_barrier);
+		m_renderGraph.TransitionTexture({ .handle = m_outputHandle, .state = RHI::EResourceState::CopySource }, m_barrier);
 		FlushBarriers(frame.commandList);
 		m_renderGraph.EndFrame();
 
 		frame.commandList.Close();
 		m_pCommandQueue->ExecuteCommandLists(&frame.commandList, 1);
-		m_swapchain.Present();
 		m_pCommandQueue->Signal(m_fence, ++m_frameCount);
 		frame.fenceValue = m_frameCount;
 		m_frameIndex = (m_frameIndex + 1) % kFramesInFlight;
