@@ -70,6 +70,7 @@ namespace Dune::RHI
 		void SetScissors(dU32 numScissor, Scissor* pScissors);
 
 		void CopyBufferRegion(Buffer& destBuffer, dU64 dstOffset, Buffer& srcBuffer, dU64 srcOffset, dU64 size);
+		void CopyTextureRegion(Texture& destTexture, dU32 destX, dU32 destY, Texture& srcTexture, dU32 width, dU32 height);
 		void UploadTexture(Texture& destTexture, Buffer& uploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 numSubresource, void* pSrcData);
 
 		void Transition(const Barrier& barrier);

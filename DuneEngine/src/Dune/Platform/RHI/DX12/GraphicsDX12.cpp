@@ -570,6 +570,14 @@ namespace Dune::RHI
 		ToCommandList(Get())->CopyBufferRegion(ToResource(destBuffer.Get()), dstOffset, ToResource(srcBuffer.Get()), srcOffset, size);
 	}
 
+	void CommandList::CopyTextureRegion(Texture& destTexture, dU32 destX, dU32 destY, Texture& srcTexture, dU32 width, dU32 height)
+	{
+		const D3D12_TEXTURE_COPY_LOCATION dest{ .pResource = ToResource(destTexture.Get()), .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX, .SubresourceIndex = 0 };
+		const D3D12_TEXTURE_COPY_LOCATION src{ .pResource = ToResource(srcTexture.Get()), .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX, .SubresourceIndex = 0 };
+		const D3D12_BOX box{ .left = 0, .top = 0, .front = 0, .right = width, .bottom = height, .back = 1 };
+		ToCommandList(Get())->CopyTextureRegion(&dest, destX, destY, 0, &src, &box);
+	}
+
 	void CommandList::UploadTexture(Texture& destTexture, Buffer& uploadBuffer, dU64 uploadByteOffset, dU32 firstSubresource, dU32 numSubresource, void* pSrcData)
 	{
 		Assert(numSubresource <= 16);
