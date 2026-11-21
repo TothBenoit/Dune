@@ -6,6 +6,7 @@
 namespace Dune
 {
 	struct Camera;
+	struct Transform;
 	struct FrameContext;
 
 	namespace Graphics
@@ -23,7 +24,7 @@ namespace Dune
 		void Validate(const GameScene& gameScene, const Graphics::RenderScene& renderScene) const;
 #endif
 
-		[[nodiscard]] static Graphics::ViewData MakeView(const Camera& camera);
+		[[nodiscard]] static Graphics::ViewData MakeView(const Transform& transform, const Camera& camera, float aspectRatio);
 
 	private:
 		void SyncObject(const GameScene& gameScene, Graphics::RenderScene& renderScene, EntityID entity);

@@ -12,7 +12,6 @@
 namespace Dune
 {
 	class GameScene;
-	struct Camera;
 
 	namespace Graphics
 	{
@@ -81,7 +80,7 @@ namespace Dune
 
 		[[nodiscard]] bool BeginFrame();
 		void Update(World& world);
-		void Render(ViewHandle view, World& world, const Camera& camera);
+		void Render(ViewHandle view, World& world, EntityID camera);
 		void EndFrame();
 
 		[[nodiscard]] ModelHandle LoadModel(const char* pPath);

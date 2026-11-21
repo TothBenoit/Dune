@@ -117,11 +117,12 @@ namespace Dune
 		world.Update(m_frameContext);
 	}
 
-	void Application::Render(ViewHandle view, World& world, const Camera& camera)
+	void Application::Render(ViewHandle view, World& world, EntityID camera)
 	{
 		Assert(IsViewActive(view));
 		const Window& window = GetView(view).window;
-		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, &world, World::MakeView(camera), window.GetWidth(), window.GetHeight() });
+		const float aspectRatio = window.GetHeight() > 0 ? (float)window.GetWidth() / window.GetHeight() : 1.0f;
+		m_frames[m_frameContext.frameNumber % kFrameRingSize].requests.push_back({ view, &world, world.MakeView(camera, aspectRatio), window.GetWidth(), window.GetHeight() });
 	}
 
 	void Application::RenderFrame(dU64 frameNumber)

@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Dune/World/World.h"
 #include "Dune/Graphics/GraphicsSystem.h"
+#include "Dune/Game/Component/Camera.h"
+#include "Dune/Game/Component/Transform.h"
 
 namespace Dune
 {
@@ -42,8 +44,8 @@ namespace Dune
 	}
 #endif
 
-	Graphics::ViewData World::MakeView(const Camera& camera)
+	Graphics::ViewData World::MakeView(EntityID camera, float aspectRatio) const
 	{
-		return RenderBridge::MakeView(camera);
+		return RenderBridge::MakeView(m_gameScene.Get<Transform>(camera), m_gameScene.Get<Camera>(camera), aspectRatio);
 	}
 }

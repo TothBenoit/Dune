@@ -33,8 +33,8 @@ public:
 
 	void Run()
 	{
-		m_camera.SetNear(0.1f);
-		m_camera.SetFar(500.0f);
+		m_cameraEntity = m_pScene->CreateEntity("Camera", m_camera.GetTransform());
+		m_pScene->Add(m_cameraEntity, Camera{ .near = 0.1f, .far = 500.0f });
 		const ModelHandle sponza = m_app.LoadModel(m_world, "app://Sponza/Sponza.gltf");
 		Graphics::GraphicsSystem& graphics = m_app.GetGraphics();
 		m_pScene->SpawnMesh("Cube", { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Cube), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
@@ -45,13 +45,12 @@ public:
 		{
 			m_deltaTime = m_app.GetDeltaTime();
 			const Window& window = m_app.GetWindow(m_view);
-			if (window.GetHeight() > 0)
-				m_camera.SetAspectRatio((float)window.GetWidth() / window.GetHeight());
 
 			DrawGUI();
 			m_camera.Update(m_deltaTime, window.GetInput());
+			m_pScene->Set(m_cameraEntity, m_camera.GetTransform());
 			m_app.Update(m_world);
-			m_app.Render(m_view, m_world, m_camera.GetCamera());
+			m_app.Render(m_view, m_world, m_cameraEntity);
 			m_app.EndFrame();
 		}
 
@@ -110,11 +109,11 @@ public:
 		if (ImGui::IsKeyPressed(ImGuiKey_R))
 			m_gizmoOperation = ImGuizmo::SCALEU;
 
-		Camera& camera = m_camera.GetCamera();
+		const Window& window = m_app.GetWindow(m_view);
 		dMatrix4x4 view{};
-		ComputeViewMatrix(camera, &view);
+		ComputeViewMatrix(m_pScene->Get<Transform>(m_cameraEntity), &view);
 		dMatrix4x4 proj{};
-		ComputeProjectionMatrix(camera, &proj);
+		ComputeProjectionMatrix(m_pScene->Get<Camera>(m_cameraEntity), window.GetHeight() > 0 ? (float)window.GetWidth() / window.GetHeight() : 1.0f, &proj);
 		
 		return ImGuizmo::Manipulate(&view.m[0][0], &proj.m[0][0], m_gizmoOperation, ImGuizmo::WORLD, &worldTransform.m[0][0], nullptr, nullptr, nullptr, nullptr);
 	}
@@ -404,6 +403,7 @@ private:
 	GameScene* m_pScene;
 
 	SimpleCameraController m_camera{};
+	EntityID m_cameraEntity{};
 
 	float m_deltaTime{ 0.0f };
 	float m_framerate{ 0.0f };
