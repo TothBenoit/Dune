@@ -3,15 +3,17 @@
 #include <Dune/Graphics/FrameData.h>
 #include "Dune/Platform/RHI/Device.h"
 #include "Dune/Graphics/PSOCache.h"
+#include "Dune/Graphics/RenderContext.h"
 
 namespace Dune::Graphics
 {
-	void Renderer::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, DescriptorAllocator& srvAllocator, const RendererDesc& desc)
+	void Renderer::Initialize(RenderContext& context, const RendererDesc& desc)
 	{
+		RHI::Device& device = context.GetDevice();
 		m_pDevice = &device;
-		m_pCommandQueue = &commandQueue;
-		m_pPSOCache = &psoCache;
-		m_pSRVAllocator = &srvAllocator;
+		m_pCommandQueue = &context.GetCommandQueue();
+		m_pPSOCache = &context.GetPSOCache();
+		m_pSRVAllocator = &context.GetSRVAllocator();
 
 		for (Frame& frame : m_frames)
 		{

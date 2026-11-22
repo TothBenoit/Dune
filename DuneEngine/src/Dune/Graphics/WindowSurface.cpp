@@ -1,13 +1,16 @@
 #include "pch.h"
 #include "Dune/Graphics/WindowSurface.h"
+#include "Dune/Graphics/RenderContext.h"
 #include "Dune/Platform/Window.h"
 #include "Dune/Platform/RHI/Device.h"
 #include "Dune/Platform/RHI/Texture.h"
 
 namespace Dune::Graphics
 {
-	void WindowSurface::Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, Window& window, const WindowSurfaceDesc& desc)
+	void WindowSurface::Initialize(RenderContext& context, Window& window, const WindowSurfaceDesc& desc)
 	{
+		RHI::Device& device = context.GetDevice();
+		RHI::CommandQueue& commandQueue = context.GetCommandQueue();
 		m_pDevice = &device;
 		m_pCommandQueue = &commandQueue;
 		m_pWindow = &window;

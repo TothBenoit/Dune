@@ -8,18 +8,8 @@
 #include "Dune/Graphics/ResourceManager.h"
 #include "Dune/Graphics/UploadContext.h"
 
-namespace Dune
-{
-	class Window;
-}
-
 namespace Dune::Graphics
 {
-	class Renderer;
-	class WindowSurface;
-	struct RendererDesc;
-	struct WindowSurfaceDesc;
-
 	class RenderContext
 	{
 	public:
@@ -28,13 +18,11 @@ namespace Dune::Graphics
 		void Initialize(const ResourceCache& resourceCache, dU32 physicalDeviceIndex);
 		void Destroy();
 
-		void InitializeRenderer(Renderer& renderer, const RendererDesc& desc);
-		void InitializeWindowSurface(WindowSurface& surface, Window& window, const WindowSurfaceDesc& desc);
-
 		[[nodiscard]] RHI::Device& GetDevice() { return m_device; }
 		[[nodiscard]] const RHI::PhysicalDevice& GetPhysicalDevice() const { return m_physicalDevice; }
 		[[nodiscard]] RHI::CommandQueue& GetCommandQueue() { return m_commandQueue; }
 		[[nodiscard]] PSOCache& GetPSOCache() { return m_psoCache; }
+		[[nodiscard]] DescriptorAllocator& GetSRVAllocator() { return m_srvAllocator; }
 		[[nodiscard]] ResourceManager& GetResourceManager() { return m_resourceManager; }
 		[[nodiscard]] const ResourceManager& GetResourceManager() const { return m_resourceManager; }
 		[[nodiscard]] UploadContext& GetUploadContext() { return m_uploadContext; }

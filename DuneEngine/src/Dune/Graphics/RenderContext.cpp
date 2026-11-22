@@ -1,7 +1,5 @@
 #include "pch.h"
 #include "Dune/Graphics/RenderContext.h"
-#include "Dune/Graphics/Renderer.h"
-#include "Dune/Graphics/WindowSurface.h"
 
 namespace Dune::Graphics
 {
@@ -36,15 +34,5 @@ namespace Dune::Graphics
 	void RenderContext::Signal()
 	{
 		m_commandQueue.Signal(m_fence, ++m_fenceValue);
-	}
-
-	void RenderContext::InitializeRenderer(Renderer& renderer, const RendererDesc& desc)
-	{
-		renderer.Initialize(m_device, m_commandQueue, m_psoCache, m_srvAllocator, desc);
-	}
-
-	void RenderContext::InitializeWindowSurface(WindowSurface& surface, Window& window, const WindowSurfaceDesc& desc)
-	{
-		surface.Initialize(m_device, m_commandQueue, window, desc);
 	}
 }

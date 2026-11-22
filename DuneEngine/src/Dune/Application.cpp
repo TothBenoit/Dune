@@ -54,7 +54,7 @@ namespace Dune
 		WindowEntry* pEntry = new WindowEntry();
 		pEntry->window.Initialize(desc);
 		const FilePath layoutPath = surfaceDesc.pImGuiLayoutPath ? FileSystem::ResolvePath(surfaceDesc.pImGuiLayoutPath) : FilePath{};
-		m_graphics.InitializeWindowSurface(pEntry->surface, pEntry->window, { .enableImGui = surfaceDesc.enableImGui, .pImGuiLayoutPath = layoutPath.empty() ? nullptr : layoutPath.c_str() });
+		pEntry->surface.Initialize(m_graphics.GetRenderContext(), pEntry->window, { .enableImGui = surfaceDesc.enableImGui, .pImGuiLayoutPath = layoutPath.empty() ? nullptr : layoutPath.c_str() });
 		m_windows.push_back(pEntry);
 		return &pEntry->window;
 	}
@@ -74,7 +74,7 @@ namespace Dune
 	{
 		Assert(desc.pWorld && desc.pWindow);
 		WorldView* pView = new WorldView{ .pWorld = desc.pWorld, .camera = desc.camera, .pWindow = desc.pWindow, .x = desc.x, .y = desc.y, .width = desc.width, .height = desc.height };
-		m_graphics.InitializeRenderer(pView->renderer, desc.pRendererDesc ? *desc.pRendererDesc : Graphics::ForwardPipeline::MakeDesc());
+		pView->renderer.Initialize(m_graphics.GetRenderContext(), desc.pRendererDesc ? *desc.pRendererDesc : Graphics::ForwardPipeline::MakeDesc());
 		m_worldViews.push_back(pView);
 		return pView;
 	}

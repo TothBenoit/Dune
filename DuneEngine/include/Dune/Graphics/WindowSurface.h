@@ -19,6 +19,8 @@ namespace Dune::RHI
 
 namespace Dune::Graphics
 {
+	class RenderContext;
+
 	struct WindowSurfaceDesc
 	{
 		bool enableImGui{ false };
@@ -37,7 +39,7 @@ namespace Dune::Graphics
 	public:
 		static constexpr dU32 kFramesInFlight = 3;
 
-		void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, Window& window, const WindowSurfaceDesc& desc);
+		void Initialize(RenderContext& context, Window& window, const WindowSurfaceDesc& desc);
 		void Destroy();
 
 		void Present(dSpan<const SurfaceBlit> blits);

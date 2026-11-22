@@ -24,6 +24,7 @@ namespace Dune
 	namespace Graphics
 	{
 		class PSOCache;
+		class RenderContext;
 		class Renderer;
 		struct FrameData;
 		struct ViewData;
@@ -46,7 +47,7 @@ namespace Dune
 			static constexpr dU32 kBarrierCapacity = 256;
 			static constexpr dU32 kUploadBufferByteSize = 16 * 1024 * 1024;
 
-			void Initialize(RHI::Device& device, RHI::CommandQueue& commandQueue, PSOCache& psoCache, DescriptorAllocator& srvAllocator, const RendererDesc& desc);
+			void Initialize(RenderContext& context, const RendererDesc& desc);
 			void Destroy();
 
 			void Render(const FrameContext& frameContext, const FrameData& frameData, const ViewData& view);

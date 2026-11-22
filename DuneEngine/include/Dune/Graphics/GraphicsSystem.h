@@ -8,15 +8,12 @@
 
 namespace Dune
 {
-	class Window;
 	struct FrameContext;
 }
 
 namespace Dune::Graphics
 {
 	class Renderer;
-	class WindowSurface;
-	struct WindowSurfaceDesc;
 
 	class GraphicsSystem
 	{
@@ -25,8 +22,6 @@ namespace Dune::Graphics
 		void Destroy();
 		void EndFrame();
 
-		void InitializeRenderer(Renderer& renderer, const RendererDesc& desc);
-		void InitializeWindowSurface(WindowSurface& surface, Window& window, const WindowSurfaceDesc& desc);
 		void Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, const FrameContext& frameContext, FrameData& frameData);
 
 		[[nodiscard]] TextureHandle     CreateTexture(const TextureData& data);
