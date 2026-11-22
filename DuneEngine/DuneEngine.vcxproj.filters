@@ -149,6 +149,9 @@
     <ClInclude Include="include\Dune\Application.h">
       <Filter>Dune</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Engine.h">
+      <Filter>Dune</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Assets\AssetCache.h">
       <Filter>Dune\Assets</Filter>
     </ClInclude>
@@ -310,7 +313,7 @@
     <ClCompile Include="src\Dune\Graphics\UploadContext.cpp">
       <Filter>Dune\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="src\Dune\Application.cpp">
+    <ClCompile Include="src\Dune\Engine.cpp">
       <Filter>Dune</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Assets\AssetCache.cpp">

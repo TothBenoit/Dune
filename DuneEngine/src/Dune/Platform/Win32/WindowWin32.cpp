@@ -281,8 +281,8 @@ namespace Dune
 
 	void Window::Initialize(const WindowDesc& desc)
 	{
-		m_width = desc.width;
-		m_height = desc.height;
+		m_pendingWidth = desc.width;
+		m_pendingHeight = desc.height;
 		m_title = desc.title;
 
 		WNDCLASSEX wc;
@@ -317,6 +317,7 @@ namespace Dune
 		Assert(m_pHandle != NULL);
 		SetWindowLongPtr((HWND)m_pHandle, GWLP_USERDATA, (LONG_PTR)this);
 		ShowWindow((HWND)m_pHandle, 1);
+		Update();
 	}
 
 	void Window::Destroy()
@@ -325,6 +326,8 @@ namespace Dune
 		DestroyWindow((HWND)m_pHandle);
 		m_pHandle = nullptr;
 		m_input = {};
+		m_pendingInput = {};
+		m_pendingEvents.clear();
 		m_title.clear();
 		m_hooks.clear();
 		for (dVector<EventEntry>& events : m_events)
@@ -333,15 +336,31 @@ namespace Dune
 		m_nextEventHandle = 0;
 	}
 
-	void Window::Update()
+	void Window::ProcessMessages()
 	{
 		MSG msg{};
-		m_input.Update();
 		while (PeekMessage(&msg, (HWND)m_pHandle, 0, 0, PM_REMOVE) > 0)
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+	}
+
+	void Window::ProcessBlockingMessages()
+	{
+		MSG msg{};
+		PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE | PM_QS_SENDMESSAGE);
+	}
+
+	void Window::Update()
+	{
+		m_input = m_pendingInput;
+		m_pendingInput.Update();
+		m_width = m_pendingWidth;
+		m_height = m_pendingHeight;
+		for (const PendingEvent& event : m_pendingEvents)
+			OnEvent(event.type, event.message);
+		m_pendingEvents.clear();
 	}
 
 	void Window::WindowNativeHook(void* pNativeEvent)
@@ -350,53 +369,53 @@ namespace Dune
 		switch (nativeEvent.uMsg)
 		{
 		case WM_CLOSE:
-			OnEvent(EWindowMessageType::Close, {});
+			m_pendingEvents.push_back({ EWindowMessageType::Close, {} });
 			break;
 		case WM_SIZE:
-			m_width = LOWORD(nativeEvent.lParam);
-			m_width = (m_width == 0) ? 1 : m_width;
-			m_height = HIWORD(nativeEvent.lParam);
-			m_height = (m_height == 0) ? 1 : m_height;
-			OnEvent(EWindowMessageType::Resize, { .resize = { m_width, m_height } });
+			m_pendingWidth = LOWORD(nativeEvent.lParam);
+			m_pendingWidth = (m_pendingWidth == 0) ? 1 : m_pendingWidth;
+			m_pendingHeight = HIWORD(nativeEvent.lParam);
+			m_pendingHeight = (m_pendingHeight == 0) ? 1 : m_pendingHeight;
+			m_pendingEvents.push_back({ EWindowMessageType::Resize, { .resize = { m_pendingWidth, m_pendingHeight } } });
 			break;
 		case WM_PAINT:
-			OnEvent(EWindowMessageType::Paint, {});
+			m_pendingEvents.push_back({ EWindowMessageType::Paint, {} });
 			break;
 		case WM_KILLFOCUS:
-			m_input.ClearInput();
+			m_pendingInput.ClearInput();
 			break;
 		case WM_SYSKEYDOWN:
 		case WM_KEYDOWN:
-			m_input.SetKeyDown(g_win32ToKeyCode[nativeEvent.wParam]);
+			m_pendingInput.SetKeyDown(g_win32ToKeyCode[nativeEvent.wParam]);
 			break;
 		case WM_SYSKEYUP:
 		case WM_KEYUP:
-			m_input.SetKeyUp(g_win32ToKeyCode[nativeEvent.wParam]);
+			m_pendingInput.SetKeyUp(g_win32ToKeyCode[nativeEvent.wParam]);
 			break;
 		case WM_MOUSEWHEEL:
-			m_input.SetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(nativeEvent.wParam));
+			m_pendingInput.SetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(nativeEvent.wParam));
 			break;
 		case WM_MOUSEMOVE:
-			m_input.SetMousePosX((short)LOWORD(nativeEvent.lParam));
-			m_input.SetMousePosY((short)HIWORD(nativeEvent.lParam));
+			m_pendingInput.SetMousePosX((short)LOWORD(nativeEvent.lParam));
+			m_pendingInput.SetMousePosY((short)HIWORD(nativeEvent.lParam));
 			break;
 		case WM_LBUTTONDOWN:
-			m_input.SetMouseButtonDown(0);
+			m_pendingInput.SetMouseButtonDown(0);
 			break;
 		case WM_LBUTTONUP:
-			m_input.SetMouseButtonUp(0);
+			m_pendingInput.SetMouseButtonUp(0);
 			break;
 		case WM_MBUTTONDOWN:
-			m_input.SetMouseButtonDown(1);
+			m_pendingInput.SetMouseButtonDown(1);
 			break;
 		case WM_MBUTTONUP:
-			m_input.SetMouseButtonUp(1);
+			m_pendingInput.SetMouseButtonUp(1);
 			break;
 		case WM_RBUTTONDOWN:
-			m_input.SetMouseButtonDown(2);
+			m_pendingInput.SetMouseButtonDown(2);
 			break;
 		case WM_RBUTTONUP:
-			m_input.SetMouseButtonUp(2);
+			m_pendingInput.SetMouseButtonUp(2);
 			break;
 		}
 	}

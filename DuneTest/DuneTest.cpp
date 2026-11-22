@@ -1,4 +1,5 @@
 #include <Dune.h>
+#include <Dune/Engine.h>
 #include <Dune/Application.h>
 #include <algorithm>
 #include <chrono>
@@ -21,47 +22,87 @@
 
 using namespace Dune;
 
-class App
+class App : public Application
 {
 public:
-	App(Application& application, Window& window, World& world)
-		: m_app{ application }
-		, m_window{ window }
-		, m_world{ world }
-		, m_pScene{ &world.GetGameScene() }
-	{}
-
-	void Run()
+	void Init(Engine& engine) override
 	{
+		m_pWindow = engine.CreateWindow({ .title = L"Dune" }, { .enableImGui = true, .pImGuiLayoutPath = "app://imgui.ini" });
+		m_pWorld = engine.CreateWorld({});
+		m_pScene = &m_pWorld->GetGameScene();
+		GameScene& scene = *m_pScene;
+
+		EntityID sun = scene.CreateEntity("Sun");
+		Light sunLight{};
+		sunLight.color = { 1.0f, 1.0f, 0.984f };
+		sunLight.direction = { -15.0f, 0.0f, -85.f };
+		sunLight.intensity = 6.f;
+		sunLight.type = ELightType::Directional;
+		sunLight.castShadow = true;
+		scene.Add(sun, sunLight);
+
+		EntityID ambient = scene.CreateEntity("Ambient");
+		Light ambientLight{};
+		ambientLight.color = { 0.937f, 0.977f, 1.0f };
+		ambientLight.position = { 0.0f, 5.2f, 0.0f };
+		ambientLight.intensity = 64.f;
+		ambientLight.range = 1600.0f;
+		ambientLight.type = ELightType::Point;
+		ambientLight.castShadow = false;
+		scene.Add(ambient, ambientLight);
+
+		EntityID candle = scene.CreateEntity("Candle");
+		Light candleLight{};
+		candleLight.color = { 1.0f, 0.576f, 0.16f };
+		candleLight.position = { -10.28f, 1.36f, 0.28f };
+		candleLight.intensity = 7.7f;
+		candleLight.range = 4.f;
+		candleLight.type = ELightType::Point;
+		candleLight.castShadow = true;
+		scene.Add(candle, candleLight);
+
+		EntityID spot = scene.CreateEntity("Spot");
+		Light spotLight{};
+		spotLight.position = { 8.0f, 2.8f, 0.2f };
+		spotLight.intensity = 400.0f;
+		spotLight.color = { 1.0f, 1.0f, 1.0f };
+		spotLight.range = 6.f;
+		spotLight.direction = { 0.0f, 0.0f, -45.0f};
+		spotLight.halfAngle = DirectX::XMConvertToRadians(45.0f);
+		spotLight.penumbra = 0.5f;
+		spotLight.type = ELightType::Spot;
+		spotLight.castShadow = true;
+		scene.Add(spot, spotLight);
+
 		m_cameraEntity = m_pScene->CreateEntity("Camera", m_camera.GetTransform());
 		m_pScene->Add(m_cameraEntity, Camera{ .near = 0.1f, .far = 500.0f });
-		WorldView* pView = m_app.CreateWorldView({ .pWorld = &m_world, .camera = m_cameraEntity, .pWindow = &m_window });
-		const dU32 closeEvent = m_window.RegisterEvent(this, &App::OnClose, EWindowMessageType::Close);
-		const ModelHandle sponza = m_app.LoadModel(m_world, "app://Sponza/Sponza.gltf");
-		Graphics::GraphicsSystem& graphics = m_app.GetGraphics();
+		m_pView = engine.CreateWorldView({ .pWorld = m_pWorld, .camera = m_cameraEntity, .pWindow = m_pWindow });
+		m_closeEvent = m_pWindow->RegisterEvent(this, &App::OnClose, EWindowMessageType::Close);
+		m_sponza = engine.LoadModel(*m_pWorld, "app://Sponza/Sponza.gltf");
+		Graphics::GraphicsSystem& graphics = engine.GetGraphics();
 		m_pScene->SpawnMesh("Cube", { .position = { -0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Cube), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.8f, 0.1f, 0.1f } }) }));
 		m_pScene->SpawnMesh("Sphere", { .position = { 0.0f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Sphere), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.9f, 0.9f, 0.9f }, .roughness = 0.3f }) }));
 		m_pScene->SpawnMesh("Plane", { .position = { 0.5f, 0.15f, 1.5f }, .rotation = DirectX::XMQuaternionRotationAxis({ 1.0f, 0.0f, 0.0f, 0.0f }, -DirectX::XM_PIDIV2), .scale = 0.3f }, graphics.GetPrimitive(EPrimitive::Plane), graphics.CreateMaterialSet({ graphics.CreateMaterial({ .baseColor = { 0.1f, 0.3f, 0.8f }, .faceCulling = RHI::ECullingMode::None }) }));
+	}
 
-		while (true)
-		{
-			m_app.BeginFrame();
-			if (!m_isRunning)
-				break;
-			m_deltaTime = m_app.GetDeltaTime();
+	bool Tick(Engine& engine, float deltaTime) override
+	{
+		m_deltaTime = deltaTime;
+		DrawGUI(engine);
+		m_camera.Update(deltaTime, m_pWindow->GetInput());
+		m_pScene->Set(m_cameraEntity, m_camera.GetTransform());
+		return m_isRunning;
+	}
 
-			DrawGUI();
-			m_camera.Update(m_deltaTime, m_window.GetInput());
-			m_pScene->Set(m_cameraEntity, m_camera.GetTransform());
-			m_app.Update(m_world);
-			m_app.EndFrame();
-		}
-
-		m_window.UnregisterEvent(EWindowMessageType::Close, closeEvent);
-		m_app.DestroyWorldView(pView);
+	void Shutdown(Engine& engine) override
+	{
+		m_pWindow->UnregisterEvent(EWindowMessageType::Close, m_closeEvent);
+		engine.DestroyWorldView(m_pView);
 
 		m_pScene->DestroyAllEntities();
-		m_app.UnloadModel(sponza);
+		engine.UnloadModel(m_sponza);
+		engine.DestroyWorld(m_pWorld);
+		engine.DestroyWindow(m_pWindow);
 	}
 
 	static void OnClose(void* pData, const WindowMessage&)
@@ -120,7 +161,7 @@ public:
 		if (ImGui::IsKeyPressed(ImGuiKey_R))
 			m_gizmoOperation = ImGuizmo::SCALEU;
 
-		const Window& window = m_window;
+		const Window& window = *m_pWindow;
 		dMatrix4x4 view{};
 		ComputeViewMatrix(m_pScene->Get<Transform>(m_cameraEntity), &view);
 		dMatrix4x4 proj{};
@@ -129,9 +170,9 @@ public:
 		return ImGuizmo::Manipulate(&view.m[0][0], &proj.m[0][0], m_gizmoOperation, ImGuizmo::WORLD, &worldTransform.m[0][0], nullptr, nullptr, nullptr, nullptr);
 	}
 
-	void DrawGUI()
+	void DrawGUI(Engine& engine)
 	{
-		RHI::ImGuiContext& imgui = m_app.GetImGui(m_window);
+		RHI::ImGuiContext& imgui = engine.GetImGui(*m_pWindow);
 		RHI::ImGuiContext::LockGuard guard = imgui.AcquireContext();
 		imgui.NewFrame(guard);
 		ImGuizmo::BeginFrame();
@@ -408,10 +449,12 @@ public:
 	}
 
 private:
-	Application& m_app;
-	Window& m_window;
-	World& m_world;
-	GameScene* m_pScene;
+	Window* m_pWindow{ nullptr };
+	World* m_pWorld{ nullptr };
+	GameScene* m_pScene{ nullptr };
+	WorldView* m_pView{ nullptr };
+	ModelHandle m_sponza{};
+	dU32 m_closeEvent{ 0 };
 
 	SimpleCameraController m_camera{};
 	EntityID m_cameraEntity{};
@@ -429,12 +472,6 @@ private:
 	ImGuizmo::OPERATION m_gizmoOperation{ ImGuizmo::ROTATE };
 };
 
-void Test(Application& application, Window& window, World& world)
-{
-	App app{ application, window, world };
-	app.Run();
-}
-
 int main(int argc, char** argv)
 {
 #ifdef _DEBUG
@@ -442,63 +479,13 @@ int main(int argc, char** argv)
 #endif
 
 	const dString solutionDirectory(SOLUTION_DIR);
-	Application application{};
-	application.Initialize(
+	App app{};
+	Run(app,
 		{
 			.workerCount = std::min(4u, std::thread::hardware_concurrency()) - 1,
 			.engineResourcePath = solutionDirectory + "/DuneEngine/include/Dune/Resources/",
 			.roots = { { .name = "app", .path = solutionDirectory + "/Resources/" } },
 		});
-	Window& window = *application.CreateWindow({ .title = L"Dune" }, { .enableImGui = true, .pImGuiLayoutPath = "app://imgui.ini" });
-
-	World& world = *application.CreateWorld({});
-	GameScene& scene = world.GetGameScene();
-
-	EntityID sun = scene.CreateEntity("Sun");
-	Light sunLight{};
-	sunLight.color = { 1.0f, 1.0f, 0.984f };
-	sunLight.direction = { -15.0f, 0.0f, -85.f };
-	sunLight.intensity = 6.f;
-	sunLight.type = ELightType::Directional;
-	sunLight.castShadow = true;
-	scene.Add(sun, sunLight);
-
-	EntityID ambient = scene.CreateEntity("Ambient");
-	Light ambientLight{};
-	ambientLight.color = { 0.937f, 0.977f, 1.0f };
-	ambientLight.position = { 0.0f, 5.2f, 0.0f };
-	ambientLight.intensity = 64.f;
-	ambientLight.range = 1600.0f;
-	ambientLight.type = ELightType::Point;
-	ambientLight.castShadow = false;
-	scene.Add(ambient, ambientLight);
-
-	EntityID candle = scene.CreateEntity("Candle");
-	Light candleLight{};
-	candleLight.color = { 1.0f, 0.576f, 0.16f };
-	candleLight.position = { -10.28f, 1.36f, 0.28f };
-	candleLight.intensity = 7.7f;
-	candleLight.range = 4.f;
-	candleLight.type = ELightType::Point;
-	candleLight.castShadow = true;
-	scene.Add(candle, candleLight);
-
-	EntityID spot = scene.CreateEntity("Spot");
-	Light spotLight{};
-	spotLight.position = { 8.0f, 2.8f, 0.2f };
-	spotLight.intensity = 400.0f;
-	spotLight.color = { 1.0f, 1.0f, 1.0f };
-	spotLight.range = 6.f;
-	spotLight.direction = { 0.0f, 0.0f, -45.0f};
-	spotLight.halfAngle = DirectX::XMConvertToRadians(45.0f);
-	spotLight.penumbra = 0.5f;
-	spotLight.type = ELightType::Spot;
-	spotLight.castShadow = true;
-	scene.Add(spot, spotLight);
-
-	Test(application, window, world);
-
-	application.Destroy();
 
 	return 0;
 }

@@ -43,6 +43,8 @@ namespace Dune
 		void Initialize(const WindowDesc& desc);
 		void Destroy();
 
+		void ProcessMessages();
+		static void ProcessBlockingMessages();
 		void Update();
 
 		[[nodiscard]] void* GetHandle() { return m_pHandle; }
@@ -78,9 +80,20 @@ namespace Dune
 			dU32 handle;
 		};
 
+		struct PendingEvent
+		{
+			EWindowMessageType type;
+			WindowMessage message;
+		};
+
 		Input m_input{};
 		dU32 m_width;
 		dU32 m_height;
+
+		Input m_pendingInput{};
+		dU32 m_pendingWidth{ 0 };
+		dU32 m_pendingHeight{ 0 };
+		dVector<PendingEvent> m_pendingEvents;
 
 		void* m_pHandle{ nullptr };
 		dWString m_title;

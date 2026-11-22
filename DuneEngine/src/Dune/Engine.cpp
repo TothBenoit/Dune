@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Dune/Engine.h"
 #include "Dune/Application.h"
 #include "Dune/Core/JobSystem.h"
 #include "Dune/Core/FileSystem.h"
@@ -22,7 +23,15 @@ namespace Dune
 		};
 	}
 
-	void Application::Initialize(const ApplicationDesc& desc)
+	void Run(Application& application, const EngineDesc& desc)
+	{
+		Engine engine{};
+		engine.Initialize(desc);
+		engine.Run(application);
+		engine.Destroy();
+	}
+
+	void Engine::Initialize(const EngineDesc& desc)
 	{
 		Job::Initialize(desc.workerCount);
 		FileSystem::Initialize(desc.engineResourcePath.c_str());
@@ -30,10 +39,10 @@ namespace Dune
 			FileSystem::AddRoot(root.name.c_str(), root.path.c_str());
 		m_graphics.Initialize(desc.physicalDeviceIndex);
 		m_assetCache.Initialize();
-		m_lastFrameTime = std::chrono::steady_clock::now();
+		m_osThreadID = std::this_thread::get_id();
 	}
 
-	void Application::Destroy()
+	void Engine::Destroy()
 	{
 		while (!m_worldViews.empty())
 			DestroyWorldView(m_worldViews.back());
@@ -49,8 +58,9 @@ namespace Dune
 		Job::Shutdown();
 	}
 
-	Window* Application::CreateWindow(const WindowDesc& desc, const Graphics::WindowSurfaceDesc& surfaceDesc)
+	Window* Engine::CreateWindow(const WindowDesc& desc, const Graphics::WindowSurfaceDesc& surfaceDesc)
 	{
+		Assert(std::this_thread::get_id() == m_osThreadID);
 		WindowEntry* pEntry = new WindowEntry();
 		pEntry->window.Initialize(desc);
 		const FilePath layoutPath = surfaceDesc.pImGuiLayoutPath ? FileSystem::ResolvePath(surfaceDesc.pImGuiLayoutPath) : FilePath{};
@@ -59,8 +69,9 @@ namespace Dune
 		return &pEntry->window;
 	}
 
-	void Application::DestroyWindow(Window* pWindow)
+	void Engine::DestroyWindow(Window* pWindow)
 	{
+		Assert(std::this_thread::get_id() == m_osThreadID);
 		for (const WorldView* pView : m_worldViews)
 			Assert(pView->pWindow != pWindow);
 		WindowEntry* pEntry = &GetWindowEntry(*pWindow);
@@ -70,7 +81,7 @@ namespace Dune
 		delete pEntry;
 	}
 
-	WorldView* Application::CreateWorldView(const WorldViewDesc& desc)
+	WorldView* Engine::CreateWorldView(const WorldViewDesc& desc)
 	{
 		Assert(desc.pWorld && desc.pWindow);
 		WorldView* pView = new WorldView{ .pWorld = desc.pWorld, .camera = desc.camera, .pWindow = desc.pWindow, .x = desc.x, .y = desc.y, .width = desc.width, .height = desc.height };
@@ -79,14 +90,14 @@ namespace Dune
 		return pView;
 	}
 
-	void Application::DestroyWorldView(WorldView* pView)
+	void Engine::DestroyWorldView(WorldView* pView)
 	{
 		pView->renderer.Destroy();
 		SwapRemove(m_worldViews, pView);
 		delete pView;
 	}
 
-	World* Application::CreateWorld(const WorldDesc& desc)
+	World* Engine::CreateWorld(const WorldDesc& desc)
 	{
 		World* pWorld = new World();
 		pWorld->Initialize(m_graphics, desc, m_frameContext.frameNumber);
@@ -94,7 +105,7 @@ namespace Dune
 		return pWorld;
 	}
 
-	void Application::DestroyWorld(World* pWorld)
+	void Engine::DestroyWorld(World* pWorld)
 	{
 		for (const WorldView* pView : m_worldViews)
 			Assert(pView->pWorld != pWorld);
@@ -103,10 +114,37 @@ namespace Dune
 		delete pWorld;
 	}
 
-	void Application::BeginFrame()
+	void Engine::Run(Application& application)
+	{
+		Assert(std::this_thread::get_id() == m_osThreadID);
+		application.Init(*this);
+
+		m_lastFrameTime = std::chrono::steady_clock::now();
+		bool isRunning = true;
+		while (isRunning)
+		{
+			PrepareTick();
+
+			Job::JobBuilder builder;
+			builder.DispatchJob([this, &application, &isRunning]() { RunTick(application, isRunning); });
+			const Job::Counter& counter = builder.ExtractWaitCounter();
+			while (counter.GetValue() > 0)
+			{
+				Window::ProcessBlockingMessages();
+				std::this_thread::yield();
+			}
+		}
+
+		application.Shutdown(*this);
+	}
+
+	void Engine::PrepareTick()
 	{
 		for (WindowEntry* pEntry : m_windows)
+		{
+			pEntry->window.ProcessMessages();
 			pEntry->window.Update();
+		}
 
 		const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 		m_frameContext.frameNumber++;
@@ -114,12 +152,24 @@ namespace Dune
 		m_lastFrameTime = now;
 	}
 
-	void Application::Update(World& world)
+	void Engine::RunTick(Application& application, bool& isRunning)
 	{
-		world.Update(m_frameContext);
+		isRunning = application.Tick(*this, m_frameContext.deltaTime);
+
+		Job::JobBuilder builder;
+		for (World* pWorld : m_worlds)
+			builder.DispatchJob<Job::Fence::None>([this, pWorld]() { pWorld->Update(m_frameContext); });
+		Job::WaitForCounter(builder.ExtractWaitCounter());
+
+		RenderFrame();
+#ifdef _DEBUG
+		for (World* pWorld : m_worlds)
+			pWorld->ValidateRenderScene(m_frameContext.frameNumber);
+#endif
+		m_graphics.EndFrame();
 	}
 
-	void Application::RenderFrame()
+	void Engine::RenderFrame()
 	{
 		for (WorldView* pView : m_worldViews)
 			m_graphics.Render(pView->renderer, pView->pWorld->GetRenderScene(), pView->pWorld->MakeView(pView->camera, GetViewSize(*pView)), m_frameContext, pView->frameData);
@@ -136,17 +186,7 @@ namespace Dune
 		}
 	}
 
-	void Application::EndFrame()
-	{
-		RenderFrame();
-#ifdef _DEBUG
-		for (World* pWorld : m_worlds)
-			pWorld->ValidateRenderScene(m_frameContext.frameNumber);
-#endif
-		m_graphics.EndFrame();
-	}
-
-	ModelHandle Application::LoadModel(const char* pPath)
+	ModelHandle Engine::LoadModel(const char* pPath)
 	{
 		const PathID<Model> source = FileSystem::Resolve<Model>(pPath);
 		const ModelHandle cached = m_assetCache.AcquireModel(source);
@@ -179,7 +219,7 @@ namespace Dune
 		return model;
 	}
 
-	void Application::UnloadModel(ModelHandle model)
+	void Engine::UnloadModel(ModelHandle model)
 	{
 		Model asset;
 		if (!model.IsValid() || !m_assetCache.ReleaseModel(model, asset))
@@ -190,12 +230,12 @@ namespace Dune
 			UnloadImage(image);
 	}
 
-	ImageHandle Application::LoadImage(const char* pPath)
+	ImageHandle Engine::LoadImage(const char* pPath)
 	{
 		return LoadImage(FileSystem::Resolve<Image>(pPath));
 	}
 
-	ImageHandle Application::LoadImage(PathID<Image> source)
+	ImageHandle Engine::LoadImage(PathID<Image> source)
 	{
 		const ImageHandle cached = m_assetCache.AcquireImage(source);
 		if (cached.IsValid())
@@ -210,7 +250,7 @@ namespace Dune
 		return image;
 	}
 
-	void Application::UnloadImage(ImageHandle image)
+	void Engine::UnloadImage(ImageHandle image)
 	{
 		Image asset;
 		if (!image.IsValid() || !m_assetCache.ReleaseImage(image, asset))
@@ -219,12 +259,12 @@ namespace Dune
 		m_graphics.ReleaseImageTexture(image);
 	}
 
-	const Image& Application::GetImage(ImageHandle image) const
+	const Image& Engine::GetImage(ImageHandle image) const
 	{
 		return m_assetCache.GetImage(image);
 	}
 
-	void Application::Spawn(World& world, ModelHandle model)
+	void Engine::Spawn(World& world, ModelHandle model)
 	{
 		GameScene& scene = world.GetGameScene();
 		const Model& asset = m_assetCache.GetModel(model);
@@ -242,7 +282,7 @@ namespace Dune
 		}
 	}
 
-	ModelHandle Application::LoadModel(World& world, const char* pPath)
+	ModelHandle Engine::LoadModel(World& world, const char* pPath)
 	{
 		const ModelHandle model = LoadModel(pPath);
 		if (model.IsValid())
@@ -250,12 +290,12 @@ namespace Dune
 		return model;
 	}
 
-	RHI::ImGuiContext& Application::GetImGui(const Window& window)
+	RHI::ImGuiContext& Engine::GetImGui(const Window& window)
 	{
 		return GetWindowEntry(window).surface.GetImGui();
 	}
 
-	Application::WindowEntry& Application::GetWindowEntry(const Window& window)
+	Engine::WindowEntry& Engine::GetWindowEntry(const Window& window)
 	{
 		for (WindowEntry* pEntry : m_windows)
 		{

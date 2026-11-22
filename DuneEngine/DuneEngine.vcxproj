@@ -42,6 +42,7 @@
     <ClInclude Include="include\Dune\Core\FrameContext.h" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Application.h" />
+    <ClInclude Include="include\Dune\Engine.h" />
     <ClInclude Include="include\Dune\Assets\AssetCache.h" />
     <ClInclude Include="include\Dune\Assets\Image.h" />
     <ClInclude Include="include\Dune\Assets\Model.h" />
@@ -135,7 +136,7 @@
     <ClCompile Include="src\Dune\Graphics\RenderContext.cpp" />
     <ClCompile Include="src\Dune\Graphics\ForwardPipeline.cpp" />
     <ClCompile Include="src\Dune\Graphics\UploadContext.cpp" />
-    <ClCompile Include="src\Dune\Application.cpp" />
+    <ClCompile Include="src\Dune\Engine.cpp" />
     <ClCompile Include="src\Dune\Assets\AssetCache.cpp" />
     <ClCompile Include="src\Dune\World\RenderBridge.cpp" />
     <ClCompile Include="src\Dune\Graphics\RenderPass\Visibility.cpp" />
