@@ -61,32 +61,32 @@ namespace Dune
 		const float clampedDeltaTime = DirectX::XMMin(deltaTime, 0.033f);
 
 		//Add rotation
-		constexpr float turnSpeed = DirectX::XMConvertToRadians(45.f);
-		float turnVelocity = turnSpeed * clampedDeltaTime;
-		dVec2 rotation{ input.GetMouseDeltaX() * turnVelocity, input.GetMouseDeltaY() * turnVelocity };
+		constexpr float radiansPerPixel = DirectX::XMConvertToRadians(0.75f);
+		dVec2 rotation{ input.GetMouseDeltaX() * radiansPerPixel, input.GetMouseDeltaY() * radiansPerPixel };
 		constexpr float yRotationClampValues[]{ DirectX::XMConvertToRadians(-89.99f), DirectX::XMConvertToRadians(89.99f) };
 		m_rotation.x = std::fmodf(m_rotation.x + rotation.x, DirectX::XM_2PI);
 		m_rotation.y = std::clamp(std::fmodf(m_rotation.y + rotation.y, DirectX::XM_2PI), yRotationClampValues[0], yRotationClampValues[1]);
 
 		const DirectX::XMVECTOR quat{ ComputeRotation(m_rotation) };
 
-		if (translate.x != 0.0f || translate.y != 0.0f || translate.z != 0.0f)
+		const float speed = (input.GetKey(KeyCode::ShiftKey)) ? 7.5f : 2.5f;
+		const float velocity = speed * clampedDeltaTime;
+
+		if (translate.x != 0.0f || translate.z != 0.0f)
 		{
-			//Apply camera rotation to translation
-			DirectX::XMStoreFloat3(&translate,
+			dVec3 move{};
+			DirectX::XMStoreFloat3(&move,
 				DirectX::XMVector3Rotate(
-					DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&translate)),
+					DirectX::XMVector3Normalize(DirectX::XMVectorSet(translate.x, 0.0f, translate.z, 0.0f)),
 					quat
 				)
 			);
-
-			//Apply translation
-			const float speed = (input.GetKey(KeyCode::ShiftKey)) ? 7.5f : 2.5f;
-			const float velocity = speed * clampedDeltaTime;
-			m_position.x += translate.x * velocity;
-			m_position.y += translate.y * velocity;
-			m_position.z += translate.z * velocity;
+			m_position.x += move.x * velocity;
+			m_position.y += move.y * velocity;
+			m_position.z += move.z * velocity;
 		}
+
+		m_position.y += translate.y * velocity;
 	}
 
 	void SimpleCameraController::UpdateEditorControls(float deltaTime, const Input& input)

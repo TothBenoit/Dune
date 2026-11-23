@@ -29,19 +29,19 @@ namespace Dune
 
 	void Input::SetMousePosX(float posX)
 	{
-		m_mouseDeltaX = posX - m_mousePosX;
+		m_mouseDeltaX += posX - m_mousePosX;
 		m_mousePosX = posX;
 	}
 
 	void Input::SetMousePosY(float posY)
 	{
-		m_mouseDeltaY = posY - m_mousePosY;
+		m_mouseDeltaY += posY - m_mousePosY;
 		m_mousePosY = posY;
 	}
 
 	void Input::SetMouseWheelDelta(float delta)
 	{
-		m_mouseWheelDelta = delta;
+		m_mouseWheelDelta += delta;
 	}
 
 	void Input::Update()
