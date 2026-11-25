@@ -60,25 +60,46 @@ namespace Dune
 
 	Window* Engine::CreateWindow(const WindowDesc& desc, const Graphics::WindowSurfaceDesc& surfaceDesc)
 	{
-		Assert(std::this_thread::get_id() == m_osThreadID);
-		WindowEntry* pEntry = new WindowEntry();
-		pEntry->window.Initialize(desc);
-		const FilePath layoutPath = surfaceDesc.pImGuiLayoutPath ? FileSystem::ResolvePath(surfaceDesc.pImGuiLayoutPath) : FilePath{};
-		pEntry->surface.Initialize(m_graphics.GetRenderContext(), pEntry->window, { .enableImGui = surfaceDesc.enableImGui, .pImGuiLayoutPath = layoutPath.empty() ? nullptr : layoutPath.c_str() });
-		m_windows.push_back(pEntry);
-		return &pEntry->window;
+		struct Request
+		{
+			Engine* pEngine;
+			const WindowDesc* pDesc;
+			const Graphics::WindowSurfaceDesc* pSurfaceDesc;
+			WindowEntry* pEntry;
+		};
+		Request request{ this, &desc, &surfaceDesc, nullptr };
+		RunOnOSThread([](void* pData)
+			{
+				Request& request = *(Request*)pData;
+				WindowEntry* pEntry = new WindowEntry();
+				pEntry->window.Initialize(*request.pDesc);
+				const FilePath layoutPath = request.pSurfaceDesc->pImGuiLayoutPath ? FileSystem::ResolvePath(request.pSurfaceDesc->pImGuiLayoutPath) : FilePath{};
+				pEntry->surface.Initialize(request.pEngine->m_graphics.GetRenderContext(), pEntry->window, { .enableImGui = request.pSurfaceDesc->enableImGui, .pImGuiLayoutPath = layoutPath.empty() ? nullptr : layoutPath.c_str() });
+				request.pEngine->m_windows.push_back(pEntry);
+				request.pEntry = pEntry;
+			}, &request);
+		return &request.pEntry->window;
 	}
 
 	void Engine::DestroyWindow(Window* pWindow)
 	{
-		Assert(std::this_thread::get_id() == m_osThreadID);
 		for (const WorldView* pView : m_worldViews)
 			Assert(pView->pWindow != pWindow);
-		WindowEntry* pEntry = &GetWindowEntry(*pWindow);
-		pEntry->surface.Destroy();
-		pEntry->window.Destroy();
-		SwapRemove(m_windows, pEntry);
-		delete pEntry;
+
+		struct Request
+		{
+			Engine* pEngine;
+			WindowEntry* pEntry;
+		};
+		Request request{ this, &GetWindowEntry(*pWindow) };
+		RunOnOSThread([](void* pData)
+			{
+				Request& request = *(Request*)pData;
+				request.pEntry->surface.Destroy();
+				request.pEntry->window.Destroy();
+				SwapRemove(request.pEngine->m_windows, request.pEntry);
+				delete request.pEntry;
+			}, &request);
 	}
 
 	WorldView* Engine::CreateWorldView(const WorldViewDesc& desc)
@@ -92,6 +113,7 @@ namespace Dune
 
 	void Engine::DestroyWorldView(WorldView* pView)
 	{
+		GetWindowEntry(*pView->pWindow).surface.WaitForFrames();
 		pView->renderer.Destroy();
 		SwapRemove(m_worldViews, pView);
 		delete pView;
@@ -131,11 +153,38 @@ namespace Dune
 			while (counter.GetValue() > 0)
 			{
 				Window::ProcessBlockingMessages();
+				ProcessOSRequest();
 				std::this_thread::yield();
 			}
 		}
 
 		application.Shutdown(*this);
+	}
+
+	void Engine::RunOnOSThread(void (*pFunction)(void* pData), void* pData)
+	{
+		if (std::this_thread::get_id() == m_osThreadID)
+		{
+			pFunction(pData);
+			return;
+		}
+
+		EOSRequestState expected = EOSRequestState::Free;
+		[[maybe_unused]] const bool isClaimed = m_osRequestState.compare_exchange_strong(expected, EOSRequestState::Claimed, std::memory_order_acquire);
+		Assert(isClaimed);
+		m_osRequest = { pFunction, pData };
+		m_osRequestState.store(EOSRequestState::Ready, std::memory_order_release);
+		while (m_osRequestState.load(std::memory_order_acquire) != EOSRequestState::Free)
+			std::this_thread::yield();
+	}
+
+	void Engine::ProcessOSRequest()
+	{
+		if (m_osRequestState.load(std::memory_order_acquire) != EOSRequestState::Ready)
+			return;
+		m_osRequest.pFunction(m_osRequest.pData);
+		m_osRequest = {};
+		m_osRequestState.store(EOSRequestState::Free, std::memory_order_release);
 	}
 
 	void Engine::PrepareTick()

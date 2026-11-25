@@ -22,6 +22,13 @@
 
 using namespace Dune;
 
+static const Transform kStaticCameras[3]
+{
+	{ .position = { -9.0f, 1.5f, 0.0f }, .rotation = DirectX::XMQuaternionRotationRollPitchYaw(0.0f, DirectX::XM_PIDIV2, 0.0f), .scale = 1.0f },
+	{ .position = { 9.0f, 1.5f, 0.0f }, .rotation = DirectX::XMQuaternionRotationRollPitchYaw(0.0f, -DirectX::XM_PIDIV2, 0.0f), .scale = 1.0f },
+	{ .position = { 0.0f, 9.0f, 0.0f }, .rotation = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2 - 0.01f, 0.0f, 0.0f), .scale = 1.0f },
+};
+
 class App : public Application
 {
 public:
@@ -89,13 +96,61 @@ public:
 	{
 		m_deltaTime = deltaTime;
 		DrawGUI(engine);
-		m_camera.Update(deltaTime, m_pWindow->GetInput());
+		const Input& input = m_pSplitWindow && m_pSplitWindow->HasFocus() ? m_pSplitWindow->GetInput() : m_pWindow->GetInput();
+		m_camera.Update(deltaTime, input);
 		m_pScene->Set(m_cameraEntity, m_camera.GetTransform());
+
+		if (input.GetKeyDown(KeyCode::F2) || m_closeSplitWindow)
+		{
+			if (m_pSplitWindow)
+				CloseSplitWindow(engine);
+			else
+				OpenSplitWindow(engine);
+			m_closeSplitWindow = false;
+		}
 		return m_isRunning;
+	}
+
+	void OpenSplitWindow(Engine& engine)
+	{
+		constexpr dU32 width = 1280;
+		constexpr dU32 height = 720;
+		constexpr dU32 halfWidth = width / 2;
+		constexpr dU32 halfHeight = height / 2;
+		m_pSplitWindow = engine.CreateWindow({ .width = width, .height = height, .title = L"Dune - Split view" });
+		m_splitCloseEvent = m_pSplitWindow->RegisterEvent(this, &App::OnCloseSplitWindow, EWindowMessageType::Close);
+
+		m_splitViews[0] = engine.CreateWorldView({ .pWorld = m_pWorld, .camera = m_cameraEntity, .pWindow = m_pSplitWindow, .width = halfWidth, .height = halfHeight });
+		for (dU32 i = 0; i < 3; i++)
+		{
+			m_staticCameras[i] = m_pScene->CreateEntity("Static camera", kStaticCameras[i]);
+			m_pScene->Add(m_staticCameras[i], Camera{ .near = 0.1f, .far = 500.0f });
+
+			const dU32 quadrant = i + 1;
+			m_splitViews[quadrant] = engine.CreateWorldView({ .pWorld = m_pWorld, .camera = m_staticCameras[i], .pWindow = m_pSplitWindow, .x = (quadrant % 2) * halfWidth, .y = (quadrant / 2) * halfHeight, .width = halfWidth, .height = halfHeight });
+		}
+	}
+
+	void CloseSplitWindow(Engine& engine)
+	{
+		for (WorldView*& pView : m_splitViews)
+		{
+			engine.DestroyWorldView(pView);
+			pView = nullptr;
+		}
+		for (EntityID camera : m_staticCameras)
+			m_pScene->DestroyEntity(camera);
+
+		m_pSplitWindow->UnregisterEvent(EWindowMessageType::Close, m_splitCloseEvent);
+		engine.DestroyWindow(m_pSplitWindow);
+		m_pSplitWindow = nullptr;
 	}
 
 	void Shutdown(Engine& engine) override
 	{
+		if (m_pSplitWindow)
+			CloseSplitWindow(engine);
+
 		m_pWindow->UnregisterEvent(EWindowMessageType::Close, m_closeEvent);
 		engine.DestroyWorldView(m_pView);
 
@@ -108,6 +163,11 @@ public:
 	static void OnClose(void* pData, const WindowMessage&)
 	{
 		((App*)pData)->m_isRunning = false;
+	}
+
+	static void OnCloseSplitWindow(void* pData, const WindowMessage&)
+	{
+		((App*)pData)->m_closeSplitWindow = true;
 	}
 
 	dMatrix4x4 ComputeTransformMatrix(dVec3& position, dQuat& rotation, float scale)
@@ -459,6 +519,12 @@ private:
 	SimpleCameraController m_camera{};
 	EntityID m_cameraEntity{};
 	bool m_isRunning{ true };
+
+	Window* m_pSplitWindow{ nullptr };
+	WorldView* m_splitViews[4]{};
+	EntityID m_staticCameras[3]{};
+	dU32 m_splitCloseEvent{ 0 };
+	bool m_closeSplitWindow{ false };
 
 	float m_deltaTime{ 0.0f };
 	float m_framerate{ 0.0f };

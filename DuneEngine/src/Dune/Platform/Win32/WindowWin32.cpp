@@ -327,6 +327,8 @@ namespace Dune
 		m_pHandle = nullptr;
 		m_input = {};
 		m_pendingInput = {};
+		m_hasFocus = false;
+		m_pendingHasFocus = false;
 		m_pendingEvents.clear();
 		m_title.clear();
 		m_hooks.clear();
@@ -358,6 +360,7 @@ namespace Dune
 		m_pendingInput.Update();
 		m_width = m_pendingWidth;
 		m_height = m_pendingHeight;
+		m_hasFocus = m_pendingHasFocus;
 		for (const PendingEvent& event : m_pendingEvents)
 			OnEvent(event.type, event.message);
 		m_pendingEvents.clear();
@@ -381,7 +384,11 @@ namespace Dune
 		case WM_PAINT:
 			m_pendingEvents.push_back({ EWindowMessageType::Paint, {} });
 			break;
+		case WM_SETFOCUS:
+			m_pendingHasFocus = true;
+			break;
 		case WM_KILLFOCUS:
+			m_pendingHasFocus = false;
 			m_pendingInput.ClearInput();
 			break;
 		case WM_SYSKEYDOWN:

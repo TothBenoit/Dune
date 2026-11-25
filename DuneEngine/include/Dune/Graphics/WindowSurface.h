@@ -43,6 +43,7 @@ namespace Dune::Graphics
 		void Destroy();
 
 		void Present(dSpan<const SurfaceBlit> blits);
+		void WaitForFrames();
 
 		[[nodiscard]] bool HasImGui() const { return m_imgui.IsInitialized(); }
 		[[nodiscard]] RHI::ImGuiContext& GetImGui() { Assert(HasImGui()); return m_imgui; }
@@ -55,7 +56,6 @@ namespace Dune::Graphics
 			dU64 fenceValue{ 0 };
 		};
 
-		void WaitForFrames();
 		void CreateBackBufferViews();
 
 	private:

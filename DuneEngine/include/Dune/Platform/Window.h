@@ -51,6 +51,7 @@ namespace Dune
 		[[nodiscard]] dU32  GetWidth() const { return m_width; }
 		[[nodiscard]] dU32  GetHeight() const { return m_height; }
 		[[nodiscard]] const Input& GetInput() const { return m_input; }
+		[[nodiscard]] bool HasFocus() const { return m_hasFocus; }
 
 		[[nodiscard]] dU32 RegisterHook(void* pData, WindowHook pHook, dU32 priority);
 		void UnregisterHook(dU32 handle);
@@ -89,10 +90,12 @@ namespace Dune
 		Input m_input{};
 		dU32 m_width;
 		dU32 m_height;
+		bool m_hasFocus{ false };
 
 		Input m_pendingInput{};
 		dU32 m_pendingWidth{ 0 };
 		dU32 m_pendingHeight{ 0 };
+		bool m_pendingHasFocus{ false };
 		dVector<PendingEvent> m_pendingEvents;
 
 		void* m_pHandle{ nullptr };

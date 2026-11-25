@@ -9,6 +9,7 @@
 #include "Dune/World/World.h"
 #include "Dune/Core/FrameContext.h"
 #include <thread>
+#include <atomic>
 
 namespace Dune
 {
@@ -100,7 +101,22 @@ namespace Dune
 			Graphics::WindowSurface surface;
 		};
 
+		struct OSRequest
+		{
+			void (*pFunction)(void* pData){ nullptr };
+			void* pData{ nullptr };
+		};
+
+		enum class EOSRequestState : dU8
+		{
+			Free,
+			Claimed,
+			Ready,
+		};
+
 		[[nodiscard]] WindowEntry& GetWindowEntry(const Window& window);
+		void RunOnOSThread(void (*pFunction)(void* pData), void* pData);
+		void ProcessOSRequest();
 		void PrepareTick();
 		void RunTick(Application& application, bool& isRunning);
 		void RenderFrame();
@@ -115,5 +131,7 @@ namespace Dune
 		std::chrono::steady_clock::time_point m_lastFrameTime{};
 		FrameContext m_frameContext{};
 		std::thread::id m_osThreadID{};
+		OSRequest m_osRequest{};
+		std::atomic<EOSRequestState> m_osRequestState{ EOSRequestState::Free };
 	};
 }
