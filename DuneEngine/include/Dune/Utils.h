@@ -59,13 +59,13 @@ namespace Dune::StringUtils
 
 namespace Dune::MemoryUtils
 {
-	[[nodiscard]] inline dU32 AlignUp(dU32 value, dU32 alignment)
+	[[nodiscard]] constexpr dU32 AlignUp(dU32 value, dU32 alignment)
 	{
 		Assert(alignment > 0 && (alignment & (alignment - 1)) == 0);
 		return (value + alignment - 1) & ~(alignment - 1);
 	}
 
-	[[nodiscard]] inline dU64 AlignUp(dU64 value, dU64 alignment)
+	[[nodiscard]] constexpr dU64 AlignUp(dU64 value, dU64 alignment)
 	{
 		Assert(alignment > 0 && (alignment & (alignment - 1)) == 0);
 		return (value + alignment - 1) & ~(alignment - 1);

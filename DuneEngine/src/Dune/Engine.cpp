@@ -220,6 +220,7 @@ namespace Dune
 
 	void Engine::RenderFrame()
 	{
+		m_graphics.BeginFrame();
 		for (WorldView* pView : m_worldViews)
 			m_graphics.Render(pView->renderer, pView->pWorld->GetRenderScene(), pView->pWorld->MakeView(pView->camera, GetViewSize(*pView)), m_frameContext, pView->frameData);
 
@@ -257,14 +258,7 @@ namespace Dune
 
 		asset.nodes = modelData.nodes;
 		const ModelHandle model = m_assetCache.AddModel(std::move(asset));
-		const Graphics::ModelResources& modelResources = m_graphics.CreateModelResources(model, modelData, textures);
-
-		for (MaterialHandle material : modelResources.materials)
-		{
-			const Graphics::MaterialKey key = m_graphics.GetMaterialKey(material);
-			for (WorldView* pView : m_worldViews)
-				pView->renderer.ResolvePSOs(key);
-		}
+		m_graphics.CreateModelResources(model, std::move(modelData), textures);
 		return model;
 	}
 
@@ -295,7 +289,7 @@ namespace Dune
 			return {};
 
 		const ImageHandle image = m_assetCache.AddImage({ .source = source, .format = data.format, .width = data.width, .height = data.height, .mipLevels = data.mipLevels });
-		m_graphics.CreateImageTexture(image, data);
+		m_graphics.CreateImageTexture(image, std::move(data));
 		return image;
 	}
 

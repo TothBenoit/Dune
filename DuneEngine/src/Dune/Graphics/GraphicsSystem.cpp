@@ -15,6 +15,7 @@ namespace Dune::Graphics
 
 	void GraphicsSystem::Destroy()
 	{
+		m_commands.Execute();
 		m_pendingTextures.clear();
 		m_pendingMeshes.clear();
 		m_pendingMaterialSets.clear();
@@ -23,16 +24,20 @@ namespace Dune::Graphics
 		m_renderContext.Destroy();
 	}
 
+	void GraphicsSystem::BeginFrame()
+	{
+		m_commands.Execute();
+		m_renderContext.GetUploadContext().Submit();
+	}
+
 	void GraphicsSystem::EndFrame()
 	{
-		m_renderContext.GetUploadContext().Submit();
 		m_renderContext.Signal();
 		ReleasePendingResources();
 	}
 
 	void GraphicsSystem::Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, const FrameContext& frameContext, FrameData& frameData)
 	{
-		m_renderContext.GetUploadContext().Submit();
 		RenderScene& renderScene = GetRenderScene(scene);
 		renderScene.ApplyChangelogs(frameContext.frameNumber);
 		const ResourceManager& resources = m_renderContext.GetResourceManager();
@@ -42,78 +47,90 @@ namespace Dune::Graphics
 		renderer.Render(frameContext, frameData, view);
 	}
 
-	TextureHandle GraphicsSystem::CreateTexture(const TextureData& data)
+	TextureHandle GraphicsSystem::CreateTexture(TextureData data)
 	{
 		const TextureHandle handle = m_resourceCache.textures.Allocate();
-		ResourceManager& resources = m_renderContext.GetResourceManager();
-		UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateTexture(handle, data);
-		const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Texture::kUploadAlignment);
-		resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
+		m_commands.Push([this, handle, data = std::move(data)]()
+			{
+				ResourceManager& resources = m_renderContext.GetResourceManager();
+				UploadContext& uploadContext = m_renderContext.GetUploadContext();
+				resources.CreateTexture(handle, data);
+				const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Texture::kUploadAlignment);
+				resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
+			});
 		return handle;
 	}
 
-	TextureHandle GraphicsSystem::CreateTexture(const ImageData& image)
+	TextureHandle GraphicsSystem::CreateTexture(ImageData image)
 	{
 		const TextureHandle handle = m_resourceCache.textures.Allocate();
-		ResourceManager& resources = m_renderContext.GetResourceManager();
-		UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateTexture(handle, image);
-		const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Texture::kUploadAlignment);
-		resources.Upload(handle, image, uploadContext.GetCommandList(), staging);
+		m_commands.Push([this, handle, data = std::move(image)]()
+			{
+				ResourceManager& resources = m_renderContext.GetResourceManager();
+				UploadContext& uploadContext = m_renderContext.GetUploadContext();
+				resources.CreateTexture(handle, data);
+				const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Texture::kUploadAlignment);
+				resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
+			});
 		return handle;
 	}
 
-	MeshHandle GraphicsSystem::CreateMesh(const MeshData& meshData)
+	MeshHandle GraphicsSystem::CreateMesh(MeshData meshData)
 	{
 		const MeshHandle handle = m_resourceCache.meshes.Allocate();
-		ResourceManager& resources = m_renderContext.GetResourceManager();
-		UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateMesh(handle, meshData);
-		const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Mesh::kUploadAlignment);
-		resources.Upload(handle, meshData, uploadContext.GetCommandList(), staging);
+		m_commands.Push([this, handle, data = std::move(meshData)]()
+			{
+				ResourceManager& resources = m_renderContext.GetResourceManager();
+				UploadContext& uploadContext = m_renderContext.GetUploadContext();
+				resources.CreateMesh(handle, data);
+				const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handle), Mesh::kUploadAlignment);
+				resources.Upload(handle, data, uploadContext.GetCommandList(), staging);
+			});
 		return handle;
 	}
 
 	MaterialHandle GraphicsSystem::CreateMaterial(const MaterialDesc& desc)
 	{
 		const MaterialHandle handle = m_resourceCache.materials.Allocate();
-		m_renderContext.GetResourceManager().CreateMaterial(handle, desc);
+		m_commands.Push([this, handle, desc]() { m_renderContext.GetResourceManager().CreateMaterial(handle, desc); });
 		return handle;
 	}
 
 	MaterialSetHandle GraphicsSystem::CreateMaterialSet(dSpan<MaterialHandle> materials)
 	{
 		const MaterialSetHandle handle = m_resourceCache.materialSets.Allocate();
-		m_renderContext.GetResourceManager().CreateMaterialSet(handle, materials);
+		m_commands.Push([this, handle, materials = dVector<MaterialHandle>(materials.begin(), materials.end())]() { m_renderContext.GetResourceManager().CreateMaterialSet(handle, materials); });
 		return handle;
 	}
 
 	void GraphicsSystem::DestroyTexture(TextureHandle texture)
 	{
-		m_pendingTextures.push_back({ .handle = texture, .fenceValue = m_renderContext.GetNextFenceValue() });
+		m_commands.Push([this, texture]() { m_pendingTextures.push_back({ .handle = texture, .fenceValue = m_renderContext.GetNextFenceValue() }); });
 	}
 
 	void GraphicsSystem::DestroyMesh(MeshHandle mesh)
 	{
-		m_pendingMeshes.push_back({ .handle = mesh, .fenceValue = m_renderContext.GetNextFenceValue() });
+		m_commands.Push([this, mesh]() { m_pendingMeshes.push_back({ .handle = mesh, .fenceValue = m_renderContext.GetNextFenceValue() }); });
 	}
 
 	void GraphicsSystem::DestroyMaterial(MaterialHandle material)
 	{
-		m_renderContext.GetResourceManager().Destroy(material);
-		m_resourceCache.materials.Free(material);
+		m_commands.Push([this, material]()
+			{
+				m_renderContext.GetResourceManager().Destroy(material);
+				m_resourceCache.materials.Free(material);
+			});
 	}
 
 	void GraphicsSystem::DestroyMaterialSet(MaterialSetHandle materialSet)
 	{
-		m_pendingMaterialSets.push_back({ .handle = materialSet, .fenceValue = m_renderContext.GetNextFenceValue() });
+		m_commands.Push([this, materialSet]() { m_pendingMaterialSets.push_back({ .handle = materialSet, .fenceValue = m_renderContext.GetNextFenceValue() }); });
 	}
 
-	void GraphicsSystem::CreateImageTexture(ImageHandle image, const ImageData& data)
+	void GraphicsSystem::CreateImageTexture(ImageHandle image, ImageData data)
 	{
 		Assert(m_resourceCache.imageTextures.find(image) == m_resourceCache.imageTextures.end());
-		m_resourceCache.imageTextures.emplace(image, CreateTexture(data));
+		m_resourceCache.imageTextures.emplace(image, CreateTexture(std::move(data)));
 	}
 
 	void GraphicsSystem::ReleaseImageTexture(ImageHandle image)
@@ -129,14 +146,17 @@ namespace Dune::Graphics
 		return m_resourceCache.GetTexture(image);
 	}
 
-	const ModelResources& GraphicsSystem::CreateModelResources(ModelHandle model, const ModelData& data, dSpan<TextureHandle> textures)
+	const ModelResources& GraphicsSystem::CreateModelResources(ModelHandle model, ModelData data, dSpan<TextureHandle> textures)
 	{
 		const ModelResources handles = m_resourceCache.AllocateModel(data);
-		ResourceManager& resources = m_renderContext.GetResourceManager();
-		UploadContext& uploadContext = m_renderContext.GetUploadContext();
-		resources.CreateModel(handles, data, textures);
-		const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handles), Mesh::kUploadAlignment);
-		resources.Upload(handles, data, uploadContext.GetCommandList(), staging);
+		m_commands.Push([this, handles, data = std::move(data), textures = dVector<TextureHandle>(textures.begin(), textures.end())]()
+			{
+				ResourceManager& resources = m_renderContext.GetResourceManager();
+				UploadContext& uploadContext = m_renderContext.GetUploadContext();
+				resources.CreateModel(handles, data, textures);
+				const StagingMemory staging = uploadContext.AllocateStaging(resources.GetUploadSize(handles), Mesh::kUploadAlignment);
+				resources.Upload(handles, data, uploadContext.GetCommandList(), staging);
+			});
 		return m_resourceCache.modelResources.emplace(model, handles).first->second;
 	}
 
@@ -177,11 +197,6 @@ namespace Dune::Graphics
 	{
 		Assert(m_renderSceneHandles.IsValid(scene));
 		return m_renderScenes[scene.GetIndex()];
-	}
-
-	MaterialKey GraphicsSystem::GetMaterialKey(MaterialHandle material) const
-	{
-		return m_renderContext.GetResourceManager().GetMaterial(material).GetKey();
 	}
 
 	template<typename TPending, typename TRelease>

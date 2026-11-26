@@ -108,7 +108,31 @@ public:
 				OpenSplitWindow(engine);
 			m_closeSplitWindow = false;
 		}
+
+		if (input.GetKeyDown(KeyCode::F3))
+			ToggleRuntimeSphere(engine);
 		return m_isRunning;
+	}
+
+	void ToggleRuntimeSphere(Engine& engine)
+	{
+		Graphics::GraphicsSystem& graphics = engine.GetGraphics();
+		if (m_runtimeMesh.IsValid())
+		{
+			if (m_selectedEntity == m_runtimeSphere)
+				m_selectedEntity = (EntityID)-1;
+			m_pScene->DestroyEntity(m_runtimeSphere);
+			graphics.DestroyMaterialSet(m_runtimeMaterialSet);
+			graphics.DestroyMaterial(m_runtimeMaterial);
+			graphics.DestroyMesh(m_runtimeMesh);
+			m_runtimeMesh = {};
+			return;
+		}
+
+		m_runtimeMesh = graphics.CreateMesh(MeshUtils::CreatePrimitive(EPrimitive::Sphere));
+		m_runtimeMaterial = graphics.CreateMaterial({ .baseColor = { 0.1f, 0.8f, 0.2f }, .roughness = 0.5f });
+		m_runtimeMaterialSet = graphics.CreateMaterialSet({ m_runtimeMaterial });
+		m_runtimeSphere = m_pScene->SpawnMesh("Runtime sphere", { .position = { 0.0f, 0.6f, 1.5f }, .rotation = DirectX::XMQuaternionIdentity(), .scale = 0.3f }, m_runtimeMesh, m_runtimeMaterialSet);
 	}
 
 	void OpenSplitWindow(Engine& engine)
@@ -525,6 +549,11 @@ private:
 	EntityID m_staticCameras[3]{};
 	dU32 m_splitCloseEvent{ 0 };
 	bool m_closeSplitWindow{ false };
+
+	MeshHandle m_runtimeMesh{};
+	MaterialHandle m_runtimeMaterial{};
+	MaterialSetHandle m_runtimeMaterialSet{};
+	EntityID m_runtimeSphere{};
 
 	float m_deltaTime{ 0.0f };
 	float m_framerate{ 0.0f };

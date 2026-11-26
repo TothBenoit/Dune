@@ -3,8 +3,10 @@
 #include "Dune/Graphics/RenderContext.h"
 #include "Dune/Graphics/RenderScene.h"
 #include "Dune/Graphics/MeshUtils.h"
+#include "Dune/Assets/Image.h"
 #include "Dune/Core/HandleAllocator.h"
 #include "Dune/Core/ChunkedArray.h"
+#include "Dune/Core/FunctionQueue.h"
 
 namespace Dune
 {
@@ -20,12 +22,13 @@ namespace Dune::Graphics
 	public:
 		void Initialize(dU32 physicalDeviceIndex);
 		void Destroy();
+		void BeginFrame();
 		void EndFrame();
 
 		void Render(Renderer& renderer, RenderSceneHandle scene, const ViewData& view, const FrameContext& frameContext, FrameData& frameData);
 
-		[[nodiscard]] TextureHandle     CreateTexture(const TextureData& data);
-		[[nodiscard]] MeshHandle        CreateMesh(const MeshData& meshData);
+		[[nodiscard]] TextureHandle     CreateTexture(TextureData data);
+		[[nodiscard]] MeshHandle        CreateMesh(MeshData meshData);
 		[[nodiscard]] MaterialHandle    CreateMaterial(const MaterialDesc& desc);
 		[[nodiscard]] MaterialSetHandle CreateMaterialSet(dSpan<MaterialHandle> materials);
 
@@ -34,11 +37,11 @@ namespace Dune::Graphics
 		void DestroyMaterial(MaterialHandle material);
 		void DestroyMaterialSet(MaterialSetHandle materialSet);
 
-		void CreateImageTexture(ImageHandle image, const ImageData& data);
+		void CreateImageTexture(ImageHandle image, ImageData data);
 		void ReleaseImageTexture(ImageHandle image);
 		[[nodiscard]] TextureHandle GetImageTexture(ImageHandle image) const;
 
-		const ModelResources& CreateModelResources(ModelHandle model, const ModelData& data, dSpan<TextureHandle> textures);
+		const ModelResources& CreateModelResources(ModelHandle model, ModelData data, dSpan<TextureHandle> textures);
 		void ReleaseModelResources(ModelHandle model);
 		[[nodiscard]] const ModelResources& GetModelResources(ModelHandle model) const;
 
@@ -49,7 +52,6 @@ namespace Dune::Graphics
 		[[nodiscard]] MeshHandle        GetPrimitive(EPrimitive primitive) const { return m_primitives[(dU32)primitive]; }
 		[[nodiscard]] MaterialHandle    GetDefaultMaterial() const { return m_defaultMaterial; }
 		[[nodiscard]] MaterialSetHandle GetDefaultMaterialSet() const { return m_defaultMaterialSet; }
-		[[nodiscard]] MaterialKey       GetMaterialKey(MaterialHandle material) const;
 		[[nodiscard]] RenderContext&    GetRenderContext() { return m_renderContext; }
 
 	private:
@@ -60,7 +62,7 @@ namespace Dune::Graphics
 			dU64      fenceValue{ 0 };
 		};
 
-		[[nodiscard]] TextureHandle CreateTexture(const ImageData& image);
+		[[nodiscard]] TextureHandle CreateTexture(ImageData image);
 		void ReleasePendingResources();
 
 	private:
@@ -74,5 +76,6 @@ namespace Dune::Graphics
 		dVector<PendingRelease<Texture>>        m_pendingTextures;
 		dVector<PendingRelease<Mesh>>           m_pendingMeshes;
 		dVector<PendingRelease<MaterialSet>>    m_pendingMaterialSets;
+		FunctionQueue                           m_commands;
 	};
 }

@@ -39,6 +39,7 @@
     <ClInclude Include="include\Dune\Core\RenderTypes.h" />
     <ClInclude Include="include\Dune\Platform\Fiber.h" />
     <ClInclude Include="include\Dune\Core\ChunkedArray.h" />
+    <ClInclude Include="include\Dune\Core\FunctionQueue.h" />
     <ClInclude Include="include\Dune\Core\FrameContext.h" />
     <ClInclude Include="include\Dune.h" />
     <ClInclude Include="include\Dune\Application.h" />
@@ -142,6 +143,7 @@
     <ClCompile Include="src\Dune\Graphics\RenderPass\Visibility.cpp" />
     <ClCompile Include="src\Dune\Game\Component\Camera.cpp" />
     <ClCompile Include="src\Dune\Core\JobSystem.cpp" />
+    <ClCompile Include="src\Dune\Core\FunctionQueue.cpp" />
     <ClCompile Include="src\Dune\Graphics\Mesh.cpp" />
     <ClCompile Include="src\Dune\Platform\RHI\DX12\GraphicsDX12.cpp" />
     <ClCompile Include="src\Dune\Platform\Input.cpp" />

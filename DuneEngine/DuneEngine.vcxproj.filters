@@ -25,6 +25,9 @@
     <ClInclude Include="include\Dune\Core\ChunkedArray.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
+    <ClInclude Include="include\Dune\Core\FunctionQueue.h">
+      <Filter>Dune\Core</Filter>
+    </ClInclude>
     <ClInclude Include="include\Dune\Core\FrameContext.h">
       <Filter>Dune\Core</Filter>
     </ClInclude>
@@ -338,6 +341,9 @@
       <Filter>Dune\Platform</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Core\JobSystem.cpp">
+      <Filter>Dune\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dune\Core\FunctionQueue.cpp">
       <Filter>Dune\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Dune\Platform\Logger.cpp">
