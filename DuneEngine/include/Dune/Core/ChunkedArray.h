@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 namespace Dune
 {
 	template<typename T, dU32 kChunkSize = 1024, dU32 kMaxChunks = 1024>

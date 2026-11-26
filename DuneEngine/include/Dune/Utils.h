@@ -1,6 +1,9 @@
 #pragma once
 
+#include "Dune/Platform/Assert.h"
+#include "Dune/Platform/Types.h"
 #include <stdarg.h>
+#include <stdio.h>
 #include <type_traits>
 
 namespace Dune::HashUtils

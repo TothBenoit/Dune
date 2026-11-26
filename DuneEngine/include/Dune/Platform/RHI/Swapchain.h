@@ -11,6 +11,7 @@ namespace Dune::RHI
 {
 	class Device;
 	class CommandQueue;
+	class Texture;
 
 	struct SwapchainDesc
 	{

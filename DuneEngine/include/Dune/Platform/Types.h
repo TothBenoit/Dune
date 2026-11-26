@@ -1,15 +1,20 @@
 #pragma once
 
+#include "Dune/Platform/Assert.h"
 #include <stdint.h>
 #include <string>
 #include <vector>
 #include <list>
+#include <deque>
 #include <queue>
 #include <stack>
 #include <map>
 #include <unordered_map>
 #include <set>
 #include <unordered_set>
+#include <initializer_list>
+#include <type_traits>
+#include <utility>
 #include <DirectXMath.h>
 
 namespace Dune

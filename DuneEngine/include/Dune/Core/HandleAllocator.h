@@ -2,6 +2,7 @@
 
 #include "Dune/Core/Handle.h"
 #include "Dune/Core/ChunkedArray.h"
+#include <atomic>
 
 namespace Dune
 {
